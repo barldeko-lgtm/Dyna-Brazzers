@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://c66x7w4kpw6by"]
+
+[ext_resource type="PackedScene" uid="uid://bnyfht2bjoo3q" path="res://scenes/world/world.tscn" id="1_hyk8p"]
+[ext_resource type="Script" uid="uid://b7vbapxldrm6c" path="res://scripts/CameraController.gd" id="1_iuonh"]
+
+[node name="Main" type="Node2D" unique_id=1663448340]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1935161786]
+script = ExtResource("1_iuonh")
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=2023045864]
+
+[node name="Simulation" type="Node" parent="." unique_id=898770180]
+
+[node name="World" parent="." unique_id=1194176976 instance=ExtResource("1_hyk8p")]
