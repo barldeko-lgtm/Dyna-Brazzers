@@ -348,13 +348,22 @@ func can_start_eating_here() -> bool:
 	return world_grid.count_adult_grass_under_footprint(anchor_tile, footprint_size) >= min_grass_to_eat
 
 
+# Возвращает опорный тайл, от которого нужно считать навигацию прямо сейчас.
+func get_navigation_anchor() -> Vector2i:
+	if is_moving:
+		return pending_anchor_tile
+
+	return anchor_tile
+
+
 # Пытается найти лучшую цель пастьбы: сначала рядом, потом по всей карте.
 func try_acquire_grazing_target() -> void:
 	if world_grid == null:
 		return
 
+	var navigation_anchor := get_navigation_anchor()
 	var local_target: Dictionary = world_grid.find_best_grazing_target(
-		anchor_tile,
+		navigation_anchor,
 		footprint_size,
 		min_grass_to_eat,
 		nearby_grazing_recheck_radius,
@@ -368,7 +377,7 @@ func try_acquire_grazing_target() -> void:
 		return
 
 	var global_target: Dictionary = world_grid.find_best_grazing_target(
-		anchor_tile,
+		navigation_anchor,
 		footprint_size,
 		min_grass_to_eat,
 		-1,
@@ -398,7 +407,8 @@ func build_path_to_grazing_target() -> void:
 	if world_grid == null or not has_grazing_target:
 		return
 
-	current_path = world_grid.find_path(anchor_tile, grazing_target_anchor, footprint_size, self)
+	var navigation_anchor := get_navigation_anchor()
+	current_path = world_grid.find_path(navigation_anchor, grazing_target_anchor, footprint_size, self)
 
 
 # Раз в несколько секунд переоценивает ближайшие пастбища, чтобы не тупить на старой цели.
@@ -406,8 +416,9 @@ func recheck_grazing_target() -> void:
 	if world_grid == null:
 		return
 
+	var navigation_anchor := get_navigation_anchor()
 	var nearby_target: Dictionary = world_grid.find_best_grazing_target(
-		anchor_tile,
+		navigation_anchor,
 		footprint_size,
 		min_grass_to_eat,
 		nearby_grazing_recheck_radius,
@@ -428,7 +439,7 @@ func recheck_grazing_target() -> void:
 
 	var new_score := float(nearby_target.get("score", -INF))
 	var current_adult_count := get_current_grazing_target_adult_count()
-	var current_distance: int = world_grid.estimate_path_steps(anchor_tile, grazing_target_anchor)
+	var current_distance: int = world_grid.estimate_path_steps(navigation_anchor, grazing_target_anchor)
 	var current_score := float(current_adult_count) * grazing_grass_weight - float(current_distance) * grazing_distance_penalty
 	var new_distance := int(nearby_target.get("distance", 0))
 
