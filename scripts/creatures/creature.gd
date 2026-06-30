@@ -86,6 +86,9 @@ var eating_anchor_tile := Vector2i.ZERO
 # Возраст, при котором существо считается слишком старым и умирает.
 @export var max_age := 100.0
 
+# Раз в сколько секунд существо становится старше на 1 год.
+@export var age_tick_interval := 30.0
+
 # Максимальная сытость существа.
 @export var max_hunger := 100.0
 
@@ -106,6 +109,9 @@ var eating_anchor_tile := Vector2i.ZERO
 
 # Текущее состояние существа.
 var state: State = State.WALK
+
+# Сколько времени прошло до следующего увеличения возраста.
+var age_tick_elapsed := 0.0
 
 # Ссылка на grid-manager мира.
 var world_grid: Node = null
@@ -159,7 +165,8 @@ func _ready() -> void:
 		hover_area.mouse_exited.connect(_on_hover_area_mouse_exited)
 
 	health = clamp(health, 0.0, max_health)
-	age = clamp(age, 0.0, max_age)
+	age = 0.0
+	age_tick_elapsed = 0.0
 	hunger = clamp(hunger, 0.0, max_hunger)
 	world_grid = find_world_grid()
 
@@ -183,6 +190,7 @@ func _exit_tree() -> void:
 
 # Обновляет голод, состояние и движение существа по сетке.
 func _physics_process(delta: float) -> void:
+	update_age(delta)
 	update_hunger(delta)
 	update_health(delta)
 	update_food_behavior()
@@ -199,6 +207,18 @@ func _physics_process(delta: float) -> void:
 			update_seek_food(delta)
 		State.EATING:
 			update_eating()
+
+
+# Раз в 30 секунд добавляет существу 1 год возраста.
+func update_age(delta: float) -> void:
+	if age_tick_interval <= 0.0:
+		return
+
+	age_tick_elapsed += delta
+
+	while age_tick_elapsed >= age_tick_interval:
+		age_tick_elapsed -= age_tick_interval
+		age += 1.0
 
 
 # Постепенно уменьшает сытость, пока существо не ест.

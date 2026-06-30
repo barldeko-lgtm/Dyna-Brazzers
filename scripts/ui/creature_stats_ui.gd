@@ -6,6 +6,9 @@ extends CanvasLayer
 # Заголовок панели.
 @onready var title_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/TitleLabel
 
+# Подпись возраста существа.
+@onready var age_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/AgeLabel
+
 # Подпись блока сытости.
 @onready var hunger_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/HungerLabel
 
@@ -67,6 +70,11 @@ func update_stats_text() -> void:
 		title_label.text = current_creature.get_creature_name()
 	else:
 		title_label.text = "Существо"
+
+	if current_creature.has_method("get_age"):
+		age_label.text = "Возраст: %d" % int(current_creature.get_age())
+	else:
+		age_label.text = "Возраст: ?"
 
 	health_label.text = "Здоровье"
 	hunger_label.text = "Сытость"

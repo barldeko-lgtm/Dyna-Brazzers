@@ -41,7 +41,7 @@ visible = false
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 220.0
-offset_bottom = 150.0
+offset_bottom = 176.0
 
 [node name="MarginContainer" type="MarginContainer" parent="UI/CreatureStatsPanel" unique_id=1964774994]
 layout_mode = 2
@@ -56,6 +56,10 @@ layout_mode = 2
 [node name="TitleLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer" unique_id=386548216]
 layout_mode = 2
 text = "Существо"
+
+[node name="AgeLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer" unique_id=144104220]
+layout_mode = 2
+text = "Возраст: 0"
 
 [node name="HealthLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer" unique_id=577492015]
 layout_mode = 2
