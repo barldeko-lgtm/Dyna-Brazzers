@@ -7,10 +7,10 @@ extends Camera2D
 @export var zoom_step := 0.1
 
 # Минимально допустимое приближение камеры.
-@export var min_zoom := 0.5
+@export var min_zoom := 0.7
 
 # Максимально допустимое отдаление камеры.
-@export var max_zoom := 5.0
+@export var max_zoom := 7.0
 
 
 # Обрабатывает движение камеры по WASD каждый кадр.
