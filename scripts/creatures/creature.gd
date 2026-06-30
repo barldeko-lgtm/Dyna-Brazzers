@@ -18,6 +18,21 @@ enum State {
 	DEAD
 }
 
+# Спрайт существа, когда оно смотрит вниз.
+@export var down_texture: Texture2D
+
+# Спрайт существа, когда оно смотрит вверх.
+@export var up_texture: Texture2D
+
+# Спрайт существа, когда оно смотрит вправо.
+@export var right_texture: Texture2D
+
+# Спрайт существа, когда оно смотрит вверх-вправо.
+@export var up_right_texture: Texture2D
+
+# Спрайт существа, когда оно смотрит вниз-вправо.
+@export var down_right_texture: Texture2D
+
 # Скорость перемещения существа в пикселях в секунду.
 @export var speed := 140.0
 
@@ -183,6 +198,7 @@ func _ready() -> void:
 		global_position = world_grid.anchor_to_world_position(anchor_tile, footprint_size)
 		sprite.position = Vector2.ZERO
 
+	update_sprite_visual()
 	enter_walk()
 
 
@@ -563,7 +579,7 @@ func start_next_path_step_if_needed() -> void:
 	current_path.remove_at(0)
 	movement_target_position = world_grid.anchor_to_world_position(pending_anchor_tile, footprint_size)
 	direction = global_position.direction_to(movement_target_position)
-	update_sprite_flip()
+	update_sprite_visual()
 	is_moving = true
 
 
@@ -617,12 +633,52 @@ func _on_eating_timer_timeout() -> void:
 	enter_walk()
 
 
-# Разворачивает спрайт по X в зависимости от направления движения.
-func update_sprite_flip() -> void:
-	if direction.x > 0.01:
-		sprite.flip_h = true
-	elif direction.x < -0.01:
-		sprite.flip_h = false
+# Выбирает нужный directional-спрайт и при необходимости флипает его влево.
+func update_sprite_visual() -> void:
+	if sprite == null:
+		return
+
+	var abs_x := absf(direction.x)
+	var abs_y := absf(direction.y)
+	var faces_left := direction.x < -0.01
+	var faces_right := direction.x > 0.01
+	var faces_up := direction.y < -0.01
+	var faces_down := direction.y > 0.01
+
+	sprite.flip_h = false
+
+	if abs_x <= 0.01 and abs_y <= 0.01:
+		if down_texture != null:
+			sprite.texture = down_texture
+		return
+
+	if abs_x <= abs_y * 0.5:
+		if faces_up and up_texture != null:
+			sprite.texture = up_texture
+			return
+		if faces_down and down_texture != null:
+			sprite.texture = down_texture
+			return
+
+	if abs_y <= abs_x * 0.5:
+		if right_texture != null:
+			sprite.texture = right_texture
+			sprite.flip_h = faces_left
+			return
+
+	if faces_up and up_right_texture != null:
+		sprite.texture = up_right_texture
+		sprite.flip_h = faces_left
+		return
+
+	if faces_down and down_right_texture != null:
+		sprite.texture = down_right_texture
+		sprite.flip_h = faces_left
+		return
+
+	if right_texture != null:
+		sprite.texture = right_texture
+		sprite.flip_h = faces_left
 
 
 # Ищет grid-manager мира, поднимаясь вверх по дереву сцены.

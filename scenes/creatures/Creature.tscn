@@ -1,17 +1,26 @@
 [gd_scene format=3 uid="uid://e3j5do0l0f20"]
 
 [ext_resource type="Script" uid="uid://dh1600uspx0uk" path="res://scripts/creatures/creature.gd" id="1_jh2dj"]
-[ext_resource type="Texture2D" path="res://assets/sprites/creatures/debug_square_256.png" id="2_sp62s"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_down.png" id="2_down"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_up.png" id="3_up"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_right.png" id="4_right"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_up_right.png" id="5_up_right"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_down_right.png" id="6_down_right"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hover"]
 size = Vector2(96, 96)
 
 [node name="Creature" type="CharacterBody2D" unique_id=834845466]
 script = ExtResource("1_jh2dj")
+down_texture = ExtResource("2_down")
+up_texture = ExtResource("3_up")
+right_texture = ExtResource("4_right")
+up_right_texture = ExtResource("5_up_right")
+down_right_texture = ExtResource("6_down_right")
 
 [node name="BodySprite" type="Sprite2D" parent="." unique_id=1794094611]
 z_index = 1
-texture = ExtResource("2_sp62s")
+texture = ExtResource("2_down")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=546018239]
 
