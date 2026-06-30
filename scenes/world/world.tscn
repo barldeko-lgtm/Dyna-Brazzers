@@ -1,6 +1,7 @@
 [gd_scene format=4 uid="uid://bnyfht2bjoo3q"]
 
 [ext_resource type="PackedScene" uid="uid://e3j5do0l0f20" path="res://scenes/creatures/creature.tscn" id="1_dphjl"]
+[ext_resource type="Script" path="res://scripts/world/world_grid.gd" id="1_world_grid"]
 [ext_resource type="PackedScene" path="res://scenes/resources/grass.tscn" id="2_grass_scene"]
 [ext_resource type="Texture2D" uid="uid://b47yxxmaql4cc" path="res://assets/sprites/terrain/ground.png" id="2_sl2e5"]
 
@@ -14,6 +15,7 @@ tile_size = Vector2i(128, 128)
 sources/0 = SubResource("TileSetAtlasSource_sl2e5")
 
 [node name="World" type="Node2D" unique_id=1194176976]
+script = ExtResource("1_world_grid")
 
 [node name="Creatures" type="Node2D" parent="." unique_id=2016915124]
 position = Vector2(500, 500)

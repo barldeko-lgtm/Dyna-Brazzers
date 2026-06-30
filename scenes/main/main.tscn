@@ -71,6 +71,15 @@ show_percentage = false
 theme_override_styles/background = SubResource("StyleBoxFlat_hunger_bar_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_hunger_bar_fill")
 
+[node name="FpsLabel" type="Label" parent="UI"]
+offset_left = 16.0
+offset_top = -36.0
+offset_right = 140.0
+offset_bottom = -13.0
+anchor_top = 1.0
+anchor_bottom = 1.0
+text = "FPS: 0"
+
 [node name="Simulation" type="Node" parent="." unique_id=898770180]
 
 [node name="World" parent="." unique_id=1194176976 instance=ExtResource("1_hyk8p")]

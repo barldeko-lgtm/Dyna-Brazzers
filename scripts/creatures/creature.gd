@@ -9,7 +9,7 @@ extends CharacterBody2D
 # Зона, которая ловит наведение мыши на существо.
 @onready var hover_area: Area2D = $HoverArea
 
-# Простые состояния поведения существа на раннем этапе.
+# Простые состояния поведения существа на текущем этапе.
 enum State {
 	IDLE,
 	WALK,
@@ -17,8 +17,8 @@ enum State {
 	EATING
 }
 
-# Скорость передвижения существа.
-@export var speed := 100.0
+# Скорость перемещения существа в пикселях в секунду.
+@export var speed := 140.0
 
 # Минимальное время простоя.
 @export var idle_time_min := 1.0
@@ -26,11 +26,26 @@ enum State {
 # Максимальное время простоя.
 @export var idle_time_max := 3.0
 
-# Минимальное время движения в одном направлении.
+# Минимальное время блуждания.
 @export var walk_time_min := 2.0
 
-# Максимальное время движения в одном направлении.
+# Максимальное время блуждания.
 @export var walk_time_max := 5.0
+
+# Размер существа в тайлах: по договорённости сейчас 2x2.
+@export var footprint_size := Vector2i(2, 2)
+
+# Раз в сколько секунд голодное существо перепроверяет ближайшие пастбища.
+@export var food_recheck_interval := 2.0
+
+# Радиус локального пересмотра цели пастьбы в тайлах.
+@export var nearby_grazing_recheck_radius := 6
+
+# Минимум взрослых кустов под существом, чтобы оно начинало есть.
+@export var min_grass_to_eat := 2
+
+# Насколько новый маршрут должен быть короче при равной выгоде, чтобы менять цель.
+@export var retarget_distance_advantage := 2
 
 # Технический идентификатор вида существа.
 @export var species_id := "stegosaurus"
@@ -74,29 +89,53 @@ enum State {
 # Порог, после которого существо начинает искать еду.
 @export var hunger_search_threshold := 70.0
 
-# Сколько сытости восстанавливается после одного приёма пищи.
+# Сколько сытости восстанавливается за один взрослый куст травы под телом.
 @export var hunger_restore_amount := 30.0
 
 # Время, которое существо тратит на поедание травы.
 @export var eating_duration := 3.0
 
-# Дистанция, на которой считается, что существо дошло до травы.
-@export var eat_range := 24.0
-
 # Текущее состояние существа.
 var state: State = State.WALK
 
-# Текущее направление движения.
+# Ссылка на grid-manager мира.
+var world_grid: Node = null
+
+# Тайл-опора существа: верхний левый тайл его footprint.
+var anchor_tile := Vector2i.ZERO
+
+# Визуальный сдвиг существа относительно математического центра footprint.
+var render_offset := Vector2.ZERO
+
+# Направление последнего движения для отражения спрайта.
 var direction := Vector2.ZERO
 
 # Таймер текущего состояния блуждания.
 var state_timer := 0.0
 
-# Текущая цель для еды.
-var target_grass: Node2D
+# Таймер периодической переоценки пастбища.
+var food_recheck_timer := 0.0
+
+# Текущий маршрут как список опорных тайлов.
+var current_path: Array[Vector2i] = []
+
+# Текущий целевой тайл для пастьбы.
+var grazing_target_anchor := Vector2i.ZERO
+
+# Есть ли сейчас валидная целевая точка пастьбы.
+var has_grazing_target := false
+
+# Следующий тайл шага, к которому существо сейчас визуально движется.
+var pending_anchor_tile := Vector2i.ZERO
+
+# Мировая точка, в которую сейчас едет центр существа.
+var movement_target_position := Vector2.ZERO
+
+# Идёт ли сейчас визуальное перемещение между тайлами.
+var is_moving := false
 
 
-# Подготавливает существо, таймер еды и сразу запускает первое движение.
+# Подготавливает существо, регистрирует его на сетке и сразу запускает первое поведение.
 func _ready() -> void:
 	randomize()
 	eating_timer.one_shot = true
@@ -113,14 +152,33 @@ func _ready() -> void:
 	health = clamp(health, 0.0, max_health)
 	age = clamp(age, 0.0, max_age)
 	hunger = clamp(hunger, 0.0, max_hunger)
+	world_grid = find_world_grid()
+
+	if world_grid != null:
+		var initial_position := global_position
+		anchor_tile = world_grid.world_to_anchor_tile(initial_position, footprint_size)
+		anchor_tile = world_grid.find_nearest_valid_anchor(anchor_tile, footprint_size, self)
+		render_offset = initial_position - world_grid.anchor_to_world_position(anchor_tile, footprint_size)
+		world_grid.register_creature(self, anchor_tile, footprint_size)
+		global_position = world_grid.anchor_to_world_position(anchor_tile, footprint_size) + render_offset
+
 	enter_walk()
 
 
-# Обновляет голод, состояние существа и применяет движение через физику.
+# Освобождает занятые тайлы при удалении существа со сцены.
+func _exit_tree() -> void:
+	if world_grid != null:
+		world_grid.unregister_creature(self, footprint_size)
+
+
+# Обновляет голод, состояние и движение существа по сетке.
 func _physics_process(delta: float) -> void:
 	update_hunger(delta)
 	update_health(delta)
 	update_food_behavior()
+
+	if is_moving:
+		advance_movement(delta)
 
 	match state:
 		State.IDLE:
@@ -128,11 +186,9 @@ func _physics_process(delta: float) -> void:
 		State.WALK:
 			update_walk(delta)
 		State.SEEK_FOOD:
-			update_seek_food()
+			update_seek_food(delta)
 		State.EATING:
 			update_eating()
-
-	move_and_slide()
 
 
 # Постепенно уменьшает сытость, пока существо не ест.
@@ -151,143 +207,297 @@ func update_health(delta: float) -> void:
 	health = clamp(health - starvation_health_decay_rate * delta, 0.0, max_health)
 
 
-# Переключает существо в режим поиска еды, когда оно проголодалось.
+# Решает, пора ли существу искать пастбище.
 func update_food_behavior() -> void:
+	if world_grid == null:
+		return
+
 	if state == State.EATING:
 		return
 
 	if hunger > hunger_search_threshold:
-		if state == State.SEEK_FOOD and not is_instance_valid(target_grass):
-			target_grass = null
 		return
 
-	if state == State.SEEK_FOOD and is_instance_valid(target_grass) and target_grass.has_method("can_be_eaten") and target_grass.can_be_eaten():
-		return
-
-	var nearest_grass := find_nearest_edible_grass()
-
-	if nearest_grass != null:
-		enter_seek_food(nearest_grass)
+	if state != State.SEEK_FOOD:
+		enter_seek_food()
 
 
 # Логика состояния покоя: существо стоит на месте до конца таймера.
 func update_idle(delta: float) -> void:
 	state_timer -= delta
-	velocity = Vector2.ZERO
 
 	if state_timer <= 0.0:
 		enter_walk()
 
 
-# Логика состояния движения: существо идёт в выбранную сторону.
+# Логика блуждания: существо случайно шагает по соседним тайлам.
 func update_walk(delta: float) -> void:
 	state_timer -= delta
-	velocity = direction * speed
-	update_sprite_flip()
+
+	if is_moving:
+		return
 
 	if state_timer <= 0.0:
 		enter_idle()
-
-
-# Логика поиска еды: существо идёт к ближайшей взрослой траве.
-func update_seek_food() -> void:
-	if not is_instance_valid(target_grass):
-		target_grass = null
-		enter_walk()
 		return
 
-	if not target_grass.has_method("can_be_eaten") or not target_grass.can_be_eaten():
-		target_grass = null
-		enter_walk()
-		return
+	if current_path.is_empty():
+		choose_random_wander_step()
 
-	var target_direction := global_position.direction_to(target_grass.global_position)
-	direction = target_direction
-	velocity = direction * speed
-	update_sprite_flip()
+	start_next_path_step_if_needed()
 
-	if global_position.distance_to(target_grass.global_position) <= eat_range:
+
+# Логика поиска еды: существо идёт к лучшей точке пастьбы и иногда переоценивает цель.
+func update_seek_food(delta: float) -> void:
+	food_recheck_timer -= delta
+
+	if food_recheck_timer <= 0.0:
+		recheck_grazing_target()
+		food_recheck_timer = food_recheck_interval
+
+	if not is_moving and can_start_eating_here():
 		enter_eating()
+		return
+
+	if not has_grazing_target:
+		if not is_moving and current_path.is_empty():
+			choose_random_wander_step()
+
+		start_next_path_step_if_needed()
+		return
+
+	start_next_path_step_if_needed()
+
+	if not is_moving and current_path.is_empty() and has_grazing_target:
+		if anchor_tile == grazing_target_anchor:
+			if can_start_eating_here():
+				enter_eating()
+			else:
+				has_grazing_target = false
+				try_acquire_grazing_target()
+		else:
+			build_path_to_grazing_target()
 
 
-# Логика поедания: существо стоит на месте и ждёт завершения таймера еды.
+# Во время еды существо стоит на месте и ждёт таймер.
 func update_eating() -> void:
-	velocity = Vector2.ZERO
+	return
 
 
 # Переводит существо в состояние покоя и задаёт новую длину паузы.
 func enter_idle() -> void:
 	state = State.IDLE
 	state_timer = randf_range(idle_time_min, idle_time_max)
-	velocity = Vector2.ZERO
+	clear_path()
 
 
-# Переводит существо в состояние движения и выбирает новое направление.
+# Переводит существо в состояние блуждания.
 func enter_walk() -> void:
 	state = State.WALK
-	target_grass = null
-	choose_new_direction()
 	state_timer = randf_range(walk_time_min, walk_time_max)
-	velocity = direction * speed
-	update_sprite_flip()
+	has_grazing_target = false
+	clear_path()
 
 
-# Переводит существо в режим поиска указанной травы.
-func enter_seek_food(grass: Node2D) -> void:
+# Переводит существо в режим поиска пастбища.
+func enter_seek_food() -> void:
 	state = State.SEEK_FOOD
-	target_grass = grass
-	velocity = Vector2.ZERO
+	food_recheck_timer = food_recheck_interval
+	has_grazing_target = false
+	clear_path()
+	try_acquire_grazing_target()
 
 
-# Переводит существо в режим поедания найденной травы.
+# Переводит существо в режим поедания травы.
 func enter_eating() -> void:
 	state = State.EATING
-	velocity = Vector2.ZERO
+	clear_path()
 	eating_timer.start(eating_duration)
 
 
-# Выбирает случайное нормализованное направление движения.
-func choose_new_direction() -> void:
-	direction = Vector2.from_angle(randf() * TAU).normalized()
+# Выбирает один случайный валидный соседний тайл для шага.
+func choose_random_wander_step() -> void:
+	if world_grid == null:
+		return
+
+	var neighbors: Array[Vector2i] = world_grid.get_neighbors(anchor_tile, footprint_size, self)
+
+	if neighbors.is_empty():
+		return
+
+	var random_index := randi_range(0, neighbors.size() - 1)
+	current_path = [neighbors[random_index]]
 
 
-# Находит ближайшую взрослую траву, которую уже можно есть.
-func find_nearest_edible_grass() -> Node2D:
-	var grasses := get_tree().get_nodes_in_group("grass")
-	var nearest_grass: Node2D = null
-	var nearest_distance := INF
+# Проверяет, можно ли начать есть на текущей позиции.
+func can_start_eating_here() -> bool:
+	if world_grid == null:
+		return false
 
-	for grass in grasses:
-		if not (grass is Node2D):
-			continue
-
-		if not grass.has_method("can_be_eaten"):
-			continue
-
-		if not grass.can_be_eaten():
-			continue
-
-		var distance := global_position.distance_to(grass.global_position)
-
-		if distance < nearest_distance:
-			nearest_distance = distance
-			nearest_grass = grass
-
-	return nearest_grass
+	return world_grid.count_adult_grass_under_footprint(anchor_tile, footprint_size) >= min_grass_to_eat
 
 
-# Завершает поедание: уменьшает траву и восстанавливает часть сытости.
+# Пытается найти лучшую цель пастьбы: сначала рядом, потом по всей карте.
+func try_acquire_grazing_target() -> void:
+	if world_grid == null:
+		return
+
+	var local_target: Dictionary = world_grid.find_best_grazing_target(
+		anchor_tile,
+		footprint_size,
+		min_grass_to_eat,
+		nearby_grazing_recheck_radius,
+		self
+	)
+
+	if not local_target.is_empty():
+		apply_grazing_target(local_target)
+		return
+
+	var global_target: Dictionary = world_grid.find_best_grazing_target(anchor_tile, footprint_size, min_grass_to_eat, -1, self)
+
+	if not global_target.is_empty():
+		apply_grazing_target(global_target)
+		return
+
+	has_grazing_target = false
+	grazing_target_anchor = anchor_tile
+	clear_path()
+
+
+# Назначает новую точку пастьбы и перестраивает маршрут к ней.
+func apply_grazing_target(target_data: Dictionary) -> void:
+	has_grazing_target = true
+	grazing_target_anchor = target_data.get("anchor", anchor_tile)
+	build_path_to_grazing_target()
+
+
+# Перестраивает путь к текущей точке пастьбы.
+func build_path_to_grazing_target() -> void:
+	if world_grid == null or not has_grazing_target:
+		return
+
+	current_path = world_grid.find_path(anchor_tile, grazing_target_anchor, footprint_size, self)
+
+
+# Раз в несколько секунд переоценивает ближайшие пастбища, чтобы не тупить на старой цели.
+func recheck_grazing_target() -> void:
+	if world_grid == null:
+		return
+
+	var nearby_target: Dictionary = world_grid.find_best_grazing_target(
+		anchor_tile,
+		footprint_size,
+		min_grass_to_eat,
+		nearby_grazing_recheck_radius,
+		self
+	)
+
+	if nearby_target.is_empty():
+		if has_grazing_target and not is_current_grazing_target_still_valid():
+			has_grazing_target = false
+			clear_path()
+		return
+
+	if not has_grazing_target:
+		apply_grazing_target(nearby_target)
+		return
+
+	var new_adult_count := int(nearby_target.get("adult_count", 0))
+	var current_adult_count := get_current_grazing_target_adult_count()
+	var new_distance := int(nearby_target.get("distance", 0))
+	var current_distance: int = world_grid.estimate_path_steps(anchor_tile, grazing_target_anchor)
+
+	if new_adult_count > current_adult_count:
+		apply_grazing_target(nearby_target)
+		return
+
+	if new_adult_count == current_adult_count and new_distance < current_distance - retarget_distance_advantage:
+		apply_grazing_target(nearby_target)
+		return
+
+	if not is_current_grazing_target_still_valid():
+		apply_grazing_target(nearby_target)
+
+
+# Проверяет, не испортилась ли текущая точка пастьбы.
+func is_current_grazing_target_still_valid() -> bool:
+	if not has_grazing_target or world_grid == null:
+		return false
+
+	if not world_grid.can_place_footprint(grazing_target_anchor, footprint_size, self):
+		return false
+
+	return get_current_grazing_target_adult_count() >= min_grass_to_eat
+
+
+# Возвращает число взрослых кустов на текущей цели пастьбы.
+func get_current_grazing_target_adult_count() -> int:
+	if world_grid == null or not has_grazing_target:
+		return 0
+
+	return world_grid.count_adult_grass_under_footprint(grazing_target_anchor, footprint_size)
+
+
+# Начинает движение к следующему тайлу из текущего пути.
+func start_next_path_step_if_needed() -> void:
+	if is_moving:
+		return
+
+	if current_path.is_empty():
+		return
+
+	pending_anchor_tile = current_path[0]
+	current_path.remove_at(0)
+	movement_target_position = world_grid.anchor_to_world_position(pending_anchor_tile, footprint_size) + render_offset
+	direction = global_position.direction_to(movement_target_position)
+	update_sprite_flip()
+	is_moving = true
+
+
+# Плавно двигает существо к следующему опорному тайлу.
+func advance_movement(delta: float) -> void:
+	global_position = global_position.move_toward(movement_target_position, speed * delta)
+
+	if global_position.distance_to(movement_target_position) > 0.1:
+		return
+
+	global_position = movement_target_position
+	is_moving = false
+
+	if world_grid != null and not world_grid.move_creature(self, pending_anchor_tile, footprint_size):
+		clear_path()
+		has_grazing_target = false
+		return
+
+	anchor_tile = pending_anchor_tile
+
+	if state == State.SEEK_FOOD and can_start_eating_here():
+		enter_eating()
+
+
+# Очищает текущий маршрут и останавливает визуальный переход между тайлами.
+func clear_path() -> void:
+	current_path.clear()
+	is_moving = false
+	pending_anchor_tile = anchor_tile
+	movement_target_position = global_position
+
+
+# Завершает поедание: съедает всю взрослую траву под телом и восстанавливает сытость.
 func _on_eating_timer_timeout() -> void:
-	if is_instance_valid(target_grass) and target_grass.has_method("consume"):
-		if target_grass.consume():
-			hunger = clamp(hunger + hunger_restore_amount, 0.0, max_hunger)
+	if world_grid == null:
+		enter_walk()
+		return
+
+	var consumed_grass_count: int = world_grid.consume_adult_grass_under_footprint(anchor_tile, footprint_size)
+
+	if consumed_grass_count > 0:
+		hunger = clamp(hunger + hunger_restore_amount * float(consumed_grass_count), 0.0, max_hunger)
 
 	if hunger <= hunger_search_threshold:
-		var nearest_grass := find_nearest_edible_grass()
-
-		if nearest_grass != null:
-			enter_seek_food(nearest_grass)
-			return
+		enter_seek_food()
+		return
 
 	enter_walk()
 
@@ -298,6 +508,19 @@ func update_sprite_flip() -> void:
 		sprite.flip_h = true
 	elif direction.x < -0.01:
 		sprite.flip_h = false
+
+
+# Ищет grid-manager мира, поднимаясь вверх по дереву сцены.
+func find_world_grid() -> Node:
+	var current: Node = self
+
+	while current != null:
+		if current.has_method("register_creature") and current.has_method("world_to_anchor_tile"):
+			return current
+
+		current = current.get_parent()
+
+	return null
 
 
 # Возвращает технический идентификатор вида.

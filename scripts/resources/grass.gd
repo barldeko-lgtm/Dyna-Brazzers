@@ -27,17 +27,31 @@ enum Stage {
 # Время ожидания перед размножением, пока трава стоит во 2 стадии.
 @export var spread_delay := 10.0
 
-# Расстояние размножения в пикселях. По умолчанию равно одному тайлу.
-@export var spread_distance := 128.0
-
-# Текущая стадия травы при старте сцены.
+# Стартовая стадия травы при запуске сцены.
 @export var start_stage: Stage = Stage.STAGE_1
 
 # Текущая рабочая стадия травы.
 var current_stage: Stage = Stage.STAGE_1
 
+# Ссылка на grid-manager мира.
+var world_grid: Node = null
 
-# Инициализирует траву, подключает таймеры и ставит нужную стартовую стадию.
+# Тайл, на котором стоит этот куст травы.
+var tile_position := Vector2i.ZERO
+
+# Исходный визуальный сдвиг куста относительно математического центра тайла.
+var render_offset := Vector2.ZERO
+
+# Сдвиги для размножения по 4 сторонам.
+const CARDINAL_TILE_OFFSETS := [
+	Vector2i.RIGHT,
+	Vector2i.LEFT,
+	Vector2i.UP,
+	Vector2i.DOWN
+]
+
+
+# Инициализирует траву, подключает таймеры и регистрирует куст на сетке.
 func _ready() -> void:
 	add_to_group("grass")
 	growth_timer.one_shot = true
@@ -52,6 +66,16 @@ func _ready() -> void:
 	current_stage = start_stage
 	apply_current_stage_visual()
 	update_timers()
+	world_grid = find_world_grid()
+
+	if world_grid != null:
+		sync_tile_position_with_world()
+
+
+# Удаляет куст из реестра мира при освобождении узла.
+func _exit_tree() -> void:
+	if world_grid != null:
+		world_grid.unregister_grass(self, tile_position)
 
 
 # Возвращает true, если траву уже можно есть.
@@ -104,31 +128,25 @@ func _on_spread_timer_timeout() -> void:
 	if current_stage != Stage.STAGE_2:
 		return
 
-	spread_to_cardinal_directions()
+	spread_to_cardinal_tiles()
 	spread_timer.start(spread_delay)
 
 
-# Пытается создать новую траву сверху, снизу, слева и справа от текущей.
-func spread_to_cardinal_directions() -> void:
-	var offsets := [
-		Vector2.RIGHT * spread_distance,
-		Vector2.LEFT * spread_distance,
-		Vector2.UP * spread_distance,
-		Vector2.DOWN * spread_distance
-	]
-
-	for offset in offsets:
-		try_spawn_grass(global_position + offset)
+# Пытается создать новую траву сверху, снизу, слева и справа от текущего тайла.
+func spread_to_cardinal_tiles() -> void:
+	for offset in CARDINAL_TILE_OFFSETS:
+		try_spawn_grass(tile_position + offset)
 
 
-# Создаёт новую траву в указанной точке, если там ещё нет другой травы.
-func try_spawn_grass(target_global_position: Vector2) -> void:
-	var grass_parent := get_parent()
-
-	if grass_parent == null:
+# Создаёт новую траву на указанном тайле, если он свободен.
+func try_spawn_grass(target_tile: Vector2i) -> void:
+	if world_grid == null:
 		return
 
-	if has_grass_at_position(grass_parent, target_global_position):
+	if not world_grid.is_tile_walkable(target_tile):
+		return
+
+	if world_grid.has_grass_at_tile(target_tile):
 		return
 
 	var grass_scene := load(scene_file_path) as PackedScene
@@ -141,23 +159,37 @@ func try_spawn_grass(target_global_position: Vector2) -> void:
 	if new_grass == null:
 		return
 
-	grass_parent.add_child(new_grass)
-	new_grass.global_position = target_global_position
+	get_parent().add_child(new_grass)
+	new_grass.global_position = world_grid.grass_tile_to_world_position(target_tile)
+
+	if new_grass.has_method("sync_tile_position_with_world"):
+		new_grass.sync_tile_position_with_world()
 
 
-# Проверяет, есть ли уже трава в нужной точке, чтобы не плодить дубликаты.
-func has_grass_at_position(grass_parent: Node, target_global_position: Vector2) -> bool:
-	for child in grass_parent.get_children():
-		if child == self:
-			continue
+# Ищет grid-manager мира, поднимаясь вверх по дереву сцены.
+func sync_tile_position_with_world() -> void:
+	if world_grid == null:
+		world_grid = find_world_grid()
 
-		if not (child is Node2D):
-			continue
+	if world_grid == null:
+		return
 
-		if child.scene_file_path != scene_file_path:
-			continue
+	world_grid.unregister_grass(self, tile_position)
+	var initial_position := global_position
+	tile_position = world_grid.world_to_map_tile(initial_position)
+	render_offset = initial_position - world_grid.map_to_world_center(tile_position)
+	world_grid.register_grass(self, tile_position)
+	global_position = world_grid.grass_tile_to_world_position(tile_position)
 
-		if child.global_position.distance_to(target_global_position) < 1.0:
-			return true
 
-	return false
+# Ищет grid-manager мира, поднимаясь вверх по дереву сцены.
+func find_world_grid() -> Node:
+	var current: Node = self
+
+	while current != null:
+		if current.has_method("register_grass") and current.has_method("world_to_map_tile"):
+			return current
+
+		current = current.get_parent()
+
+	return null

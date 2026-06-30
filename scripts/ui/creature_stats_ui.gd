@@ -18,6 +18,9 @@ extends CanvasLayer
 # Горизонтальная шкала сытости.
 @onready var hunger_bar: ProgressBar = $CreatureStatsPanel/MarginContainer/VBoxContainer/HungerBar
 
+# Метка с текущим FPS в нижнем углу экрана.
+@onready var fps_label: Label = $FpsLabel
+
 # Существо, которое сейчас показывается в панели.
 var current_creature: Node = null
 
@@ -30,6 +33,8 @@ func _ready() -> void:
 
 # Обновляет панель каждый кадр, пока мышка наведена на существо.
 func _process(_delta: float) -> void:
+	fps_label.text = "FPS: %d" % Engine.get_frames_per_second()
+
 	if not is_instance_valid(current_creature):
 		hide_creature_stats()
 		return
