@@ -225,6 +225,10 @@ func update_food_behavior() -> void:
 	if state == State.EATING:
 		return
 
+	# Не переключаемся на поиск еды посреди шага: сначала доходим до центра текущего тайла.
+	if is_moving:
+		return
+
 	if hunger > hunger_search_threshold:
 		return
 
@@ -501,6 +505,9 @@ func advance_movement(delta: float) -> void:
 	is_moving = false
 
 	if world_grid != null and not world_grid.move_creature(self, pending_anchor_tile, footprint_size):
+		# Если целевой footprint успели занять, откатываем визуал к старому логическому anchor.
+		# Иначе существо может стоять в одном 2x2, а есть/занимать тайлы в другом.
+		global_position = world_grid.anchor_to_world_position(anchor_tile, footprint_size)
 		clear_path()
 		has_grazing_target = false
 		return
