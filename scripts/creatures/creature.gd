@@ -14,7 +14,8 @@ enum State {
 	IDLE,
 	WALK,
 	SEEK_FOOD,
-	EATING
+	EATING,
+	DEAD
 }
 
 # Скорость перемещения существа в пикселях в секунду.
@@ -193,6 +194,9 @@ func _exit_tree() -> void:
 
 # Обновляет голод, состояние и движение существа по сетке.
 func _physics_process(delta: float) -> void:
+	if state == State.DEAD:
+		return
+
 	update_age(delta)
 
 	if check_age_death():
@@ -214,7 +218,8 @@ func _physics_process(delta: float) -> void:
 			update_seek_food(delta)
 		State.EATING:
 			update_eating()
-
+		State.DEAD:
+			return
 
 # Раз в 30 секунд добавляет существу 1 год возраста.
 func update_age(delta: float) -> void:
@@ -230,10 +235,13 @@ func update_age(delta: float) -> void:
 
 # Проверяет, не умерло ли существо от старости.
 func check_age_death() -> bool:
+	if state == State.DEAD:
+		return true
+
 	if age < max_age:
 		return false
 
-	queue_free()
+	enter_dead()
 	return true
 
 
@@ -364,6 +372,19 @@ func enter_eating() -> void:
 	eating_anchor_tile = anchor_tile
 	clear_path()
 	eating_timer.start(eating_duration)
+
+
+# Переводит существо в состояние смерти и удаляет его из мира.
+func enter_dead() -> void:
+	if state == State.DEAD:
+		return
+
+	state = State.DEAD
+	has_grazing_target = false
+	clear_path()
+	eating_timer.stop()
+	hover_area.input_pickable = false
+	call_deferred("queue_free")
 
 
 # Выбирает один случайный валидный соседний тайл для шага.
