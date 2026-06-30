@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://f4p588d2h70o"
-path="res://.godot/imported/temp_stegosaurus.png-0389499aa6259b858278521098c28e0e.ctex"
+uid="uid://c5nxqm0b4vc6i"
+path="res://.godot/imported/grass_stage_2.png-50d2424d5cf91454b7ed74f812c8a248.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/temp_stegosaurus.png"
-dest_files=["res://.godot/imported/temp_stegosaurus.png-0389499aa6259b858278521098c28e0e.ctex"]
+source_file="res://assets/sprites/terrain/grass_stage_2.png"
+dest_files=["res://.godot/imported/grass_stage_2.png-50d2424d5cf91454b7ed74f812c8a248.ctex"]
 
 [params]
 

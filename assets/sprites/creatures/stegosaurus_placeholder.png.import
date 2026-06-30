@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b47yxxmaql4cc"
-path="res://.godot/imported/Ground.png-90872a1814027741ccf42b40f420b7fd.ctex"
+uid="uid://f4p588d2h70o"
+path="res://.godot/imported/stegosaurus_placeholder.png-66c9fad9e3ef58cd2b5456a8fb42b5f2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/Ground.png"
-dest_files=["res://.godot/imported/Ground.png-90872a1814027741ccf42b40f420b7fd.ctex"]
+source_file="res://assets/sprites/creatures/stegosaurus_placeholder.png"
+dest_files=["res://.godot/imported/stegosaurus_placeholder.png-66c9fad9e3ef58cd2b5456a8fb42b5f2.ctex"]
 
 [params]
 

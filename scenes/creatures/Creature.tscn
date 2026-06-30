@@ -1,12 +1,30 @@
 [gd_scene format=3 uid="uid://e3j5do0l0f20"]
 
 [ext_resource type="Script" uid="uid://dh1600uspx0uk" path="res://scripts/creatures/creature.gd" id="1_jh2dj"]
-[ext_resource type="Texture2D" uid="uid://f4p588d2h70o" path="res://assets/sprites/temp_stegosaurus.png" id="2_sp62s"]
+[ext_resource type="Texture2D" uid="uid://f4p588d2h70o" path="res://assets/sprites/creatures/stegosaurus_placeholder.png" id="2_sp62s"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hover"]
+size = Vector2(96, 96)
 
 [node name="Creature" type="CharacterBody2D" unique_id=834845466]
 script = ExtResource("1_jh2dj")
 
-[node name="Sprite2D2" type="Sprite2D" parent="." unique_id=1794094611]
+[node name="BodySprite" type="Sprite2D" parent="." unique_id=1794094611]
+z_index = 1
 texture = ExtResource("2_sp62s")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=546018239]
+
+[node name="EatingTimer" type="Timer" parent="." unique_id=1762048301]
+wait_time = 3.0
+one_shot = true
+
+[node name="HoverArea" type="Area2D" parent="."]
+input_pickable = true
+collision_layer = 1
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HoverArea"]
+shape = SubResource("RectangleShape2D_hover")
