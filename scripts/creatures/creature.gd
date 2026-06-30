@@ -204,6 +204,10 @@ func _physics_process(delta: float) -> void:
 
 	update_hunger(delta)
 	update_health(delta)
+
+	if check_health_death():
+		return
+
 	update_food_behavior()
 
 	if is_moving:
@@ -259,6 +263,18 @@ func update_health(delta: float) -> void:
 		return
 
 	health = clamp(health - starvation_health_decay_rate * delta, 0.0, max_health)
+
+
+# Проверяет, не умерло ли существо от потери здоровья.
+func check_health_death() -> bool:
+	if state == State.DEAD:
+		return true
+
+	if health > 0.0:
+		return false
+
+	enter_dead()
+	return true
 
 
 # Решает, пора ли существу искать пастбище.

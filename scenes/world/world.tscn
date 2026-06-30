@@ -21,15 +21,15 @@ script = ExtResource("1_world_grid")
 position = Vector2(500, 500)
 
 [node name="Creature" parent="Creatures" unique_id=1243629843 instance=ExtResource("1_dphjl")]
-hunger = 50.0
+hunger = 100.0
 
 [node name="Creature_02" parent="Creatures" instance=ExtResource("1_dphjl")]
 position = Vector2(384, 0)
-hunger = 50.0
+hunger = 100.0
 
 [node name="Creature_03" parent="Creatures" instance=ExtResource("1_dphjl")]
 position = Vector2(768, 0)
-hunger = 50.0
+hunger = 100.0
 
 [node name="Grasses" type="Node2D" parent="." unique_id=1551201401]
 
