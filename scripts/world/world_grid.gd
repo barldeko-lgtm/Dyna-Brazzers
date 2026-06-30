@@ -123,14 +123,9 @@ func anchor_to_world_position(anchor_tile: Vector2i, footprint_size: Vector2i) -
 	return world_center + offset
 
 
-# Возвращает мировую позицию куста травы на указанном тайле с учётом общего визуального сдвига.
+# Возвращает мировую позицию куста травы по центру указанного тайла.
 func grass_tile_to_world_position(tile: Vector2i) -> Vector2:
-	var base_position := map_to_world_center(tile)
-
-	if has_grass_render_offset:
-		return base_position + grass_render_offset
-
-	return base_position
+	return map_to_world_center(tile)
 
 
 # Возвращает все тайлы, которые занимает footprint с данным опорным тайлом.
@@ -192,10 +187,6 @@ func find_nearest_valid_anchor(preferred_anchor: Vector2i, footprint_size: Vecto
 func register_grass(grass: Node, tile: Vector2i) -> void:
 	ensure_initialized()
 	grass_by_tile[tile] = grass
-
-	if not has_grass_render_offset and grass is Node2D:
-		grass_render_offset = grass.global_position - map_to_world_center(tile)
-		has_grass_render_offset = true
 
 
 # Удаляет траву из реестра тайла.
@@ -318,7 +309,7 @@ func find_path(start_anchor: Vector2i, goal_anchor: Vector2i, footprint_size: Ve
 
 
 # Ищет лучшую точку пастьбы, где под footprint есть минимум нужное число взрослых кустов.
-func find_best_grazing_target(origin_anchor: Vector2i, footprint_size: Vector2i, min_adult_grass: int, search_radius: int = -1, creature: Node = null) -> Dictionary:
+func find_best_grazing_target(origin_anchor: Vector2i, footprint_size: Vector2i, min_adult_grass: int, search_radius: int = -1, creature: Node = null, grass_weight: float = 10.0, distance_penalty: float = 2.5) -> Dictionary:
 	ensure_initialized()
 
 	var best_result: Dictionary = {}
@@ -346,10 +337,12 @@ func find_best_grazing_target(origin_anchor: Vector2i, footprint_size: Vector2i,
 				continue
 
 			var distance := estimate_path_steps(origin_anchor, candidate)
+			var score := float(adult_count) * grass_weight - float(distance) * distance_penalty
 			var candidate_result := {
 				"anchor": candidate,
 				"adult_count": adult_count,
-				"distance": distance
+				"distance": distance,
+				"score": score
 			}
 
 			if best_result.is_empty() or _is_grazing_result_better(candidate_result, best_result):
@@ -461,9 +454,15 @@ func _estimate_path_cost(from_tile: Vector2i, to_tile: Vector2i) -> float:
 	return float(diagonal_steps) * 1.41421356 + float(straight_steps)
 
 
-# Сравнивает две точки пастьбы: больше травы лучше, при равенстве ближе лучше.
+# Сравнивает две точки пастьбы по score: больше — лучше. При равенстве ближе, потом травянистее.
 func _is_grazing_result_better(candidate: Dictionary, current_best: Dictionary) -> bool:
-	if int(candidate.get("adult_count", 0)) != int(current_best.get("adult_count", 0)):
-		return int(candidate.get("adult_count", 0)) > int(current_best.get("adult_count", 0))
+	var candidate_score := float(candidate.get("score", -INF))
+	var current_score := float(current_best.get("score", -INF))
 
-	return int(candidate.get("distance", 0)) < int(current_best.get("distance", 0))
+	if not is_equal_approx(candidate_score, current_score):
+		return candidate_score > current_score
+
+	if int(candidate.get("distance", 0)) != int(current_best.get("distance", 0)):
+		return int(candidate.get("distance", 0)) < int(current_best.get("distance", 0))
+
+	return int(candidate.get("adult_count", 0)) > int(current_best.get("adult_count", 0))

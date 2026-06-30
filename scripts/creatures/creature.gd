@@ -44,8 +44,17 @@ enum State {
 # Минимум взрослых кустов под существом, чтобы оно начинало есть.
 @export var min_grass_to_eat := 2
 
-# Насколько новый маршрут должен быть короче при равной выгоде, чтобы менять цель.
+# Вес числа взрослых кустов в формуле выбора пастбища.
+@export var grazing_grass_weight := 10.0
+
+# Штраф за каждый шаг расстояния в формуле выбора пастбища.
+@export var grazing_distance_penalty := 2.5
+
+# Насколько новый маршрут должен быть короче при почти равной выгоде, чтобы менять цель.
 @export var retarget_distance_advantage := 2
+
+# Опорный тайл, на котором существо зафиксировалось в момент начала еды.
+var eating_anchor_tile := Vector2i.ZERO
 
 # Технический идентификатор вида существа.
 @export var species_id := "stegosaurus"
@@ -90,7 +99,7 @@ enum State {
 @export var hunger_search_threshold := 70.0
 
 # Сколько сытости восстанавливается за один взрослый куст травы под телом.
-@export var hunger_restore_amount := 30.0
+@export var hunger_restore_amount := 10.0
 
 # Время, которое существо тратит на поедание травы.
 @export var eating_duration := 3.0
@@ -104,7 +113,7 @@ var world_grid: Node = null
 # Тайл-опора существа: верхний левый тайл его footprint.
 var anchor_tile := Vector2i.ZERO
 
-# Визуальный сдвиг существа относительно математического центра footprint.
+# Временный визуальный сдвиг спрайта. Сейчас держим в нуле для честной проверки центра 2x2.
 var render_offset := Vector2.ZERO
 
 # Направление последнего движения для отражения спрайта.
@@ -158,9 +167,10 @@ func _ready() -> void:
 		var initial_position := global_position
 		anchor_tile = world_grid.world_to_anchor_tile(initial_position, footprint_size)
 		anchor_tile = world_grid.find_nearest_valid_anchor(anchor_tile, footprint_size, self)
-		render_offset = initial_position - world_grid.anchor_to_world_position(anchor_tile, footprint_size)
+		render_offset = Vector2.ZERO
 		world_grid.register_creature(self, anchor_tile, footprint_size)
-		global_position = world_grid.anchor_to_world_position(anchor_tile, footprint_size) + render_offset
+		global_position = world_grid.anchor_to_world_position(anchor_tile, footprint_size)
+		sprite.position = Vector2.ZERO
 
 	enter_walk()
 
@@ -255,7 +265,7 @@ func update_seek_food(delta: float) -> void:
 		recheck_grazing_target()
 		food_recheck_timer = food_recheck_interval
 
-	if not is_moving and can_start_eating_here():
+	if not is_moving and can_start_eating_here() and (not has_grazing_target or anchor_tile == grazing_target_anchor):
 		enter_eating()
 		return
 
@@ -311,6 +321,7 @@ func enter_seek_food() -> void:
 # Переводит существо в режим поедания травы.
 func enter_eating() -> void:
 	state = State.EATING
+	eating_anchor_tile = anchor_tile
 	clear_path()
 	eating_timer.start(eating_duration)
 
@@ -347,14 +358,24 @@ func try_acquire_grazing_target() -> void:
 		footprint_size,
 		min_grass_to_eat,
 		nearby_grazing_recheck_radius,
-		self
+		self,
+		grazing_grass_weight,
+		grazing_distance_penalty
 	)
 
 	if not local_target.is_empty():
 		apply_grazing_target(local_target)
 		return
 
-	var global_target: Dictionary = world_grid.find_best_grazing_target(anchor_tile, footprint_size, min_grass_to_eat, -1, self)
+	var global_target: Dictionary = world_grid.find_best_grazing_target(
+		anchor_tile,
+		footprint_size,
+		min_grass_to_eat,
+		-1,
+		self,
+		grazing_grass_weight,
+		grazing_distance_penalty
+	)
 
 	if not global_target.is_empty():
 		apply_grazing_target(global_target)
@@ -390,7 +411,9 @@ func recheck_grazing_target() -> void:
 		footprint_size,
 		min_grass_to_eat,
 		nearby_grazing_recheck_radius,
-		self
+		self,
+		grazing_grass_weight,
+		grazing_distance_penalty
 	)
 
 	if nearby_target.is_empty():
@@ -403,16 +426,17 @@ func recheck_grazing_target() -> void:
 		apply_grazing_target(nearby_target)
 		return
 
-	var new_adult_count := int(nearby_target.get("adult_count", 0))
+	var new_score := float(nearby_target.get("score", -INF))
 	var current_adult_count := get_current_grazing_target_adult_count()
-	var new_distance := int(nearby_target.get("distance", 0))
 	var current_distance: int = world_grid.estimate_path_steps(anchor_tile, grazing_target_anchor)
+	var current_score := float(current_adult_count) * grazing_grass_weight - float(current_distance) * grazing_distance_penalty
+	var new_distance := int(nearby_target.get("distance", 0))
 
-	if new_adult_count > current_adult_count:
+	if new_score > current_score:
 		apply_grazing_target(nearby_target)
 		return
 
-	if new_adult_count == current_adult_count and new_distance < current_distance - retarget_distance_advantage:
+	if is_equal_approx(new_score, current_score) and new_distance < current_distance - retarget_distance_advantage:
 		apply_grazing_target(nearby_target)
 		return
 
@@ -449,7 +473,7 @@ func start_next_path_step_if_needed() -> void:
 
 	pending_anchor_tile = current_path[0]
 	current_path.remove_at(0)
-	movement_target_position = world_grid.anchor_to_world_position(pending_anchor_tile, footprint_size) + render_offset
+	movement_target_position = world_grid.anchor_to_world_position(pending_anchor_tile, footprint_size)
 	direction = global_position.direction_to(movement_target_position)
 	update_sprite_flip()
 	is_moving = true
@@ -472,7 +496,7 @@ func advance_movement(delta: float) -> void:
 
 	anchor_tile = pending_anchor_tile
 
-	if state == State.SEEK_FOOD and can_start_eating_here():
+	if state == State.SEEK_FOOD and can_start_eating_here() and (not has_grazing_target or anchor_tile == grazing_target_anchor):
 		enter_eating()
 
 
@@ -490,7 +514,7 @@ func _on_eating_timer_timeout() -> void:
 		enter_walk()
 		return
 
-	var consumed_grass_count: int = world_grid.consume_adult_grass_under_footprint(anchor_tile, footprint_size)
+	var consumed_grass_count: int = world_grid.consume_adult_grass_under_footprint(eating_anchor_tile, footprint_size)
 
 	if consumed_grass_count > 0:
 		hunger = clamp(hunger + hunger_restore_amount * float(consumed_grass_count), 0.0, max_hunger)

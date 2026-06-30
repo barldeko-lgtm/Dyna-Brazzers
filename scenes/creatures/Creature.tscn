@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://e3j5do0l0f20"]
 
 [ext_resource type="Script" uid="uid://dh1600uspx0uk" path="res://scripts/creatures/creature.gd" id="1_jh2dj"]
-[ext_resource type="Texture2D" uid="uid://f4p588d2h70o" path="res://assets/sprites/creatures/stegosaurus_placeholder.png" id="2_sp62s"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/debug_square_256.png" id="2_sp62s"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hover"]
 size = Vector2(96, 96)

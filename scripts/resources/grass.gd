@@ -177,7 +177,7 @@ func sync_tile_position_with_world() -> void:
 	world_grid.unregister_grass(self, tile_position)
 	var initial_position := global_position
 	tile_position = world_grid.world_to_map_tile(initial_position)
-	render_offset = initial_position - world_grid.map_to_world_center(tile_position)
+	render_offset = Vector2.ZERO
 	world_grid.register_grass(self, tile_position)
 	global_position = world_grid.grass_tile_to_world_position(tile_position)
 
