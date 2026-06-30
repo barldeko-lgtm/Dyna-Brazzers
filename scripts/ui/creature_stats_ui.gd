@@ -27,6 +27,12 @@ extends CanvasLayer
 # Существо, которое сейчас показывается в панели.
 var current_creature: Node = null
 
+# Существо, на которое сейчас просто наведена мышь.
+var hovered_creature: Node = null
+
+# Существо, выбранное кликом.
+var selected_creature: Node = null
+
 
 # Подготавливает панель и скрывает её до наведения мыши.
 func _ready() -> void:
@@ -34,20 +40,39 @@ func _ready() -> void:
 	panel.visible = false
 
 
-# Обновляет панель каждый кадр, пока мышка наведена на существо.
+# Обновляет панель каждый кадр и держит актуальный источник показа.
 func _process(_delta: float) -> void:
 	fps_label.text = "FPS: %d" % Engine.get_frames_per_second()
 
-	if not is_instance_valid(current_creature):
-		hide_creature_stats()
+	if not is_instance_valid(selected_creature):
+		selected_creature = null
+
+	if not is_instance_valid(hovered_creature):
+		hovered_creature = null
+
+	if is_instance_valid(selected_creature):
+		current_creature = selected_creature
+		panel.visible = true
+		update_stats_text()
 		return
 
-	update_stats_text()
+	if is_instance_valid(hovered_creature):
+		current_creature = hovered_creature
+		panel.visible = true
+		update_stats_text()
+		return
+
+	hide_creature_stats()
 
 
-# Показывает панель и привязывает её к выбранному существу.
+# Показывает hover-статы, если сейчас нет выбранного существа.
 func show_creature_stats(creature: Node) -> void:
 	if creature == null:
+		return
+
+	hovered_creature = creature
+
+	if is_instance_valid(selected_creature):
 		return
 
 	current_creature = creature
@@ -55,8 +80,13 @@ func show_creature_stats(creature: Node) -> void:
 	update_stats_text()
 
 
-# Скрывает панель и очищает ссылку на существо.
+# Скрывает hover-статы, если панель не закреплена выбором.
 func hide_creature_stats() -> void:
+	hovered_creature = null
+
+	if is_instance_valid(selected_creature):
+		return
+
 	current_creature = null
 	panel.visible = false
 
@@ -89,3 +119,46 @@ func update_stats_text() -> void:
 		return
 
 	hunger_bar.value = 0.0
+
+
+# Переключает закреплённый выбор существа по клику.
+func toggle_creature_selection(creature: Node) -> void:
+	if creature == null:
+		return
+
+	if selected_creature == creature:
+		clear_selected_creature()
+		return
+
+	selected_creature = creature
+	current_creature = creature
+	panel.visible = true
+	update_stats_text()
+
+
+# Снимает текущий выбор существа.
+func clear_selected_creature() -> void:
+	selected_creature = null
+
+	if is_instance_valid(hovered_creature):
+		current_creature = hovered_creature
+		panel.visible = true
+		update_stats_text()
+		return
+
+	current_creature = null
+	panel.visible = false
+
+
+# Клик по пустому месту снимает закреплённый выбор.
+func _unhandled_input(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton):
+		return
+
+	if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:
+		return
+
+	if not is_instance_valid(selected_creature):
+		return
+
+	clear_selected_creature()

@@ -164,6 +164,9 @@ func _ready() -> void:
 	if not hover_area.mouse_exited.is_connected(_on_hover_area_mouse_exited):
 		hover_area.mouse_exited.connect(_on_hover_area_mouse_exited)
 
+	if not hover_area.input_event.is_connected(_on_hover_area_input_event):
+		hover_area.input_event.connect(_on_hover_area_input_event)
+
 	health = clamp(health, 0.0, max_health)
 	age = 0.0
 	age_tick_elapsed = 0.0
@@ -653,3 +656,18 @@ func _on_hover_area_mouse_exited() -> void:
 
 	if stats_ui != null and stats_ui.has_method("hide_creature_stats"):
 		stats_ui.hide_creature_stats()
+
+
+# Закрепляет или снимает выбор существа по клику мыши.
+func _on_hover_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
+	if not (event is InputEventMouseButton):
+		return
+
+	if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:
+		return
+
+	var stats_ui := get_tree().get_first_node_in_group("creature_stats_ui")
+
+	if stats_ui != null and stats_ui.has_method("toggle_creature_selection"):
+		stats_ui.toggle_creature_selection(self)
+		get_viewport().set_input_as_handled()
