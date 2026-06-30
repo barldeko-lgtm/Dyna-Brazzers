@@ -84,7 +84,7 @@ var eating_anchor_tile := Vector2i.ZERO
 @export var age := 0.0
 
 # Возраст, при котором существо считается слишком старым и умирает.
-@export var max_age := 100.0
+@export var max_age := 10.0
 
 # Раз в сколько секунд существо становится старше на 1 год.
 @export var age_tick_interval := 30.0
@@ -191,6 +191,10 @@ func _exit_tree() -> void:
 # Обновляет голод, состояние и движение существа по сетке.
 func _physics_process(delta: float) -> void:
 	update_age(delta)
+
+	if check_age_death():
+		return
+
 	update_hunger(delta)
 	update_health(delta)
 	update_food_behavior()
@@ -219,6 +223,15 @@ func update_age(delta: float) -> void:
 	while age_tick_elapsed >= age_tick_interval:
 		age_tick_elapsed -= age_tick_interval
 		age += 1.0
+
+
+# Проверяет, не умерло ли существо от старости.
+func check_age_death() -> bool:
+	if age < max_age:
+		return false
+
+	queue_free()
+	return true
 
 
 # Постепенно уменьшает сытость, пока существо не ест.
