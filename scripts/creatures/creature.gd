@@ -94,6 +94,12 @@ var eating_anchor_tile := Vector2i.ZERO
 # Скорость потери здоровья при полном голоде.
 @export var starvation_health_decay_rate := 2.0
 
+# Скорость пассивного восстановления здоровья, пока существо сыто.
+@export var well_fed_health_regen_rate := 1.0
+
+# Порог сытости, выше которого включается пассивная регенерация здоровья.
+@export var satiety_heal_threshold := 70.0
+
 # Базовая атака существа для будущей боевой системы.
 @export var attack := 10.0
 
@@ -336,12 +342,14 @@ func update_hunger(delta: float) -> void:
 	hunger = clamp(hunger - hunger_decay_rate * delta, 0.0, max_hunger)
 
 
-# Уменьшает здоровье, если существо полностью голодно.
+# Обновляет здоровье: при полном голоде снимает HP, а при высокой сытости медленно восстанавливает.
 func update_health(delta: float) -> void:
-	if hunger > 0.0:
+	if hunger <= 0.0:
+		health = clamp(health - starvation_health_decay_rate * delta, 0.0, max_health)
 		return
 
-	health = clamp(health - starvation_health_decay_rate * delta, 0.0, max_health)
+	if hunger > satiety_heal_threshold and health < max_health:
+		health = clamp(health + well_fed_health_regen_rate * delta, 0.0, max_health)
 
 
 # Проверяет, не умерло ли существо от потери здоровья.
@@ -606,9 +614,11 @@ func recheck_grazing_target() -> void:
 	)
 
 	if nearby_target.is_empty():
-		if has_grazing_target and not is_current_grazing_target_still_valid():
-			has_grazing_target = false
-			clear_path()
+		if has_grazing_target and is_current_grazing_target_still_valid():
+			return
+
+		# Если рядом еды нет и текущая цель потеряна, обязательно делаем fallback на общий поиск по карте.
+		try_acquire_grazing_target()
 		return
 
 	if not has_grazing_target:
