@@ -6,6 +6,9 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_right.png" id="4_right"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_up_right.png" id="5_up_right"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_down_right.png" id="6_down_right"]
+[ext_resource type="PackedScene" path="res://scenes/resources/egg.tscn" id="7_egg_scene"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/eggs/egg_stage_1.png" id="8_egg_stage_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/eggs/egg_stage_2.png" id="9_egg_stage_2"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hover"]
 size = Vector2(96, 96)
@@ -17,6 +20,9 @@ up_texture = ExtResource("3_up")
 right_texture = ExtResource("4_right")
 up_right_texture = ExtResource("5_up_right")
 down_right_texture = ExtResource("6_down_right")
+egg_scene = ExtResource("7_egg_scene")
+egg_stage_1_texture = ExtResource("8_egg_stage_1")
+egg_stage_2_texture = ExtResource("9_egg_stage_2")
 
 [node name="BodySprite" type="Sprite2D" parent="." unique_id=1794094611]
 z_index = 1
@@ -26,6 +32,10 @@ texture = ExtResource("2_down")
 
 [node name="EatingTimer" type="Timer" parent="." unique_id=1762048301]
 wait_time = 3.0
+one_shot = true
+
+[node name="EggLayingTimer" type="Timer" parent="."]
+wait_time = 5.0
 one_shot = true
 
 [node name="HoverArea" type="Area2D" parent="."]

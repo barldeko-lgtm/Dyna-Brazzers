@@ -33,6 +33,8 @@ hunger = 100.0
 
 [node name="Grasses" type="Node2D" parent="." unique_id=1551201401]
 
+[node name="Eggs" type="Node2D" parent="."]
+
 [node name="Grass_01" parent="Grasses" instance=ExtResource("2_grass_scene")]
 position = Vector2(640, 640)
 

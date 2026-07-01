@@ -18,6 +18,9 @@ var grass_by_tile: Dictionary = {}
 # Опорные тайлы существ, зарегистрированных на сетке.
 var creature_anchors: Dictionary = {}
 
+# Опорные тайлы прочих блокирующих объектов, например яиц второй стадии.
+var blocker_anchors: Dictionary = {}
+
 # Каким существом сейчас занят каждый тайл.
 var occupied_by_tile: Dictionary = {}
 
@@ -243,6 +246,28 @@ func move_creature(creature: Node, new_anchor_tile: Vector2i, footprint_size: Ve
 	creature_anchors[creature] = new_anchor_tile
 	_reserve_tiles(new_anchor_tile, footprint_size, creature)
 	return true
+
+
+# Регистрирует произвольный блокирующий объект и резервирует тайлы под его footprint.
+func register_blocker(blocker: Node, anchor_tile: Vector2i, footprint_size: Vector2i) -> bool:
+	ensure_initialized()
+
+	if not can_place_footprint(anchor_tile, footprint_size, blocker):
+		return false
+
+	blocker_anchors[blocker] = anchor_tile
+	_reserve_tiles(anchor_tile, footprint_size, blocker)
+	return true
+
+
+# Освобождает тайлы, занятые блокирующим объектом.
+func unregister_blocker(blocker: Node, footprint_size: Vector2i) -> void:
+	if not blocker_anchors.has(blocker):
+		return
+
+	var anchor_tile: Vector2i = blocker_anchors[blocker]
+	_release_tiles(anchor_tile, footprint_size, blocker)
+	blocker_anchors.erase(blocker)
 
 
 # Возвращает все соседние опорные тайлы, куда можно шагнуть с учётом диагоналей.

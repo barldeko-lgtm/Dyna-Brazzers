@@ -24,6 +24,12 @@ extends CanvasLayer
 # Метка с текущим FPS в нижнем углу экрана.
 @onready var fps_label: Label = $FpsLabel
 
+# Выпадающий список с множителем скорости симуляции.
+@onready var time_speed_option: OptionButton = $TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeedOption
+
+# Возможные множители времени для быстрого прогона.
+const TIME_SPEED_VALUES := [1.0, 2.0, 3.0]
+
 # Существо, которое сейчас показывается в панели.
 var current_creature: Node = null
 
@@ -38,6 +44,7 @@ var selected_creature: Node = null
 func _ready() -> void:
 	add_to_group("creature_stats_ui")
 	panel.visible = false
+	setup_time_speed_controls()
 
 
 # Обновляет панель каждый кадр и держит актуальный источник показа.
@@ -150,7 +157,42 @@ func clear_selected_creature() -> void:
 	panel.visible = false
 
 
-# Клик по пустому месту снимает закреплённый выбор.
+# Настраивает UI-контрол ускорения времени и синхронизирует его с текущим time scale.
+func setup_time_speed_controls() -> void:
+	time_speed_option.clear()
+
+	for index in range(TIME_SPEED_VALUES.size()):
+		var speed_value: float = TIME_SPEED_VALUES[index]
+		time_speed_option.add_item("x%d" % int(speed_value), index)
+
+	var selected_index := 0
+
+	for index in range(TIME_SPEED_VALUES.size()):
+		if is_equal_approx(Engine.time_scale, TIME_SPEED_VALUES[index]):
+			selected_index = index
+			break
+
+	time_speed_option.select(selected_index)
+	apply_time_speed_by_index(selected_index)
+
+	if not time_speed_option.item_selected.is_connected(_on_time_speed_option_item_selected):
+		time_speed_option.item_selected.connect(_on_time_speed_option_item_selected)
+
+
+# Применяет множитель времени по индексу из UI.
+func apply_time_speed_by_index(index: int) -> void:
+	if index < 0 or index >= TIME_SPEED_VALUES.size():
+		return
+
+	Engine.time_scale = TIME_SPEED_VALUES[index]
+
+
+# Переключает скорость симуляции из выпадающего списка.
+func _on_time_speed_option_item_selected(index: int) -> void:
+	apply_time_speed_by_index(index)
+
+
+# Клик по пустому месту снимает закреплённый выбор существа.
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton):
 		return

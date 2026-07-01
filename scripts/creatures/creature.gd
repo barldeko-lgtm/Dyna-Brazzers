@@ -6,6 +6,9 @@ extends CharacterBody2D
 # Таймер, который отвечает за длительность поедания травы.
 @onready var eating_timer: Timer = $EatingTimer
 
+# Таймер, который отвечает за длительность состояния откладки яйца.
+@onready var egg_laying_timer: Timer = $EggLayingTimer
+
 # Зона, которая ловит наведение мыши на существо.
 @onready var hover_area: Area2D = $HoverArea
 
@@ -15,6 +18,7 @@ enum State {
 	WALK,
 	SEEK_FOOD,
 	EATING,
+	LAYING_EGG,
 	DEAD
 }
 
@@ -123,6 +127,48 @@ var eating_anchor_tile := Vector2i.ZERO
 # Время, которое существо тратит на поедание травы.
 @export var eating_duration := 3.0
 
+# Сцена яйца для текущего вида существа.
+@export var egg_scene: PackedScene
+
+# Текстура первой стадии яйца этого вида.
+@export var egg_stage_1_texture: Texture2D
+
+# Текстура второй стадии яйца этого вида.
+@export var egg_stage_2_texture: Texture2D
+
+# Сколько секунд длится состояние откладки яйца у существа.
+@export var egg_laying_duration := 5.0
+
+# Сколько секунд длится первая стадия яйца.
+@export var egg_stage_1_duration := 5.0
+
+# Раз в сколько секунд яйцо повторно проверяет возможность расшириться до 2x2.
+@export var egg_expand_retry_interval := 1.0
+
+# Сколько секунд длится вторая стадия яйца до вылупления.
+@export var egg_stage_2_duration := 5.0
+
+# Порог здоровья, выше которого существо может размножаться.
+@export var reproduction_min_health := 30.0
+
+# Порог сытости, выше которого существо может размножаться.
+@export var reproduction_min_hunger := 70.0
+
+# Минимальный возраст для откладки яйца.
+@export var reproduction_min_age := 3.0
+
+# Кулдаун между откладками яиц.
+@export var reproduction_cooldown := 20.0
+
+# Сколько сытости тратится на откладку яйца.
+@export var reproduction_hunger_cost := 20.0
+
+# Стартовое здоровье вылупившегося существа.
+@export var hatchling_health := 100.0
+
+# Стартовая сытость вылупившегося существа.
+@export var hatchling_hunger := 50.0
+
 # Текущее состояние существа.
 var state: State = State.WALK
 
@@ -165,14 +211,27 @@ var movement_target_position := Vector2.ZERO
 # Идёт ли сейчас визуальное перемещение между тайлами.
 var is_moving := false
 
+# Сколько осталось до следующей разрешённой откладки яйца.
+var reproduction_cooldown_remaining := 0.0
+
+# Куда существо собирается положить яйцо после завершения анимации откладки.
+var pending_egg_anchor := Vector2i.ZERO
+
+# Footprint яйца в первой стадии: вертикальный 1x2.
+const EGG_STAGE_1_FOOTPRINT := Vector2i(1, 2)
+
 
 # Подготавливает существо, регистрирует его на сетке и сразу запускает первое поведение.
 func _ready() -> void:
 	randomize()
 	eating_timer.one_shot = true
+	egg_laying_timer.one_shot = true
 
 	if not eating_timer.timeout.is_connected(_on_eating_timer_timeout):
 		eating_timer.timeout.connect(_on_eating_timer_timeout)
+
+	if not egg_laying_timer.timeout.is_connected(_on_egg_laying_timer_timeout):
+		egg_laying_timer.timeout.connect(_on_egg_laying_timer_timeout)
 
 	if not hover_area.mouse_entered.is_connected(_on_hover_area_mouse_entered):
 		hover_area.mouse_entered.connect(_on_hover_area_mouse_entered)
@@ -220,10 +279,12 @@ func _physics_process(delta: float) -> void:
 
 	update_hunger(delta)
 	update_health(delta)
+	update_reproduction_cooldown(delta)
 
 	if check_health_death():
 		return
 
+	update_reproduction_behavior()
 	update_food_behavior()
 
 	if is_moving:
@@ -238,6 +299,8 @@ func _physics_process(delta: float) -> void:
 			update_seek_food(delta)
 		State.EATING:
 			update_eating()
+		State.LAYING_EGG:
+			update_laying_egg()
 		State.DEAD:
 			return
 
@@ -267,7 +330,7 @@ func check_age_death() -> bool:
 
 # Постепенно уменьшает сытость, пока существо не ест.
 func update_hunger(delta: float) -> void:
-	if state == State.EATING:
+	if state == State.EATING or state == State.LAYING_EGG:
 		return
 
 	hunger = clamp(hunger - hunger_decay_rate * delta, 0.0, max_hunger)
@@ -293,12 +356,20 @@ func check_health_death() -> bool:
 	return true
 
 
+# Уменьшает кулдаун размножения, если он сейчас активен.
+func update_reproduction_cooldown(delta: float) -> void:
+	if reproduction_cooldown_remaining <= 0.0:
+		return
+
+	reproduction_cooldown_remaining = max(reproduction_cooldown_remaining - delta, 0.0)
+
+
 # Решает, пора ли существу искать пастбище.
 func update_food_behavior() -> void:
 	if world_grid == null:
 		return
 
-	if state == State.EATING:
+	if state == State.EATING or state == State.LAYING_EGG:
 		return
 
 	# Не переключаемся на поиск еды посреди шага: сначала доходим до центра текущего тайла.
@@ -374,6 +445,11 @@ func update_eating() -> void:
 	return
 
 
+# Во время откладки яйца существо просто стоит на месте и ждёт таймер.
+func update_laying_egg() -> void:
+	return
+
+
 # Переводит существо в состояние покоя и задаёт новую длину паузы.
 func enter_idle() -> void:
 	state = State.IDLE
@@ -406,6 +482,14 @@ func enter_eating() -> void:
 	eating_timer.start(eating_duration)
 
 
+# Переводит существо в состояние откладки яйца.
+func enter_laying_egg(egg_anchor: Vector2i) -> void:
+	state = State.LAYING_EGG
+	pending_egg_anchor = egg_anchor
+	clear_path()
+	egg_laying_timer.start(egg_laying_duration)
+
+
 # Переводит существо в состояние смерти и удаляет его из мира.
 func enter_dead() -> void:
 	if state == State.DEAD:
@@ -415,6 +499,7 @@ func enter_dead() -> void:
 	has_grazing_target = false
 	clear_path()
 	eating_timer.stop()
+	egg_laying_timer.stop()
 	hover_area.input_pickable = false
 	call_deferred("queue_free")
 
@@ -631,6 +716,128 @@ func _on_eating_timer_timeout() -> void:
 		return
 
 	enter_walk()
+
+
+# Завершает состояние откладки: создаёт яйцо и тратит ресурсы существа.
+func _on_egg_laying_timer_timeout() -> void:
+	if world_grid == null:
+		enter_walk()
+		return
+
+	if spawn_egg_at_pending_anchor():
+		hunger = clamp(hunger - reproduction_hunger_cost, 0.0, max_hunger)
+		reproduction_cooldown_remaining = reproduction_cooldown
+
+	if hunger <= hunger_search_threshold:
+		enter_seek_food()
+		return
+
+	enter_walk()
+
+
+# Проверяет, можно ли сейчас начать размножение, и при успехе запускает откладку яйца.
+func update_reproduction_behavior() -> void:
+	if world_grid == null:
+		return
+
+	if state == State.DEAD or state == State.EATING or state == State.LAYING_EGG:
+		return
+
+	if is_moving:
+		return
+
+	if reproduction_cooldown_remaining > 0.0:
+		return
+
+	if health <= reproduction_min_health:
+		return
+
+	if hunger <= reproduction_min_hunger:
+		return
+
+	if age <= reproduction_min_age:
+		return
+
+	var egg_anchor := get_egg_spawn_anchor()
+
+	if egg_anchor == Vector2i(2147483647, 2147483647):
+		return
+
+	enter_laying_egg(egg_anchor)
+
+
+# Вычисляет anchor первой стадии яйца из текущей позиции существа, чтобы яйцо появлялось в том же месте.
+func get_egg_spawn_anchor() -> Vector2i:
+	if world_grid == null:
+		return Vector2i(2147483647, 2147483647)
+
+	return world_grid.world_to_anchor_tile(global_position, EGG_STAGE_1_FOOTPRINT)
+
+
+# Возвращает основное направление взгляда существа в координатах тайлов.
+func get_facing_tile_direction() -> Vector2i:
+	if absf(direction.x) >= absf(direction.y):
+		if direction.x < -0.01:
+			return Vector2i.LEFT
+		if direction.x > 0.01:
+			return Vector2i.RIGHT
+	else:
+		if direction.y < -0.01:
+			return Vector2i.UP
+		if direction.y > 0.01:
+			return Vector2i.DOWN
+
+	return Vector2i.DOWN
+
+
+# Создаёт яйцо на уже выбранном тайле откладки.
+func spawn_egg_at_pending_anchor() -> bool:
+	if egg_scene == null:
+		return false
+
+	var eggs_container := find_named_container("Eggs")
+
+	if eggs_container == null:
+		eggs_container = get_parent() as Node2D
+
+	if eggs_container == null:
+		return false
+
+	var new_egg := egg_scene.instantiate() as Node2D
+
+	if new_egg == null:
+		return false
+
+	new_egg.set("species_id", species_id)
+	new_egg.set("stage_1_texture", egg_stage_1_texture)
+	new_egg.set("stage_2_texture", egg_stage_2_texture)
+	new_egg.set("stage_1_duration", egg_stage_1_duration)
+	new_egg.set("expand_retry_interval", egg_expand_retry_interval)
+	new_egg.set("stage_2_duration", egg_stage_2_duration)
+	new_egg.set("hatch_health", hatchling_health)
+	new_egg.set("hatch_hunger", hatchling_hunger)
+	new_egg.set("hatch_creature_scene", load(scene_file_path) as PackedScene)
+
+	var egg_world_position: Vector2 = world_grid.anchor_to_world_position(pending_egg_anchor, EGG_STAGE_1_FOOTPRINT)
+	new_egg.position = eggs_container.to_local(egg_world_position)
+	eggs_container.add_child(new_egg)
+
+	return true
+
+
+# Ищет ближайший контейнер с указанным именем, поднимаясь вверх по дереву.
+func find_named_container(target_name: String) -> Node2D:
+	var current: Node = self
+
+	while current != null:
+		var candidate := current.get_node_or_null(target_name) as Node2D
+
+		if candidate != null:
+			return candidate
+
+		current = current.get_parent()
+
+	return null
 
 
 # Выбирает нужный directional-спрайт и при необходимости флипает его влево.
