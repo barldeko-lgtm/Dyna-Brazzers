@@ -1,53 +1,41 @@
 extends CanvasLayer
 
-# Панель со статами существа в углу экрана.
+# Debug creature HUD.
 @onready var panel: PanelContainer = $CreatureStatsPanel
 
-# Заголовок панели.
 @onready var title_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/TitleLabel
 
-# Подпись возраста существа.
 @onready var age_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/AgeLabel
 
-# Подпись блока сытости.
 @onready var hunger_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/HungerLabel
 
-# Подпись блока здоровья.
 @onready var health_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/HealthLabel
 
-# Горизонтальная шкала здоровья.
 @onready var health_bar: ProgressBar = $CreatureStatsPanel/MarginContainer/VBoxContainer/HealthBar
 
-# Горизонтальная шкала сытости.
 @onready var hunger_bar: ProgressBar = $CreatureStatsPanel/MarginContainer/VBoxContainer/HungerBar
 
-# Метка с текущим FPS в нижнем углу экрана.
 @onready var fps_label: Label = $FpsLabel
 
-# Выпадающий список с множителем скорости симуляции.
 @onready var time_speed_option: OptionButton = $TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeedOption
 
-# Возможные множители времени для быстрого прогона.
+# Time scale presets.
 const TIME_SPEED_VALUES := [1.0, 2.0, 3.0]
 
-# Существо, которое сейчас показывается в панели.
 var current_creature: Node = null
 
-# Существо, на которое сейчас просто наведена мышь.
 var hovered_creature: Node = null
 
-# Существо, выбранное кликом.
 var selected_creature: Node = null
 
 
-# Подготавливает панель и скрывает её до наведения мыши.
 func _ready() -> void:
 	add_to_group("creature_stats_ui")
 	panel.visible = false
 	setup_time_speed_controls()
 
 
-# Обновляет панель каждый кадр и держит актуальный источник показа.
+# Prefer selected creature over hover.
 func _process(_delta: float) -> void:
 	fps_label.text = "FPS: %d" % Engine.get_frames_per_second()
 
@@ -72,7 +60,6 @@ func _process(_delta: float) -> void:
 	hide_creature_stats()
 
 
-# Показывает hover-статы, если сейчас нет выбранного существа.
 func show_creature_stats(creature: Node) -> void:
 	if creature == null:
 		return
@@ -87,7 +74,6 @@ func show_creature_stats(creature: Node) -> void:
 	update_stats_text()
 
 
-# Скрывает hover-статы, если панель не закреплена выбором.
 func hide_creature_stats() -> void:
 	hovered_creature = null
 
@@ -98,7 +84,7 @@ func hide_creature_stats() -> void:
 	panel.visible = false
 
 
-# Перерисовывает текст статов по текущему существу.
+# UI refresh.
 func update_stats_text() -> void:
 	if not is_instance_valid(current_creature):
 		return
@@ -128,7 +114,6 @@ func update_stats_text() -> void:
 	hunger_bar.value = 0.0
 
 
-# Переключает закреплённый выбор существа по клику.
 func toggle_creature_selection(creature: Node) -> void:
 	if creature == null:
 		return
@@ -143,7 +128,6 @@ func toggle_creature_selection(creature: Node) -> void:
 	update_stats_text()
 
 
-# Снимает текущий выбор существа.
 func clear_selected_creature() -> void:
 	selected_creature = null
 
@@ -157,7 +141,7 @@ func clear_selected_creature() -> void:
 	panel.visible = false
 
 
-# Настраивает UI-контрол ускорения времени и синхронизирует его с текущим time scale.
+# Time controls.
 func setup_time_speed_controls() -> void:
 	time_speed_option.clear()
 
@@ -179,7 +163,6 @@ func setup_time_speed_controls() -> void:
 		time_speed_option.item_selected.connect(_on_time_speed_option_item_selected)
 
 
-# Применяет множитель времени по индексу из UI.
 func apply_time_speed_by_index(index: int) -> void:
 	if index < 0 or index >= TIME_SPEED_VALUES.size():
 		return
@@ -187,12 +170,11 @@ func apply_time_speed_by_index(index: int) -> void:
 	Engine.time_scale = TIME_SPEED_VALUES[index]
 
 
-# Переключает скорость симуляции из выпадающего списка.
 func _on_time_speed_option_item_selected(index: int) -> void:
 	apply_time_speed_by_index(index)
 
 
-# Клик по пустому месту снимает закреплённый выбор существа.
+# Clear selection on empty click.
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton):
 		return

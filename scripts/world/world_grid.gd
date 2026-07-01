@@ -1,39 +1,30 @@
 extends Node2D
 
-# Ссылка на слой тайлов земли, который задаёт геометрию мира.
+# Grid authority for tiles, occupancy and grazing.
 var ground: TileMapLayer = null
 
-# Размер одного тайла карты.
 var tile_size := Vector2i(128, 128)
 
-# Минимальная занятая координата тайла на карте.
 var map_min := Vector2i.ZERO
 
-# Максимальная занятая координата тайла на карте.
 var map_max := Vector2i.ZERO
 
-# Все кусты травы по их тайловым координатам.
+# Runtime registries.
 var grass_by_tile: Dictionary = {}
 
-# Опорные тайлы существ, зарегистрированных на сетке.
 var creature_anchors: Dictionary = {}
 
-# Опорные тайлы прочих блокирующих объектов, например яиц второй стадии.
 var blocker_anchors: Dictionary = {}
 
-# Каким существом сейчас занят каждый тайл.
 var occupied_by_tile: Dictionary = {}
 
-# Флаг ленивой инициализации сетки.
 var is_initialized := false
 
-# Общий визуальный сдвиг для всех кустов травы, чтобы не ломать уже выставленную вручную геометрию.
 var grass_render_offset := Vector2.ZERO
 
-# Был ли уже вычислен общий визуальный сдвиг травы.
 var has_grass_render_offset := false
 
-# Все 8 допустимых направлений движения по сетке.
+# 8-way movement.
 const DIRECTIONS_8 := [
 	Vector2i.LEFT,
 	Vector2i.RIGHT,
@@ -46,13 +37,12 @@ const DIRECTIONS_8 := [
 ]
 
 
-# Подготавливает сетку мира и кэширует границы карты.
+# Setup.
 func _ready() -> void:
 	add_to_group("world_grid")
 	ensure_initialized()
 
 
-# Гарантирует, что границы карты и размер тайла уже вычислены.
 func ensure_initialized() -> void:
 	if ground == null:
 		ground = get_node_or_null("Ground") as TileMapLayer
@@ -70,7 +60,6 @@ func ensure_initialized() -> void:
 	is_initialized = true
 
 
-# Находит реальный прямоугольник тайлов по заполненным клеткам слоя земли.
 func _cache_map_bounds() -> void:
 	var used_cells := ground.get_used_cells()
 
@@ -94,14 +83,13 @@ func _cache_map_bounds() -> void:
 	map_max = Vector2i(max_x, max_y)
 
 
-# Переводит мировую позицию в координату тайла.
+# World <-> grid helpers.
 func world_to_map_tile(world_position: Vector2) -> Vector2i:
 	ensure_initialized()
 	var local_position := ground.to_local(world_position)
 	return ground.local_to_map(local_position)
 
 
-# Переводит мировую позицию центра существа в его опорный тайл.
 func world_to_anchor_tile(world_position: Vector2, footprint_size: Vector2i) -> Vector2i:
 	var anchor_offset := Vector2(
 		float(max(footprint_size.x - 1, 0)) * float(tile_size.x) * 0.5,
@@ -110,13 +98,11 @@ func world_to_anchor_tile(world_position: Vector2, footprint_size: Vector2i) -> 
 	return world_to_map_tile(world_position - anchor_offset)
 
 
-# Возвращает мировую позицию центра указанного тайла.
 func map_to_world_center(tile: Vector2i) -> Vector2:
 	ensure_initialized()
 	return ground.to_global(ground.map_to_local(tile))
 
 
-# Возвращает мировую позицию центра существа по его опорному тайлу и размеру footprint.
 func anchor_to_world_position(anchor_tile: Vector2i, footprint_size: Vector2i) -> Vector2:
 	var world_center := map_to_world_center(anchor_tile)
 	var offset := Vector2(
@@ -126,12 +112,10 @@ func anchor_to_world_position(anchor_tile: Vector2i, footprint_size: Vector2i) -
 	return world_center + offset
 
 
-# Возвращает мировую позицию куста травы по центру указанного тайла.
 func grass_tile_to_world_position(tile: Vector2i) -> Vector2:
 	return map_to_world_center(tile)
 
 
-# Возвращает все тайлы, которые занимает footprint с данным опорным тайлом.
 func get_footprint_tiles(anchor_tile: Vector2i, footprint_size: Vector2i) -> Array[Vector2i]:
 	var tiles: Array[Vector2i] = []
 
@@ -142,13 +126,11 @@ func get_footprint_tiles(anchor_tile: Vector2i, footprint_size: Vector2i) -> Arr
 	return tiles
 
 
-# Проверяет, лежит ли тайл внутри прямоугольника карты.
 func is_tile_inside_map(tile: Vector2i) -> bool:
 	ensure_initialized()
 	return tile.x >= map_min.x and tile.x <= map_max.x and tile.y >= map_min.y and tile.y <= map_max.y
 
 
-# Проверяет, существует ли на этом тайле земля.
 func is_tile_walkable(tile: Vector2i) -> bool:
 	ensure_initialized()
 
@@ -158,7 +140,7 @@ func is_tile_walkable(tile: Vector2i) -> bool:
 	return ground.get_cell_source_id(tile) != -1
 
 
-# Проверяет, можно ли поставить footprint в указанный опорный тайл.
+# Placement helpers.
 func can_place_footprint(anchor_tile: Vector2i, footprint_size: Vector2i, creature: Node = null) -> bool:
 	for tile in get_footprint_tiles(anchor_tile, footprint_size):
 		if not is_tile_walkable(tile):
@@ -170,7 +152,6 @@ func can_place_footprint(anchor_tile: Vector2i, footprint_size: Vector2i, creatu
 	return true
 
 
-# Возвращает ближайший валидный опорный тайл к желаемой позиции.
 func find_nearest_valid_anchor(preferred_anchor: Vector2i, footprint_size: Vector2i, creature: Node = null, max_radius: int = 12) -> Vector2i:
 	if can_place_footprint(preferred_anchor, footprint_size, creature):
 		return preferred_anchor
@@ -186,30 +167,27 @@ func find_nearest_valid_anchor(preferred_anchor: Vector2i, footprint_size: Vecto
 	return preferred_anchor
 
 
-# Регистрирует траву на указанном тайле.
+# Grass registry.
 func register_grass(grass: Node, tile: Vector2i) -> void:
 	ensure_initialized()
 	grass_by_tile[tile] = grass
 
 
-# Удаляет траву из реестра тайла.
 func unregister_grass(grass: Node, tile: Vector2i) -> void:
 	if grass_by_tile.get(tile) == grass:
 		grass_by_tile.erase(tile)
 
 
-# Возвращает траву на указанном тайле, если она есть.
 func get_grass_at_tile(tile: Vector2i) -> Node:
 	return grass_by_tile.get(tile)
 
 
-# Проверяет, есть ли уже трава на этом тайле.
 func has_grass_at_tile(tile: Vector2i) -> bool:
 	var grass: Node = grass_by_tile.get(tile, null)
 	return is_instance_valid(grass)
 
 
-# Регистрирует существо и резервирует тайлы под его footprint.
+# Creature occupancy.
 func register_creature(creature: Node, anchor_tile: Vector2i, footprint_size: Vector2i) -> bool:
 	ensure_initialized()
 
@@ -221,7 +199,6 @@ func register_creature(creature: Node, anchor_tile: Vector2i, footprint_size: Ve
 	return true
 
 
-# Освобождает тайлы, занятые существом.
 func unregister_creature(creature: Node, footprint_size: Vector2i) -> void:
 	if not creature_anchors.has(creature):
 		return
@@ -231,7 +208,6 @@ func unregister_creature(creature: Node, footprint_size: Vector2i) -> void:
 	creature_anchors.erase(creature)
 
 
-# Переносит существо в новый опорный тайл, если он валиден.
 func move_creature(creature: Node, new_anchor_tile: Vector2i, footprint_size: Vector2i) -> bool:
 	if not creature_anchors.has(creature):
 		return register_creature(creature, new_anchor_tile, footprint_size)
@@ -248,7 +224,7 @@ func move_creature(creature: Node, new_anchor_tile: Vector2i, footprint_size: Ve
 	return true
 
 
-# Регистрирует произвольный блокирующий объект и резервирует тайлы под его footprint.
+# Extra blocking objects, e.g. eggs.
 func register_blocker(blocker: Node, anchor_tile: Vector2i, footprint_size: Vector2i) -> bool:
 	ensure_initialized()
 
@@ -260,7 +236,6 @@ func register_blocker(blocker: Node, anchor_tile: Vector2i, footprint_size: Vect
 	return true
 
 
-# Освобождает тайлы, занятые блокирующим объектом.
 func unregister_blocker(blocker: Node, footprint_size: Vector2i) -> void:
 	if not blocker_anchors.has(blocker):
 		return
@@ -270,7 +245,7 @@ func unregister_blocker(blocker: Node, footprint_size: Vector2i) -> void:
 	blocker_anchors.erase(blocker)
 
 
-# Возвращает все соседние опорные тайлы, куда можно шагнуть с учётом диагоналей.
+# Pathfinding.
 func get_neighbors(anchor_tile: Vector2i, footprint_size: Vector2i, creature: Node = null) -> Array[Vector2i]:
 	var neighbors: Array[Vector2i] = []
 
@@ -295,7 +270,6 @@ func get_neighbors(anchor_tile: Vector2i, footprint_size: Vector2i, creature: No
 	return neighbors
 
 
-# Строит путь по сетке от стартового опорного тайла к целевому.
 func find_path(start_anchor: Vector2i, goal_anchor: Vector2i, footprint_size: Vector2i, creature: Node = null) -> Array[Vector2i]:
 	if start_anchor == goal_anchor:
 		return []
@@ -333,7 +307,7 @@ func find_path(start_anchor: Vector2i, goal_anchor: Vector2i, footprint_size: Ve
 	return []
 
 
-# Ищет лучшую точку пастьбы, где под footprint есть минимум нужное число взрослых кустов.
+# Grazing queries.
 func find_best_grazing_target(origin_anchor: Vector2i, footprint_size: Vector2i, min_adult_grass: int, search_radius: int = -1, creature: Node = null, grass_weight: float = 10.0, distance_penalty: float = 2.5) -> Dictionary:
 	ensure_initialized()
 
@@ -376,7 +350,6 @@ func find_best_grazing_target(origin_anchor: Vector2i, footprint_size: Vector2i,
 	return best_result
 
 
-# Считает число взрослых кустов травы под footprint.
 func count_adult_grass_under_footprint(anchor_tile: Vector2i, footprint_size: Vector2i) -> int:
 	var adult_count := 0
 
@@ -392,7 +365,6 @@ func count_adult_grass_under_footprint(anchor_tile: Vector2i, footprint_size: Ve
 	return adult_count
 
 
-# Съедает всю взрослую траву под footprint и возвращает число реально съеденных кустов.
 func consume_adult_grass_under_footprint(anchor_tile: Vector2i, footprint_size: Vector2i) -> int:
 	var consumed_count := 0
 
@@ -411,25 +383,22 @@ func consume_adult_grass_under_footprint(anchor_tile: Vector2i, footprint_size: 
 	return consumed_count
 
 
-# Возвращает оценку длины пути в тайлах для быстрой переоценки цели.
 func estimate_path_steps(from_anchor: Vector2i, to_anchor: Vector2i) -> int:
 	return max(abs(to_anchor.x - from_anchor.x), abs(to_anchor.y - from_anchor.y))
 
 
-# Резервирует все тайлы footprint за существом.
+# Internal helpers.
 func _reserve_tiles(anchor_tile: Vector2i, footprint_size: Vector2i, creature: Node) -> void:
 	for tile in get_footprint_tiles(anchor_tile, footprint_size):
 		occupied_by_tile[tile] = creature
 
 
-# Освобождает все тайлы footprint у существа.
 func _release_tiles(anchor_tile: Vector2i, footprint_size: Vector2i, creature: Node) -> void:
 	for tile in get_footprint_tiles(anchor_tile, footprint_size):
 		if occupied_by_tile.get(tile) == creature:
 			occupied_by_tile.erase(tile)
 
 
-# Достаёт из открытого списка тайл с минимальной оценкой пути.
 func _pop_lowest_score(open_set: Array[Vector2i], score_map: Dictionary) -> Vector2i:
 	var best_index := 0
 	var best_tile := open_set[0]
@@ -448,7 +417,6 @@ func _pop_lowest_score(open_set: Array[Vector2i], score_map: Dictionary) -> Vect
 	return best_tile
 
 
-# Восстанавливает найденный путь из таблицы родителей.
 func _reconstruct_path(came_from: Dictionary, current_tile: Vector2i, start_tile: Vector2i) -> Array[Vector2i]:
 	var path: Array[Vector2i] = []
 	var cursor := current_tile
@@ -460,7 +428,6 @@ func _reconstruct_path(came_from: Dictionary, current_tile: Vector2i, start_tile
 	return path
 
 
-# Возвращает стоимость одного шага: диагональ чуть дороже прямого движения.
 func _step_cost(from_tile: Vector2i, to_tile: Vector2i) -> float:
 	var delta := to_tile - from_tile
 
@@ -470,7 +437,6 @@ func _step_cost(from_tile: Vector2i, to_tile: Vector2i) -> float:
 	return 1.0
 
 
-# Эвристика для движения по 8 направлениям.
 func _estimate_path_cost(from_tile: Vector2i, to_tile: Vector2i) -> float:
 	var dx: int = abs(to_tile.x - from_tile.x)
 	var dy: int = abs(to_tile.y - from_tile.y)
@@ -479,7 +445,6 @@ func _estimate_path_cost(from_tile: Vector2i, to_tile: Vector2i) -> float:
 	return float(diagonal_steps) * 1.41421356 + float(straight_steps)
 
 
-# Сравнивает две точки пастьбы по score: больше — лучше. При равенстве ближе, потом травянистее.
 func _is_grazing_result_better(candidate: Dictionary, current_best: Dictionary) -> bool:
 	var candidate_score := float(candidate.get("score", -INF))
 	var current_score := float(current_best.get("score", -INF))

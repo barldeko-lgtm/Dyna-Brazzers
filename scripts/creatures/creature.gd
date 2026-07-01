@@ -1,18 +1,15 @@
 extends CharacterBody2D
 
-# Ссылка на основной спрайт существа, который можно отражать по X.
+# Core creature FSM.
 @onready var sprite: Sprite2D = $BodySprite
 
-# Таймер, который отвечает за длительность поедания травы.
 @onready var eating_timer: Timer = $EatingTimer
 
-# Таймер, который отвечает за длительность состояния откладки яйца.
 @onready var egg_laying_timer: Timer = $EggLayingTimer
 
-# Зона, которая ловит наведение мыши на существо.
 @onready var hover_area: Area2D = $HoverArea
 
-# Простые состояния поведения существа на текущем этапе.
+# High-level behaviour states.
 enum State {
 	IDLE,
 	WALK,
@@ -22,62 +19,47 @@ enum State {
 	DEAD
 }
 
-# Минимальное время простоя.
+# Wander and grazing tuning.
 @export var idle_time_min := 1.0
 
-# Максимальное время простоя.
 @export var idle_time_max := 3.0
 
-# Минимальное время блуждания.
 @export var walk_time_min := 2.0
 
-# Максимальное время блуждания.
 @export var walk_time_max := 5.0
 
-# Размер существа в тайлах: по договорённости сейчас 2x2.
 @export var footprint_size := Vector2i(2, 2)
 
-# Раз в сколько секунд голодное существо перепроверяет ближайшие пастбища.
 @export var food_recheck_interval := 2.0
 
-# Радиус локального пересмотра цели пастьбы в тайлах.
 @export var nearby_grazing_recheck_radius := 6
 
-# Минимум взрослых кустов под существом, чтобы оно начинало есть.
 @export var min_grass_to_eat := 2
 
-# Вес числа взрослых кустов в формуле выбора пастбища.
 @export var grazing_grass_weight := 10.0
 
-# Штраф за каждый шаг расстояния в формуле выбора пастбища.
 @export var grazing_distance_penalty := 2.5
 
-# Насколько новый маршрут должен быть короче при почти равной выгоде, чтобы менять цель.
 @export var retarget_distance_advantage := 2
 
-# Данные текущего вида существа: базовые статы, визуал и яйцо.
+# Static species config.
 @export var species_data: CreatureSpeciesData
 
-# Опорный тайл, на котором существо зафиксировалось в момент начала еды.
 var eating_anchor_tile := Vector2i.ZERO
 
-# Технический идентификатор вида существа.
 var species_id := "stegosaurus"
 
-# Человекочитаемое название вида существа.
 var species_name := "Стегозавр"
 
-# Отображаемое имя существа для UI.
 var creature_name := "Стегозавр"
 
-# Спрайты направлений текущего вида.
 var down_texture: Texture2D
 var up_texture: Texture2D
 var right_texture: Texture2D
 var up_right_texture: Texture2D
 var down_right_texture: Texture2D
 
-# Базовые статы текущего вида.
+# Runtime stats copied from species_data.
 var speed := 140.0
 var max_health := 100.0
 var health := -1.0
@@ -87,16 +69,13 @@ var satiety_heal_threshold := 70.0
 var attack := 10.0
 var defense := 5.0
 
-# Текущий возраст существа в условных годах.
 var age := 0.0
 
-# Возраст, при котором существо считается слишком старым и умирает.
+# Aging tuning.
 @export var max_age := 10.0
 
-# Раз в сколько секунд существо становится старше на 1 год.
 @export var age_tick_interval := 30.0
 
-# Параметры сытости и еды.
 var max_hunger := 100.0
 var hunger := -1.0
 var hunger_decay_rate := 10.0
@@ -104,7 +83,6 @@ var hunger_search_threshold := 70.0
 var hunger_restore_amount := 10.0
 var eating_duration := 3.0
 
-# Яйцо и размножение текущего вида.
 var egg_scene: PackedScene
 var egg_stage_1_texture: Texture2D
 var egg_stage_2_texture: Texture2D
@@ -120,59 +98,43 @@ var reproduction_hunger_cost := 20.0
 var hatchling_health := 100.0
 var hatchling_hunger := 50.0
 
-# Текущее состояние существа.
+# Runtime state.
 var state: State = State.WALK
 
-# Сколько времени прошло до следующего увеличения возраста.
 var age_tick_elapsed := 0.0
 
-# Ссылка на grid-manager мира.
 var world_grid: Node = null
 
-# Тайл-опора существа: верхний левый тайл его footprint.
 var anchor_tile := Vector2i.ZERO
 
-# Временный визуальный сдвиг спрайта. Сейчас держим в нуле для честной проверки центра 2x2.
 var render_offset := Vector2.ZERO
 
-# Направление последнего движения для отражения спрайта.
 var direction := Vector2.ZERO
 
-# Таймер текущего состояния блуждания.
 var state_timer := 0.0
 
-# Таймер периодической переоценки пастбища.
 var food_recheck_timer := 0.0
 
-# Текущий маршрут как список опорных тайлов.
 var current_path: Array[Vector2i] = []
 
-# Текущий целевой тайл для пастьбы.
 var grazing_target_anchor := Vector2i.ZERO
 
-# Есть ли сейчас валидная целевая точка пастьбы.
 var has_grazing_target := false
 
-# Следующий тайл шага, к которому существо сейчас визуально движется.
 var pending_anchor_tile := Vector2i.ZERO
 
-# Мировая точка, в которую сейчас едет центр существа.
 var movement_target_position := Vector2.ZERO
 
-# Идёт ли сейчас визуальное перемещение между тайлами.
 var is_moving := false
 
-# Сколько осталось до следующей разрешённой откладки яйца.
 var reproduction_cooldown_remaining := 0.0
 
-# Куда существо собирается положить яйцо после завершения анимации откладки.
 var pending_egg_anchor := Vector2i.ZERO
 
-# Footprint яйца в первой стадии: вертикальный 1x2.
 const EGG_STAGE_1_FOOTPRINT := Vector2i(1, 2)
 
 
-# Подтягивает базовые статы, визуал и яйцо из ресурса текущего вида.
+# Pull static config into runtime fields.
 func apply_species_data() -> void:
 	if species_data == null:
 		return
@@ -219,7 +181,6 @@ func apply_species_data() -> void:
 		hunger = species_data.starting_hunger
 
 
-# Подготавливает существо, регистрирует его на сетке и сразу запускает первое поведение.
 func _ready() -> void:
 	randomize()
 	eating_timer.one_shot = true
@@ -262,13 +223,12 @@ func _ready() -> void:
 	enter_walk()
 
 
-# Освобождает занятые тайлы при удалении существа со сцены.
 func _exit_tree() -> void:
 	if world_grid != null:
 		world_grid.unregister_creature(self, footprint_size)
 
 
-# Обновляет голод, состояние и движение существа по сетке.
+# Main simulation tick.
 func _physics_process(delta: float) -> void:
 	if state == State.DEAD:
 		return
@@ -305,7 +265,7 @@ func _physics_process(delta: float) -> void:
 		State.DEAD:
 			return
 
-# Раз в 30 секунд добавляет существу 1 год возраста.
+# Survival ticks.
 func update_age(delta: float) -> void:
 	if age_tick_interval <= 0.0:
 		return
@@ -317,7 +277,6 @@ func update_age(delta: float) -> void:
 		age += 1.0
 
 
-# Проверяет, не умерло ли существо от старости.
 func check_age_death() -> bool:
 	if state == State.DEAD:
 		return true
@@ -329,7 +288,6 @@ func check_age_death() -> bool:
 	return true
 
 
-# Постепенно уменьшает сытость, пока существо не ест.
 func update_hunger(delta: float) -> void:
 	if state == State.EATING or state == State.LAYING_EGG:
 		return
@@ -337,7 +295,6 @@ func update_hunger(delta: float) -> void:
 	hunger = clamp(hunger - hunger_decay_rate * delta, 0.0, max_hunger)
 
 
-# Обновляет здоровье: при полном голоде снимает HP, а при высокой сытости медленно восстанавливает.
 func update_health(delta: float) -> void:
 	if hunger <= 0.0:
 		health = clamp(health - starvation_health_decay_rate * delta, 0.0, max_health)
@@ -347,7 +304,6 @@ func update_health(delta: float) -> void:
 		health = clamp(health + well_fed_health_regen_rate * delta, 0.0, max_health)
 
 
-# Проверяет, не умерло ли существо от потери здоровья.
 func check_health_death() -> bool:
 	if state == State.DEAD:
 		return true
@@ -359,7 +315,6 @@ func check_health_death() -> bool:
 	return true
 
 
-# Уменьшает кулдаун размножения, если он сейчас активен.
 func update_reproduction_cooldown(delta: float) -> void:
 	if reproduction_cooldown_remaining <= 0.0:
 		return
@@ -367,7 +322,7 @@ func update_reproduction_cooldown(delta: float) -> void:
 	reproduction_cooldown_remaining = max(reproduction_cooldown_remaining - delta, 0.0)
 
 
-# Решает, пора ли существу искать пастбище.
+# Food state machine.
 func update_food_behavior() -> void:
 	if world_grid == null:
 		return
@@ -375,7 +330,6 @@ func update_food_behavior() -> void:
 	if state == State.EATING or state == State.LAYING_EGG:
 		return
 
-	# Не переключаемся на поиск еды посреди шага: сначала доходим до центра текущего тайла.
 	if is_moving:
 		return
 
@@ -386,7 +340,6 @@ func update_food_behavior() -> void:
 		enter_seek_food()
 
 
-# Логика состояния покоя: существо стоит на месте до конца таймера.
 func update_idle(delta: float) -> void:
 	state_timer -= delta
 
@@ -394,7 +347,6 @@ func update_idle(delta: float) -> void:
 		enter_walk()
 
 
-# Логика блуждания: существо случайно шагает по соседним тайлам.
 func update_walk(delta: float) -> void:
 	state_timer -= delta
 
@@ -411,7 +363,6 @@ func update_walk(delta: float) -> void:
 	start_next_path_step_if_needed()
 
 
-# Логика поиска еды: существо идёт к лучшей точке пастьбы и иногда переоценивает цель.
 func update_seek_food(delta: float) -> void:
 	food_recheck_timer -= delta
 
@@ -443,24 +394,21 @@ func update_seek_food(delta: float) -> void:
 			build_path_to_grazing_target()
 
 
-# Во время еды существо стоит на месте и ждёт таймер.
 func update_eating() -> void:
 	return
 
 
-# Во время откладки яйца существо просто стоит на месте и ждёт таймер.
 func update_laying_egg() -> void:
 	return
 
 
-# Переводит существо в состояние покоя и задаёт новую длину паузы.
+# State transitions.
 func enter_idle() -> void:
 	state = State.IDLE
 	state_timer = randf_range(idle_time_min, idle_time_max)
 	clear_path()
 
 
-# Переводит существо в состояние блуждания.
 func enter_walk() -> void:
 	state = State.WALK
 	state_timer = randf_range(walk_time_min, walk_time_max)
@@ -468,7 +416,6 @@ func enter_walk() -> void:
 	clear_path()
 
 
-# Переводит существо в режим поиска пастбища.
 func enter_seek_food() -> void:
 	state = State.SEEK_FOOD
 	food_recheck_timer = food_recheck_interval
@@ -477,7 +424,6 @@ func enter_seek_food() -> void:
 	try_acquire_grazing_target()
 
 
-# Переводит существо в режим поедания травы.
 func enter_eating() -> void:
 	state = State.EATING
 	eating_anchor_tile = anchor_tile
@@ -485,7 +431,6 @@ func enter_eating() -> void:
 	eating_timer.start(eating_duration)
 
 
-# Переводит существо в состояние откладки яйца.
 func enter_laying_egg(egg_anchor: Vector2i) -> void:
 	state = State.LAYING_EGG
 	pending_egg_anchor = egg_anchor
@@ -493,7 +438,6 @@ func enter_laying_egg(egg_anchor: Vector2i) -> void:
 	egg_laying_timer.start(egg_laying_duration)
 
 
-# Переводит существо в состояние смерти и удаляет его из мира.
 func enter_dead() -> void:
 	if state == State.DEAD:
 		return
@@ -507,7 +451,6 @@ func enter_dead() -> void:
 	call_deferred("queue_free")
 
 
-# Выбирает один случайный валидный соседний тайл для шага.
 func choose_random_wander_step() -> void:
 	if world_grid == null:
 		return
@@ -521,7 +464,6 @@ func choose_random_wander_step() -> void:
 	current_path = [neighbors[random_index]]
 
 
-# Проверяет, можно ли начать есть на текущей позиции.
 func can_start_eating_here() -> bool:
 	if world_grid == null:
 		return false
@@ -529,7 +471,6 @@ func can_start_eating_here() -> bool:
 	return world_grid.count_adult_grass_under_footprint(anchor_tile, footprint_size) >= min_grass_to_eat
 
 
-# Возвращает опорный тайл, от которого нужно считать навигацию прямо сейчас.
 func get_navigation_anchor() -> Vector2i:
 	if is_moving:
 		return pending_anchor_tile
@@ -537,7 +478,7 @@ func get_navigation_anchor() -> Vector2i:
 	return anchor_tile
 
 
-# Пытается найти лучшую цель пастьбы: сначала рядом, потом по всей карте.
+# Grazing target selection.
 func try_acquire_grazing_target() -> void:
 	if world_grid == null:
 		return
@@ -576,14 +517,12 @@ func try_acquire_grazing_target() -> void:
 	clear_path()
 
 
-# Назначает новую точку пастьбы и перестраивает маршрут к ней.
 func apply_grazing_target(target_data: Dictionary) -> void:
 	has_grazing_target = true
 	grazing_target_anchor = target_data.get("anchor", anchor_tile)
 	build_path_to_grazing_target()
 
 
-# Перестраивает путь к текущей точке пастьбы.
 func build_path_to_grazing_target() -> void:
 	if world_grid == null or not has_grazing_target:
 		return
@@ -592,7 +531,6 @@ func build_path_to_grazing_target() -> void:
 	current_path = world_grid.find_path(navigation_anchor, grazing_target_anchor, footprint_size, self)
 
 
-# Раз в несколько секунд переоценивает ближайшие пастбища, чтобы не тупить на старой цели.
 func recheck_grazing_target() -> void:
 	if world_grid == null:
 		return
@@ -612,7 +550,6 @@ func recheck_grazing_target() -> void:
 		if has_grazing_target and is_current_grazing_target_still_valid():
 			return
 
-		# Если рядом еды нет и текущая цель потеряна, обязательно делаем fallback на общий поиск по карте.
 		try_acquire_grazing_target()
 		return
 
@@ -638,7 +575,6 @@ func recheck_grazing_target() -> void:
 		apply_grazing_target(nearby_target)
 
 
-# Проверяет, не испортилась ли текущая точка пастьбы.
 func is_current_grazing_target_still_valid() -> bool:
 	if not has_grazing_target or world_grid == null:
 		return false
@@ -649,7 +585,6 @@ func is_current_grazing_target_still_valid() -> bool:
 	return get_current_grazing_target_adult_count() >= min_grass_to_eat
 
 
-# Возвращает число взрослых кустов на текущей цели пастьбы.
 func get_current_grazing_target_adult_count() -> int:
 	if world_grid == null or not has_grazing_target:
 		return 0
@@ -657,7 +592,7 @@ func get_current_grazing_target_adult_count() -> int:
 	return world_grid.count_adult_grass_under_footprint(grazing_target_anchor, footprint_size)
 
 
-# Начинает движение к следующему тайлу из текущего пути.
+# Grid movement.
 func start_next_path_step_if_needed() -> void:
 	if is_moving:
 		return
@@ -673,7 +608,6 @@ func start_next_path_step_if_needed() -> void:
 	is_moving = true
 
 
-# Плавно двигает существо к следующему опорному тайлу.
 func advance_movement(delta: float) -> void:
 	global_position = global_position.move_toward(movement_target_position, speed * delta)
 
@@ -684,8 +618,6 @@ func advance_movement(delta: float) -> void:
 	is_moving = false
 
 	if world_grid != null and not world_grid.move_creature(self, pending_anchor_tile, footprint_size):
-		# Если целевой footprint успели занять, откатываем визуал к старому логическому anchor.
-		# Иначе существо может стоять в одном 2x2, а есть/занимать тайлы в другом.
 		global_position = world_grid.anchor_to_world_position(anchor_tile, footprint_size)
 		clear_path()
 		has_grazing_target = false
@@ -697,7 +629,6 @@ func advance_movement(delta: float) -> void:
 		enter_eating()
 
 
-# Очищает текущий маршрут и останавливает визуальный переход между тайлами.
 func clear_path() -> void:
 	current_path.clear()
 	is_moving = false
@@ -705,7 +636,6 @@ func clear_path() -> void:
 	movement_target_position = global_position
 
 
-# Завершает поедание: съедает всю взрослую траву под телом и восстанавливает сытость.
 func _on_eating_timer_timeout() -> void:
 	if world_grid == null:
 		enter_walk()
@@ -723,7 +653,6 @@ func _on_eating_timer_timeout() -> void:
 	enter_walk()
 
 
-# Завершает состояние откладки: создаёт яйцо и тратит ресурсы существа.
 func _on_egg_laying_timer_timeout() -> void:
 	if world_grid == null:
 		enter_walk()
@@ -740,7 +669,7 @@ func _on_egg_laying_timer_timeout() -> void:
 	enter_walk()
 
 
-# Проверяет, можно ли сейчас начать размножение, и при успехе запускает откладку яйца.
+# Reproduction flow.
 func update_reproduction_behavior() -> void:
 	if world_grid == null:
 		return
@@ -771,7 +700,6 @@ func update_reproduction_behavior() -> void:
 	enter_laying_egg(egg_anchor)
 
 
-# Вычисляет anchor первой стадии яйца из текущей позиции существа, чтобы яйцо появлялось в том же месте.
 func get_egg_spawn_anchor() -> Vector2i:
 	if world_grid == null:
 		return Vector2i(2147483647, 2147483647)
@@ -779,7 +707,6 @@ func get_egg_spawn_anchor() -> Vector2i:
 	return world_grid.world_to_anchor_tile(global_position, EGG_STAGE_1_FOOTPRINT)
 
 
-# Возвращает основное направление взгляда существа в координатах тайлов.
 func get_facing_tile_direction() -> Vector2i:
 	if absf(direction.x) >= absf(direction.y):
 		if direction.x < -0.01:
@@ -795,7 +722,7 @@ func get_facing_tile_direction() -> Vector2i:
 	return Vector2i.DOWN
 
 
-# Создаёт яйцо на уже выбранном тайле откладки.
+# Egg spawn.
 func spawn_egg_at_pending_anchor() -> bool:
 	if egg_scene == null:
 		return false
@@ -830,7 +757,6 @@ func spawn_egg_at_pending_anchor() -> bool:
 	return true
 
 
-# Ищет ближайший контейнер с указанным именем, поднимаясь вверх по дереву.
 func find_named_container(target_name: String) -> Node2D:
 	var current: Node = self
 
@@ -845,7 +771,6 @@ func find_named_container(target_name: String) -> Node2D:
 	return null
 
 
-# Выбирает нужный directional-спрайт и при необходимости флипает его влево.
 func update_sprite_visual() -> void:
 	if sprite == null:
 		return
@@ -893,7 +818,6 @@ func update_sprite_visual() -> void:
 		sprite.flip_h = faces_left
 
 
-# Ищет grid-manager мира, поднимаясь вверх по дереву сцены.
 func find_world_grid() -> Node:
 	var current: Node = self
 
@@ -906,32 +830,27 @@ func find_world_grid() -> Node:
 	return null
 
 
-# Возвращает технический идентификатор вида.
+# UI helpers.
 func get_species_id() -> String:
 	return species_id
 
 
-# Возвращает название вида существа.
 func get_species_name() -> String:
 	return species_name
 
 
-# Возвращает текущий возраст существа.
 func get_age() -> float:
 	return age
 
 
-# Возвращает возраст смерти существа.
 func get_max_age() -> float:
 	return max_age
 
 
-# Возвращает имя существа для UI.
 func get_creature_name() -> String:
 	return creature_name
 
 
-# Возвращает текущее здоровье в процентах для UI.
 func get_health_percent() -> float:
 	if max_health <= 0.0:
 		return 0.0
@@ -939,7 +858,6 @@ func get_health_percent() -> float:
 	return clamp((health / max_health) * 100.0, 0.0, 100.0)
 
 
-# Возвращает текущую сытость в процентах для UI.
 func get_hunger_percent() -> float:
 	if max_hunger <= 0.0:
 		return 0.0
@@ -947,7 +865,7 @@ func get_hunger_percent() -> float:
 	return clamp((hunger / max_hunger) * 100.0, 0.0, 100.0)
 
 
-# Показывает UI со статами, когда мышка наведена на существо.
+# Hover and selection hooks.
 func _on_hover_area_mouse_entered() -> void:
 	var stats_ui := get_tree().get_first_node_in_group("creature_stats_ui")
 
@@ -955,7 +873,6 @@ func _on_hover_area_mouse_entered() -> void:
 		stats_ui.show_creature_stats(self)
 
 
-# Скрывает UI со статами, когда мышка уходит с существа.
 func _on_hover_area_mouse_exited() -> void:
 	var stats_ui := get_tree().get_first_node_in_group("creature_stats_ui")
 
@@ -963,7 +880,6 @@ func _on_hover_area_mouse_exited() -> void:
 		stats_ui.hide_creature_stats()
 
 
-# Закрепляет или снимает выбор существа по клику мыши.
 func _on_hover_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	if not (event is InputEventMouseButton):
 		return

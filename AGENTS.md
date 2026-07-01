@@ -1,63 +1,71 @@
 # Dyna — AGENTS.md
 
-## Что это за проект
-Dyna — ранний Godot-прототип игры про автономный мир динозавров, вдохновлённый Dyna Brothers. Это не обычная RTS: целевой вектор проекта — наблюдение за живой экосистемой и косвенное влияние игрока на мир, а не прямое управление юнитами.
+## Project snapshot
+Dyna is an early Godot prototype of an autonomous dinosaur world inspired by Dyna Brothers. The target is an observable ecosystem with indirect player influence, not a normal RTS with direct unit control.
 
-Сейчас проект находится на стадии базовой симуляции:
-- есть тестовый мир на тайловой карте;
-- есть один базовый вид существа с автономным поведением и несколькими тестовыми экземплярами на сцене;
-- есть directional-спрайты текущего тестового существа;
-- есть трава как первый ресурс;
-- есть debug UI со статами, hover-просмотром и закреплением выбора по клику;
-- есть камера наблюдения.
+Current scope:
+- a tile-based test world;
+- one base species with several test creatures;
+- directional sprites for the current creature;
+- grass as the first renewable resource;
+- egg laying, 2 egg stages, and hatching;
+- a debug UI for hover/selection and creature stats;
+- a free observer camera.
 
-## Важные правила работы в этом проекте
-- Все изменения держать внутри `E:/dyna`, если отдельно не согласовано иное.
-- Локальный Godot для проверок и прогонов лежит в `E:/Godot_v4.7/`; основной CLI для headless-прогонов — `E:/Godot_v4.7/Godot_v4.7-stable_win64_console.exe`; короткий runtime-прогон: `'/e/Godot_v4.7/Godot_v4.7-stable_win64_console.exe' --headless --path '/e/dyna' --quit-after 10`.
-- Перед рискованными или структурными изменениями сначала делать git backup commit.
-- Ответы и комментарии в коде — на русском языке.
-- Не ломать проект в сторону обычной RTS: игрок задуман как внешняя сила / наблюдатель.
-- При анализе логики помнить, что ключевая цель проекта — живая автономная экосистема, а не ручное командование существами.
+## Working rules
+- Keep all changes inside `E:/dyna` unless explicitly approved otherwise.
+- Local Godot lives in `E:/Godot_v4.7/`; preferred headless CLI: `E:/Godot_v4.7/Godot_v4.7-stable_win64_console.exe`; short smoke test: `'/e/Godot_v4.7/Godot_v4.7-stable_win64_console.exe' --headless --path '/e/dyna' --quit-after 10`.
+- Before risky or structural code changes, make a git backup commit.
+- Keep code comments short and in English.
+- Do not push the project toward a standard RTS.
+- Do not edit `docs/design_roadmap.md` unless the user asks for it.
 
-## Архитектурный канон на текущем этапе
-- Мир и тайловая сетка — источник истины для проходимости, занятости клеток и поиска пастбищ.
-- Существо принимает решения в координатах сетки, но визуально двигается плавно в мировых координатах.
-- Для крупных существ используется `anchor_tile + footprint`, а не одна точка в пикселях.
-- Трава живёт по тайлам, регистрируется в мире и может быть съедена только во взрослой стадии.
-- UI только показывает состояние существа и не должен становиться источником игровой логики.
+## Current architecture canon
+- The world grid is the source of truth for walkability, occupancy, and grazing queries.
+- Creatures decide in grid space but move smoothly in world space.
+- Large creatures use `anchor_tile + footprint`.
+- Grass exists per tile, registers into the world, and is edible only in its adult stage.
+- UI is observational only.
+- Static creature stats and visuals now live in species resources.
 
-## Ключевые файлы
-- `project.godot` — вход в проект, главная сцена `res://scenes/main/main.tscn`
-- `scenes/main/main.tscn` — сборка верхнего уровня: камера, UI, мир
-- `scenes/world/world.tscn` — тестовый мир с TileMapLayer, травой и тестовыми существами
-- `scripts/world/world_grid.gd` — главный grid-manager мира
-- `scripts/creatures/creature.gd` — базовая логика существа
-- `scripts/resources/grass.gd` — логика травы
-- `scripts/ui/creature_stats_ui.gd` — debug UI со статами
-- `docs/design_roadmap.md` — общее видение проекта и roadmap
-- `docs/project-map.md` — карта текущей структуры проекта
+## Key files
+- `project.godot` — project entry, main scene `res://scenes/main/main.tscn`
+- `scenes/main/main.tscn` — top-level assembly: camera, UI, world
+- `scenes/world/world.tscn` — test world with tilemap, grass, eggs, and test creatures
+- `scripts/world/world_grid.gd` — central world/grid manager
+- `scripts/creatures/creature.gd` — base creature runtime logic
+- `scripts/creatures/creature_species_data.gd` — species resource schema
+- `data/species/stegosaurus.tres` — current species tuning and visuals
+- `scripts/resources/grass.gd` — grass lifecycle
+- `scripts/resources/egg.gd` — egg lifecycle and hatching
+- `scripts/ui/creature_stats_ui.gd` — debug creature UI
+- `docs/project-map.md` — structure and responsibilities
+- `docs/current-state.md` — live project snapshot
+- `docs/design_roadmap.md` — broader design vision and roadmap
 
-## Как читать проект с нуля
-1. Сначала открыть `docs/design_roadmap.md`, чтобы понять замысел.
-2. Потом открыть `docs/project-map.md`, чтобы быстро увидеть структуру и связи.
-3. Дальше смотреть `scenes/main/main.tscn` -> `scenes/world/world.tscn`.
-4. После этого читать `scripts/world/world_grid.gd`, затем `scripts/creatures/creature.gd`, затем `scripts/resources/grass.gd`.
+## Recommended read order
+1. `AGENTS.md`
+2. `docs/project-map.md`
+3. `docs/current-state.md`
+4. `docs/design_roadmap.md` only when broader design intent matters
+5. then inspect task-relevant scenes/scripts
 
-## Что здесь сейчас наиболее хрупкое
-- Связка `world_grid.gd` <-> `creature.gd`: там завязаны anchor-тайлы, footprint, занятость клеток и пастьба.
-- Логика еды и ретаргета в `creature.gd`: её легко случайно упростить так, что существо начнёт есть не там, куда реально шло.
-- Регистрация травы и существ в мире: если ломается реестр по тайлам, поведение быстро начинает врать.
+## Fragile areas
+- The `world_grid.gd` <-> `creature.gd` link: anchor tiles, footprint, occupancy, grazing, movement.
+- Grazing target selection and retargeting in `creature.gd`.
+- Registration of grass, creatures, and blockers in the world registry.
+- Any change touching `anchor_tile`, `pending_anchor_tile`, or visual-vs-logical sync.
 
-## Ближайший смысл проекта
-На этой стадии проект — это не «контентная игра», а рабочий полигон для проверки ядра симуляции:
-- движение существ;
-- поиск еды;
-- жизнь ресурса;
-- наблюдение через UI;
-- подготовка к расширению в сторону экосистемы, влияния игрока и новых видов.
+## Near-term project meaning
+This stage is a simulation testbed for:
+- creature movement;
+- food search;
+- resource lifecycle;
+- observation through UI;
+- preparation for more species, player influence, and ecosystem depth.
 
-## Короткая заметка по духу оригинальных Dyna Brothers
-- Ориентир — автономная экосистемная стратегия, а не RTS с жёстким микроконтролем.
-- Существа должны в основном действовать сами; игрок влияет на мир косвенно.
-- Бой и поведение лучше строить от простых автоматических состояний и ролей.
-- Читаемость важнее через поведение/мир, чем через тяжёлый UI.
+## Original Dyna Brothers spirit
+- Autonomous ecosystem strategy, not heavy micro RTS.
+- Creatures should mostly act on their own.
+- Combat and behaviour should grow from simple automatic states/roles.
+- Readability should come more from world behaviour than heavy UI.

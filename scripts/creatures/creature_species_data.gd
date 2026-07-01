@@ -1,23 +1,22 @@
 extends Resource
 class_name CreatureSpeciesData
 
-# Технический идентификатор вида существа.
+# Static species config. Edit this file to rebalance a species.
+# Identity.
 @export var species_id := "stegosaurus"
 
-# Человекочитаемое название вида.
 @export var species_name := "Стегозавр"
 
-# Отображаемое имя существа в UI.
 @export var creature_name := "Стегозавр"
 
-# Спрайты направлений.
+# Visuals.
 @export var down_texture: Texture2D
 @export var up_texture: Texture2D
 @export var right_texture: Texture2D
 @export var up_right_texture: Texture2D
 @export var down_right_texture: Texture2D
 
-# Базовые статы вида.
+# Balance: combat and survival.
 @export var speed := 140.0
 @export var max_health := 100.0
 @export var starting_health := 100.0
@@ -33,7 +32,7 @@ class_name CreatureSpeciesData
 @export var hunger_restore_amount := 10.0
 @export var eating_duration := 3.0
 
-# Яйцо и вылупление.
+# Balance: egg lifecycle.
 @export var egg_scene: PackedScene
 @export var egg_stage_1_texture: Texture2D
 @export var egg_stage_2_texture: Texture2D
@@ -44,7 +43,7 @@ class_name CreatureSpeciesData
 @export var hatchling_health := 100.0
 @export var hatchling_hunger := 50.0
 
-# Размножение.
+# Balance: reproduction gates.
 @export var reproduction_min_health := 30.0
 @export var reproduction_min_hunger := 70.0
 @export var reproduction_min_age := 3.0

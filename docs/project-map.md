@@ -1,356 +1,380 @@
-# Карта проекта Dyna
+# Dyna Project Map
 
-Этот файл нужен как быстрый вход в проект для новой сессии: что где лежит, за что отвечает и куда смотреть в первую очередь.
-
----
-
-## 1. Общая структура
-
-### Корень проекта
-- `project.godot` — конфиг Godot-проекта. Здесь указана главная сцена: `res://scenes/main/main.tscn`.
-- `AGENTS.md` — короткие рабочие правила и архитектурный канон проекта.
-- `docs/design_roadmap.md` — общее видение игры, роли игрока, этапов развития и roadmap.
-- `docs/project-map.md` — эта карта проекта.
-
-### Папка `scenes/`
-Содержит сборки игровых узлов и сцен.
-
-- `scenes/main/main.tscn` — верхний уровень проекта.
-- `scenes/world/world.tscn` — тестовый мир.
-- `scenes/creatures/Creature.tscn` — тестовое существо.
-- `scenes/resources/grass.tscn` — куст травы.
-- `scenes/resources/egg.tscn` — яйцо существа с двумя стадиями и вылуплением.
-
-### Папка `scripts/`
-Основная игровая логика по подсистемам.
-
-- `scripts/world/world_grid.gd` — логика мира и сетки.
-- `scripts/creatures/creature.gd` — базовая логика существа.
-- `scripts/creatures/creature_species_data.gd` — ресурс-описание вида существа.
-- `scripts/resources/grass.gd` — логика травы.
-- `scripts/resources/egg.gd` — логика яйца, стадий и вылупления.
-- `scripts/camera/camera_controller.gd` — камера.
-- `scripts/ui/creature_stats_ui.gd` — debug UI существа.
-
-### Папка `assets/`
-Хранит базовые игровые спрайты и плейсхолдеры.
-
-- `assets/sprites/terrain/ground.png` — тайл земли.
-- `assets/sprites/terrain/grass_stage_1.png` — маленькая трава.
-- `assets/sprites/terrain/grass_stage_2.png` — взрослая трава.
-- `assets/sprites/creatures/stegosaurus/` — directional-набор спрайтов текущего тестового существа.
-- `assets/sprites/creatures/eggs/` — спрайты яйца для первой и второй стадии.
-- `assets/sprites/creatures/stegosaurus_placeholder.png` — старый плейсхолдер стегозавра.
-- `assets/sprites/creatures/debug_square_256.png` — старый debug-спрайт, сохранён как техреференс.
-
-### Папка `data/`
-Хранит данные и настраиваемые ресурсы проекта.
-
-- `data/species/stegosaurus.tres` — текущий набор статов, визуала и egg-настроек стегозавра.
+Fast entry point for a new session: what lives where, what each part owns, and where to look first.
 
 ---
 
-## 2. Поток запуска сцены
+## 1. High-level structure
+
+### Project root
+- `project.godot` — Godot project config; main scene `res://scenes/main/main.tscn`
+- `AGENTS.md` — short working rules and project canon
+- `docs/design_roadmap.md` — overall game vision, player role, progression, and roadmap
+- `docs/project-map.md` — this file
+- `docs/current-state.md` — live prototype snapshot
+
+### `scenes/`
+Scene assemblies and placed nodes.
+
+- `scenes/main/main.tscn` — top-level project assembly
+- `scenes/world/world.tscn` — test world
+- `scenes/creatures/Creature.tscn` — base creature scene
+- `scenes/resources/grass.tscn` — grass resource scene
+- `scenes/resources/egg.tscn` — egg scene with two stages and hatching
+
+### `scripts/`
+Main gameplay logic by subsystem.
+
+- `scripts/world/world_grid.gd` — world/grid authority
+- `scripts/creatures/creature.gd` — base creature runtime logic
+- `scripts/creatures/creature_species_data.gd` — species resource schema
+- `scripts/resources/grass.gd` — grass lifecycle
+- `scripts/resources/egg.gd` — egg lifecycle and hatching
+- `scripts/camera/camera_controller.gd` — observer camera
+- `scripts/ui/creature_stats_ui.gd` — debug creature UI
+
+### `assets/`
+Sprites and placeholders.
+
+- `assets/sprites/terrain/ground.png` — ground tile
+- `assets/sprites/terrain/grass_stage_1.png` — small grass
+- `assets/sprites/terrain/grass_stage_2.png` — adult grass
+- `assets/sprites/creatures/stegosaurus/` — directional sprite set for the current test creature
+- `assets/sprites/creatures/eggs/` — egg sprites for both stages
+- `assets/sprites/creatures/stegosaurus_placeholder.png` — old stegosaurus placeholder
+- `assets/sprites/creatures/debug_square_256.png` — old debug sprite kept as a tech reference
+
+### `data/`
+Configurable game data resources.
+
+- `data/species/stegosaurus.tres` — current species stats, visuals, and egg settings
+
+---
+
+## 2. Scene startup flow
 
 ### `project.godot`
-Точка входа проекта. Запускает:
-- `res://scenes/main/main.tscn`
+Project entry point. Launches `res://scenes/main/main.tscn`.
 
 ### `scenes/main/main.tscn`
-Сцена верхнего уровня. Сейчас собирает:
-- `Camera2D` — камера с управлением через `camera_controller.gd`
-- `UI` — слой интерфейса со статами существа, FPS и переключателем скорости симуляции
-- `Simulation` — пока пустой технический узел
-- `World` — инстанс `scenes/world/world.tscn`
+Top-level scene. Currently contains:
+- `Camera2D` — camera using `camera_controller.gd`
+- `UI` — creature stats, FPS, and simulation speed controls
+- `Simulation` — currently an empty technical node
+- `World` — an instance of `scenes/world/world.tscn`
 
 ### `scenes/world/world.tscn`
-Рабочая песочница, где живёт симуляция. Содержит:
-- `World` (`Node2D`) со скриптом `world_grid.gd`
-- `Creatures` — контейнер с тестовыми существами
-- `Grasses` — контейнер с тестовой травой
-- `Eggs` — контейнер с яйцами существ
-- `Ground` (`TileMapLayer`) — земля и геометрия карты
+Active simulation sandbox. Contains:
+- `World` (`Node2D`) with `world_grid.gd`
+- `Creatures` — test creatures
+- `Grasses` — grass instances
+- `Eggs` — creature eggs
+- `Ground` (`TileMapLayer`) — map geometry and walkable area
 
-Важно: именно `World` со скриптом `world_grid.gd` является центром логики мира. Остальные сущности находят его, поднимаясь по дереву сцены.
+Important: `World` with `world_grid.gd` is the logic center. Other entities find it by walking up the scene tree.
 
 ---
 
-## 3. Ключевые сцены
+## 3. Key scenes
 
 ### `scenes/main/main.tscn`
-**Роль:** верхняя сборка проекта.
+**Role:** top-level project assembly.
 
-**За что отвечает:**
-- стартовый каркас игры;
-- подключение камеры;
-- подключение debug UI;
-- подключение мира как отдельной сцены.
+**Owns:**
+- bootstrapping the prototype;
+- camera;
+- debug UI;
+- world scene attachment.
 
-**Что важно помнить:**
-- это не место для тяжёлой игровой логики;
-- логика мира должна жить ниже, в `world_grid.gd` и связанных сущностях.
+**Keep in mind:**
+- do not turn this into a heavy gameplay-logic scene;
+- world logic belongs in `world_grid.gd` and related entities.
 
 ### `scenes/world/world.tscn`
-**Роль:** тестовый игровой мир.
+**Role:** test gameplay world.
 
-**За что отвечает:**
-- хранение земли, травы и существ;
-- запуск симуляции внутри мира;
-- базовая песочница для проверки поведения.
+**Owns:**
+- ground, grass, eggs, and creatures;
+- running the simulation;
+- serving as the main behaviour sandbox.
 
-**Что важно помнить:**
-- карта сейчас опирается на `TileMapLayer` с крупным тайлом `128x128`;
-- в сцене уже лежат несколько тестовых существ и несколько кустов травы;
-- это не финальная структура мира, а рабочий полигон для механик.
+**Keep in mind:**
+- the map currently uses large `128x128` tiles;
+- the scene already contains several test creatures and grass patches;
+- this is a mechanics sandbox, not final world structure.
 
 ### `scenes/creatures/Creature.tscn`
-**Роль:** базовая сцена существа.
+**Role:** base creature scene.
 
-**Состав:**
+**Structure:**
 - `CharacterBody2D`
 - `BodySprite`
 - `EatingTimer`
 - `EggLayingTimer`
-- `HoverArea` для hover-показа и клика по существу
+- `HoverArea` for hover UI and click selection
 
-**Что важно помнить:**
-- сцена берёт базовые статы, визуал и яйцо из `species_data`;
-- левые направления собираются через `flip_h` от правых ракурсов;
-- сцена завязана на логику footprint 2x2 в `creature.gd`.
+**Keep in mind:**
+- the scene pulls base stats, visuals, and egg setup from `species_data`;
+- left-facing visuals are mirrored from right-facing sprites;
+- the scene is tied to `2x2` footprint logic in `creature.gd`.
 
 ### `scenes/resources/grass.tscn`
-**Роль:** базовая сцена ресурса травы.
+**Role:** base grass scene.
 
-**Состав:**
+**Structure:**
 - `Node2D`
 - `BodySprite`
 - `GrowthTimer`
 - `SpreadTimer`
 
-**Что важно помнить:**
-- трава существует по тайлам;
-- взрослую траву можно есть;
-- трава умеет размножаться по 4 сторонам.
+**Keep in mind:**
+- grass exists on tiles;
+- only adult grass is edible;
+- grass spreads in the 4 cardinal directions.
 
 ### `scenes/resources/egg.tscn`
-**Роль:** базовая сцена яйца существа.
+**Role:** base creature egg scene.
 
-**Состав:**
+**Structure:**
 - `Node2D`
 - `BodySprite`
 - `Stage1Timer`
 - `ExpandRetryTimer`
 - `HatchTimer`
 
-**Что важно помнить:**
-- первая стадия яйца — вертикальная и неблокирующая, концептуально `1x2`;
-- после свободного расширения вправо яйцо переходит во вторую стадию `2x2`;
-- вторая стадия блокирует клетки мира и потом вылупляет новое существо.
+**Keep in mind:**
+- egg stage 1 is vertical and non-blocking, conceptually `1x2`;
+- after a free expansion right, the egg becomes stage 2 `2x2`;
+- stage 2 blocks world tiles and later hatches a new creature.
 
 ---
 
-## 4. Ключевые скрипты
+## 4. Key scripts
 
 ### `scripts/world/world_grid.gd`
-**Роль:** главный менеджер мира и сетки.
+**Role:** central world/grid manager.
 
-**Это один из самых важных файлов проекта.**
+**Owns:**
+- `Ground` lookup/cache;
+- tile size and map bounds;
+- world/grid conversion;
+- `anchor_tile` and footprint helpers;
+- grass registration by tile;
+- creature occupied-tile registration;
+- blocker registration for objects like eggs;
+- walkability checks;
+- neighbor lookup with diagonal corner-cut prevention;
+- A*-style pathfinding;
+- grazing-target queries;
+- counting and consuming adult grass under a footprint.
 
-**Отвечает за:**
-- поиск и кэш `Ground` (`TileMapLayer`);
-- размер тайла и границы карты;
-- перевод между мировыми координатами и тайлами;
-- работу с `anchor_tile` и `footprint`;
-- регистрацию травы по тайлам;
-- регистрацию существ и занятых клеток;
-- проверку проходимости;
-- поиск соседей с запретом некорректного диагонального прохода;
-- A*-подобный поиск пути;
-- поиск лучших точек пастьбы;
-- подсчёт и потребление взрослой травы под footprint существа.
+**Source of truth for:**
+- world walkability;
+- tile occupancy;
+- real grass locations;
+- real creature logical position.
 
-**Источник истины:**
-- проходимость мира;
-- занятость клеток;
-- где реально стоит трава;
-- где реально стоит существо с точки зрения логики.
-
-**Хрупкие места:**
-- регистрация/перемещение существ;
-- согласованность `anchor_tile` и реального положения тела;
-- логика поиска пастбищ для footprint 2x2.
+**Fragile areas:**
+- creature registration/movement;
+- `anchor_tile` vs actual body position;
+- grazing selection for `2x2` footprints.
 
 ### `scripts/creatures/creature.gd`
-**Роль:** базовая автономная логика существа.
+**Role:** base autonomous creature runtime logic.
 
-**Отвечает за:**
-- состояния `IDLE`, `WALK`, `SEEK_FOOD`, `EATING`, `LAYING_EGG`, `DEAD`;
-- возраст, голод, потерю здоровья при голоде и медленную регенерацию HP при сытости выше порога;
-- смерть от старости и смерть при `0 hp` через `DEAD` state;
-- выбор пастбища с двухшаговым поиском: локальный recheck рядом, затем global fallback по карте;
-- построение маршрута через `world_grid`;
-- плавное визуальное движение между tile-anchor позициями;
-- выбор directional-спрайта по направлению движения;
-- поедание взрослой травы под footprint;
-- проверку условий размножения и состояние откладки яйца;
-- спавн первой стадии яйца в текущей позиции существа;
-- hover-показ UI и выбор существа кликом;
-- применение `species_data`-ресурса, который задаёт статы, визуал и яйцо текущего вида.
+**Owns:**
+- states `IDLE`, `WALK`, `SEEK_FOOD`, `EATING`, `LAYING_EGG`, `DEAD`;
+- age, hunger, starvation damage, and well-fed regen;
+- death from old age and at `0 hp`;
+- two-step grazing search: local recheck, then global fallback;
+- route building through `world_grid`;
+- smooth movement between tile anchors;
+- directional sprite choice;
+- eating adult grass under the footprint;
+- reproduction checks and egg-laying;
+- spawning egg stage 1 at the current creature location;
+- hover UI and click selection hooks;
+- applying `species_data` for stats, visuals, and egg setup.
 
-**Что важно помнить:**
-- логическое положение существа хранится как `anchor_tile`;
-- визуальное движение идёт отдельно от логического решения;
-- существо не должно начинать есть просто потому, что по дороге пересекло выгодное место: при выбранной цели пастьбы важно прибытие в целевой anchor;
-- текущий footprint у существа — `2x2`.
+**Keep in mind:**
+- logical position is stored as `anchor_tile`;
+- visual motion is separate from logical decisions;
+- the creature should not start eating just because it crossed a good tile on the way;
+- current footprint is `2x2`;
+- this file is already large, so future systems should be added carefully.
 
-**Публично полезные методы для UI:**
+**Useful public methods for UI:**
 - `get_creature_name()`
 - `get_age()`
 - `get_health_percent()`
 - `get_hunger_percent()`
 
+### `scripts/creatures/creature_species_data.gd`
+**Role:** species resource schema.
+
+**Owns:**
+- species identity fields;
+- directional visuals;
+- survival/combat stats;
+- hunger tuning;
+- egg lifecycle tuning;
+- reproduction thresholds and costs;
+- starting stats for spawned and hatched creatures.
+
+**Keep in mind:**
+- this is where species-level balancing should grow;
+- the current concrete setup lives in `data/species/stegosaurus.tres`.
+
 ### `scripts/resources/grass.gd`
-**Роль:** жизненный цикл травы как первого ресурса.
+**Role:** grass lifecycle as the first renewable resource.
 
-**Отвечает за:**
-- стадии роста (`STAGE_1`, `STAGE_2`);
-- таймер роста до взрослой стадии;
-- таймер размножения;
-- регистрацию куста в мире через `world_grid`;
-- размножение по 4 соседним клеткам;
-- откат во 1 стадию при поедании.
+**Owns:**
+- growth stages `STAGE_1` and `STAGE_2`;
+- growth timer until the adult stage;
+- spread timer;
+- world registration through `world_grid`;
+- spreading to 4 neighboring tiles;
+- falling back to stage 1 after being eaten.
 
-**Что важно помнить:**
-- траву можно есть только во второй стадии;
-- куст сам синхронизирует свой tile с миром;
-- спавн новой травы происходит через повторную инстанциацию собственной сцены.
+**Keep in mind:**
+- grass is edible only in stage 2;
+- the node syncs its own tile with the world;
+- new grass is spawned by instantiating the same scene again.
 
 ### `scripts/resources/egg.gd`
-**Роль:** жизненный цикл яйца существа.
+**Role:** creature egg lifecycle.
 
-**Отвечает за:**
-- первую вертикальную стадию яйца `1x2`;
-- повторные проверки расширения до `2x2`;
-- регистрацию второй стадии как блокирующего объекта мира;
-- bool-логику съедобности яйца без системы HP;
-- вылупление существа через заданную сцену вида.
+**Owns:**
+- the first vertical egg stage `1x2`;
+- repeated checks for expansion into `2x2`;
+- registering stage 2 as a blocking world object;
+- bool-based egg edibility without an HP system;
+- hatching a creature through the configured creature scene.
 
-**Что важно помнить:**
-- первая стадия яйца не блокирует клетки;
-- вторая стадия использует правое расширение и блокирует `2x2`;
-- вид яйца и вид вылупившегося существа задаются через сцену/текстуры.
+**Keep in mind:**
+- egg stage 1 does not block tiles;
+- stage 2 expands right and blocks `2x2`;
+- egg visuals and the hatched creature scene are data-driven.
 
 ### `scripts/ui/creature_stats_ui.gd`
-**Роль:** debug UI для наблюдения за существом.
+**Role:** debug UI for observing creatures.
 
-**Отвечает за:**
-- временный показ панели по наведению на существо;
-- закрепление и снятие выбора существа по клику;
-- отображение имени, возраста, здоровья и сытости;
-- текущий FPS в углу экрана;
-- переключение скорости симуляции между `x1`, `x2` и `x3`.
+**Owns:**
+- temporary hover display;
+- click-to-pin and clear selection;
+- showing name, age, health, and hunger;
+- FPS display;
+- simulation speed switching between `x1`, `x2`, and `x3`.
 
-**Что важно помнить:**
-- это наблюдательный интерфейс, а не игровая логика;
-- UI опирается на методы существа, но не должен владеть его состоянием.
+**Keep in mind:**
+- this is observation UI, not gameplay logic;
+- the UI queries creature methods but should not own creature state.
 
 ### `scripts/camera/camera_controller.gd`
-**Роль:** базовое управление камерой.
+**Role:** basic observer camera control.
 
-**Отвечает за:**
-- перемещение по WASD;
-- приближение/отдаление колесом мыши;
-- ограничения по диапазону зума.
+**Owns:**
+- WASD movement;
+- mouse-wheel zoom;
+- zoom range limits.
 
-**Что важно помнить:**
-- пока это очень простой debug-камконтрол;
-- позже может перерасти в полноценную камеру наблюдателя.
-
----
-
-## 5. Текущие системные связи
-
-### Мир -> Существа
-- Существа находят `world_grid` через дерево сцены.
-- Мир сообщает, где можно стоять, куда можно идти и где есть еда.
-- Мир хранит реальную занятость клеток.
-
-### Мир -> Трава
-- Трава регистрируется в мире по координате тайла.
-- Мир использует реестр травы для поиска еды и потребления ресурса.
-
-### Существо -> UI
-- При наведении `HoverArea` вызывает UI-группу `creature_stats_ui`.
-- При клике `HoverArea` закрепляет или снимает выбор существа.
-- UI запрашивает у существа имя, возраст, здоровье и сытость.
-
-### TileMapLayer -> Вся логика сетки
-- `Ground` задаёт карту, размеры тайла и фактическую область мира.
-- Все сеточные расчёты опираются на него.
+**Keep in mind:**
+- this is still a simple debug camera;
+- later it may become a fuller observer camera.
 
 ---
 
-## 6. Что уже работает по факту
+## 5. Current system links
 
-По текущему коду уже есть:
-- запуск мира через главную сцену;
-- перемещение камеры;
-- несколько тестовых существ на карте;
-- directional-спрайты существа по направлениям движения;
-- возраст, голод, смерть от старости и смерть при `0 hp`;
-- выбор существа кликом и закрепление панели;
-- поиск травы по сетке;
-- поедание взрослой травы;
-- рост и размножение травы;
-- панель со статами существа;
-- FPS-метка.
+### World -> Creatures
+- Creatures find `world_grid` through the scene tree.
+- The world tells them where they can stand, move, and find food.
+- The world stores real occupancy.
+
+### World -> Grass
+- Grass registers into the world by tile.
+- The world uses the grass registry for food search and consumption.
+
+### World -> Eggs
+- Eggs use the world to resolve anchors, blocking, and hatch placement.
+- Stage 2 egg occupancy is tracked through blocker registration.
+
+### Creature -> UI
+- On hover, `HoverArea` talks to the `creature_stats_ui` group.
+- On click, `HoverArea` pins or clears selection.
+- The UI asks the creature for name, age, health, and hunger.
+
+### `TileMapLayer` -> All grid logic
+- `Ground` defines the map, tile size, and effective world area.
+- All grid calculations depend on it.
 
 ---
 
-## 7. Где смотреть в первую очередь при новых задачах
+## 6. What already works in practice
 
-### Если задача про движение / путь / footprint / застревания
-Смотреть:
+The current code already provides:
+- world startup through the main scene;
+- camera movement and zoom;
+- several test creatures on the map;
+- directional creature sprites;
+- age, hunger, death from old age, and death at `0 hp`;
+- hover and click creature selection;
+- grid-based grass search;
+- eating adult grass;
+- grass growth and spreading;
+- egg laying, egg growth, and hatching;
+- the creature stats panel;
+- an FPS label;
+- simulation speed control.
+
+---
+
+## 7. Where to look first for new tasks
+
+### Movement / path / footprint / stuck behaviour
 1. `scripts/world/world_grid.gd`
 2. `scripts/creatures/creature.gd`
 3. `scenes/world/world.tscn`
 
-### Если задача про траву / еду / регенерацию ресурса
-Смотреть:
+### Grass / food / resource regeneration
 1. `scripts/resources/grass.gd`
 2. `scripts/world/world_grid.gd`
 3. `scenes/resources/grass.tscn`
 
-### Если задача про UI существа
-Смотреть:
+### Egg / reproduction / hatching
+1. `scripts/resources/egg.gd`
+2. `scripts/creatures/creature.gd`
+3. `scenes/resources/egg.tscn`
+4. `data/species/stegosaurus.tres`
+
+### Creature UI
 1. `scripts/ui/creature_stats_ui.gd`
 2. `scripts/creatures/creature.gd`
 3. `scenes/main/main.tscn`
 
-### Если задача про камеру и обзор мира
-Смотреть:
+### Camera / world observation
 1. `scripts/camera/camera_controller.gd`
 2. `scenes/main/main.tscn`
 
 ---
 
-## 8. Места, куда лучше не лезть без понимания последствий
+## 8. Places to avoid touching blindly
 
-- Логика `anchor_tile`, `pending_anchor_tile` и `movement_target_position` в `creature.gd`
-- Методы `register_creature`, `move_creature`, `can_place_footprint` в `world_grid.gd`
-- Логика выбора точки пастьбы и ретаргета
-- Согласованность между визуальным движением и логическим положением существа
+- `anchor_tile`, `pending_anchor_tile`, and `movement_target_position` logic in `creature.gd`
+- `register_creature`, `move_creature`, and `can_place_footprint` in `world_grid.gd`
+- grazing-target selection and retarget logic
+- consistency between visual motion and logical creature position
 
-Если эти куски менять неаккуратно, можно получить классическую мерзость: существо визуально стоит в одном месте, а логически ест и занимает клетки в другом.
+If these areas are changed carelessly, a creature can visually stand in one place while logically eating and occupying tiles elsewhere.
 
 ---
 
-## 9. Контекст дизайна, который важно не потерять
+## 9. Design context worth preserving
 
-Даже если код пока очень прототипный, проект идёт в сторону:
-- живой автономной экосистемы;
-- непрямого контроля игрока;
-- мира, который существует сам по себе;
-- постепенного усложнения существ, ресурсов и воздействий игрока.
+The project direction is:
+- a living autonomous ecosystem;
+- indirect player control;
+- a world that exists on its own;
+- gradual growth in species, resources, and player influence.
 
-То есть направление проекта: **не "сделать обычную RTS с динозаврами"**, а построить наблюдаемую симуляцию, в которую игрок вмешивается как внешняя сила.
+This is not “a normal RTS with dinosaurs”. It is an observable simulation shaped by outside player influence.

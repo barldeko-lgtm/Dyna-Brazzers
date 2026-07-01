@@ -1,142 +1,134 @@
-# Текущее состояние проекта Dyna
+# Dyna — Current Project State
 
-> Этот файл — живой снимок проекта. Его стоит обновлять после заметных изменений в архитектуре, логике мира, составе сцен и при переходе к новой версии/этапу roadmap.
-
----
-
-## 1. Коротко о состоянии
-
-Проект находится на ранней стадии рабочего прототипа.
-
-Сейчас уже собрана базовая песочница, в которой:
-- есть тайловый мир на `TileMapLayer`;
-- есть тестовые существа;
-- есть состояние откладки яйца, яйцо в 2 стадиях и вылупление нового существа;
-- есть трава как первый возобновляемый ресурс;
-- есть базовая автономная логика поиска еды;
-- есть debug UI для просмотра статов существа и выбора его кликом;
-- есть камера наблюдения.
-
-Для локальных прогонов использовать Godot из `E:/Godot_v4.7/`; headless CLI: `E:/Godot_v4.7/Godot_v4.7-stable_win64_console.exe`; короткий runtime-прогон: `'/e/Godot_v4.7/Godot_v4.7-stable_win64_console.exe' --headless --path '/e/dyna' --quit-after 10`.
-
-Это пока не полноценная игра, а рабочий симуляционный полигон для отладки ядра.
+> Live project snapshot. Update after meaningful architecture, world-logic, scene-structure, or prototype-scope changes.
 
 ---
 
-## 2. Что сейчас уже работает
+## 1. Short status
 
-### Мир
-- Главная сцена запускается через `scenes/main/main.tscn`.
-- В мир подключена отдельная сцена `scenes/world/world.tscn`.
-- Земля задана через `Ground` (`TileMapLayer`).
-- Мир вычисляет границы карты и размер тайла.
+The project is still an early working prototype.
 
-### Существа
-- В мире уже размещены несколько тестовых существ одного базового вида.
-- Существо использует directional pixel-art спрайты по направлениям движения.
-- Левые направления собираются через `flip_h` от правых ракурсов.
-- Существо использует логическое положение через `anchor_tile`.
-- Поддерживается footprint `2x2`.
-- Есть состояния поведения:
-  - `IDLE`
-  - `WALK`
-  - `SEEK_FOOD`
-  - `EATING`
-  - `LAYING_EGG`
-  - `DEAD`
-- Есть голод.
-- При полном голоде начинает снижаться здоровье.
-- Пока сытость выше `70`, существо восстанавливает здоровье по `1 hp/сек`.
-- При достижении `0 hp` существо переходит в `DEAD` state и удаляется из мира.
-- Есть возраст: все существа стартуют с `0`.
-- Тестовые существа в сцене `world.tscn` сейчас стартуют с `100` сытости.
-- Возраст растёт на `1` каждые `30` секунд.
-- При достижении `10` лет существо переходит в `DEAD` state и удаляется из мира.
-- Существо умеет искать пастбище и строить путь по сетке.
-- Поиск еды работает в 2 шага: сначала локальный recheck рядом, затем fallback на общий поиск по карте.
-- Существо ест траву под своим footprint.
-- При выполнении условий существо входит в состояние откладки яйца на `5` секунд.
-- Первая стадия яйца появляется в той же позиции существа и живёт как неблокирующее вертикальное `1x2`.
-- Затем яйцо пытается расшириться вправо во вторую стадию `2x2` и при успехе становится блокирующим.
-- Во второй стадии яйцо считается живым объектом, который можно съесть через bool-логику без HP.
-- После второй стадии из яйца вылупляется новое существо со стартовыми `100 hp` и `50` сытости.
+Current scope:
+- a tile-based world built on `TileMapLayer`;
+- several test creatures of one base species;
+- egg laying, a two-stage egg lifecycle, and hatching;
+- grass as the first renewable resource;
+- autonomous food search;
+- a debug UI for hover/selection and creature stats;
+- a free observer camera.
 
-### Трава
-- Трава имеет 2 стадии роста.
-- Взрослая трава съедобна.
-- После поедания трава откатывается в первую стадию.
-- Трава умеет размножаться по 4 сторонам.
-- Трава регистрируется в мире по тайловым координатам.
+For local runs use Godot from `E:/Godot_v4.7/`; preferred headless CLI: `E:/Godot_v4.7/Godot_v4.7-stable_win64_console.exe`; short smoke test: `'/e/Godot_v4.7/Godot_v4.7-stable_win64_console.exe' --headless --path '/e/dyna' --quit-after 10`.
 
-### UI и наблюдение
-- Есть камера с перемещением по WASD.
-- Есть zoom колесом мыши.
-- Есть UI со статами существа: по наведению показывает временный просмотр, по клику закрепляет выбранное существо.
-- В UI сейчас показываются имя, возраст, здоровье и сытость.
-- Повторный клик по существу или клик по пустому месту снимает выбор.
-- Есть FPS-метка.
-- В правом нижнем углу есть переключатель скорости симуляции: `x1`, `x2`, `x3`.
+This is still a simulation sandbox, not a full game.
 
 ---
 
-## 3. Что является текущим ядром проекта
+## 2. What currently works
 
-Если очень грубо, текущее рабочее ядро такое:
+### World
+- The project starts from `scenes/main/main.tscn`.
+- The world scene is `scenes/world/world.tscn`.
+- Ground is `Ground` (`TileMapLayer`).
+- The world caches tile size and map bounds.
+- The world owns walkability, occupancy, grass lookup, blocker lookup, and grazing queries.
 
-1. `world_grid.gd` держит сетку, проходимость, занятость и ресурсную карту.
-2. `creature.gd` живёт поверх этой сетки и принимает решения.
-3. `grass.gd` создаёт первый ресурсный цикл мира.
-4. `creature_stats_ui.gd` позволяет наблюдать состояние существа.
-5. `camera_controller.gd` даёт возможность смотреть на симуляцию.
+### Creatures
+- The world contains several test creatures of the same base species.
+- The creature uses directional sprites by movement direction.
+- Left-facing views are mirrored from right-facing sprites.
+- Logical position uses `anchor_tile`.
+- Current footprint is `2x2`.
+- Current states: `IDLE`, `WALK`, `SEEK_FOOD`, `EATING`, `LAYING_EGG`, `DEAD`.
+- Hunger drains over time.
+- At zero hunger, health starts to decay.
+- Above `70` satiety, the creature regenerates `1 hp/sec`.
+- At `0 hp`, the creature enters `DEAD` and leaves the world.
+- Creatures start at age `0`.
+- Age increases by `1` every `30` seconds.
+- At age `10`, the creature enters `DEAD` and leaves the world.
+- The creature can search for grazing targets and build a grid path.
+- Food search uses a two-step flow: local recheck first, then global fallback.
+- The creature eats grass under its footprint.
+- Static species stats and visuals are loaded from `species_data` resources.
+- The current species data lives in `data/species/stegosaurus.tres`.
+- When reproduction conditions pass, the creature enters egg-laying for `5` seconds.
+- Egg stage 1 appears at the creature position as a non-blocking vertical `1x2` object.
+- The egg then tries to expand right into blocking stage 2 `2x2`.
+- Egg stage 2 is an edible living object with bool logic and no HP system.
+- After stage 2, a new creature hatches with `100 hp` and `50` hunger.
 
-На текущем этапе именно это и есть главный смысл проекта.
+### Grass
+- Grass has 2 growth stages.
+- Adult grass is edible.
+- After being eaten, grass falls back to stage 1.
+- Grass spreads in the 4 cardinal directions.
+- Grass registers itself into the world by tile.
+
+### UI and observation
+- The camera moves with WASD.
+- Mouse wheel controls zoom.
+- The UI shows hover preview and click-to-pin selection.
+- The UI shows name, age, health, and hunger.
+- Clicking the same creature again or empty space clears selection.
+- There is an FPS label.
+- There is a simulation speed selector with `x1`, `x2`, `x3`.
 
 ---
 
-## 4. Что ещё выглядит прототипно / временно
+## 3. Current project core
 
-- У существа уже есть базовый directional pixel-art набор спрайтов, но общий визуальный пайплайн остальных видов ещё не стандартизирован.
-- В мире пока очень мало типов сущностей.
-- Нет полноценной системы игрока как внешней силы природы.
-- Нет энергии игрока.
-- Нет воздействий вроде дождя и молнии.
-- Нет боевой системы.
-- Нет разделения на травоядных и хищников.
-- Нет биомов воды и гор.
-- Нет полноценного игрового HUD, кроме debug-панели.
-- Нет сохранений/загрузок.
-
-То есть сейчас проект сильнее всего похож на прототип одного фрагмента будущей симуляции.
+1. `world_grid.gd` owns the grid, occupancy, and resource queries.
+2. `creature.gd` runs autonomous creature decisions on top of that grid.
+3. `grass.gd` provides the first renewable resource loop.
+4. `egg.gd` provides the first reproduction/hatching loop.
+5. `creature_stats_ui.gd` lets the user observe creature state.
+6. `camera_controller.gd` lets the user observe the simulation.
 
 ---
 
-## 5. Самые важные текущие файлы
+## 4. What is still prototype-level
 
-### Основной вход
+- Only one species is data-driven so far.
+- The broader art pipeline for future species is not standardized.
+- The world still has few entity types.
+- There is no full player-as-nature system yet.
+- There is no player energy economy.
+- There are no actions like rain or lightning yet.
+- There is no combat system yet.
+- There is no herbivore/predator split yet.
+- There are no water or mountain biomes yet.
+- There is no full gameplay HUD beyond the debug panel.
+- There is no save/load system.
+
+---
+
+## 5. Most important current files
+
+### Entry
 - `project.godot`
 - `scenes/main/main.tscn`
 
-### Симуляция мира
+### World simulation
 - `scenes/world/world.tscn`
 - `scripts/world/world_grid.gd`
 
-### Существа
+### Creatures
 - `scenes/creatures/Creature.tscn`
 - `scripts/creatures/creature.gd`
 - `scripts/creatures/creature_species_data.gd`
 - `data/species/stegosaurus.tres`
 
-### Ресурсы
+### Resources
 - `scenes/resources/grass.tscn`
 - `scripts/resources/grass.gd`
 - `scenes/resources/egg.tscn`
 - `scripts/resources/egg.gd`
 
-### UI и обзор
+### UI and view
 - `scripts/ui/creature_stats_ui.gd`
 - `scripts/camera/camera_controller.gd`
 
-### Документы
+### Docs
 - `AGENTS.md`
 - `docs/project-map.md`
 - `docs/design_roadmap.md`
@@ -144,72 +136,79 @@
 
 ---
 
-## 6. Где сейчас основные риски
+## 6. Main current risks
 
-### 1. Согласованность логики и визуала существа
-Есть чувствительный участок между:
+### 1. Logical vs visual creature sync
+The fragile zone is the relationship between:
 - `anchor_tile`
 - `pending_anchor_tile`
-- визуальным `global_position`
-- занятостью клеток в `world_grid`
+- visual `global_position`
+- occupancy in `world_grid`
 
-Если менять это неаккуратно, существо может визуально быть в одном месте, а логически есть/стоять в другом.
+If edited carelessly, a creature can stand in one place visually while logically eating or occupying tiles elsewhere.
 
-### 2. Поиск и переоценка пастбища
-Логика еды уже не совсем примитивная:
-- существо ищет цель пастьбы;
-- может переоценивать ближайшие варианты;
-- не должно начинать есть раньше нужной точки.
+### 2. Grazing target selection and retargeting
+Food logic is already non-trivial:
+- the creature chooses a grazing target;
+- it can re-evaluate nearby alternatives;
+- it should not start eating before reaching the real target anchor.
 
-Это место легко испортить «упрощением ради красоты».
+This is easy to break with a “cleaner” but wrong simplification.
 
-### 3. Регистрация сущностей в мире
-И трава, и существа завязаны на регистрацию в `world_grid`.
-Если сломать реестр по тайлам, симуляция быстро начинает врать.
+### 3. World registration of entities
+Grass, creatures, and blockers all depend on registration inside `world_grid`.
+If the tile registry breaks, the simulation quickly becomes dishonest.
 
----
-
-## 7. Что логично делать дальше
-
-На основе текущего состояния логично двигаться в одном из таких направлений:
-
-### Вариант A — добить базовый цикл существа
-- размножение;
-- яйца;
-- рост популяции.
-- более полная обработка смерти и последствий.
-
-### Вариант B — укрепить мир как систему
-- вода;
-- горы;
-- непроходимые зоны;
-- устойчивый обход препятствий.
-
-### Вариант C — начать раскрывать роль игрока
-- энергия;
-- базовый HUD игрока;
-- первое воздействие на мир;
-- реакция мира/существ на воздействие.
+### 4. Future file growth
+`creature.gd` is still large even after moving species data out.
+Combat should be added carefully so the file does not become the next blob.
 
 ---
 
-## 8. Что важно помнить при новых сессиях
+## 7. Logical next directions
 
-- Это не RTS в обычном смысле.
-- Игрок задуман как внешняя сила, а не как юнит-командир.
-- Мир и сетка — источник истины.
-- Существа должны выглядеть живыми и автономными.
-- Даже если код пока прототипный, направление проекта уже задано достаточно чётко.
+### Option A — add the first combat layer
+- keep combat isolated from entry logic;
+- implement simple 1v1 turn order;
+- avoid bloating `creature.gd` further.
+
+### Option B — expand the creature loop
+- more species resources;
+- better reproduction/population behaviour;
+- cleaner handling of death outcomes.
+
+### Option C — strengthen the world as a system
+- water;
+- mountains;
+- blocked zones;
+- stronger obstacle handling.
+
+### Option D — start opening the player role
+- player energy;
+- a first player-facing HUD;
+- the first indirect world action;
+- creature/world reaction to that action.
 
 ---
 
-## 9. Когда обновлять этот файл
+## 8. What new sessions should remember
 
-Минимально полезно обновлять `docs/current-state.md`, когда:
-- меняется состав ключевых сцен;
-- появляется новая большая система;
-- меняется архитектурный канон;
-- завершается заметный этап roadmap;
-- проект переходит к новой версии прототипа.
+- This is not a normal RTS.
+- The player is an external force, not a unit commander.
+- The world grid is the source of truth.
+- Creatures should feel alive and autonomous.
+- Species data should live in `.tres` resources, not one giant creature script.
+- The project direction is already clear even if the code is still prototype-grade.
 
-Если делать это хотя бы коротко, новые сессии будут входить в проект гораздо быстрее и без лишней археологии.
+---
+
+## 9. When to update this file
+
+Update `docs/current-state.md` when:
+- the set of key scenes changes;
+- a major system appears;
+- the architecture canon changes;
+- a meaningful roadmap milestone is reached;
+- the prototype enters a new version phase.
+
+Even short updates save future sessions from unnecessary archaeology.
