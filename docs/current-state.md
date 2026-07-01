@@ -123,6 +123,8 @@
 ### Существа
 - `scenes/creatures/Creature.tscn`
 - `scripts/creatures/creature.gd`
+- `scripts/creatures/creature_species_data.gd`
+- `data/species/stegosaurus.tres`
 
 ### Ресурсы
 - `scenes/resources/grass.tscn`

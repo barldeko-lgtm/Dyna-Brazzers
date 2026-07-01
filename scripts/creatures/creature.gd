@@ -22,24 +22,6 @@ enum State {
 	DEAD
 }
 
-# Спрайт существа, когда оно смотрит вниз.
-@export var down_texture: Texture2D
-
-# Спрайт существа, когда оно смотрит вверх.
-@export var up_texture: Texture2D
-
-# Спрайт существа, когда оно смотрит вправо.
-@export var right_texture: Texture2D
-
-# Спрайт существа, когда оно смотрит вверх-вправо.
-@export var up_right_texture: Texture2D
-
-# Спрайт существа, когда оно смотрит вниз-вправо.
-@export var down_right_texture: Texture2D
-
-# Скорость перемещения существа в пикселях в секунду.
-@export var speed := 140.0
-
 # Минимальное время простоя.
 @export var idle_time_min := 1.0
 
@@ -73,41 +55,40 @@ enum State {
 # Насколько новый маршрут должен быть короче при почти равной выгоде, чтобы менять цель.
 @export var retarget_distance_advantage := 2
 
+# Данные текущего вида существа: базовые статы, визуал и яйцо.
+@export var species_data: CreatureSpeciesData
+
 # Опорный тайл, на котором существо зафиксировалось в момент начала еды.
 var eating_anchor_tile := Vector2i.ZERO
 
 # Технический идентификатор вида существа.
-@export var species_id := "stegosaurus"
+var species_id := "stegosaurus"
 
 # Человекочитаемое название вида существа.
-@export var species_name := "Стегозавр"
+var species_name := "Стегозавр"
 
 # Отображаемое имя существа для UI.
-@export var creature_name := "Стегозавр"
+var creature_name := "Стегозавр"
 
-# Максимальное здоровье существа.
-@export var max_health := 100.0
+# Спрайты направлений текущего вида.
+var down_texture: Texture2D
+var up_texture: Texture2D
+var right_texture: Texture2D
+var up_right_texture: Texture2D
+var down_right_texture: Texture2D
 
-# Текущее здоровье существа на старте.
-@export var health := 100.0
-
-# Скорость потери здоровья при полном голоде.
-@export var starvation_health_decay_rate := 2.0
-
-# Скорость пассивного восстановления здоровья, пока существо сыто.
-@export var well_fed_health_regen_rate := 1.0
-
-# Порог сытости, выше которого включается пассивная регенерация здоровья.
-@export var satiety_heal_threshold := 70.0
-
-# Базовая атака существа для будущей боевой системы.
-@export var attack := 10.0
-
-# Базовая защита существа для будущей боевой системы.
-@export var defense := 5.0
+# Базовые статы текущего вида.
+var speed := 140.0
+var max_health := 100.0
+var health := -1.0
+var starvation_health_decay_rate := 2.0
+var well_fed_health_regen_rate := 1.0
+var satiety_heal_threshold := 70.0
+var attack := 10.0
+var defense := 5.0
 
 # Текущий возраст существа в условных годах.
-@export var age := 0.0
+var age := 0.0
 
 # Возраст, при котором существо считается слишком старым и умирает.
 @export var max_age := 10.0
@@ -115,65 +96,29 @@ var eating_anchor_tile := Vector2i.ZERO
 # Раз в сколько секунд существо становится старше на 1 год.
 @export var age_tick_interval := 30.0
 
-# Максимальная сытость существа.
-@export var max_hunger := 100.0
+# Параметры сытости и еды.
+var max_hunger := 100.0
+var hunger := -1.0
+var hunger_decay_rate := 10.0
+var hunger_search_threshold := 70.0
+var hunger_restore_amount := 10.0
+var eating_duration := 3.0
 
-# Текущая сытость существа на старте.
-@export var hunger := 100.0
-
-# Скорость уменьшения сытости: 10 единиц в секунду.
-@export var hunger_decay_rate := 10.0
-
-# Порог, после которого существо начинает искать еду.
-@export var hunger_search_threshold := 70.0
-
-# Сколько сытости восстанавливается за один взрослый куст травы под телом.
-@export var hunger_restore_amount := 10.0
-
-# Время, которое существо тратит на поедание травы.
-@export var eating_duration := 3.0
-
-# Сцена яйца для текущего вида существа.
-@export var egg_scene: PackedScene
-
-# Текстура первой стадии яйца этого вида.
-@export var egg_stage_1_texture: Texture2D
-
-# Текстура второй стадии яйца этого вида.
-@export var egg_stage_2_texture: Texture2D
-
-# Сколько секунд длится состояние откладки яйца у существа.
-@export var egg_laying_duration := 5.0
-
-# Сколько секунд длится первая стадия яйца.
-@export var egg_stage_1_duration := 5.0
-
-# Раз в сколько секунд яйцо повторно проверяет возможность расшириться до 2x2.
-@export var egg_expand_retry_interval := 1.0
-
-# Сколько секунд длится вторая стадия яйца до вылупления.
-@export var egg_stage_2_duration := 5.0
-
-# Порог здоровья, выше которого существо может размножаться.
-@export var reproduction_min_health := 30.0
-
-# Порог сытости, выше которого существо может размножаться.
-@export var reproduction_min_hunger := 70.0
-
-# Минимальный возраст для откладки яйца.
-@export var reproduction_min_age := 3.0
-
-# Кулдаун между откладками яиц.
-@export var reproduction_cooldown := 20.0
-
-# Сколько сытости тратится на откладку яйца.
-@export var reproduction_hunger_cost := 20.0
-
-# Стартовое здоровье вылупившегося существа.
-@export var hatchling_health := 100.0
-
-# Стартовая сытость вылупившегося существа.
-@export var hatchling_hunger := 50.0
+# Яйцо и размножение текущего вида.
+var egg_scene: PackedScene
+var egg_stage_1_texture: Texture2D
+var egg_stage_2_texture: Texture2D
+var egg_laying_duration := 5.0
+var egg_stage_1_duration := 5.0
+var egg_expand_retry_interval := 1.0
+var egg_stage_2_duration := 5.0
+var reproduction_min_health := 30.0
+var reproduction_min_hunger := 70.0
+var reproduction_min_age := 3.0
+var reproduction_cooldown := 20.0
+var reproduction_hunger_cost := 20.0
+var hatchling_health := 100.0
+var hatchling_hunger := 50.0
 
 # Текущее состояние существа.
 var state: State = State.WALK
@@ -227,14 +172,64 @@ var pending_egg_anchor := Vector2i.ZERO
 const EGG_STAGE_1_FOOTPRINT := Vector2i(1, 2)
 
 
+# Подтягивает базовые статы, визуал и яйцо из ресурса текущего вида.
+func apply_species_data() -> void:
+	if species_data == null:
+		return
+
+	species_id = species_data.species_id
+	species_name = species_data.species_name
+	creature_name = species_data.creature_name
+	down_texture = species_data.down_texture
+	up_texture = species_data.up_texture
+	right_texture = species_data.right_texture
+	up_right_texture = species_data.up_right_texture
+	down_right_texture = species_data.down_right_texture
+	speed = species_data.speed
+	max_health = species_data.max_health
+	starvation_health_decay_rate = species_data.starvation_health_decay_rate
+	well_fed_health_regen_rate = species_data.well_fed_health_regen_rate
+	satiety_heal_threshold = species_data.satiety_heal_threshold
+	attack = species_data.attack
+	defense = species_data.defense
+	max_hunger = species_data.max_hunger
+	hunger_decay_rate = species_data.hunger_decay_rate
+	hunger_search_threshold = species_data.hunger_search_threshold
+	hunger_restore_amount = species_data.hunger_restore_amount
+	eating_duration = species_data.eating_duration
+	egg_scene = species_data.egg_scene
+	egg_stage_1_texture = species_data.egg_stage_1_texture
+	egg_stage_2_texture = species_data.egg_stage_2_texture
+	egg_laying_duration = species_data.egg_laying_duration
+	egg_stage_1_duration = species_data.egg_stage_1_duration
+	egg_expand_retry_interval = species_data.egg_expand_retry_interval
+	egg_stage_2_duration = species_data.egg_stage_2_duration
+	reproduction_min_health = species_data.reproduction_min_health
+	reproduction_min_hunger = species_data.reproduction_min_hunger
+	reproduction_min_age = species_data.reproduction_min_age
+	reproduction_cooldown = species_data.reproduction_cooldown
+	reproduction_hunger_cost = species_data.reproduction_hunger_cost
+	hatchling_health = species_data.hatchling_health
+	hatchling_hunger = species_data.hatchling_hunger
+
+	if health < 0.0:
+		health = species_data.starting_health
+
+	if hunger < 0.0:
+		hunger = species_data.starting_hunger
+
+
 # Подготавливает существо, регистрирует его на сетке и сразу запускает первое поведение.
 func _ready() -> void:
 	randomize()
 	eating_timer.one_shot = true
 	egg_laying_timer.one_shot = true
 
+	apply_species_data()
+
 	if not eating_timer.timeout.is_connected(_on_eating_timer_timeout):
 		eating_timer.timeout.connect(_on_eating_timer_timeout)
+
 
 	if not egg_laying_timer.timeout.is_connected(_on_egg_laying_timer_timeout):
 		egg_laying_timer.timeout.connect(_on_egg_laying_timer_timeout)
