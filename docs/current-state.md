@@ -51,6 +51,7 @@ This is still a simulation sandbox, not a full game.
 - The creature eats grass under its footprint.
 - Static species stats and visuals are loaded from `species_data` resources.
 - The current species data lives in `data/species/stegosaurus.tres`.
+- There is now a separate 1v1 duel loop with alternating 1-second turns, initiator-first order, and `max(1, attack - defense)` damage.
 - When reproduction conditions pass, the creature enters egg-laying for `5` seconds.
 - Egg stage 1 appears at the creature position as a non-blocking vertical `1x2` object.
 - The egg then tries to expand right into blocking stage 2 `2x2`.
@@ -78,9 +79,9 @@ This is still a simulation sandbox, not a full game.
 ## 3. Current project core
 
 1. `world_grid.gd` owns the grid, occupancy, and resource queries.
-2. `creature.gd` runs autonomous creature decisions on top of that grid.
-3. `grass.gd` provides the first renewable resource loop.
-4. `egg.gd` provides the first reproduction/hatching loop.
+2. `scripts/creatures/creature.gd` runs autonomous creature decisions on top of that grid.
+3. `scripts/combat/duel.gd` provides the current 1v1 duel loop.
+4. `grass.gd` provides the first renewable resource loop.
 5. `creature_stats_ui.gd` lets the user observe creature state.
 6. `camera_controller.gd` lets the user observe the simulation.
 
@@ -94,7 +95,7 @@ This is still a simulation sandbox, not a full game.
 - There is no full player-as-nature system yet.
 - There is no player energy economy.
 - There are no actions like rain or lightning yet.
-- There is no combat system yet.
+- There is no combat entry/targeting logic yet.
 - There is no herbivore/predator split yet.
 - There are no water or mountain biomes yet.
 - There is no full gameplay HUD beyond the debug panel.
@@ -111,6 +112,7 @@ This is still a simulation sandbox, not a full game.
 ### World simulation
 - `scenes/world/world.tscn`
 - `scripts/world/world_grid.gd`
+- `scripts/combat/duel.gd`
 
 ### Creatures
 - `scenes/creatures/Creature.tscn`

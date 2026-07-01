@@ -26,6 +26,7 @@ Scene assemblies and placed nodes.
 Main gameplay logic by subsystem.
 
 - `scripts/world/world_grid.gd` — world/grid authority
+- `scripts/combat/duel.gd` — 1v1 duel loop
 - `scripts/creatures/creature.gd` — base creature runtime logic
 - `scripts/creatures/creature_species_data.gd` — species resource schema
 - `scripts/resources/grass.gd` — grass lifecycle
@@ -209,6 +210,20 @@ Important: `World` with `world_grid.gd` is the logic center. Other entities find
 - `get_health_percent()`
 - `get_hunger_percent()`
 
+### `scripts/combat/duel.gd`
+**Role:** isolated 1v1 duel loop.
+
+**Owns:**
+- fighter A / fighter B references;
+- initiator-first turn order;
+- 1-second alternating turns;
+- `max(1, attack - defense)` damage;
+- duel finish when one fighter dies.
+
+**Keep in mind:**
+- this is only the internal duel loop;
+- combat entry/targeting logic still belongs elsewhere.
+
 ### `scripts/creatures/creature_species_data.gd`
 **Role:** species resource schema.
 
@@ -323,6 +338,7 @@ The current code already provides:
 - eating adult grass;
 - grass growth and spreading;
 - egg laying, egg growth, and hatching;
+- a separate 1v1 duel loop with alternating 1-second turns;
 - the creature stats panel;
 - an FPS label;
 - simulation speed control.

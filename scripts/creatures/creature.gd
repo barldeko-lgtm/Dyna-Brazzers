@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const Duel = preload("res://scripts/combat/duel.gd")
+
 # Core creature FSM.
 @onready var sprite: Sprite2D = $BodySprite
 
@@ -16,6 +18,7 @@ enum State {
 	SEEK_FOOD,
 	EATING,
 	LAYING_EGG,
+	COMBAT,
 	DEAD
 }
 
@@ -130,6 +133,7 @@ var is_moving := false
 var reproduction_cooldown_remaining := 0.0
 
 var pending_egg_anchor := Vector2i.ZERO
+var current_duel: Duel = null
 
 const EGG_STAGE_1_FOOTPRINT := Vector2i(1, 2)
 
@@ -262,6 +266,8 @@ func _physics_process(delta: float) -> void:
 			update_eating()
 		State.LAYING_EGG:
 			update_laying_egg()
+		State.COMBAT:
+			update_combat()
 		State.DEAD:
 			return
 
@@ -289,13 +295,16 @@ func check_age_death() -> bool:
 
 
 func update_hunger(delta: float) -> void:
-	if state == State.EATING or state == State.LAYING_EGG:
+	if state == State.EATING or state == State.LAYING_EGG or state == State.COMBAT:
 		return
 
 	hunger = clamp(hunger - hunger_decay_rate * delta, 0.0, max_hunger)
 
 
 func update_health(delta: float) -> void:
+	if state == State.COMBAT:
+		return
+
 	if hunger <= 0.0:
 		health = clamp(health - starvation_health_decay_rate * delta, 0.0, max_health)
 		return
@@ -327,7 +336,7 @@ func update_food_behavior() -> void:
 	if world_grid == null:
 		return
 
-	if state == State.EATING or state == State.LAYING_EGG:
+	if state == State.EATING or state == State.LAYING_EGG or state == State.COMBAT:
 		return
 
 	if is_moving:
@@ -402,6 +411,10 @@ func update_laying_egg() -> void:
 	return
 
 
+func update_combat() -> void:
+	return
+
+
 # State transitions.
 func enter_idle() -> void:
 	state = State.IDLE
@@ -443,6 +456,10 @@ func enter_dead() -> void:
 		return
 
 	state = State.DEAD
+
+	if current_duel != null:
+		current_duel.handle_fighter_death(self)
+
 	has_grazing_target = false
 	clear_path()
 	eating_timer.stop()
@@ -674,7 +691,7 @@ func update_reproduction_behavior() -> void:
 	if world_grid == null:
 		return
 
-	if state == State.DEAD or state == State.EATING or state == State.LAYING_EGG:
+	if state == State.DEAD or state == State.EATING or state == State.LAYING_EGG or state == State.COMBAT:
 		return
 
 	if is_moving:
@@ -816,6 +833,74 @@ func update_sprite_visual() -> void:
 	if right_texture != null:
 		sprite.texture = right_texture
 		sprite.flip_h = faces_left
+
+
+func can_continue_duel(duel: Duel) -> bool:
+	return state != State.DEAD and current_duel == duel
+
+
+func can_fight() -> bool:
+	return state == State.IDLE or state == State.WALK or state == State.SEEK_FOOD
+
+
+func is_in_duel() -> bool:
+	return current_duel != null
+
+
+func attach_duel(duel: Duel) -> void:
+	current_duel = duel
+	state = State.COMBAT
+	has_grazing_target = false
+	clear_path()
+	eating_timer.stop()
+	egg_laying_timer.stop()
+
+
+func detach_duel(duel: Duel) -> void:
+	if current_duel != duel:
+		return
+
+	current_duel = null
+
+	if state == State.DEAD:
+		return
+
+	if hunger <= hunger_search_threshold:
+		enter_seek_food()
+		return
+
+	enter_walk()
+
+
+func start_duel_with(opponent: Node) -> Duel:
+	if opponent == null or opponent == self:
+		return null
+
+	if not can_fight():
+		return null
+
+	if not opponent.has_method("can_fight") or not opponent.can_fight():
+		return null
+
+	var duel := Duel.new()
+	var duel_parent := get_tree().current_scene
+
+	if duel_parent == null:
+		duel_parent = get_parent()
+
+	if duel_parent == null:
+		return null
+
+	duel_parent.add_child(duel)
+	duel.setup(self, opponent, self, 1.0)
+	return duel
+
+
+func take_duel_damage(amount: float, _attacker: Node = null) -> void:
+	health = clamp(health - amount, 0.0, max_health)
+
+	if health <= 0.0:
+		enter_dead()
 
 
 func find_world_grid() -> Node:
