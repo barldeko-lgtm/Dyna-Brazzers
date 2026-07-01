@@ -30,8 +30,10 @@ This is still a simulation sandbox, not a full game.
 - The project starts from `scenes/main/main.tscn`.
 - The world scene is `scenes/world/world.tscn`.
 - Ground is `Ground` (`TileMapLayer`).
+- The world now uses three prototype ground tile types: normal ground, water, and mountain.
+- Water and mountain tiles currently replace ground directly and both act as blocked terrain.
 - The world caches tile size and map bounds.
-- The world owns walkability, occupancy, grass lookup, blocker lookup, and grazing queries.
+- The world owns walkability, occupancy, terrain-type lookup, blocker lookup, and grazing queries.
 
 ### Creatures
 - The world contains several test creatures of the same base species.
@@ -72,6 +74,7 @@ This is still a simulation sandbox, not a full game.
 - After being eaten, grass falls back to stage 1.
 - Grass spreads in the 4 cardinal directions.
 - Grass registers itself into the world by tile.
+- Grass cannot exist on blocked terrain tiles like water or mountains.
 
 ### UI and observation
 - The camera moves with WASD.
@@ -105,7 +108,7 @@ This is still a simulation sandbox, not a full game.
 - There are no actions like rain or lightning yet.
 - There is no general combat entry/targeting system yet beyond the simple predator placeholder.
 - There is no broader herbivore/predator ecosystem split yet.
-- There are no water or mountain biomes yet.
+- There are now prototype water and mountain tiles, but they currently share the same gameplay rule: blocked terrain.
 - There is no full gameplay HUD beyond the debug panel.
 - There is no save/load system.
 
@@ -189,10 +192,9 @@ Combat should be added carefully so the file does not become the next blob.
 - cleaner handling of death outcomes.
 
 ### Option C — strengthen the world as a system
-- water;
-- mountains;
-- blocked zones;
-- stronger obstacle handling.
+- richer terrain visuals beyond placeholder water/mountain tiles;
+- biome-specific rules instead of one shared blocked-terrain rule;
+- stronger obstacle handling and terrain reactions.
 
 ### Option D — start opening the player role
 - player energy;

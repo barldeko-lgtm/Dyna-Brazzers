@@ -40,6 +40,8 @@ Main gameplay logic by subsystem.
 Sprites and placeholders.
 
 - `assets/sprites/terrain/ground.png` — ground tile
+- `assets/sprites/terrain/water_placeholder.png` — temporary water tile
+- `assets/sprites/terrain/mountain_placeholder.png` — temporary mountain tile
 - `assets/sprites/terrain/grass_stage_1.png` — small grass
 - `assets/sprites/terrain/grass_stage_2.png` — adult grass
 - `assets/sprites/creatures/stegosaurus/` — directional sprite set for the herbivore test creature
@@ -168,6 +170,7 @@ Important: `World` with `world_grid.gd` is the logic center. Other entities find
 - creature occupied-tile registration;
 - blocker registration for objects like eggs;
 - walkability checks;
+- terrain-type lookup for ground / water / mountain tiles;
 - neighbor lookup with diagonal corner-cut prevention;
 - A*-style pathfinding;
 - grazing-target queries;
@@ -262,6 +265,7 @@ Important: `World` with `world_grid.gd` is the logic center. Other entities find
 **Keep in mind:**
 - grass is edible only in stage 2;
 - the node syncs its own tile with the world;
+- grass cannot stay or spread onto blocked terrain tiles;
 - new grass is spawned by instantiating the same scene again.
 
 ### `scripts/resources/egg.gd`

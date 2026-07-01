@@ -58,7 +58,8 @@ func _ready() -> void:
 	world_grid = find_world_grid()
 
 	if world_grid != null:
-		sync_tile_position_with_world()
+		if not sync_tile_position_with_world():
+			call_deferred("queue_free")
 
 
 func _exit_tree() -> void:
@@ -150,19 +151,24 @@ func try_spawn_grass(target_tile: Vector2i) -> void:
 
 
 # Grid sync.
-func sync_tile_position_with_world() -> void:
+func sync_tile_position_with_world() -> bool:
 	if world_grid == null:
 		world_grid = find_world_grid()
 
 	if world_grid == null:
-		return
+		return false
 
 	world_grid.unregister_grass(self, tile_position)
 	var initial_position := global_position
 	tile_position = world_grid.world_to_map_tile(initial_position)
+
+	if world_grid.has_method("can_host_grass") and not world_grid.can_host_grass(tile_position):
+		return false
+
 	render_offset = Vector2.ZERO
 	world_grid.register_grass(self, tile_position)
 	global_position = world_grid.grass_tile_to_world_position(tile_position)
+	return true
 
 
 # Lookup helper.

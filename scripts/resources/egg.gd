@@ -68,7 +68,9 @@ func _ready() -> void:
 	apply_current_stage_visual()
 
 	if world_grid != null:
-		sync_anchor_with_world()
+		if not sync_anchor_with_world():
+			call_deferred("queue_free")
+			return
 
 	stage_1_timer.start(stage_1_duration)
 
@@ -137,15 +139,20 @@ func get_tile_pixel_size() -> Vector2i:
 	return Vector2i(128, 128)
 
 
-func sync_anchor_with_world() -> void:
+func sync_anchor_with_world() -> bool:
 	if world_grid == null:
 		world_grid = find_world_grid()
 
 	if world_grid == null:
-		return
+		return false
 
 	anchor_tile = world_grid.world_to_anchor_tile(global_position, STAGE_1_FOOTPRINT)
+
+	if world_grid.has_method("can_place_footprint") and not world_grid.can_place_footprint(anchor_tile, STAGE_1_FOOTPRINT, self):
+		return false
+
 	global_position = world_grid.anchor_to_world_position(anchor_tile, get_current_footprint())
+	return true
 
 
 func get_current_footprint() -> Vector2i:

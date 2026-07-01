@@ -4,6 +4,10 @@ extends Node2D
 const CREATURE_SCENE := preload("res://scenes/creatures/creature.tscn")
 const PREDATOR_SPECIES_DATA := preload("res://data/species/predator.tres")
 const PREDATOR_SPAWN_DELAY := 10.0
+const TERRAIN_GROUND := 0
+const TERRAIN_WATER := 1
+const TERRAIN_MOUNTAIN := 2
+const BLOCKED_TERRAIN_SOURCES := {TERRAIN_WATER: true, TERRAIN_MOUNTAIN: true}
 
 var ground: TileMapLayer = null
 
@@ -171,13 +175,31 @@ func is_tile_inside_map(tile: Vector2i) -> bool:
 	return tile.x >= map_min.x and tile.x <= map_max.x and tile.y >= map_min.y and tile.y <= map_max.y
 
 
-func is_tile_walkable(tile: Vector2i) -> bool:
+func get_tile_source_id(tile: Vector2i) -> int:
 	ensure_initialized()
 
 	if not is_tile_inside_map(tile):
+		return -1
+
+	return ground.get_cell_source_id(tile)
+
+
+func is_tile_blocked_terrain(tile: Vector2i) -> bool:
+	var source_id := get_tile_source_id(tile)
+	return BLOCKED_TERRAIN_SOURCES.has(source_id)
+
+
+func is_tile_walkable(tile: Vector2i) -> bool:
+	var source_id := get_tile_source_id(tile)
+
+	if source_id == -1:
 		return false
 
-	return ground.get_cell_source_id(tile) != -1
+	return not BLOCKED_TERRAIN_SOURCES.has(source_id)
+
+
+func can_host_grass(tile: Vector2i) -> bool:
+	return is_tile_walkable(tile)
 
 
 # Placement helpers.
