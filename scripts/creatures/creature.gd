@@ -55,6 +55,8 @@ var species_id := "stegosaurus"
 var species_name := "Стегозавр"
 
 var creature_name := "Стегозавр"
+var is_predator := false
+var predator_target_radius := 8
 
 var down_texture: Texture2D
 var up_texture: Texture2D
@@ -146,6 +148,8 @@ func apply_species_data() -> void:
 	species_id = species_data.species_id
 	species_name = species_data.species_name
 	creature_name = species_data.creature_name
+	is_predator = species_data.is_predator
+	predator_target_radius = species_data.predator_target_radius
 	down_texture = species_data.down_texture
 	up_texture = species_data.up_texture
 	right_texture = species_data.right_texture
@@ -249,6 +253,7 @@ func _physics_process(delta: float) -> void:
 	if check_health_death():
 		return
 
+	update_predator_behavior()
 	update_reproduction_behavior()
 	update_food_behavior()
 
@@ -331,8 +336,34 @@ func update_reproduction_cooldown(delta: float) -> void:
 	reproduction_cooldown_remaining = max(reproduction_cooldown_remaining - delta, 0.0)
 
 
+func update_predator_behavior() -> void:
+	if not is_predator or world_grid == null:
+		return
+
+	if state == State.DEAD or state == State.EATING or state == State.LAYING_EGG or state == State.COMBAT:
+		return
+
+	var prey: Node = find_nearest_prey()
+
+	if prey == null:
+		return
+
+	if is_prey_in_duel_range(prey):
+		start_duel_with(prey)
+		return
+
+	if is_moving:
+		return
+
+	build_path_to_prey(prey)
+	start_next_path_step_if_needed()
+
+
 # Food state machine.
 func update_food_behavior() -> void:
+	if is_predator:
+		return
+
 	if world_grid == null:
 		return
 
@@ -686,8 +717,87 @@ func _on_egg_laying_timer_timeout() -> void:
 	enter_walk()
 
 
+func find_nearest_prey() -> Node:
+	if world_grid == null:
+		return null
+
+	var best_target: Node = null
+	var best_distance: float = INF
+
+	for candidate in world_grid.creature_anchors.keys():
+		if not is_valid_prey(candidate):
+			continue
+
+		var candidate_anchor: Vector2i = world_grid.creature_anchors.get(candidate, anchor_tile)
+		var distance: float = float(max(abs(candidate_anchor.x - anchor_tile.x), abs(candidate_anchor.y - anchor_tile.y)))
+
+		if distance > float(predator_target_radius):
+			continue
+
+		if distance < best_distance:
+			best_distance = distance
+			best_target = candidate
+
+	return best_target
+
+
+func is_valid_prey(candidate: Node) -> bool:
+	if candidate == null or candidate == self or not is_instance_valid(candidate):
+		return false
+
+	if not candidate.has_method("can_fight") or not candidate.can_fight():
+		return false
+
+	return not bool(candidate.get("is_predator"))
+
+
+func is_prey_in_duel_range(prey: Node) -> bool:
+	if world_grid == null or prey == null or not world_grid.creature_anchors.has(prey):
+		return false
+
+	var prey_anchor: Vector2i = world_grid.creature_anchors[prey]
+	var dx: int = abs(prey_anchor.x - anchor_tile.x)
+	var dy: int = abs(prey_anchor.y - anchor_tile.y)
+	return max(dx, dy) <= 2
+
+
+func build_path_to_prey(prey: Node) -> void:
+	if world_grid == null or prey == null or not world_grid.creature_anchors.has(prey):
+		return
+
+	var prey_anchor: Vector2i = world_grid.creature_anchors[prey]
+	var approach_offsets: Array[Vector2i] = [
+		Vector2i(-2, 0), Vector2i(2, 0),
+		Vector2i(0, -2), Vector2i(0, 2),
+		Vector2i(-2, -2), Vector2i(2, -2),
+		Vector2i(-2, 2), Vector2i(2, 2)
+	]
+	var best_anchor := Vector2i(2147483647, 2147483647)
+	var best_distance: float = INF
+
+	for offset in approach_offsets:
+		var candidate_anchor: Vector2i = prey_anchor + offset
+
+		if not world_grid.can_place_footprint(candidate_anchor, footprint_size, self):
+			continue
+
+		var distance: float = float(world_grid.estimate_path_steps(anchor_tile, candidate_anchor))
+
+		if distance < best_distance:
+			best_distance = distance
+			best_anchor = candidate_anchor
+
+	if best_anchor == Vector2i(2147483647, 2147483647):
+		return
+
+	current_path = world_grid.find_path(anchor_tile, best_anchor, footprint_size, self)
+
+
 # Reproduction flow.
 func update_reproduction_behavior() -> void:
+	if is_predator:
+		return
+
 	if world_grid == null:
 		return
 

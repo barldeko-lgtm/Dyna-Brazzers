@@ -31,6 +31,8 @@ Main gameplay logic by subsystem.
 - `scripts/creatures/creature_species_data.gd` — species resource schema
 - `scripts/resources/grass.gd` — grass lifecycle
 - `scripts/resources/egg.gd` — egg lifecycle and hatching
+- `data/species/stegosaurus.tres` — herbivore species data
+- `data/species/predator.tres` — temporary predator species data
 - `scripts/camera/camera_controller.gd` — observer camera
 - `scripts/ui/creature_stats_ui.gd` — debug creature UI
 
@@ -229,6 +231,7 @@ Important: `World` with `world_grid.gd` is the logic center. Other entities find
 
 **Owns:**
 - species identity fields;
+- predator/herbivore flags;
 - directional visuals;
 - survival/combat stats;
 - hunger tuning;
@@ -238,7 +241,7 @@ Important: `World` with `world_grid.gd` is the logic center. Other entities find
 
 **Keep in mind:**
 - this is where species-level balancing should grow;
-- the current concrete setup lives in `data/species/stegosaurus.tres`.
+- the current concrete setup lives in `data/species/stegosaurus.tres` and `data/species/predator.tres`.
 
 ### `scripts/resources/grass.gd`
 **Role:** grass lifecycle as the first renewable resource.
@@ -339,6 +342,7 @@ The current code already provides:
 - grass growth and spreading;
 - egg laying, egg growth, and hatching;
 - a separate 1v1 duel loop with alternating 1-second turns;
+- a temporary predator species that auto-chases nearby herbivores;
 - the creature stats panel;
 - an FPS label;
 - simulation speed control.

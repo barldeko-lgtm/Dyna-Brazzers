@@ -9,6 +9,10 @@ class_name CreatureSpeciesData
 
 @export var creature_name := "Стегозавр"
 
+# Behavior.
+@export var is_predator := false
+@export var predator_target_radius := 8
+
 # Visuals.
 @export var down_texture: Texture2D
 @export var up_texture: Texture2D

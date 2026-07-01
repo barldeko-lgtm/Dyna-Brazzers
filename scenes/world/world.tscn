@@ -2,6 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://e3j5do0l0f20" path="res://scenes/creatures/creature.tscn" id="1_dphjl"]
 [ext_resource type="Script" path="res://scripts/world/world_grid.gd" id="1_world_grid"]
+[ext_resource type="Resource" path="res://data/species/predator.tres" id="2_predator_species"]
 [ext_resource type="PackedScene" path="res://scenes/resources/grass.tscn" id="2_grass_scene"]
 [ext_resource type="Texture2D" uid="uid://b47yxxmaql4cc" path="res://assets/sprites/terrain/ground.png" id="2_sl2e5"]
 
@@ -29,6 +30,11 @@ hunger = 100.0
 
 [node name="Creature_03" parent="Creatures" instance=ExtResource("1_dphjl")]
 position = Vector2(768, 0)
+hunger = 100.0
+
+[node name="Predator" parent="Creatures" instance=ExtResource("1_dphjl")]
+position = Vector2(1152, 0)
+species_data = ExtResource("2_predator_species")
 hunger = 100.0
 
 [node name="Grasses" type="Node2D" parent="." unique_id=1551201401]

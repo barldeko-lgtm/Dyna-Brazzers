@@ -50,8 +50,10 @@ This is still a simulation sandbox, not a full game.
 - Food search uses a two-step flow: local recheck first, then global fallback.
 - The creature eats grass under its footprint.
 - Static species stats and visuals are loaded from `species_data` resources.
-- The current species data lives in `data/species/stegosaurus.tres`.
+- The current species data lives in `data/species/stegosaurus.tres` and `data/species/predator.tres`.
 - There is now a separate 1v1 duel loop with alternating 1-second turns, initiator-first order, and `max(1, attack - defense)` damage.
+- A simple predator species now exists as a temporary hunter placeholder.
+- Predators auto-chase nearby non-predators and start duels on contact.
 - When reproduction conditions pass, the creature enters egg-laying for `5` seconds.
 - Egg stage 1 appears at the creature position as a non-blocking vertical `1x2` object.
 - The egg then tries to expand right into blocking stage 2 `2x2`.
@@ -95,8 +97,8 @@ This is still a simulation sandbox, not a full game.
 - There is no full player-as-nature system yet.
 - There is no player energy economy.
 - There are no actions like rain or lightning yet.
-- There is no combat entry/targeting logic yet.
-- There is no herbivore/predator split yet.
+- There is no general combat entry/targeting system yet beyond the simple predator placeholder.
+- There is no broader herbivore/predator ecosystem split yet.
 - There are no water or mountain biomes yet.
 - There is no full gameplay HUD beyond the debug panel.
 - There is no save/load system.
@@ -119,6 +121,7 @@ This is still a simulation sandbox, not a full game.
 - `scripts/creatures/creature.gd`
 - `scripts/creatures/creature_species_data.gd`
 - `data/species/stegosaurus.tres`
+- `data/species/predator.tres`
 
 ### Resources
 - `scenes/resources/grass.tscn`
