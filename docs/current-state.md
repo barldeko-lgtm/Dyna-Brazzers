@@ -60,7 +60,6 @@ This is still a simulation sandbox, not a full game.
 - Predators chase the nearest living non-predator and start duels only on side contact, not diagonal corner contact.
 - Fighters turn to face each other when the duel starts.
 - Predator duel wins restore `+50` hunger without a separate eating system yet.
-- Current species hunger tuning is `8` for the herbivore and `5` for the predator.
 - When reproduction conditions pass, the creature enters egg-laying for `5` seconds.
 - Egg stage 1 appears at the creature position as a non-blocking vertical `1x2` object.
 - The egg then tries to expand right into blocking stage 2 `2x2`.
