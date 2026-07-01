@@ -42,7 +42,8 @@ Sprites and placeholders.
 - `assets/sprites/terrain/ground.png` — ground tile
 - `assets/sprites/terrain/grass_stage_1.png` — small grass
 - `assets/sprites/terrain/grass_stage_2.png` — adult grass
-- `assets/sprites/creatures/stegosaurus/` — directional sprite set for the current test creature
+- `assets/sprites/creatures/stegosaurus/` — directional sprite set for the herbivore test creature
+- `assets/sprites/creatures/predator/` — temporary directional sprite set for the predator
 - `assets/sprites/creatures/eggs/` — egg sprites for both stages
 - `assets/sprites/creatures/stegosaurus_placeholder.png` — old stegosaurus placeholder
 - `assets/sprites/creatures/debug_square_256.png` — old debug sprite kept as a tech reference
@@ -50,7 +51,8 @@ Sprites and placeholders.
 ### `data/`
 Configurable game data resources.
 
-- `data/species/stegosaurus.tres` — current species stats, visuals, and egg settings
+- `data/species/stegosaurus.tres` — herbivore species stats, visuals, and egg settings
+- `data/species/predator.tres` — predator species stats, visuals, and hunt tuning
 
 ---
 
@@ -186,7 +188,7 @@ Important: `World` with `world_grid.gd` is the logic center. Other entities find
 **Role:** base autonomous creature runtime logic.
 
 **Owns:**
-- states `IDLE`, `WALK`, `SEEK_FOOD`, `EATING`, `LAYING_EGG`, `DEAD`;
+- states `IDLE`, `WALK`, `SEEK_FOOD`, `EATING`, `LAYING_EGG`, `COMBAT`, `DEAD`;
 - age, hunger, starvation damage, and well-fed regen;
 - death from old age and at `0 hp`;
 - two-step grazing search: local recheck, then global fallback;
@@ -197,7 +199,10 @@ Important: `World` with `world_grid.gd` is the logic center. Other entities find
 - reproduction checks and egg-laying;
 - spawning egg stage 1 at the current creature location;
 - hover UI and click selection hooks;
-- applying `species_data` for stats, visuals, and egg setup.
+- applying `species_data` for stats, visuals, and egg setup;
+- predator prey search and delayed hunt behaviour;
+- duel start checks with side-contact-only combat entry;
+- facing the opponent on duel start.
 
 **Keep in mind:**
 - logical position is stored as `anchor_tile`;

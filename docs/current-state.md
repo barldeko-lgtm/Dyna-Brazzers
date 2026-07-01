@@ -10,10 +10,11 @@ The project is still an early working prototype.
 
 Current scope:
 - a tile-based world built on `TileMapLayer`;
-- several test creatures of one base species;
+- a herbivore base species plus a temporary predator species;
 - egg laying, a two-stage egg lifecycle, and hatching;
 - grass as the first renewable resource;
 - autonomous food search;
+- a simple 1v1 duel layer with predator hunting;
 - a debug UI for hover/selection and creature stats;
 - a free observer camera.
 
@@ -38,7 +39,7 @@ This is still a simulation sandbox, not a full game.
 - Left-facing views are mirrored from right-facing sprites.
 - Logical position uses `anchor_tile`.
 - Current footprint is `2x2`.
-- Current states: `IDLE`, `WALK`, `SEEK_FOOD`, `EATING`, `LAYING_EGG`, `DEAD`.
+- Current states: `IDLE`, `WALK`, `SEEK_FOOD`, `EATING`, `LAYING_EGG`, `COMBAT`, `DEAD`.
 - Hunger drains over time.
 - At zero hunger, health starts to decay.
 - Above `70` satiety, the creature regenerates `1 hp/sec`.
@@ -56,8 +57,10 @@ This is still a simulation sandbox, not a full game.
 - Only 1 predator is spawned, and it appears `10` seconds after world start.
 - Predators spawn with full health and full hunger.
 - Predators start hunting only when hunger drops to `60` or lower.
-- Predators chase the nearest living non-predator and start duels on contact.
+- Predators chase the nearest living non-predator and start duels only on side contact, not diagonal corner contact.
+- Fighters turn to face each other when the duel starts.
 - Predator duel wins restore `+50` hunger without a separate eating system yet.
+- Current species hunger tuning is `8` for the herbivore and `5` for the predator.
 - When reproduction conditions pass, the creature enters egg-laying for `5` seconds.
 - Egg stage 1 appears at the creature position as a non-blocking vertical `1x2` object.
 - The egg then tries to expand right into blocking stage 2 `2x2`.
@@ -95,7 +98,7 @@ This is still a simulation sandbox, not a full game.
 
 ## 4. What is still prototype-level
 
-- Only one species is data-driven so far.
+- Only two prototype species are data-driven so far, and the predator is still a temporary combat placeholder.
 - The broader art pipeline for future species is not standardized.
 - The world still has few entity types.
 - There is no full player-as-nature system yet.
@@ -176,10 +179,10 @@ Combat should be added carefully so the file does not become the next blob.
 
 ## 7. Logical next directions
 
-### Option A — add the first combat layer
-- keep combat isolated from entry logic;
-- implement simple 1v1 turn order;
-- avoid bloating `creature.gd` further.
+### Option A — clean up the current combat layer
+- corpse / eating aftermath instead of raw `+50 hunger`;
+- better combat entry polish and stop-distance visuals;
+- keep combat logic isolated from wider creature logic.
 
 ### Option B — expand the creature loop
 - more species resources;

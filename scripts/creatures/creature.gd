@@ -759,9 +759,28 @@ func is_prey_in_duel_range(prey: Node) -> bool:
 		return false
 
 	var prey_anchor: Vector2i = world_grid.creature_anchors[prey]
-	var dx: int = abs(prey_anchor.x - anchor_tile.x)
-	var dy: int = abs(prey_anchor.y - anchor_tile.y)
-	return max(dx, dy) <= 2
+	return are_footprints_side_adjacent(anchor_tile, footprint_size, prey_anchor, prey.footprint_size)
+
+
+func are_footprints_side_adjacent(a_anchor: Vector2i, a_size: Vector2i, b_anchor: Vector2i, b_size: Vector2i) -> bool:
+	var a_left := a_anchor.x
+	var a_right := a_anchor.x + a_size.x - 1
+	var a_top := a_anchor.y
+	var a_bottom := a_anchor.y + a_size.y - 1
+	var b_left := b_anchor.x
+	var b_right := b_anchor.x + b_size.x - 1
+	var b_top := b_anchor.y
+	var b_bottom := b_anchor.y + b_size.y - 1
+
+	var vertical_overlap: int = min(a_bottom, b_bottom) - max(a_top, b_top) + 1
+	if vertical_overlap > 0 and (a_right + 1 == b_left or b_right + 1 == a_left):
+		return true
+
+	var horizontal_overlap: int = min(a_right, b_right) - max(a_left, b_left) + 1
+	if horizontal_overlap > 0 and (a_bottom + 1 == b_top or b_bottom + 1 == a_top):
+		return true
+
+	return false
 
 
 func build_path_to_prey(prey: Node) -> void:
@@ -770,10 +789,10 @@ func build_path_to_prey(prey: Node) -> void:
 
 	var prey_anchor: Vector2i = world_grid.creature_anchors[prey]
 	var approach_offsets: Array[Vector2i] = [
-		Vector2i(-2, 0), Vector2i(2, 0),
-		Vector2i(0, -2), Vector2i(0, 2),
-		Vector2i(-2, -2), Vector2i(2, -2),
-		Vector2i(-2, 2), Vector2i(2, 2)
+		Vector2i(-footprint_size.x, 0),
+		Vector2i(prey.footprint_size.x, 0),
+		Vector2i(0, -footprint_size.y),
+		Vector2i(0, prey.footprint_size.y)
 	]
 	var best_anchor := Vector2i(2147483647, 2147483647)
 	var best_distance: float = INF
@@ -972,6 +991,9 @@ func attach_duel(duel: Duel) -> void:
 	eating_timer.stop()
 	egg_laying_timer.stop()
 
+	if duel != null:
+		face_duel_opponent(duel)
+
 
 func detach_duel(duel: Duel) -> void:
 	if current_duel != duel:
@@ -999,6 +1021,13 @@ func start_duel_with(opponent: Node) -> Duel:
 	if not opponent.has_method("can_be_hunted") or not opponent.can_be_hunted():
 		return null
 
+	if not is_prey_in_duel_range(opponent):
+		return null
+
+	face_target(opponent)
+	if opponent.has_method("face_target"):
+		opponent.face_target(self)
+
 	var duel := Duel.new()
 	var duel_parent := get_tree().current_scene
 
@@ -1020,6 +1049,27 @@ func take_duel_damage(amount: float, _attacker: Node = null) -> void:
 
 	if health <= 0.0:
 		enter_dead()
+
+
+func face_duel_opponent(duel: Duel) -> void:
+	if duel == null:
+		return
+
+	var opponent: Node = duel.fighter_a if duel.fighter_b == self else duel.fighter_b
+	face_target(opponent)
+
+
+func face_target(target: Node) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+
+	var to_target: Vector2 = target.global_position - global_position
+	if to_target.length_squared() <= 0.0001:
+		return
+
+	direction = to_target.normalized()
+	velocity = Vector2.ZERO
+	update_sprite_visual()
 
 
 func _on_duel_finished(duel: Duel, winner: Node, _loser: Node) -> void:
