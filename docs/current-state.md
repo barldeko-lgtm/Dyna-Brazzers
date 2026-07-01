@@ -53,7 +53,11 @@ This is still a simulation sandbox, not a full game.
 - The current species data lives in `data/species/stegosaurus.tres` and `data/species/predator.tres`.
 - There is now a separate 1v1 duel loop with alternating 1-second turns, initiator-first order, and `max(1, attack - defense)` damage.
 - A simple predator species now exists as a temporary hunter placeholder.
-- Predators auto-chase nearby non-predators and start duels on contact.
+- Only 1 predator is spawned, and it appears `10` seconds after world start.
+- Predators spawn with full health and full hunger.
+- Predators start hunting only when hunger drops to `60` or lower.
+- Predators chase the nearest living non-predator and start duels on contact.
+- Predator duel wins restore `+50` hunger without a separate eating system yet.
 - When reproduction conditions pass, the creature enters egg-laying for `5` seconds.
 - Egg stage 1 appears at the creature position as a non-blocking vertical `1x2` object.
 - The egg then tries to expand right into blocking stage 2 `2x2`.

@@ -25,7 +25,7 @@ Scene assemblies and placed nodes.
 ### `scripts/`
 Main gameplay logic by subsystem.
 
-- `scripts/world/world_grid.gd` — world/grid authority
+- `scripts/world/world_grid.gd` — world/grid authority and delayed predator spawn
 - `scripts/combat/duel.gd` — 1v1 duel loop
 - `scripts/creatures/creature.gd` — base creature runtime logic
 - `scripts/creatures/creature_species_data.gd` — species resource schema
@@ -342,7 +342,7 @@ The current code already provides:
 - grass growth and spreading;
 - egg laying, egg growth, and hatching;
 - a separate 1v1 duel loop with alternating 1-second turns;
-- a temporary predator species that auto-chases nearby herbivores;
+- a temporary predator species that spawns once after 10 seconds and hunts at hunger <= 60;
 - the creature stats panel;
 - an FPS label;
 - simulation speed control.

@@ -340,6 +340,9 @@ func update_predator_behavior() -> void:
 	if not is_predator or world_grid == null:
 		return
 
+	if hunger > hunger_search_threshold:
+		return
+
 	if state == State.DEAD or state == State.EATING or state == State.LAYING_EGG or state == State.COMBAT:
 		return
 
@@ -745,7 +748,7 @@ func is_valid_prey(candidate: Node) -> bool:
 	if candidate == null or candidate == self or not is_instance_valid(candidate):
 		return false
 
-	if not candidate.has_method("can_fight") or not candidate.can_fight():
+	if not candidate.has_method("can_be_hunted") or not candidate.can_be_hunted():
 		return false
 
 	return not bool(candidate.get("is_predator"))
@@ -949,6 +952,10 @@ func can_continue_duel(duel: Duel) -> bool:
 	return state != State.DEAD and current_duel == duel
 
 
+func can_be_hunted() -> bool:
+	return state != State.DEAD and current_duel == null
+
+
 func can_fight() -> bool:
 	return state == State.IDLE or state == State.WALK or state == State.SEEK_FOOD
 
@@ -989,7 +996,7 @@ func start_duel_with(opponent: Node) -> Duel:
 	if not can_fight():
 		return null
 
-	if not opponent.has_method("can_fight") or not opponent.can_fight():
+	if not opponent.has_method("can_be_hunted") or not opponent.can_be_hunted():
 		return null
 
 	var duel := Duel.new()
@@ -1002,6 +1009,8 @@ func start_duel_with(opponent: Node) -> Duel:
 		return null
 
 	duel_parent.add_child(duel)
+	if duel.duel_finished.is_connected(_on_duel_finished) == false:
+		duel.duel_finished.connect(_on_duel_finished)
 	duel.setup(self, opponent, self, 1.0)
 	return duel
 
@@ -1011,6 +1020,16 @@ func take_duel_damage(amount: float, _attacker: Node = null) -> void:
 
 	if health <= 0.0:
 		enter_dead()
+
+
+func _on_duel_finished(duel: Duel, winner: Node, _loser: Node) -> void:
+	if duel != current_duel and current_duel != null:
+		return
+
+	if winner != self or not is_predator:
+		return
+
+	hunger = clamp(hunger + hunger_restore_amount, 0.0, max_hunger)
 
 
 func find_world_grid() -> Node:
