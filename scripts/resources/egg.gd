@@ -148,10 +148,24 @@ func sync_anchor_with_world() -> bool:
 
 	anchor_tile = world_grid.world_to_anchor_tile(global_position, STAGE_1_FOOTPRINT)
 
-	if world_grid.has_method("can_place_footprint") and not world_grid.can_place_footprint(anchor_tile, STAGE_1_FOOTPRINT, self):
+	if not can_place_stage_1_anchor(anchor_tile):
 		return false
 
 	global_position = world_grid.anchor_to_world_position(anchor_tile, get_current_footprint())
+	return true
+
+
+func can_place_stage_1_anchor(candidate_anchor: Vector2i) -> bool:
+	if world_grid == null:
+		return false
+
+	if not world_grid.has_method("get_footprint_tiles") or not world_grid.has_method("is_tile_walkable"):
+		return false
+
+	for tile in world_grid.get_footprint_tiles(candidate_anchor, STAGE_1_FOOTPRINT):
+		if not world_grid.is_tile_walkable(tile):
+			return false
+
 	return true
 
 

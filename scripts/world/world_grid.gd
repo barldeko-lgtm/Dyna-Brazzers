@@ -4,6 +4,7 @@ extends Node2D
 const CREATURE_SCENE := preload("res://scenes/creatures/creature.tscn")
 const PREDATOR_SPECIES_DATA := preload("res://data/species/predator.tres")
 const PREDATOR_SPAWN_DELAY := 10.0
+const PREDATOR_SPAWN_ENABLED := false
 const TERRAIN_GROUND := 0
 const TERRAIN_WATER := 1
 const TERRAIN_MOUNTAIN := 2
@@ -54,7 +55,7 @@ func _ready() -> void:
 
 
 func schedule_predator_spawn() -> void:
-	if predator_spawn_done:
+	if predator_spawn_done or not PREDATOR_SPAWN_ENABLED:
 		return
 
 	await get_tree().create_timer(PREDATOR_SPAWN_DELAY).timeout
@@ -62,7 +63,7 @@ func schedule_predator_spawn() -> void:
 
 
 func spawn_predator_if_needed() -> void:
-	if predator_spawn_done:
+	if predator_spawn_done or not PREDATOR_SPAWN_ENABLED:
 		return
 
 	var creatures_root := get_node_or_null("Creatures")
