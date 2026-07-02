@@ -16,6 +16,7 @@ Current scope:
 - autonomous food search;
 - a simple 1v1 duel layer with predator hunting;
 - a debug UI for hover/selection and creature stats;
+- a removable F3 grid debug overlay for world/creature inspection;
 - a free observer camera.
 
 For local runs use Godot from `E:/Godot_v4.7/`; preferred headless CLI: `E:/Godot_v4.7/Godot_v4.7-stable_win64_console.exe`; short smoke test: `'/e/Godot_v4.7/Godot_v4.7-stable_win64_console.exe' --headless --path '/e/dyna' --quit-after 10`.
@@ -84,6 +85,7 @@ This is still a simulation sandbox, not a full game.
 - Clicking the same creature again or empty space clears selection.
 - There is an FPS label.
 - There is a simulation speed selector with `x1`, `x2`, `x3`.
+- There is an `F3` removable grid debug overlay with blocked terrain, grass, occupied tiles, selected creature footprint, pending footprint, grazing target, path, and a bottom-left debug text panel.
 
 ---
 
@@ -140,6 +142,7 @@ This is still a simulation sandbox, not a full game.
 
 ### UI and view
 - `scripts/ui/creature_stats_ui.gd`
+- `scripts/debug/grid_debug_overlay.gd`
 - `scripts/camera/camera_controller.gd`
 
 ### Docs

@@ -1,0 +1,43 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/debug/grid_debug_overlay.gd" id="1_grid_debug_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_debug_panel_bg"]
+bg_color = Color(0.08, 0.08, 0.08, 0.82)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.28, 0.28, 0.28, 0.95)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="GridDebugOverlay" type="Node2D"]
+script = ExtResource("1_grid_debug_script")
+
+[node name="DebugCanvas" type="CanvasLayer" parent="."]
+
+[node name="DebugInfoPanel" type="PanelContainer" parent="DebugCanvas"]
+visible = false
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -192.0
+offset_right = 332.0
+offset_bottom = -44.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_debug_panel_bg")
+
+[node name="MarginContainer" type="MarginContainer" parent="DebugCanvas/DebugInfoPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="DebugInfoLabel" type="Label" parent="DebugCanvas/DebugInfoPanel/MarginContainer"]
+layout_mode = 2
+text = "Grid Debug"
+autowrap_mode = 2

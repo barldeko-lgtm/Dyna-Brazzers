@@ -13,7 +13,11 @@ extends CanvasLayer
 
 @onready var health_bar: ProgressBar = $CreatureStatsPanel/MarginContainer/VBoxContainer/HealthBar
 
+@onready var health_value_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/HealthBar/HealthValueLabel
+
 @onready var hunger_bar: ProgressBar = $CreatureStatsPanel/MarginContainer/VBoxContainer/HungerBar
+
+@onready var hunger_value_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/HungerBar/HungerValueLabel
 
 @onready var fps_label: Label = $FpsLabel
 
@@ -107,11 +111,24 @@ func update_stats_text() -> void:
 	else:
 		health_bar.value = 0.0
 
+	health_value_label.text = build_bar_value_text("health", "max_health")
+
 	if current_creature.has_method("get_hunger_percent"):
 		hunger_bar.value = current_creature.get_hunger_percent()
+		hunger_value_label.text = build_bar_value_text("hunger", "max_hunger")
 		return
 
 	hunger_bar.value = 0.0
+	hunger_value_label.text = "0 / 0"
+
+
+func build_bar_value_text(current_property: String, max_property: String) -> String:
+	if not is_instance_valid(current_creature):
+		return "0 / 0"
+
+	var current_value: float = float(current_creature.get(current_property))
+	var max_value: float = float(current_creature.get(max_property))
+	return "%d / %d" % [int(round(current_value)), int(round(max_value))]
 
 
 func toggle_creature_selection(creature: Node) -> void:

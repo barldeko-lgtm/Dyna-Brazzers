@@ -17,6 +17,7 @@ Fast entry point for a new session: what lives where, what each part owns, and w
 Scene assemblies and placed nodes.
 
 - `scenes/main/main.tscn` — top-level project assembly
+- `scenes/debug/grid_debug_overlay.tscn` — removable debug grid overlay and info panel
 - `scenes/world/world.tscn` — test world
 - `scenes/creatures/Creature.tscn` — base creature scene
 - `scenes/resources/grass.tscn` — grass resource scene
@@ -29,6 +30,7 @@ Main gameplay logic by subsystem.
 - `scripts/combat/duel.gd` — 1v1 duel loop
 - `scripts/creatures/creature.gd` — base creature runtime logic
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore food search and grazing retarget helper
+- `scripts/debug/grid_debug_overlay.gd` — removable grid debug drawing and bottom-left debug info panel
 - `scripts/creatures/creature_species_data.gd` — species resource schema
 - `scripts/resources/grass.gd` — grass lifecycle
 - `scripts/resources/egg.gd` — egg lifecycle and hatching
@@ -70,6 +72,7 @@ Top-level scene. Currently contains:
 - `UI` — creature stats, FPS, and simulation speed controls
 - `Simulation` — currently an empty technical node
 - `World` — an instance of `scenes/world/world.tscn`
+- `GridDebugOverlay` — optional removable grid debug overlay
 
 ### `scenes/world/world.tscn`
 Active simulation sandbox. Contains:
@@ -92,6 +95,7 @@ Important: `World` with `world_grid.gd` is the logic center. Other entities find
 - bootstrapping the prototype;
 - camera;
 - debug UI;
+- optional debug overlay instance;
 - world scene attachment.
 
 **Keep in mind:**
@@ -311,6 +315,18 @@ Important: `World` with `world_grid.gd` is the logic center. Other entities find
 **Keep in mind:**
 - this is observation UI, not gameplay logic;
 - the UI queries creature methods but should not own creature state.
+
+### `scripts/debug/grid_debug_overlay.gd`
+**Role:** removable world-grid debug overlay.
+
+**Owns:**
+- F3 toggle for debug visibility;
+- drawing blocked terrain, grass, occupied tiles, creature footprint, pending footprint, target, and path;
+- bottom-left debug text for the selected or hovered creature.
+
+**Keep in mind:**
+- this layer only reads state from `world_grid` and creatures;
+- it should stay optional and easy to remove after testing.
 
 ### `scripts/camera/camera_controller.gd`
 **Role:** basic observer camera control.

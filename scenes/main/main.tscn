@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" path="res://scenes/world/world.tscn" id="1_hyk8p"]
 [ext_resource type="Script" uid="uid://b7vbapxldrm6c" path="res://scripts/camera/camera_controller.gd" id="1_iuonh"]
 [ext_resource type="Script" uid="uid://dbmpjk3xc5rw8" path="res://scripts/ui/creature_stats_ui.gd" id="3_creature_stats_ui"]
+[ext_resource type="PackedScene" path="res://scenes/debug/grid_debug_overlay.tscn" id="4_grid_debug_overlay"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hunger_bar_bg"]
 bg_color = Color(0.14, 0.14, 0.14, 1)
@@ -73,6 +74,15 @@ theme_override_styles/fill = SubResource("StyleBoxFlat_health_bar_fill")
 value = 100.0
 show_percentage = false
 
+[node name="HealthValueLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer/HealthBar"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+text = "100 / 100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="HungerLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer" unique_id=1865689474]
 layout_mode = 2
 text = "Сытость"
@@ -84,6 +94,15 @@ theme_override_styles/background = SubResource("StyleBoxFlat_hunger_bar_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_hunger_bar_fill")
 value = 100.0
 show_percentage = false
+
+[node name="HungerValueLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer/HungerBar"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+text = "100 / 100"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="FpsLabel" type="Label" parent="UI" unique_id=458780955]
 anchors_preset = 2
@@ -128,3 +147,5 @@ layout_mode = 2
 [node name="Simulation" type="Node" parent="." unique_id=898770180]
 
 [node name="World" parent="." unique_id=1194176976 instance=ExtResource("1_hyk8p")]
+
+[node name="GridDebugOverlay" parent="." instance=ExtResource("4_grid_debug_overlay")]

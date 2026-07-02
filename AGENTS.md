@@ -10,6 +10,7 @@ Current scope:
 - grass as the first renewable resource;
 - egg laying, 2 egg stages, and hatching;
 - a debug UI for hover/selection and creature stats;
+- a removable F3 grid debug overlay for grid/path/occupancy inspection;
 - a free observer camera.
 
 ## Working rules
@@ -31,6 +32,7 @@ Current scope:
 ## Key files
 - `project.godot` — project entry, main scene `res://scenes/main/main.tscn`
 - `scenes/main/main.tscn` — top-level assembly: camera, UI, world
+- `scenes/debug/grid_debug_overlay.tscn` — removable grid debug overlay scene
 - `scenes/world/world.tscn` — test world with tilemap, grass, eggs, and test creatures
 - `scripts/world/world_grid.gd` — central world/grid manager
 - `scripts/creatures/creature.gd` — base creature runtime logic
@@ -39,6 +41,7 @@ Current scope:
 - `scripts/resources/grass.gd` — grass lifecycle
 - `scripts/resources/egg.gd` — egg lifecycle and hatching
 - `scripts/ui/creature_stats_ui.gd` — debug creature UI
+- `scripts/debug/grid_debug_overlay.gd` — removable grid debug drawing and info panel
 - `docs/project-map.md` — structure and responsibilities
 - `docs/current-state.md` — live project snapshot
 - `docs/design_roadmap.md` — broader design vision and roadmap
