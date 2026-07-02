@@ -28,6 +28,7 @@ Main gameplay logic by subsystem.
 - `scripts/world/world_grid.gd` — world/grid authority and delayed predator spawn
 - `scripts/combat/duel.gd` — 1v1 duel loop
 - `scripts/creatures/creature.gd` — base creature runtime logic
+- `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore food search and grazing retarget helper
 - `scripts/creatures/creature_species_data.gd` — species resource schema
 - `scripts/resources/grass.gd` — grass lifecycle
 - `scripts/resources/egg.gd` — egg lifecycle and hatching
@@ -194,8 +195,7 @@ Important: `World` with `world_grid.gd` is the logic center. Other entities find
 - states `IDLE`, `WALK`, `SEEK_FOOD`, `EATING`, `LAYING_EGG`, `COMBAT`, `DEAD`;
 - age, hunger, starvation damage, and well-fed regen;
 - death from old age and at `0 hp`;
-- two-step grazing search: local recheck, then global fallback;
-- route building through `world_grid`;
+- high-level food state transitions and eating entry;
 - smooth movement between tile anchors;
 - directional sprite choice;
 - eating adult grass under the footprint;
@@ -212,7 +212,22 @@ Important: `World` with `world_grid.gd` is the logic center. Other entities find
 - visual motion is separate from logical decisions;
 - the creature should not start eating just because it crossed a good tile on the way;
 - current footprint is `2x2`;
-- this file is already large, so future systems should be added carefully.
+- grazing target logic now lives in `creature_grazing_logic.gd`;
+- this file is still large, so future systems should be added carefully.
+
+### `scripts/creatures/behaviors/creature_grazing_logic.gd`
+**Role:** herbivore grazing helper.
+
+**Owns:**
+- two-step grazing search: local recheck, then global fallback;
+- target scoring and retargeting;
+- target validity checks;
+- path rebuilding toward the current grazing anchor;
+- deciding when a herbivore can start eating at the current anchor.
+
+**Keep in mind:**
+- this helper reads and writes creature runtime state through the owning creature;
+- world queries and pathfinding still come from `world_grid.gd`.
 
 **Useful public methods for UI:**
 - `get_creature_name()`

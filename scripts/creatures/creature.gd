@@ -1,6 +1,7 @@
 extends CharacterBody2D
 
 const Duel = preload("res://scripts/combat/duel.gd")
+const CreatureGrazingLogic = preload("res://scripts/creatures/behaviors/creature_grazing_logic.gd")
 
 # Core creature FSM.
 @onready var sprite: Sprite2D = $BodySprite
@@ -136,6 +137,7 @@ var reproduction_cooldown_remaining := 0.0
 
 var pending_egg_anchor := Vector2i.ZERO
 var current_duel: Duel = null
+var grazing_logic: RefCounted
 
 const EGG_STAGE_1_FOOTPRINT := Vector2i(1, 2)
 
@@ -191,6 +193,7 @@ func apply_species_data() -> void:
 
 func _ready() -> void:
 	randomize()
+	grazing_logic = CreatureGrazingLogic.new(self)
 	eating_timer.one_shot = true
 	egg_laying_timer.one_shot = true
 
@@ -364,23 +367,7 @@ func update_predator_behavior() -> void:
 
 # Food state machine.
 func update_food_behavior() -> void:
-	if is_predator:
-		return
-
-	if world_grid == null:
-		return
-
-	if state == State.EATING or state == State.LAYING_EGG or state == State.COMBAT:
-		return
-
-	if is_moving:
-		return
-
-	if hunger > hunger_search_threshold:
-		return
-
-	if state != State.SEEK_FOOD:
-		enter_seek_food()
+	grazing_logic.update_food_behavior()
 
 
 func update_idle(delta: float) -> void:
@@ -407,34 +394,7 @@ func update_walk(delta: float) -> void:
 
 
 func update_seek_food(delta: float) -> void:
-	food_recheck_timer -= delta
-
-	if food_recheck_timer <= 0.0:
-		recheck_grazing_target()
-		food_recheck_timer = food_recheck_interval
-
-	if not is_moving and can_start_eating_here() and (not has_grazing_target or anchor_tile == grazing_target_anchor):
-		enter_eating()
-		return
-
-	if not has_grazing_target:
-		if not is_moving and current_path.is_empty():
-			choose_random_wander_step()
-
-		start_next_path_step_if_needed()
-		return
-
-	start_next_path_step_if_needed()
-
-	if not is_moving and current_path.is_empty() and has_grazing_target:
-		if anchor_tile == grazing_target_anchor:
-			if can_start_eating_here():
-				enter_eating()
-			else:
-				has_grazing_target = false
-				try_acquire_grazing_target()
-		else:
-			build_path_to_grazing_target()
+	grazing_logic.update_seek_food(delta)
 
 
 func update_eating() -> void:
@@ -464,11 +424,7 @@ func enter_walk() -> void:
 
 
 func enter_seek_food() -> void:
-	state = State.SEEK_FOOD
-	food_recheck_timer = food_recheck_interval
-	has_grazing_target = false
-	clear_path()
-	try_acquire_grazing_target()
+	grazing_logic.enter_seek_food()
 
 
 func enter_eating() -> void:
@@ -516,10 +472,7 @@ func choose_random_wander_step() -> void:
 
 
 func can_start_eating_here() -> bool:
-	if world_grid == null:
-		return false
-
-	return world_grid.count_adult_grass_under_footprint(anchor_tile, footprint_size) >= min_grass_to_eat
+	return grazing_logic.can_start_eating_here()
 
 
 func get_navigation_anchor() -> Vector2i:
@@ -531,116 +484,27 @@ func get_navigation_anchor() -> Vector2i:
 
 # Grazing target selection.
 func try_acquire_grazing_target() -> void:
-	if world_grid == null:
-		return
-
-	var navigation_anchor := get_navigation_anchor()
-	var local_target: Dictionary = world_grid.find_best_grazing_target(
-		navigation_anchor,
-		footprint_size,
-		min_grass_to_eat,
-		nearby_grazing_recheck_radius,
-		self,
-		grazing_grass_weight,
-		grazing_distance_penalty
-	)
-
-	if not local_target.is_empty():
-		apply_grazing_target(local_target)
-		return
-
-	var global_target: Dictionary = world_grid.find_best_grazing_target(
-		navigation_anchor,
-		footprint_size,
-		min_grass_to_eat,
-		-1,
-		self,
-		grazing_grass_weight,
-		grazing_distance_penalty
-	)
-
-	if not global_target.is_empty():
-		apply_grazing_target(global_target)
-		return
-
-	has_grazing_target = false
-	grazing_target_anchor = anchor_tile
-	clear_path()
+	grazing_logic.try_acquire_grazing_target()
 
 
 func apply_grazing_target(target_data: Dictionary) -> void:
-	has_grazing_target = true
-	grazing_target_anchor = target_data.get("anchor", anchor_tile)
-	build_path_to_grazing_target()
+	grazing_logic.apply_grazing_target(target_data)
 
 
 func build_path_to_grazing_target() -> void:
-	if world_grid == null or not has_grazing_target:
-		return
-
-	var navigation_anchor := get_navigation_anchor()
-	current_path = world_grid.find_path(navigation_anchor, grazing_target_anchor, footprint_size, self)
+	grazing_logic.build_path_to_grazing_target()
 
 
 func recheck_grazing_target() -> void:
-	if world_grid == null:
-		return
-
-	var navigation_anchor := get_navigation_anchor()
-	var nearby_target: Dictionary = world_grid.find_best_grazing_target(
-		navigation_anchor,
-		footprint_size,
-		min_grass_to_eat,
-		nearby_grazing_recheck_radius,
-		self,
-		grazing_grass_weight,
-		grazing_distance_penalty
-	)
-
-	if nearby_target.is_empty():
-		if has_grazing_target and is_current_grazing_target_still_valid():
-			return
-
-		try_acquire_grazing_target()
-		return
-
-	if not has_grazing_target:
-		apply_grazing_target(nearby_target)
-		return
-
-	var new_score := float(nearby_target.get("score", -INF))
-	var current_adult_count := get_current_grazing_target_adult_count()
-	var current_distance: int = world_grid.estimate_path_steps(navigation_anchor, grazing_target_anchor)
-	var current_score := float(current_adult_count) * grazing_grass_weight - float(current_distance) * grazing_distance_penalty
-	var new_distance := int(nearby_target.get("distance", 0))
-
-	if new_score > current_score:
-		apply_grazing_target(nearby_target)
-		return
-
-	if is_equal_approx(new_score, current_score) and new_distance < current_distance - retarget_distance_advantage:
-		apply_grazing_target(nearby_target)
-		return
-
-	if not is_current_grazing_target_still_valid():
-		apply_grazing_target(nearby_target)
+	grazing_logic.recheck_grazing_target()
 
 
 func is_current_grazing_target_still_valid() -> bool:
-	if not has_grazing_target or world_grid == null:
-		return false
-
-	if not world_grid.can_place_footprint(grazing_target_anchor, footprint_size, self):
-		return false
-
-	return get_current_grazing_target_adult_count() >= min_grass_to_eat
+	return grazing_logic.is_current_grazing_target_still_valid()
 
 
 func get_current_grazing_target_adult_count() -> int:
-	if world_grid == null or not has_grazing_target:
-		return 0
-
-	return world_grid.count_adult_grass_under_footprint(grazing_target_anchor, footprint_size)
+	return grazing_logic.get_current_grazing_target_adult_count()
 
 
 # Grid movement.
