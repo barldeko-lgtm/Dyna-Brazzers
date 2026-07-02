@@ -21,6 +21,8 @@ extends CanvasLayer
 
 @onready var fps_label: Label = $FpsLabel
 
+@onready var lightning_button: Button = $LightningPanel/MarginContainer/LightningButton
+
 @onready var time_speed_option: OptionButton = $TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeedOption
 
 # Time scale presets.
@@ -32,10 +34,13 @@ var hovered_creature: Node = null
 
 var selected_creature: Node = null
 
+var lightning_targeting_enabled := false
+
 
 func _ready() -> void:
 	add_to_group("creature_stats_ui")
 	panel.visible = false
+	setup_lightning_button()
 	setup_time_speed_controls()
 
 
@@ -131,6 +136,45 @@ func build_bar_value_text(current_property: String, max_property: String) -> Str
 	return "%d / %d" % [int(round(current_value)), int(round(max_value))]
 
 
+func setup_lightning_button() -> void:
+	lightning_button.toggle_mode = true
+	lightning_button.text = "Молния"
+	lightning_button.button_pressed = false
+
+	if not lightning_button.toggled.is_connected(_on_lightning_button_toggled):
+		lightning_button.toggled.connect(_on_lightning_button_toggled)
+
+
+func _on_lightning_button_toggled(toggled_on: bool) -> void:
+	lightning_targeting_enabled = toggled_on
+
+
+func is_lightning_targeting_enabled() -> bool:
+	return lightning_targeting_enabled
+
+
+func try_apply_lightning_to_creature(creature: Node) -> bool:
+	if not lightning_targeting_enabled:
+		return false
+
+	if creature == null or not is_instance_valid(creature):
+		return false
+
+	if creature.has_method("take_direct_damage"):
+		creature.take_direct_damage(50.0)
+		cancel_lightning_targeting()
+		return true
+
+	return false
+
+
+func cancel_lightning_targeting() -> void:
+	lightning_targeting_enabled = false
+
+	if lightning_button.button_pressed:
+		lightning_button.set_pressed_no_signal(false)
+
+
 func toggle_creature_selection(creature: Node) -> void:
 	if creature == null:
 		return
@@ -194,6 +238,13 @@ func _on_time_speed_option_item_selected(index: int) -> void:
 # Clear selection on empty click.
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton):
+		return
+
+	if lightning_targeting_enabled and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+		cancel_lightning_targeting()
+		return
+
+	if lightning_targeting_enabled:
 		return
 
 	if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:

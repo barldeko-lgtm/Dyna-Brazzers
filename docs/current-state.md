@@ -15,6 +15,7 @@ Current scope:
 - grass as the first renewable resource;
 - autonomous food search;
 - a simple 1v1 duel layer with predator hunting;
+- a first player influence action: lightning;
 - a debug UI for hover/selection and creature stats;
 - a removable F3 grid debug overlay for world/creature inspection;
 - a free observer camera.
@@ -84,6 +85,8 @@ This is still a simulation sandbox, not a full game.
 - The UI shows name, age, health, and hunger.
 - Clicking the same creature again or empty space clears selection.
 - There is an FPS label.
+- There is a lightning button: press it, then left-click a creature to deal `50` damage.
+- Pressing the lightning button again or right-clicking cancels the armed lightning click.
 - There is a simulation speed selector with `x1`, `x2`, `x3`.
 - There is an `F3` removable grid debug overlay with blocked terrain, grass, occupied tiles, selected creature footprint, pending footprint, grazing target, path, and a bottom-left debug text panel.
 

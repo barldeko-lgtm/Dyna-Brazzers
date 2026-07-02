@@ -9,6 +9,7 @@ Current scope:
 - directional sprites for the current creature;
 - grass as the first renewable resource;
 - egg laying, 2 egg stages, and hatching;
+- a first player influence action: lightning;
 - a debug UI for hover/selection and creature stats;
 - a removable F3 grid debug overlay for grid/path/occupancy inspection;
 - a free observer camera.

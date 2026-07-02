@@ -244,6 +244,11 @@ func _physics_process(delta: float) -> void:
 	if state == State.DEAD:
 		return
 
+	ensure_combat_state_consistency()
+
+	if state == State.DEAD:
+		return
+
 	update_age(delta)
 
 	if check_age_death():
@@ -407,6 +412,22 @@ func update_laying_egg() -> void:
 
 func update_combat() -> void:
 	return
+
+
+func ensure_combat_state_consistency() -> void:
+	if state != State.COMBAT:
+		return
+
+	if current_duel != null and is_instance_valid(current_duel):
+		return
+
+	current_duel = null
+
+	if hunger <= hunger_search_threshold:
+		enter_seek_food()
+		return
+
+	enter_walk()
 
 
 # State transitions.
@@ -909,6 +930,10 @@ func start_duel_with(opponent: Node) -> Duel:
 
 
 func take_duel_damage(amount: float, _attacker: Node = null) -> void:
+	take_direct_damage(amount)
+
+
+func take_direct_damage(amount: float) -> void:
 	health = clamp(health - amount, 0.0, max_health)
 
 	if health <= 0.0:
@@ -1016,6 +1041,11 @@ func _on_hover_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: 
 		return
 
 	var stats_ui := get_tree().get_first_node_in_group("creature_stats_ui")
+
+	if stats_ui != null and stats_ui.has_method("try_apply_lightning_to_creature"):
+		if stats_ui.try_apply_lightning_to_creature(self):
+			get_viewport().set_input_as_handled()
+			return
 
 	if stats_ui != null and stats_ui.has_method("toggle_creature_selection"):
 		stats_ui.toggle_creature_selection(self)

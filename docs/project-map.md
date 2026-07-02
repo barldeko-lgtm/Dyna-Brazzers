@@ -37,7 +37,7 @@ Main gameplay logic by subsystem.
 - `data/species/stegosaurus.tres` — herbivore species data
 - `data/species/predator.tres` — temporary predator species data
 - `scripts/camera/camera_controller.gd` — observer camera
-- `scripts/ui/creature_stats_ui.gd` — debug creature UI
+- `scripts/ui/creature_stats_ui.gd` — creature HUD, selection UI, and first player action button
 
 ### `assets/`
 Sprites and placeholders.
@@ -69,7 +69,7 @@ Project entry point. Launches `res://scenes/main/main.tscn`.
 ### `scenes/main/main.tscn`
 Top-level scene. Currently contains:
 - `Camera2D` — camera using `camera_controller.gd`
-- `UI` — creature stats, FPS, and simulation speed controls
+- `UI` — creature stats, FPS, lightning action button, and simulation speed controls
 - `Simulation` — currently an empty technical node
 - `World` — an instance of `scenes/world/world.tscn`
 - `GridDebugOverlay` — optional removable grid debug overlay
@@ -303,17 +303,18 @@ Important: `World` with `world_grid.gd` is the logic center. Other entities find
 - egg visuals and the hatched creature scene are data-driven.
 
 ### `scripts/ui/creature_stats_ui.gd`
-**Role:** debug UI for observing creatures.
+**Role:** creature HUD and lightweight player interaction UI.
 
 **Owns:**
 - temporary hover display;
 - click-to-pin and clear selection;
 - showing name, age, health, and hunger;
+- arming/canceling the first lightning player action;
 - FPS display;
 - simulation speed switching between `x1`, `x2`, and `x3`.
 
 **Keep in mind:**
-- this is observation UI, not gameplay logic;
+- this UI can arm player actions, but action effects should still resolve in world/entity logic;
 - the UI queries creature methods but should not own creature state.
 
 ### `scripts/debug/grid_debug_overlay.gd`
