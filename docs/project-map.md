@@ -7,82 +7,85 @@ Fast entry point for a new session: what lives where, what each part owns, and w
 ## 1. High-level structure
 
 ### Project root
-- `project.godot` — Godot project config; main scene `res://scenes/main/main.tscn`
-- `AGENTS.md` — short working rules and project canon
-- `docs/design_roadmap.md` — overall game vision, player role, progression, and roadmap
-- `docs/project-map.md` — this file
-- `docs/current-state.md` — live prototype snapshot
+- `project.godot` — Godot project config; main scene is `res://scenes/main/main.tscn`; `PerformanceStats` is registered as an autoload.
+- `AGENTS.md` — short working rules and project canon for agents.
+- `docs/project-map.md` — this file: structure, responsibilities, and where to look first.
+- `docs/current-state.md` — live prototype snapshot.
+- `docs/dependencies.md` — dependency graph, system links, and task-based file bundles.
+- `docs/design_roadmap.md` — broader design vision and roadmap. Do not edit unless asked.
+- `logs/` — CSV performance logs created by F8 recording.
 
 ### `scenes/`
 Scene assemblies and placed nodes.
 
-- `scenes/main/main.tscn` — top-level project assembly
-- `scenes/debug/grid_debug_overlay.tscn` — removable debug grid overlay and info panel
-- `scenes/world/world.tscn` — test world
-- `scenes/creatures/Creature.tscn` — base creature scene
-- `scenes/resources/grass.tscn` — grass resource scene
-- `scenes/resources/egg.tscn` — egg scene with two stages and hatching
+- `scenes/main/main.tscn` — top-level project assembly.
+- `scenes/world/world.tscn` — active test world.
+- `scenes/creatures/creature.tscn` — base creature scene.
+- `scenes/resources/grass.tscn` — grass resource scene.
+- `scenes/resources/egg.tscn` — egg resource scene.
+- `scenes/debug/grid_debug_overlay.tscn` — removable debug grid overlay and info panel.
 
 ### `scripts/`
 Main gameplay logic by subsystem.
 
-- `scripts/world/world_grid.gd` — world/grid authority and delayed predator spawn
-- `scripts/combat/duel.gd` — 1v1 duel loop
-- `scripts/creatures/creature.gd` — base creature runtime logic
-- `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore food search and grazing retarget helper
-- `scripts/debug/grid_debug_overlay.gd` — removable grid debug drawing and bottom-left debug info panel
-- `scripts/creatures/creature_species_data.gd` — species resource schema, including optional walk-animation slots
-- `scripts/resources/grass.gd` — grass lifecycle
-- `scripts/resources/egg.gd` — egg lifecycle and hatching
-- `data/species/stegosaurus.tres` — herbivore species data
-- `data/species/predator.tres` — temporary predator species data
-- `scripts/camera/camera_controller.gd` — observer camera
-- `scripts/ui/creature_stats_ui.gd` — creature HUD, selection UI, and first player action button
-
-### `assets/`
-Sprites and placeholders.
-
-- `assets/sprites/terrain/ground.png` — ground tile
-- `assets/sprites/terrain/water_placeholder.png` — temporary water tile
-- `assets/sprites/terrain/mountain_placeholder.png` — temporary mountain tile
-- `assets/sprites/terrain/grass_stage_1.png` — small grass
-- `assets/sprites/terrain/grass_stage_2.png` — adult grass
-- `assets/sprites/creatures/stegosaurus/` — directional sprite set for the herbivore test creature
-- `assets/sprites/creatures/predator/` — temporary directional sprite set for the predator
-- `assets/sprites/creatures/eggs/` — egg sprites for both stages
-- `assets/sprites/creatures/stegosaurus_placeholder.png` — old stegosaurus placeholder
-- `assets/sprites/creatures/debug_square_256.png` — old debug sprite kept as a tech reference
+- `scripts/world/world_grid.gd` — central world/grid authority.
+- `scripts/creatures/creature.gd` — base creature runtime coordinator.
+- `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore food search, grazing scoring, path rebuild, and retargeting helper.
+- `scripts/creatures/behaviors/creature_predator_logic.gd` — predator prey search, chase pathing, side-contact checks, and duel start helper.
+- `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction checks and egg spawning helper.
+- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, mirroring, and walk-animation helper.
+- `scripts/creatures/creature_species_data.gd` — species resource schema.
+- `scripts/combat/duel.gd` — isolated 1v1 duel loop.
+- `scripts/resources/grass.gd` — grass lifecycle.
+- `scripts/resources/egg.gd` — egg lifecycle and hatching.
+- `scripts/ui/creature_stats_ui.gd` — creature HUD, selection UI, player lightning action, speed selector, debug status text.
+- `scripts/debug/grid_debug_overlay.gd` — removable grid/path/occupancy debug drawing and info panel.
+- `scripts/debug/performance_stats.gd` — performance counters, elapsed time, memory/node/object counts, and F8 CSV logging.
+- `scripts/camera/camera_controller.gd` — observer camera movement and zoom.
 
 ### `data/`
 Configurable game data resources.
 
-- `data/species/stegosaurus.tres` — herbivore species stats, visuals, egg settings, and walk-animation config
-- `data/species/predator.tres` — predator species stats, visuals, and hunt tuning
+- `data/species/stegosaurus.tres` — herbivore species stats, visuals, egg settings, and walk-animation config.
+- `data/species/predator.tres` — temporary predator species stats, visuals, and hunt tuning.
+- `data/animations/stegosaurus_walk_right_frames.tres` — 6-frame right-facing stegosaurus walk animation.
+
+### `assets/`
+Sprites and placeholders.
+
+- `assets/sprites/terrain/ground.png` — ground tile.
+- `assets/sprites/terrain/water_placeholder.png` — temporary water tile.
+- `assets/sprites/terrain/mountain_placeholder.png` — temporary mountain tile.
+- `assets/sprites/terrain/grass_stage_1.png` — small grass.
+- `assets/sprites/terrain/grass_stage_2.png` — adult grass.
+- `assets/sprites/creatures/stegosaurus/` — stegosaurus directional sprites and right-facing walk frames.
+- `assets/sprites/creatures/predator/` — temporary predator directional sprite set.
+- `assets/sprites/creatures/eggs/` — egg sprites for both stages.
 
 ---
 
 ## 2. Scene startup flow
 
 ### `project.godot`
-Project entry point. Launches `res://scenes/main/main.tscn`.
+Project entry point. Launches `res://scenes/main/main.tscn`. Also registers the `PerformanceStats` autoload from `scripts/debug/performance_stats.gd`.
 
 ### `scenes/main/main.tscn`
 Top-level scene. Currently contains:
-- `Camera2D` — camera using `camera_controller.gd`
-- `UI` — creature stats, FPS, lightning action button, and simulation speed controls
-- `Simulation` — currently an empty technical node
-- `World` — an instance of `scenes/world/world.tscn`
-- `GridDebugOverlay` — optional removable grid debug overlay
+- `Camera2D` — camera using `camera_controller.gd`.
+- `UI` — creature stats, FPS/debug text, lightning action button, and simulation speed controls.
+- `Simulation` — currently an empty technical node.
+- `World` — an instance of `scenes/world/world.tscn`.
+- `GridDebugOverlay` — optional removable grid debug overlay.
 
 ### `scenes/world/world.tscn`
 Active simulation sandbox. Contains:
-- `World` (`Node2D`) with `world_grid.gd`
-- `Creatures` — test creatures
-- `Grasses` — grass instances
-- `Eggs` — creature eggs
-- `Ground` (`TileMapLayer`) — map geometry and walkable area
+- `World` (`Node2D`) with `world_grid.gd`.
+- `Creatures` — test creatures plus `PredatorSpawn` marker.
+- `Grasses` — grass instances.
+- `Eggs` — creature eggs.
+- `Ground` (`TileMapLayer`) — map geometry and terrain types.
 
-Important: `World` with `world_grid.gd` is the logic center. Other entities find it by walking up the scene tree.
+Important: `World` with `world_grid.gd` is the logic center. Most gameplay entities find it by walking up the scene tree.
 
 ---
 
@@ -91,302 +94,200 @@ Important: `World` with `world_grid.gd` is the logic center. Other entities find
 ### `scenes/main/main.tscn`
 **Role:** top-level project assembly.
 
-**Owns:**
-- bootstrapping the prototype;
-- camera;
-- debug UI;
-- optional debug overlay instance;
-- world scene attachment.
+**Owns:** bootstrapping the prototype, observer camera, UI layer, optional grid overlay, and world scene attachment.
 
-**Keep in mind:**
-- do not turn this into a heavy gameplay-logic scene;
-- world logic belongs in `world_grid.gd` and related entities.
+**Keep in mind:** do not turn this into a heavy gameplay-logic scene. World/entity logic belongs in `world_grid.gd`, creature/resource scripts, and their helpers.
 
 ### `scenes/world/world.tscn`
-**Role:** test gameplay world.
+**Role:** active gameplay sandbox.
 
-**Owns:**
-- ground, grass, eggs, and creatures;
-- running the simulation;
-- serving as the main behaviour sandbox.
+**Owns:** placed map, terrain, test creatures, grass patches, eggs container, and predator spawn marker.
 
-**Keep in mind:**
-- the map currently uses large `128x128` tiles;
-- the scene already contains several test creatures and grass patches;
-- this is a mechanics sandbox, not final world structure.
+**Keep in mind:** the map currently uses large `128x128` tiles. This is still a mechanics sandbox, not final world structure.
 
-### `scenes/creatures/Creature.tscn`
+### `scenes/creatures/creature.tscn`
 **Role:** base creature scene.
 
 **Structure:**
 - `CharacterBody2D`
 - `BodySprite`
+- `WalkRightSprite`
+- `CollisionShape2D`
 - `EatingTimer`
 - `EggLayingTimer`
-- `HoverArea` for hover UI and click selection
+- `HoverArea` with its own collision shape for hover/click UI
 
-**Keep in mind:**
-- the scene pulls base stats, visuals, and egg setup from `species_data`;
-- left-facing visuals are mirrored from right-facing sprites;
-- the scene is tied to `2x2` footprint logic in `creature.gd`.
+**Keep in mind:** the scene pulls stats, visuals, animation, and egg setup from `species_data`. Left-facing visuals are mirrored from right-facing sprites. Current logical footprint is `2x2`.
 
 ### `scenes/resources/grass.tscn`
 **Role:** base grass scene.
 
-**Structure:**
-- `Node2D`
-- `BodySprite`
-- `GrowthTimer`
-- `SpreadTimer`
+**Structure:** `Node2D`, `BodySprite`, `GrowthTimer`, `SpreadTimer`.
 
-**Keep in mind:**
-- grass exists on tiles;
-- only adult grass is edible;
-- grass spreads in the 4 cardinal directions.
+**Keep in mind:** grass exists on tiles, registers into `world_grid`, grows from stage 1 to adult stage 2, adult grass is edible, and grass tries to spread only once.
 
 ### `scenes/resources/egg.tscn`
 **Role:** base creature egg scene.
 
-**Structure:**
-- `Node2D`
-- `BodySprite`
-- `Stage1Timer`
-- `ExpandRetryTimer`
-- `HatchTimer`
+**Structure:** `Node2D`, `BodySprite`, `Stage1Timer`, `ExpandRetryTimer`, `HatchTimer`.
 
-**Keep in mind:**
-- egg stage 1 is vertical and non-blocking, conceptually `1x2`;
-- after a free expansion right, the egg becomes stage 2 `2x2`;
-- stage 2 blocks world tiles and later hatches a new creature.
+**Keep in mind:** stage 1 is a non-blocking vertical `1x2` egg. Stage 2 expands to blocking `2x2`, can be eaten, and later hatches a new creature.
+
+### `scenes/debug/grid_debug_overlay.tscn`
+**Role:** optional debug overlay.
+
+**Structure:** `Node2D`, `CanvasLayer`, `DebugInfoPanel`, `DebugInfoLabel`.
+
+**Keep in mind:** should stay removable and observational.
 
 ---
 
 ## 4. Key scripts
 
 ### `scripts/world/world_grid.gd`
-**Role:** central world/grid manager.
+**Role:** central world/grid manager and source of truth.
 
 **Owns:**
 - `Ground` lookup/cache;
 - tile size and map bounds;
-- world/grid conversion;
-- `anchor_tile` and footprint helpers;
+- world/tile/anchor conversion;
+- terrain type lookup for ground, water, and mountain;
+- blocked terrain rules;
+- footprint placement;
 - grass registration by tile;
-- creature occupied-tile registration;
+- creature anchor and occupied-tile registration;
 - blocker registration for objects like eggs;
-- walkability checks;
-- terrain-type lookup for ground / water / mountain tiles;
 - neighbor lookup with diagonal corner-cut prevention;
 - A*-style pathfinding;
-- grazing-target queries;
-- counting and consuming adult grass under a footprint.
+- grazing-target queries and scoring;
+- counting and consuming adult grass under a footprint;
+- optional delayed predator spawn, currently controlled by `PREDATOR_SPAWN_ENABLED`.
 
-**Source of truth for:**
-- world walkability;
-- tile occupancy;
-- real grass locations;
-- real creature logical position.
-
-**Fragile areas:**
-- creature registration/movement;
-- `anchor_tile` vs actual body position;
-- grazing selection for `2x2` footprints.
+**Fragile areas:** creature registration/movement, footprint placement, `anchor_tile` vs visual position, blocker registration, grazing selection.
 
 ### `scripts/creatures/creature.gd`
-**Role:** base autonomous creature runtime logic.
+**Role:** base autonomous creature runtime coordinator.
 
 **Owns:**
 - states `IDLE`, `WALK`, `SEEK_FOOD`, `EATING`, `LAYING_EGG`, `COMBAT`, `DEAD`;
-- age, hunger, starvation damage, and well-fed regen;
-- death from old age and at `0 hp`;
-- high-level food state transitions and eating entry;
+- age, hunger, starvation damage, well-fed regeneration, death;
+- high-level state transitions;
 - smooth movement between tile anchors;
-- directional sprite choice;
-- eating adult grass under the footprint;
-- reproduction checks and egg-laying;
-- spawning egg stage 1 at the current creature location;
-- hover UI and click selection hooks;
-- applying `species_data` for stats, visuals, and egg setup;
-- predator prey search and delayed hunt behaviour;
-- duel start checks with side-contact-only combat entry;
-- facing the opponent on duel start.
+- path following;
+- species data application;
+- helper object wiring for grazing, predator, reproduction, and visuals;
+- eating timer and consumption callback;
+- duel attach/detach/damage hooks;
+- hover/click selection hooks;
+- public getters used by UI/debug.
 
-**Keep in mind:**
-- logical position is stored as `anchor_tile`;
-- visual motion is separate from logical decisions;
-- the creature should not start eating just because it crossed a good tile on the way;
-- current footprint is `2x2`;
-- grazing target logic now lives in `creature_grazing_logic.gd`;
-- this file is still large, so future systems should be added carefully.
+**Keep in mind:** this file is still the central creature coordinator. Add new systems carefully; prefer helpers when a subsystem can be isolated.
 
 ### `scripts/creatures/behaviors/creature_grazing_logic.gd`
 **Role:** herbivore grazing helper.
 
-**Owns:**
-- two-step grazing search: local recheck, then global fallback;
-- target scoring and retargeting;
-- target validity checks;
-- path rebuilding toward the current grazing anchor;
-- deciding when a herbivore can start eating at the current anchor.
+**Owns:** local recheck, global fallback, target scoring/retargeting, target validity, path rebuilding toward grazing anchor, and deciding when eating can start.
 
-**Keep in mind:**
-- this helper reads and writes creature runtime state through the owning creature;
-- world queries and pathfinding still come from `world_grid.gd`.
+### `scripts/creatures/behaviors/creature_predator_logic.gd`
+**Role:** predator behaviour helper.
 
-**Useful public methods for UI:**
-- `get_creature_name()`
-- `get_age()`
-- `get_health_percent()`
-- `get_hunger_percent()`
+**Owns:** nearest-prey search, prey validation, side-contact combat range, pathing to prey-adjacent anchors, and duel creation.
 
-### `scripts/combat/duel.gd`
-**Role:** isolated 1v1 duel loop.
+### `scripts/creatures/behaviors/creature_reproduction_logic.gd`
+**Role:** reproduction helper.
 
-**Owns:**
-- fighter A / fighter B references;
-- initiator-first turn order;
-- 1-second alternating turns;
-- `max(1, attack - defense)` damage;
-- duel finish when one fighter dies.
+**Owns:** reproduction condition checks, egg anchor choice, egg spawning, and egg parameter transfer from species data.
 
-**Keep in mind:**
-- this is only the internal duel loop;
-- combat entry/targeting logic still belongs elsewhere.
+### `scripts/creatures/behaviors/creature_visual_controller.gd`
+**Role:** creature visual helper.
+
+**Owns:** directional sprite selection, horizontal mirroring, right-facing walk animation setup, and animation/static sprite switching.
 
 ### `scripts/creatures/creature_species_data.gd`
 **Role:** species resource schema.
 
-**Owns:**
-- species identity fields;
-- predator/herbivore flags;
-- directional visuals;
-- survival/combat stats;
-- hunger tuning;
-- egg lifecycle tuning;
-- reproduction thresholds and costs;
-- starting stats for spawned and hatched creatures.
+**Owns:** species identity, predator/herbivore flags, hunt tuning, directional visuals, optional walk animation, survival/combat stats, hunger tuning, egg lifecycle tuning, reproduction thresholds/costs, and hatchling starting stats.
 
-**Keep in mind:**
-- this is where species-level balancing should grow;
-- the current concrete setup lives in `data/species/stegosaurus.tres` and `data/species/predator.tres`.
+### `scripts/combat/duel.gd`
+**Role:** isolated 1v1 duel loop.
+
+**Owns:** fighter references, initiator-first turn order, 1-second alternating turns, `max(1, attack - defense)` damage, and duel finish signal.
 
 ### `scripts/resources/grass.gd`
-**Role:** grass lifecycle as the first renewable resource.
+**Role:** grass lifecycle.
 
-**Owns:**
-- growth stages `STAGE_1` and `STAGE_2`;
-- growth timer until the adult stage;
-- spread timer;
-- world registration through `world_grid`;
-- spreading to 4 neighboring tiles;
-- falling back to stage 1 after being eaten.
-
-**Keep in mind:**
-- grass is edible only in stage 2;
-- the node syncs its own tile with the world;
-- grass cannot stay or spread onto blocked terrain tiles;
-- new grass is spawned by instantiating the same scene again.
+**Owns:** two growth stages, timers, world registration, single spread attempt, spreading to 4 cardinal neighbors, fallback to stage 1 after consumption.
 
 ### `scripts/resources/egg.gd`
 **Role:** creature egg lifecycle.
 
-**Owns:**
-- the first vertical egg stage `1x2`;
-- repeated checks for expansion into `2x2`;
-- registering stage 2 as a blocking world object;
-- bool-based egg edibility without an HP system;
-- hatching a creature through the configured creature scene.
-
-**Keep in mind:**
-- egg stage 1 does not block tiles;
-- stage 2 expands right and blocks `2x2`;
-- egg visuals and the hatched creature scene are data-driven.
+**Owns:** stage 1 placement, repeated expansion attempts, stage 2 blocker registration, bool-based edibility, hatching a configured creature scene.
 
 ### `scripts/ui/creature_stats_ui.gd`
 **Role:** creature HUD and lightweight player interaction UI.
 
-**Owns:**
-- temporary hover display;
-- click-to-pin and clear selection;
-- showing name, age, health, and hunger;
-- arming/canceling the first lightning player action;
-- FPS display;
-- simulation speed switching between `x1`, `x2`, and `x3`.
-
-**Keep in mind:**
-- this UI can arm player actions, but action effects should still resolve in world/entity logic;
-- the UI queries creature methods but should not own creature state.
+**Owns:** hover preview, click-to-pin selection, name/age/health/hunger display, health/hunger bars, FPS/debug text, lightning target mode, simulation speed switching.
 
 ### `scripts/debug/grid_debug_overlay.gd`
 **Role:** removable world-grid debug overlay.
 
-**Owns:**
-- F3 toggle for debug visibility;
-- drawing blocked terrain, grass, occupied tiles, creature footprint, pending footprint, target, and path;
-- bottom-left debug text for the selected or hovered creature.
+**Owns:** F3 toggle, drawing blocked terrain/grass/occupied tiles/footprints/targets/paths, and bottom-left selected/hovered creature debug text.
 
-**Keep in mind:**
-- this layer only reads state from `world_grid` and creatures;
-- it should stay optional and easy to remove after testing.
+### `scripts/debug/performance_stats.gd`
+**Role:** performance instrumentation autoload.
+
+**Owns:** elapsed time, counters/rates, static memory, node/object counts, F8 CSV recording, and log file creation under `logs/`.
 
 ### `scripts/camera/camera_controller.gd`
-**Role:** basic observer camera control.
+**Role:** observer camera control.
 
-**Owns:**
-- WASD movement;
-- mouse-wheel zoom;
-- zoom range limits.
-
-**Keep in mind:**
-- this is still a simple debug camera;
-- later it may become a fuller observer camera.
+**Owns:** WASD movement, mouse-wheel zoom, and zoom range limits.
 
 ---
 
 ## 5. Current system links
 
 ### World -> Creatures
-- Creatures find `world_grid` through the scene tree.
-- The world tells them where they can stand, move, and find food.
-- The world stores real occupancy.
+Creatures find `world_grid` through the scene tree. The world tells creatures where they can stand, move, path, and find food. The world stores real anchor/occupancy data.
 
 ### World -> Grass
-- Grass registers into the world by tile.
-- The world uses the grass registry for food search and consumption.
+Grass registers into the world by tile. The world uses the grass registry for food search, adult-count scoring, and consumption.
 
 ### World -> Eggs
-- Eggs use the world to resolve anchors, blocking, and hatch placement.
-- Stage 2 egg occupancy is tracked through blocker registration.
+Eggs use the world to resolve anchors, placement, blocking, and hatch placement. Stage 2 egg occupancy is tracked through blocker registration.
+
+### Creature -> Helper scripts
+`creature.gd` creates helper objects and delegates grazing, predator, reproduction, and visual details while keeping high-level state ownership.
 
 ### Creature -> UI
-- On hover, `HoverArea` talks to the `creature_stats_ui` group.
-- On click, `HoverArea` pins or clears selection.
-- The UI asks the creature for name, age, health, and hunger.
+`HoverArea` talks to the `creature_stats_ui` group. The UI asks creatures for name, age, health, hunger, and max values. Lightning applies direct damage through creature methods.
 
-### `TileMapLayer` -> All grid logic
-- `Ground` defines the map, tile size, and effective world area.
-- All grid calculations depend on it.
+### Debug systems -> World/Creature
+The debug overlay and performance stats read world/creature state but should not become owners of gameplay state.
 
 ---
 
 ## 6. What already works in practice
 
 The current code already provides:
-- world startup through the main scene;
+- startup through `scenes/main/main.tscn`;
 - camera movement and zoom;
-- several test creatures on the map;
-- directional creature sprites;
-- age, hunger, death from old age, and death at `0 hp`;
+- a tile-based world with ground, water, and mountain terrain;
+- blocked water/mountain tiles;
+- several test herbivores;
+- directional creature sprites plus stegosaurus right-walk animation;
+- age, hunger, health, starvation damage, well-fed healing, and death;
 - hover and click creature selection;
-- grid-based grass search;
-- eating adult grass;
-- grass growth and spreading;
-- egg laying, egg growth, and hatching;
-- a separate 1v1 duel loop with alternating 1-second turns;
-- a temporary predator species that spawns once after 10 seconds and hunts at hunger <= 60;
-- the creature stats panel;
-- an FPS label;
-- simulation speed control.
+- grid-based grass search and pathfinding;
+- adult grass eating and grass regrowth;
+- grass spreading once to cardinal neighbors;
+- egg laying, egg growth, stage 2 blocking, and hatching;
+- simple predator species data and predator behaviour helper;
+- isolated 1v1 duel loop;
+- first player action: lightning damage;
+- stats panel, FPS/debug text, simulation speed control;
+- F3 grid overlay;
+- F8 CSV performance recording.
 
 ---
 
@@ -395,23 +296,38 @@ The current code already provides:
 ### Movement / path / footprint / stuck behaviour
 1. `scripts/world/world_grid.gd`
 2. `scripts/creatures/creature.gd`
-3. `scenes/world/world.tscn`
+3. `scripts/creatures/behaviors/creature_visual_controller.gd` if the issue is visual sync
+4. `scenes/world/world.tscn`
 
-### Grass / food / resource regeneration
-1. `scripts/resources/grass.gd`
-2. `scripts/world/world_grid.gd`
-3. `scenes/resources/grass.tscn`
+### Grass / food / grazing
+1. `scripts/creatures/behaviors/creature_grazing_logic.gd`
+2. `scripts/resources/grass.gd`
+3. `scripts/world/world_grid.gd`
+4. `scripts/creatures/creature.gd`
 
 ### Egg / reproduction / hatching
-1. `scripts/resources/egg.gd`
-2. `scripts/creatures/creature.gd`
-3. `scenes/resources/egg.tscn`
+1. `scripts/creatures/behaviors/creature_reproduction_logic.gd`
+2. `scripts/resources/egg.gd`
+3. `scripts/creatures/creature.gd`
 4. `data/species/stegosaurus.tres`
 
-### Creature UI
+### Predator / combat
+1. `scripts/creatures/behaviors/creature_predator_logic.gd`
+2. `scripts/combat/duel.gd`
+3. `scripts/creatures/creature.gd`
+4. `data/species/predator.tres`
+5. `scripts/world/world_grid.gd`
+
+### Creature UI / player lightning / speed controls
 1. `scripts/ui/creature_stats_ui.gd`
 2. `scripts/creatures/creature.gd`
 3. `scenes/main/main.tscn`
+
+### Debug / performance logging
+1. `scripts/debug/performance_stats.gd`
+2. `scripts/debug/grid_debug_overlay.gd`
+3. `scripts/ui/creature_stats_ui.gd`
+4. `logs/`
 
 ### Camera / world observation
 1. `scripts/camera/camera_controller.gd`
@@ -421,12 +337,14 @@ The current code already provides:
 
 ## 8. Places to avoid touching blindly
 
-- `anchor_tile`, `pending_anchor_tile`, and `movement_target_position` logic in `creature.gd`
-- `register_creature`, `move_creature`, and `can_place_footprint` in `world_grid.gd`
-- grazing-target selection and retarget logic
-- consistency between visual motion and logical creature position
+- `anchor_tile`, `pending_anchor_tile`, and `movement_target_position` logic in `creature.gd`.
+- `register_creature`, `move_creature`, `can_place_footprint`, and blocker functions in `world_grid.gd`.
+- grazing target scoring and retarget logic.
+- predator side-contact duel entry.
+- egg stage 2 blocker registration/unregistration.
+- consistency between visual motion and logical creature position.
 
-If these areas are changed carelessly, a creature can visually stand in one place while logically eating and occupying tiles elsewhere.
+If these areas are changed carelessly, a creature can visually stand in one place while logically eating, occupying, or fighting elsewhere.
 
 ---
 
