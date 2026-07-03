@@ -133,6 +133,7 @@ max_energy = 500.0
 starting_energy = 0.0
 energy_regen_per_second = 1.0
 lightning_damage = 50.0
+lightning_energy_cost = 50.0
 
 [node name="MarginContainer" type="MarginContainer" parent="UI/PlayerNaturePanel"]
 layout_mode = 2

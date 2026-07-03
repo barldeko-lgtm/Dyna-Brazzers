@@ -5,6 +5,7 @@ extends PanelContainer
 @export var starting_energy := 0.0
 @export var energy_regen_per_second := 1.0
 @export var lightning_damage := 50.0
+@export var lightning_energy_cost := 50.0
 
 @onready var energy_bar: ProgressBar = $MarginContainer/VBoxContainer/EnergyBar
 @onready var energy_value_label: Label = $MarginContainer/VBoxContainer/EnergyBar/EnergyValueLabel
@@ -28,6 +29,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if current_energy >= max_energy:
+		_update_spell_buttons()
 		return
 
 	current_energy = clamp(current_energy + energy_regen_per_second * delta, 0.0, max_energy)
@@ -36,7 +38,7 @@ func _process(delta: float) -> void:
 
 func setup_lightning_button() -> void:
 	lightning_button.toggle_mode = true
-	lightning_button.text = "Молния"
+	lightning_button.text = _get_lightning_button_text()
 	lightning_button.button_pressed = false
 
 	if not lightning_button.toggled.is_connected(_on_lightning_button_toggled):
@@ -44,6 +46,11 @@ func setup_lightning_button() -> void:
 
 
 func _on_lightning_button_toggled(toggled_on: bool) -> void:
+	if toggled_on and not can_spend_energy(lightning_energy_cost):
+		lightning_button.set_pressed_no_signal(false)
+		lightning_targeting_enabled = false
+		return
+
 	lightning_targeting_enabled = toggled_on
 
 
@@ -62,7 +69,15 @@ func try_apply_lightning_to_creature(creature: Node) -> bool:
 	if creature == null or not is_instance_valid(creature):
 		return false
 
+	if not can_spend_energy(lightning_energy_cost):
+		cancel_lightning_targeting()
+		return false
+
 	if creature.has_method("take_direct_damage"):
+		if not spend_energy(lightning_energy_cost):
+			cancel_lightning_targeting()
+			return false
+
 		creature.take_direct_damage(lightning_damage)
 		cancel_lightning_targeting()
 		return true
@@ -75,6 +90,8 @@ func cancel_lightning_targeting() -> void:
 
 	if lightning_button.button_pressed:
 		lightning_button.set_pressed_no_signal(false)
+
+	_update_spell_buttons()
 
 
 func can_spend_energy(amount: float) -> bool:
@@ -115,6 +132,24 @@ func _update_energy_ui() -> void:
 
 	energy_bar.value = current_energy
 	energy_value_label.text = "%d / %d" % [floori(current_energy), floori(max_energy)]
+	_update_spell_buttons()
+
+
+func _update_spell_buttons() -> void:
+	if lightning_button == null:
+		return
+
+	lightning_button.text = _get_lightning_button_text()
+
+	if lightning_targeting_enabled:
+		lightning_button.disabled = false
+		return
+
+	lightning_button.disabled = not can_spend_energy(lightning_energy_cost)
+
+
+func _get_lightning_button_text() -> String:
+	return "Молния (%d)" % floori(lightning_energy_cost)
 
 
 func _unhandled_input(event: InputEvent) -> void:
