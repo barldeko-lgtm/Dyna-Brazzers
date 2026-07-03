@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://b7vbapxldrm6c" path="res://scripts/camera/camera_controller.gd" id="1_iuonh"]
 [ext_resource type="Script" uid="uid://dbmpjk3xc5rw8" path="res://scripts/ui/creature_stats_ui.gd" id="3_creature_stats_ui"]
 [ext_resource type="PackedScene" path="res://scenes/debug/grid_debug_overlay.tscn" id="4_grid_debug_overlay"]
+[ext_resource type="Script" path="res://scripts/ui/player_nature_ui.gd" id="5_player_nature_ui"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hunger_bar_bg"]
 bg_color = Color(0.14, 0.14, 0.14, 1)
@@ -21,6 +22,13 @@ corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hunger_bar_fill"]
 bg_color = Color(0.2, 0.8, 0.32, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_energy_bar_fill"]
+bg_color = Color(0.25, 0.55, 1, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -112,24 +120,52 @@ offset_right = 760.0
 offset_bottom = -13.0
 text = "FPS: 0"
 
-[node name="LightningPanel" type="PanelContainer" parent="UI" unique_id=2119420751]
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -72.0
+[node name="PlayerNaturePanel" type="PanelContainer" parent="UI"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -252.0
 offset_top = 16.0
-offset_right = 72.0
-offset_bottom = 52.0
+offset_right = -16.0
+offset_bottom = 118.0
+script = ExtResource("5_player_nature_ui")
+max_energy = 500.0
+starting_energy = 0.0
+energy_regen_per_second = 1.0
+lightning_damage = 50.0
 
-[node name="MarginContainer" type="MarginContainer" parent="UI/LightningPanel" unique_id=1816109755]
+[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerNaturePanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 6
+theme_override_constants/margin_bottom = 8
 
-[node name="LightningButton" type="Button" parent="UI/LightningPanel/MarginContainer" unique_id=1690539519]
-custom_minimum_size = Vector2(104, 0)
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/PlayerNaturePanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="EnergyTitleLabel" type="Label" parent="UI/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Энергия природы"
+
+[node name="EnergyBar" type="ProgressBar" parent="UI/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(216, 20)
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_hunger_bar_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_energy_bar_fill")
+show_percentage = false
+
+[node name="EnergyValueLabel" type="Label" parent="UI/PlayerNaturePanel/MarginContainer/VBoxContainer/EnergyBar"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "0 / 500"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LightningButton" type="Button" parent="UI/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(216, 0)
 layout_mode = 2
 text = "Молния"
 
