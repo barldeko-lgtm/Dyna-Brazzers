@@ -22,11 +22,11 @@ func configure_walk_animation() -> void:
 
 
 func can_use_walk_right_animation() -> bool:
-	var walk_sprite := _get_walk_sprite()
-	if walk_sprite == null or creature.species_data.walk_right_frames == null:
-		return false
+	return _has_valid_walk_animation(creature.species_data.walk_right_frames)
 
-	return creature.species_data.walk_right_frames.has_animation(&"default") and creature.species_data.walk_right_frames.get_frame_count(&"default") > 0
+
+func can_use_walk_up_animation() -> bool:
+	return _has_valid_walk_animation(creature.species_data.walk_up_frames)
 
 
 func update_sprite_visual() -> void:
@@ -45,33 +45,39 @@ func update_sprite_visual() -> void:
 	body_sprite.visible = true
 
 	if abs_x <= 0.01 and abs_y <= 0.01:
-		set_walk_right_animation_active(false)
+		set_walk_animation_active(false)
 		_apply_static_texture(body_sprite, creature.species_data.down_texture, false)
 		return
 
 	if abs_x <= abs_y * 0.5:
-		set_walk_right_animation_active(false)
-
 		if faces_up:
+			var use_walk_up_animation := _should_play_walk_animation() and can_use_walk_up_animation()
+			if use_walk_up_animation:
+				body_sprite.visible = false
+				set_walk_animation_active(true, false, creature.species_data.walk_up_frames)
+				return
+
+			set_walk_animation_active(false)
 			_apply_static_texture(body_sprite, creature.species_data.up_texture, false)
 			return
 
 		if faces_down:
+			set_walk_animation_active(false)
 			_apply_static_texture(body_sprite, creature.species_data.down_texture, false)
 			return
 
 	if abs_y <= abs_x * 0.5:
-		var use_walk_right_animation := _should_play_walk_animation()
+		var use_walk_right_animation := _should_play_walk_animation() and can_use_walk_right_animation()
 		if use_walk_right_animation:
 			body_sprite.visible = false
-			set_walk_right_animation_active(true, faces_left)
+			set_walk_animation_active(true, faces_left, creature.species_data.walk_right_frames)
 			return
 
-		set_walk_right_animation_active(false)
+		set_walk_animation_active(false)
 		_apply_static_texture(body_sprite, creature.species_data.right_texture, faces_left)
 		return
 
-	set_walk_right_animation_active(false)
+	set_walk_animation_active(false)
 
 	if faces_up:
 		_apply_static_texture(body_sprite, creature.species_data.up_right_texture, faces_left)
@@ -84,20 +90,23 @@ func update_sprite_visual() -> void:
 	_apply_static_texture(body_sprite, creature.species_data.right_texture, faces_left)
 
 
-func set_walk_right_animation_active(active: bool, flip_h: bool = false) -> void:
+func set_walk_animation_active(active: bool, flip_h: bool = false, sprite_frames: SpriteFrames = null) -> void:
 	var walk_sprite := _get_walk_sprite()
 	if walk_sprite == null:
 		return
 
 	if active:
+		if sprite_frames == null:
+			return
+
 		var was_already_active := walk_sprite.visible and walk_sprite.is_playing() and walk_sprite.animation == &"default"
 
 		walk_sprite.visible = true
 		walk_sprite.flip_h = flip_h
 		walk_sprite.speed_scale = max(float(creature.species_data.walk_animation_fps), 0.0)
 
-		if walk_sprite.sprite_frames != creature.species_data.walk_right_frames:
-			walk_sprite.sprite_frames = creature.species_data.walk_right_frames
+		if walk_sprite.sprite_frames != sprite_frames:
+			walk_sprite.sprite_frames = sprite_frames
 			was_already_active = false
 
 		if walk_sprite.animation != &"default":
@@ -116,14 +125,25 @@ func set_walk_right_animation_active(active: bool, flip_h: bool = false) -> void
 	walk_sprite.frame = 0
 
 
+func set_walk_right_animation_active(active: bool, flip_h: bool = false) -> void:
+	set_walk_animation_active(active, flip_h, creature.species_data.walk_right_frames)
+
+
 func _should_play_walk_animation() -> bool:
 	if not bool(creature.is_moving):
 		return false
 
-	if not can_use_walk_right_animation():
+	if not can_use_walk_right_animation() and not can_use_walk_up_animation():
 		return false
 
 	return creature.state == creature.State.WALK or creature.state == creature.State.SEEK_FOOD
+
+
+func _has_valid_walk_animation(sprite_frames: SpriteFrames) -> bool:
+	if sprite_frames == null:
+		return false
+
+	return sprite_frames.has_animation(&"default") and sprite_frames.get_frame_count(&"default") > 0
 
 
 func _apply_static_texture(body_sprite: Sprite2D, texture: Texture2D, flip_h: bool) -> void:

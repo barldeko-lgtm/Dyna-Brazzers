@@ -20,6 +20,7 @@ class_name CreatureSpeciesData
 @export var up_right_texture: Texture2D
 @export var down_right_texture: Texture2D
 @export var walk_right_frames: SpriteFrames
+@export var walk_up_frames: SpriteFrames
 @export var walk_animation_fps := 6.0
 
 # Balance: combat and survival.
