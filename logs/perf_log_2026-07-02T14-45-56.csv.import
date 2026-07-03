@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dfaorpoe0xv2l"
+
+[deps]
+
+files=["res://logs/perf_log_2026-07-02T14-45-56.fps.translation", "res://logs/perf_log_2026-07-02T14-45-56.memory.translation", "res://logs/perf_log_2026-07-02T14-45-56.node.translation", "res://logs/perf_log_2026-07-02T14-45-56.object.translation", "res://logs/perf_log_2026-07-02T14-45-56.creature.translation", "res://logs/perf_log_2026-07-02T14-45-56.grass.translation", "res://logs/perf_log_2026-07-02T14-45-56.grass.translation", "res://logs/perf_log_2026-07-02T14-45-56.grass.translation", "res://logs/perf_log_2026-07-02T14-45-56.grass.translation", "res://logs/perf_log_2026-07-02T14-45-56.grazing.translation", "res://logs/perf_log_2026-07-02T14-45-56.grazing.translation", "res://logs/perf_log_2026-07-02T14-45-56.grazing.translation", "res://logs/perf_log_2026-07-02T14-45-56.creature.translation", "res://logs/perf_log_2026-07-02T14-45-56.predator.translation", "res://logs/perf_log_2026-07-02T14-45-56.predator.translation", "res://logs/perf_log_2026-07-02T14-45-56.path.translation", "res://logs/perf_log_2026-07-02T14-45-56.path.translation", "res://logs/perf_log_2026-07-02T14-45-56.path.translation", "res://logs/perf_log_2026-07-02T14-45-56.path.translation"]
+
+source_file="res://logs/perf_log_2026-07-02T14-45-56.csv"
+dest_files=["res://logs/perf_log_2026-07-02T14-45-56.fps.translation", "res://logs/perf_log_2026-07-02T14-45-56.memory.translation", "res://logs/perf_log_2026-07-02T14-45-56.node.translation", "res://logs/perf_log_2026-07-02T14-45-56.object.translation", "res://logs/perf_log_2026-07-02T14-45-56.creature.translation", "res://logs/perf_log_2026-07-02T14-45-56.grass.translation", "res://logs/perf_log_2026-07-02T14-45-56.grass.translation", "res://logs/perf_log_2026-07-02T14-45-56.grass.translation", "res://logs/perf_log_2026-07-02T14-45-56.grass.translation", "res://logs/perf_log_2026-07-02T14-45-56.grazing.translation", "res://logs/perf_log_2026-07-02T14-45-56.grazing.translation", "res://logs/perf_log_2026-07-02T14-45-56.grazing.translation", "res://logs/perf_log_2026-07-02T14-45-56.creature.translation", "res://logs/perf_log_2026-07-02T14-45-56.predator.translation", "res://logs/perf_log_2026-07-02T14-45-56.predator.translation", "res://logs/perf_log_2026-07-02T14-45-56.path.translation", "res://logs/perf_log_2026-07-02T14-45-56.path.translation", "res://logs/perf_log_2026-07-02T14-45-56.path.translation", "res://logs/perf_log_2026-07-02T14-45-56.path.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
