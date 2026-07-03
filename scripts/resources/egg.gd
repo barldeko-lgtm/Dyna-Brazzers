@@ -22,6 +22,8 @@ enum Stage {
 
 @export var species_id := "stegosaurus"
 
+@export var hatch_species_data: CreatureSpeciesData
+
 @export var hatch_creature_scene: PackedScene
 
 @export var stage_1_duration := 5.0
@@ -227,6 +229,9 @@ func spawn_hatched_creature() -> void:
 
 	if new_creature == null:
 		return
+
+	if hatch_species_data != null:
+		new_creature.set("species_data", hatch_species_data)
 
 	new_creature.set("health", hatch_health)
 	new_creature.set("hunger", hatch_hunger)

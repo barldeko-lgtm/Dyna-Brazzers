@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://c66x7w4kpw6by"]
 
-[ext_resource type="PackedScene" path="res://scenes/world/world.tscn" id="1_hyk8p"]
+[ext_resource type="PackedScene" uid="uid://dwlwta88eydnm" path="res://scenes/world/world.tscn" id="1_hyk8p"]
 [ext_resource type="Script" uid="uid://b7vbapxldrm6c" path="res://scripts/camera/camera_controller.gd" id="1_iuonh"]
 [ext_resource type="Script" uid="uid://dbmpjk3xc5rw8" path="res://scripts/ui/creature_stats_ui.gd" id="3_creature_stats_ui"]
 [ext_resource type="PackedScene" path="res://scenes/debug/grid_debug_overlay.tscn" id="4_grid_debug_overlay"]
@@ -74,11 +74,10 @@ theme_override_styles/fill = SubResource("StyleBoxFlat_health_bar_fill")
 value = 100.0
 show_percentage = false
 
-[node name="HealthValueLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer/HealthBar"]
+[node name="HealthValueLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer/HealthBar" unique_id=1840849160]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-mouse_filter = 2
 text = "100 / 100"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -95,11 +94,10 @@ theme_override_styles/fill = SubResource("StyleBoxFlat_hunger_bar_fill")
 value = 100.0
 show_percentage = false
 
-[node name="HungerValueLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer/HungerBar"]
+[node name="HungerValueLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer/HungerBar" unique_id=1382029187]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-mouse_filter = 2
 text = "100 / 100"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -109,13 +107,13 @@ anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 16.0
-offset_top = -36.0
-offset_right = 140.0
+offset_top = -178.0
+offset_right = 760.0
 offset_bottom = -13.0
 text = "FPS: 0"
 
-[node name="LightningPanel" type="PanelContainer" parent="UI"]
-anchors_preset = 10
+[node name="LightningPanel" type="PanelContainer" parent="UI" unique_id=2119420751]
+anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -72.0
@@ -123,20 +121,20 @@ offset_top = 16.0
 offset_right = 72.0
 offset_bottom = 52.0
 
-[node name="MarginContainer" type="MarginContainer" parent="UI/LightningPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="UI/LightningPanel" unique_id=1816109755]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 6
 
-[node name="LightningButton" type="Button" parent="UI/LightningPanel/MarginContainer"]
+[node name="LightningButton" type="Button" parent="UI/LightningPanel/MarginContainer" unique_id=1690539519]
 custom_minimum_size = Vector2(104, 0)
 layout_mode = 2
 text = "Молния"
 
-[node name="TimeControlsPanel" type="PanelContainer" parent="UI"]
-anchors_preset = 8
+[node name="TimeControlsPanel" type="PanelContainer" parent="UI" unique_id=180026917]
+anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
@@ -146,22 +144,22 @@ offset_top = -52.0
 offset_right = -16.0
 offset_bottom = -16.0
 
-[node name="MarginContainer" type="MarginContainer" parent="UI/TimeControlsPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="UI/TimeControlsPanel" unique_id=826031806]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 6
 
-[node name="HBoxContainer" type="HBoxContainer" parent="UI/TimeControlsPanel/MarginContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="UI/TimeControlsPanel/MarginContainer" unique_id=1497686245]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="TimeSpeedLabel" type="Label" parent="UI/TimeControlsPanel/MarginContainer/HBoxContainer"]
+[node name="TimeSpeedLabel" type="Label" parent="UI/TimeControlsPanel/MarginContainer/HBoxContainer" unique_id=1783765130]
 layout_mode = 2
 text = "Скорость"
 
-[node name="TimeSpeedOption" type="OptionButton" parent="UI/TimeControlsPanel/MarginContainer/HBoxContainer"]
+[node name="TimeSpeedOption" type="OptionButton" parent="UI/TimeControlsPanel/MarginContainer/HBoxContainer" unique_id=184774814]
 custom_minimum_size = Vector2(72, 0)
 layout_mode = 2
 
@@ -169,4 +167,4 @@ layout_mode = 2
 
 [node name="World" parent="." unique_id=1194176976 instance=ExtResource("1_hyk8p")]
 
-[node name="GridDebugOverlay" parent="." instance=ExtResource("4_grid_debug_overlay")]
+[node name="GridDebugOverlay" parent="." unique_id=1999698547 instance=ExtResource("4_grid_debug_overlay")]

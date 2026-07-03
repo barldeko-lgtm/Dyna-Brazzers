@@ -26,6 +26,10 @@ enum Stage {
 
 var current_stage: Stage = Stage.STAGE_1
 
+# Mature grass should try to spread only once.
+# This keeps old grass from endlessly checking neighbours every spread_delay seconds.
+var has_tried_to_spread := false
+
 var world_grid: Node = null
 
 var tile_position := Vector2i.ZERO
@@ -102,28 +106,45 @@ func update_timers() -> void:
 		spread_timer.stop()
 	else:
 		growth_timer.stop()
-		spread_timer.start(spread_delay)
+
+		if has_tried_to_spread:
+			spread_timer.stop()
+		else:
+			spread_timer.start(spread_delay)
 
 
 func _on_growth_timer_timeout() -> void:
+	PerformanceStats.add_counter("grass_growth_done")
 	set_stage(Stage.STAGE_2)
 
 
 func _on_spread_timer_timeout() -> void:
+	PerformanceStats.add_counter("grass_spread_timer_ticks")
+
 	if current_stage != Stage.STAGE_2:
 		return
 
+	if has_tried_to_spread:
+		spread_timer.stop()
+		return
+
+	has_tried_to_spread = true
+	PerformanceStats.add_counter("grass_spread_events")
 	spread_to_cardinal_tiles()
-	spread_timer.start(spread_delay)
+	spread_timer.stop()
 
 
 # Spread.
 func spread_to_cardinal_tiles() -> void:
+	PerformanceStats.add_counter("grass_neighbor_checks", CARDINAL_TILE_OFFSETS.size())
+
 	for offset in CARDINAL_TILE_OFFSETS:
 		try_spawn_grass(tile_position + offset)
 
 
 func try_spawn_grass(target_tile: Vector2i) -> void:
+	PerformanceStats.add_counter("grass_spawn_checks")
+
 	if world_grid == null:
 		return
 
@@ -144,6 +165,7 @@ func try_spawn_grass(target_tile: Vector2i) -> void:
 		return
 
 	get_parent().add_child(new_grass)
+	PerformanceStats.add_counter("grass_spawned")
 	new_grass.global_position = world_grid.grass_tile_to_world_position(target_tile)
 
 	if new_grass.has_method("sync_tile_position_with_world"):

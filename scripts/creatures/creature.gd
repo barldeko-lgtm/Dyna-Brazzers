@@ -2,9 +2,13 @@ extends CharacterBody2D
 
 const Duel = preload("res://scripts/combat/duel.gd")
 const CreatureGrazingLogic = preload("res://scripts/creatures/behaviors/creature_grazing_logic.gd")
+const CreatureVisualController = preload("res://scripts/creatures/behaviors/creature_visual_controller.gd")
+const CreatureReproductionLogic = preload("res://scripts/creatures/behaviors/creature_reproduction_logic.gd")
+const CreaturePredatorLogic = preload("res://scripts/creatures/behaviors/creature_predator_logic.gd")
 
 # Core creature FSM.
 @onready var sprite: Sprite2D = $BodySprite
+@onready var walk_right_sprite: AnimatedSprite2D = $WalkRightSprite
 
 @onready var eating_timer: Timer = $EatingTimer
 
@@ -46,63 +50,35 @@ enum State {
 
 @export var retarget_distance_advantage := 2
 
-# Static species config.
+# Hard cap on how many tiles a single pathfinding attempt may expand before
+# giving up. Keeps one blocked/unreachable target from costing more than a
+# bounded amount of work, no matter how large the map or population gets.
+@export var max_path_search_tiles := 300
+
+# How many ranked grazing candidates to keep when searching for food. If the
+# best one turns out unreachable, the creature tries the next one instead of
+# re-scanning the whole map or getting stuck retrying the same dead target.
+@export var max_grazing_candidates := 5
+
+# Minimum time between path rebuild attempts toward prey after a failed
+# attempt, so a predator chasing an unreachable target doesn't retry every
+# physics frame.
+@export var predator_path_retry_interval := 1.0
+
+# Static species config. All species stats and visuals live in this resource.
 @export var species_data: CreatureSpeciesData
 
 var eating_anchor_tile := Vector2i.ZERO
 
-var species_id := "stegosaurus"
-
-var species_name := "Стегозавр"
-
-var creature_name := "Стегозавр"
-var is_predator := false
-var predator_target_radius := 8
-
-var down_texture: Texture2D
-var up_texture: Texture2D
-var right_texture: Texture2D
-var up_right_texture: Texture2D
-var down_right_texture: Texture2D
-
-# Runtime stats copied from species_data.
-var speed := 140.0
-var max_health := 100.0
+# Runtime stats/state that can change per creature instance.
 var health := -1.0
-var starvation_health_decay_rate := 2.0
-var well_fed_health_regen_rate := 1.0
-var satiety_heal_threshold := 70.0
-var attack := 10.0
-var defense := 5.0
 
 var age := 0.0
 
-# Aging tuning.
-@export var max_age := 10.0
-
+# Global aging tick. Per-species lifespan is stored in species_data.max_age.
 @export var age_tick_interval := 30.0
 
-var max_hunger := 100.0
 var hunger := -1.0
-var hunger_decay_rate := 10.0
-var hunger_search_threshold := 70.0
-var hunger_restore_amount := 10.0
-var eating_duration := 3.0
-
-var egg_scene: PackedScene
-var egg_stage_1_texture: Texture2D
-var egg_stage_2_texture: Texture2D
-var egg_laying_duration := 5.0
-var egg_stage_1_duration := 5.0
-var egg_expand_retry_interval := 1.0
-var egg_stage_2_duration := 5.0
-var reproduction_min_health := 30.0
-var reproduction_min_hunger := 70.0
-var reproduction_min_age := 3.0
-var reproduction_cooldown := 20.0
-var reproduction_hunger_cost := 20.0
-var hatchling_health := 100.0
-var hatchling_hunger := 50.0
 
 # Runtime state.
 var state: State = State.WALK
@@ -127,6 +103,14 @@ var grazing_target_anchor := Vector2i.ZERO
 
 var has_grazing_target := false
 
+# Ranked runner-up grazing candidates left over from the last search, tried
+# in order if the current target becomes unreachable.
+var grazing_candidate_queue: Array[Vector2i] = []
+
+# Countdown before a predator is allowed to rebuild its path to prey again
+# after a failed attempt.
+var predator_path_retry_cooldown_remaining := 0.0
+
 var pending_anchor_tile := Vector2i.ZERO
 
 var movement_target_position := Vector2.ZERO
@@ -138,51 +122,17 @@ var reproduction_cooldown_remaining := 0.0
 var pending_egg_anchor := Vector2i.ZERO
 var current_duel: Duel = null
 var grazing_logic: RefCounted
+var visual_controller: RefCounted
+var reproduction_logic: RefCounted
+var predator_logic: RefCounted
 
-const EGG_STAGE_1_FOOTPRINT := Vector2i(1, 2)
 
 
-# Pull static config into runtime fields.
+# Initialize mutable runtime stats from species_data once.
 func apply_species_data() -> void:
 	if species_data == null:
+		push_error("Creature has no species_data assigned.")
 		return
-
-	species_id = species_data.species_id
-	species_name = species_data.species_name
-	creature_name = species_data.creature_name
-	is_predator = species_data.is_predator
-	predator_target_radius = species_data.predator_target_radius
-	down_texture = species_data.down_texture
-	up_texture = species_data.up_texture
-	right_texture = species_data.right_texture
-	up_right_texture = species_data.up_right_texture
-	down_right_texture = species_data.down_right_texture
-	speed = species_data.speed
-	max_health = species_data.max_health
-	starvation_health_decay_rate = species_data.starvation_health_decay_rate
-	well_fed_health_regen_rate = species_data.well_fed_health_regen_rate
-	satiety_heal_threshold = species_data.satiety_heal_threshold
-	attack = species_data.attack
-	defense = species_data.defense
-	max_hunger = species_data.max_hunger
-	hunger_decay_rate = species_data.hunger_decay_rate
-	hunger_search_threshold = species_data.hunger_search_threshold
-	hunger_restore_amount = species_data.hunger_restore_amount
-	eating_duration = species_data.eating_duration
-	egg_scene = species_data.egg_scene
-	egg_stage_1_texture = species_data.egg_stage_1_texture
-	egg_stage_2_texture = species_data.egg_stage_2_texture
-	egg_laying_duration = species_data.egg_laying_duration
-	egg_stage_1_duration = species_data.egg_stage_1_duration
-	egg_expand_retry_interval = species_data.egg_expand_retry_interval
-	egg_stage_2_duration = species_data.egg_stage_2_duration
-	reproduction_min_health = species_data.reproduction_min_health
-	reproduction_min_hunger = species_data.reproduction_min_hunger
-	reproduction_min_age = species_data.reproduction_min_age
-	reproduction_cooldown = species_data.reproduction_cooldown
-	reproduction_hunger_cost = species_data.reproduction_hunger_cost
-	hatchling_health = species_data.hatchling_health
-	hatchling_hunger = species_data.hatchling_hunger
 
 	if health < 0.0:
 		health = species_data.starting_health
@@ -191,13 +141,33 @@ func apply_species_data() -> void:
 		hunger = species_data.starting_hunger
 
 
+
+func change_state(new_state: State) -> void:
+	if state == new_state:
+		update_sprite_visual()
+		return
+
+	state = new_state
+	update_sprite_visual()
+
+
 func _ready() -> void:
 	randomize()
-	grazing_logic = CreatureGrazingLogic.new(self)
+	add_to_group("creatures")
+	visual_controller = CreatureVisualController.new(self)
+	reproduction_logic = CreatureReproductionLogic.new(self)
+	predator_logic = CreaturePredatorLogic.new(self)
 	eating_timer.one_shot = true
 	egg_laying_timer.one_shot = true
 
 	apply_species_data()
+
+	if species_data == null:
+		set_physics_process(false)
+		return
+
+	if not species_data.is_predator:
+		grazing_logic = CreatureGrazingLogic.new(self)
 
 	if not eating_timer.timeout.is_connected(_on_eating_timer_timeout):
 		eating_timer.timeout.connect(_on_eating_timer_timeout)
@@ -215,10 +185,10 @@ func _ready() -> void:
 	if not hover_area.input_event.is_connected(_on_hover_area_input_event):
 		hover_area.input_event.connect(_on_hover_area_input_event)
 
-	health = clamp(health, 0.0, max_health)
+	health = clamp(health, 0.0, species_data.max_health)
 	age = 0.0
 	age_tick_elapsed = 0.0
-	hunger = clamp(hunger, 0.0, max_hunger)
+	hunger = clamp(hunger, 0.0, species_data.max_hunger)
 	world_grid = find_world_grid()
 
 	if world_grid != null:
@@ -230,7 +200,7 @@ func _ready() -> void:
 		global_position = world_grid.anchor_to_world_position(anchor_tile, footprint_size)
 		sprite.position = Vector2.ZERO
 
-	update_sprite_visual()
+	configure_walk_animation()
 	enter_walk()
 
 
@@ -239,8 +209,30 @@ func _exit_tree() -> void:
 		world_grid.unregister_creature(self, footprint_size)
 
 
-# Main simulation tick.
+func configure_walk_animation() -> void:
+	if visual_controller == null:
+		return
+
+	visual_controller.configure_walk_animation()
+
+
+func can_use_walk_right_animation() -> bool:
+	if visual_controller == null:
+		return false
+
+	return visual_controller.can_use_walk_right_animation()
+
+
+func set_walk_right_animation_active(active: bool, flip_h: bool = false) -> void:
+	if visual_controller == null:
+		return
+
+	visual_controller.set_walk_right_animation_active(active, flip_h)
+
+
 func _physics_process(delta: float) -> void:
+	PerformanceStats.add_counter("creature_physics_ticks")
+
 	if state == State.DEAD:
 		return
 
@@ -257,6 +249,7 @@ func _physics_process(delta: float) -> void:
 	update_hunger(delta)
 	update_health(delta)
 	update_reproduction_cooldown(delta)
+	update_predator_path_retry_cooldown(delta)
 
 	if check_health_death():
 		return
@@ -300,7 +293,7 @@ func check_age_death() -> bool:
 	if state == State.DEAD:
 		return true
 
-	if age < max_age:
+	if age < species_data.max_age:
 		return false
 
 	enter_dead()
@@ -311,7 +304,7 @@ func update_hunger(delta: float) -> void:
 	if state == State.EATING or state == State.LAYING_EGG or state == State.COMBAT:
 		return
 
-	hunger = clamp(hunger - hunger_decay_rate * delta, 0.0, max_hunger)
+	hunger = clamp(hunger - species_data.hunger_decay_rate * delta, 0.0, species_data.max_hunger)
 
 
 func update_health(delta: float) -> void:
@@ -319,11 +312,11 @@ func update_health(delta: float) -> void:
 		return
 
 	if hunger <= 0.0:
-		health = clamp(health - starvation_health_decay_rate * delta, 0.0, max_health)
+		health = clamp(health - species_data.starvation_health_decay_rate * delta, 0.0, species_data.max_health)
 		return
 
-	if hunger > satiety_heal_threshold and health < max_health:
-		health = clamp(health + well_fed_health_regen_rate * delta, 0.0, max_health)
+	if hunger > species_data.satiety_heal_threshold and health < species_data.max_health:
+		health = clamp(health + species_data.well_fed_health_regen_rate * delta, 0.0, species_data.max_health)
 
 
 func check_health_death() -> bool:
@@ -344,34 +337,21 @@ func update_reproduction_cooldown(delta: float) -> void:
 	reproduction_cooldown_remaining = max(reproduction_cooldown_remaining - delta, 0.0)
 
 
+func update_predator_path_retry_cooldown(delta: float) -> void:
+	if predator_path_retry_cooldown_remaining <= 0.0:
+		return
+
+	predator_path_retry_cooldown_remaining = max(predator_path_retry_cooldown_remaining - delta, 0.0)
+
+
 func update_predator_behavior() -> void:
-	if not is_predator or world_grid == null:
-		return
-
-	if hunger > hunger_search_threshold:
-		return
-
-	if state == State.DEAD or state == State.EATING or state == State.LAYING_EGG or state == State.COMBAT:
-		return
-
-	var prey: Node = find_nearest_prey()
-
-	if prey == null:
-		return
-
-	if is_prey_in_duel_range(prey):
-		start_duel_with(prey)
-		return
-
-	if is_moving:
-		return
-
-	build_path_to_prey(prey)
-	start_next_path_step_if_needed()
+	predator_logic.update_predator_behavior()
 
 
-# Food state machine.
 func update_food_behavior() -> void:
+	if grazing_logic == null:
+		return
+
 	grazing_logic.update_food_behavior()
 
 
@@ -399,6 +379,10 @@ func update_walk(delta: float) -> void:
 
 
 func update_seek_food(delta: float) -> void:
+	if grazing_logic == null:
+		enter_walk()
+		return
+
 	grazing_logic.update_seek_food(delta)
 
 
@@ -423,8 +407,8 @@ func ensure_combat_state_consistency() -> void:
 
 	current_duel = null
 
-	if hunger <= hunger_search_threshold:
-		enter_seek_food()
+	if hunger <= species_data.hunger_search_threshold:
+		enter_hungry_behavior()
 		return
 
 	enter_walk()
@@ -432,41 +416,56 @@ func ensure_combat_state_consistency() -> void:
 
 # State transitions.
 func enter_idle() -> void:
-	state = State.IDLE
 	state_timer = randf_range(idle_time_min, idle_time_max)
 	clear_path()
+	change_state(State.IDLE)
 
 
 func enter_walk() -> void:
-	state = State.WALK
 	state_timer = randf_range(walk_time_min, walk_time_max)
 	has_grazing_target = false
 	clear_path()
+	change_state(State.WALK)
 
 
 func enter_seek_food() -> void:
+	if species_data != null and species_data.is_predator:
+		enter_walk()
+		return
+
+	if grazing_logic == null:
+		return
+
 	grazing_logic.enter_seek_food()
 
 
+func enter_hungry_behavior() -> void:
+	if species_data != null and species_data.is_predator:
+		enter_walk()
+		return
+
+	enter_seek_food()
+
+
 func enter_eating() -> void:
-	state = State.EATING
 	eating_anchor_tile = anchor_tile
 	clear_path()
-	eating_timer.start(eating_duration)
+	change_state(State.EATING)
+	eating_timer.start(species_data.eating_duration)
 
 
 func enter_laying_egg(egg_anchor: Vector2i) -> void:
-	state = State.LAYING_EGG
 	pending_egg_anchor = egg_anchor
 	clear_path()
-	egg_laying_timer.start(egg_laying_duration)
+	change_state(State.LAYING_EGG)
+	egg_laying_timer.start(species_data.egg_laying_duration)
 
 
 func enter_dead() -> void:
 	if state == State.DEAD:
 		return
 
-	state = State.DEAD
+	change_state(State.DEAD)
 
 	if current_duel != null:
 		current_duel.handle_fighter_death(self)
@@ -493,6 +492,9 @@ func choose_random_wander_step() -> void:
 
 
 func can_start_eating_here() -> bool:
+	if grazing_logic == null:
+		return false
+
 	return grazing_logic.can_start_eating_here()
 
 
@@ -505,26 +507,44 @@ func get_navigation_anchor() -> Vector2i:
 
 # Grazing target selection.
 func try_acquire_grazing_target() -> void:
+	if grazing_logic == null:
+		return
+
 	grazing_logic.try_acquire_grazing_target()
 
 
 func apply_grazing_target(target_data: Dictionary) -> void:
+	if grazing_logic == null:
+		return
+
 	grazing_logic.apply_grazing_target(target_data)
 
 
 func build_path_to_grazing_target() -> void:
+	if grazing_logic == null:
+		return
+
 	grazing_logic.build_path_to_grazing_target()
 
 
 func recheck_grazing_target() -> void:
+	if grazing_logic == null:
+		return
+
 	grazing_logic.recheck_grazing_target()
 
 
 func is_current_grazing_target_still_valid() -> bool:
+	if grazing_logic == null:
+		return false
+
 	return grazing_logic.is_current_grazing_target_still_valid()
 
 
 func get_current_grazing_target_adult_count() -> int:
+	if grazing_logic == null:
+		return 0
+
 	return grazing_logic.get_current_grazing_target_adult_count()
 
 
@@ -540,12 +560,12 @@ func start_next_path_step_if_needed() -> void:
 	current_path.remove_at(0)
 	movement_target_position = world_grid.anchor_to_world_position(pending_anchor_tile, footprint_size)
 	direction = global_position.direction_to(movement_target_position)
-	update_sprite_visual()
 	is_moving = true
+	update_sprite_visual()
 
 
 func advance_movement(delta: float) -> void:
-	global_position = global_position.move_toward(movement_target_position, speed * delta)
+	global_position = global_position.move_toward(movement_target_position, species_data.speed * delta)
 
 	if global_position.distance_to(movement_target_position) > 0.1:
 		return
@@ -580,165 +600,45 @@ func _on_eating_timer_timeout() -> void:
 	var consumed_grass_count: int = world_grid.consume_adult_grass_under_footprint(eating_anchor_tile, footprint_size)
 
 	if consumed_grass_count > 0:
-		hunger = clamp(hunger + hunger_restore_amount * float(consumed_grass_count), 0.0, max_hunger)
+		hunger = clamp(hunger + species_data.hunger_restore_amount * float(consumed_grass_count), 0.0, species_data.max_hunger)
 
-	if hunger <= hunger_search_threshold:
-		enter_seek_food()
+	if hunger <= species_data.hunger_search_threshold:
+		enter_hungry_behavior()
 		return
 
 	enter_walk()
 
 
 func _on_egg_laying_timer_timeout() -> void:
-	if world_grid == null:
-		enter_walk()
-		return
-
-	if spawn_egg_at_pending_anchor():
-		hunger = clamp(hunger - reproduction_hunger_cost, 0.0, max_hunger)
-		reproduction_cooldown_remaining = reproduction_cooldown
-
-	if hunger <= hunger_search_threshold:
-		enter_seek_food()
-		return
-
-	enter_walk()
+	reproduction_logic.on_egg_laying_timer_timeout()
 
 
 func find_nearest_prey() -> Node:
-	if world_grid == null:
-		return null
-
-	var best_target: Node = null
-	var best_distance: float = INF
-
-	for candidate in world_grid.creature_anchors.keys():
-		if not is_valid_prey(candidate):
-			continue
-
-		var candidate_anchor: Vector2i = world_grid.creature_anchors.get(candidate, anchor_tile)
-		var distance: float = float(max(abs(candidate_anchor.x - anchor_tile.x), abs(candidate_anchor.y - anchor_tile.y)))
-
-		if distance > float(predator_target_radius):
-			continue
-
-		if distance < best_distance:
-			best_distance = distance
-			best_target = candidate
-
-	return best_target
+	return predator_logic.find_nearest_prey()
 
 
 func is_valid_prey(candidate: Node) -> bool:
-	if candidate == null or candidate == self or not is_instance_valid(candidate):
-		return false
-
-	if not candidate.has_method("can_be_hunted") or not candidate.can_be_hunted():
-		return false
-
-	return not bool(candidate.get("is_predator"))
+	return predator_logic.is_valid_prey(candidate)
 
 
 func is_prey_in_duel_range(prey: Node) -> bool:
-	if world_grid == null or prey == null or not world_grid.creature_anchors.has(prey):
-		return false
-
-	var prey_anchor: Vector2i = world_grid.creature_anchors[prey]
-	return are_footprints_side_adjacent(anchor_tile, footprint_size, prey_anchor, prey.footprint_size)
+	return predator_logic.is_prey_in_duel_range(prey)
 
 
 func are_footprints_side_adjacent(a_anchor: Vector2i, a_size: Vector2i, b_anchor: Vector2i, b_size: Vector2i) -> bool:
-	var a_left := a_anchor.x
-	var a_right := a_anchor.x + a_size.x - 1
-	var a_top := a_anchor.y
-	var a_bottom := a_anchor.y + a_size.y - 1
-	var b_left := b_anchor.x
-	var b_right := b_anchor.x + b_size.x - 1
-	var b_top := b_anchor.y
-	var b_bottom := b_anchor.y + b_size.y - 1
-
-	var vertical_overlap: int = min(a_bottom, b_bottom) - max(a_top, b_top) + 1
-	if vertical_overlap > 0 and (a_right + 1 == b_left or b_right + 1 == a_left):
-		return true
-
-	var horizontal_overlap: int = min(a_right, b_right) - max(a_left, b_left) + 1
-	if horizontal_overlap > 0 and (a_bottom + 1 == b_top or b_bottom + 1 == a_top):
-		return true
-
-	return false
+	return predator_logic.are_footprints_side_adjacent(a_anchor, a_size, b_anchor, b_size)
 
 
 func build_path_to_prey(prey: Node) -> void:
-	if world_grid == null or prey == null or not world_grid.creature_anchors.has(prey):
-		return
-
-	var prey_anchor: Vector2i = world_grid.creature_anchors[prey]
-	var approach_offsets: Array[Vector2i] = [
-		Vector2i(-footprint_size.x, 0),
-		Vector2i(prey.footprint_size.x, 0),
-		Vector2i(0, -footprint_size.y),
-		Vector2i(0, prey.footprint_size.y)
-	]
-	var best_anchor := Vector2i(2147483647, 2147483647)
-	var best_distance: float = INF
-
-	for offset in approach_offsets:
-		var candidate_anchor: Vector2i = prey_anchor + offset
-
-		if not world_grid.can_place_footprint(candidate_anchor, footprint_size, self):
-			continue
-
-		var distance: float = float(world_grid.estimate_path_steps(anchor_tile, candidate_anchor))
-
-		if distance < best_distance:
-			best_distance = distance
-			best_anchor = candidate_anchor
-
-	if best_anchor == Vector2i(2147483647, 2147483647):
-		return
-
-	current_path = world_grid.find_path(anchor_tile, best_anchor, footprint_size, self)
+	predator_logic.build_path_to_prey(prey)
 
 
-# Reproduction flow.
 func update_reproduction_behavior() -> void:
-	if is_predator:
-		return
-
-	if world_grid == null:
-		return
-
-	if state == State.DEAD or state == State.EATING or state == State.LAYING_EGG or state == State.COMBAT:
-		return
-
-	if is_moving:
-		return
-
-	if reproduction_cooldown_remaining > 0.0:
-		return
-
-	if health <= reproduction_min_health:
-		return
-
-	if hunger <= reproduction_min_hunger:
-		return
-
-	if age <= reproduction_min_age:
-		return
-
-	var egg_anchor := get_egg_spawn_anchor()
-
-	if egg_anchor == Vector2i(2147483647, 2147483647):
-		return
-
-	enter_laying_egg(egg_anchor)
+	reproduction_logic.update_reproduction_behavior()
 
 
 func get_egg_spawn_anchor() -> Vector2i:
-	if world_grid == null:
-		return Vector2i(2147483647, 2147483647)
-
-	return world_grid.world_to_anchor_tile(global_position, EGG_STAGE_1_FOOTPRINT)
+	return reproduction_logic.get_egg_spawn_anchor()
 
 
 func get_facing_tile_direction() -> Vector2i:
@@ -758,98 +658,18 @@ func get_facing_tile_direction() -> Vector2i:
 
 # Egg spawn.
 func spawn_egg_at_pending_anchor() -> bool:
-	if egg_scene == null:
-		return false
-
-	var eggs_container := find_named_container("Eggs")
-
-	if eggs_container == null:
-		eggs_container = get_parent() as Node2D
-
-	if eggs_container == null:
-		return false
-
-	var new_egg := egg_scene.instantiate() as Node2D
-
-	if new_egg == null:
-		return false
-
-	new_egg.set("species_id", species_id)
-	new_egg.set("stage_1_texture", egg_stage_1_texture)
-	new_egg.set("stage_2_texture", egg_stage_2_texture)
-	new_egg.set("stage_1_duration", egg_stage_1_duration)
-	new_egg.set("expand_retry_interval", egg_expand_retry_interval)
-	new_egg.set("stage_2_duration", egg_stage_2_duration)
-	new_egg.set("hatch_health", hatchling_health)
-	new_egg.set("hatch_hunger", hatchling_hunger)
-	new_egg.set("hatch_creature_scene", load(scene_file_path) as PackedScene)
-
-	var egg_world_position: Vector2 = world_grid.anchor_to_world_position(pending_egg_anchor, EGG_STAGE_1_FOOTPRINT)
-	new_egg.position = eggs_container.to_local(egg_world_position)
-	eggs_container.add_child(new_egg)
-
-	return true
+	return reproduction_logic.spawn_egg_at_pending_anchor()
 
 
 func find_named_container(target_name: String) -> Node2D:
-	var current: Node = self
-
-	while current != null:
-		var candidate := current.get_node_or_null(target_name) as Node2D
-
-		if candidate != null:
-			return candidate
-
-		current = current.get_parent()
-
-	return null
+	return reproduction_logic.find_named_container(target_name)
 
 
 func update_sprite_visual() -> void:
-	if sprite == null:
+	if visual_controller == null:
 		return
 
-	var abs_x := absf(direction.x)
-	var abs_y := absf(direction.y)
-	var faces_left := direction.x < -0.01
-	var faces_right := direction.x > 0.01
-	var faces_up := direction.y < -0.01
-	var faces_down := direction.y > 0.01
-
-	sprite.flip_h = false
-
-	if abs_x <= 0.01 and abs_y <= 0.01:
-		if down_texture != null:
-			sprite.texture = down_texture
-		return
-
-	if abs_x <= abs_y * 0.5:
-		if faces_up and up_texture != null:
-			sprite.texture = up_texture
-			return
-		if faces_down and down_texture != null:
-			sprite.texture = down_texture
-			return
-
-	if abs_y <= abs_x * 0.5:
-		if right_texture != null:
-			sprite.texture = right_texture
-			sprite.flip_h = faces_left
-			return
-
-	if faces_up and up_right_texture != null:
-		sprite.texture = up_right_texture
-		sprite.flip_h = faces_left
-		return
-
-	if faces_down and down_right_texture != null:
-		sprite.texture = down_right_texture
-		sprite.flip_h = faces_left
-		return
-
-	if right_texture != null:
-		sprite.texture = right_texture
-		sprite.flip_h = faces_left
+	visual_controller.update_sprite_visual()
 
 
 func can_continue_duel(duel: Duel) -> bool:
@@ -870,11 +690,11 @@ func is_in_duel() -> bool:
 
 func attach_duel(duel: Duel) -> void:
 	current_duel = duel
-	state = State.COMBAT
 	has_grazing_target = false
 	clear_path()
 	eating_timer.stop()
 	egg_laying_timer.stop()
+	change_state(State.COMBAT)
 
 	if duel != null:
 		face_duel_opponent(duel)
@@ -889,44 +709,15 @@ func detach_duel(duel: Duel) -> void:
 	if state == State.DEAD:
 		return
 
-	if hunger <= hunger_search_threshold:
-		enter_seek_food()
+	if hunger <= species_data.hunger_search_threshold:
+		enter_hungry_behavior()
 		return
 
 	enter_walk()
 
 
 func start_duel_with(opponent: Node) -> Duel:
-	if opponent == null or opponent == self:
-		return null
-
-	if not can_fight():
-		return null
-
-	if not opponent.has_method("can_be_hunted") or not opponent.can_be_hunted():
-		return null
-
-	if not is_prey_in_duel_range(opponent):
-		return null
-
-	face_target(opponent)
-	if opponent.has_method("face_target"):
-		opponent.face_target(self)
-
-	var duel := Duel.new()
-	var duel_parent := get_tree().current_scene
-
-	if duel_parent == null:
-		duel_parent = get_parent()
-
-	if duel_parent == null:
-		return null
-
-	duel_parent.add_child(duel)
-	if duel.duel_finished.is_connected(_on_duel_finished) == false:
-		duel.duel_finished.connect(_on_duel_finished)
-	duel.setup(self, opponent, self, 1.0)
-	return duel
+	return predator_logic.start_duel_with(opponent)
 
 
 func take_duel_damage(amount: float, _attacker: Node = null) -> void:
@@ -934,7 +725,7 @@ func take_duel_damage(amount: float, _attacker: Node = null) -> void:
 
 
 func take_direct_damage(amount: float) -> void:
-	health = clamp(health - amount, 0.0, max_health)
+	health = clamp(health - amount, 0.0, species_data.max_health)
 
 	if health <= 0.0:
 		enter_dead()
@@ -965,10 +756,10 @@ func _on_duel_finished(duel: Duel, winner: Node, _loser: Node) -> void:
 	if duel != current_duel and current_duel != null:
 		return
 
-	if winner != self or not is_predator:
+	if winner != self or not species_data.is_predator:
 		return
 
-	hunger = clamp(hunger + hunger_restore_amount, 0.0, max_hunger)
+	hunger = clamp(hunger + species_data.hunger_restore_amount, 0.0, species_data.max_hunger)
 
 
 func find_world_grid() -> Node:
@@ -985,11 +776,11 @@ func find_world_grid() -> Node:
 
 # UI helpers.
 func get_species_id() -> String:
-	return species_id
+	return species_data.species_id
 
 
 func get_species_name() -> String:
-	return species_name
+	return species_data.species_name
 
 
 func get_age() -> float:
@@ -997,25 +788,57 @@ func get_age() -> float:
 
 
 func get_max_age() -> float:
-	return max_age
+	return species_data.max_age
 
 
 func get_creature_name() -> String:
-	return creature_name
+	return species_data.creature_name
+
+
+func get_is_predator() -> bool:
+	return species_data != null and species_data.is_predator
+
+
+func get_attack() -> float:
+	if species_data == null:
+		return 0.0
+
+	return species_data.attack
+
+
+func get_defense() -> float:
+	if species_data == null:
+		return 0.0
+
+	return species_data.defense
+
+
+func get_max_health() -> float:
+	if species_data == null:
+		return 0.0
+
+	return species_data.max_health
+
+
+func get_max_hunger() -> float:
+	if species_data == null:
+		return 0.0
+
+	return species_data.max_hunger
 
 
 func get_health_percent() -> float:
-	if max_health <= 0.0:
+	if species_data.max_health <= 0.0:
 		return 0.0
 
-	return clamp((health / max_health) * 100.0, 0.0, 100.0)
+	return clamp((health / species_data.max_health) * 100.0, 0.0, 100.0)
 
 
 func get_hunger_percent() -> float:
-	if max_hunger <= 0.0:
+	if species_data.max_hunger <= 0.0:
 		return 0.0
 
-	return clamp((hunger / max_hunger) * 100.0, 0.0, 100.0)
+	return clamp((hunger / species_data.max_hunger) * 100.0, 0.0, 100.0)
 
 
 # Hover and selection hooks.

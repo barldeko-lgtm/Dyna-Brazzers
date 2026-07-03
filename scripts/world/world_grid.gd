@@ -10,6 +10,13 @@ const TERRAIN_WATER := 1
 const TERRAIN_MOUNTAIN := 2
 const BLOCKED_TERRAIN_SOURCES := {TERRAIN_WATER: true, TERRAIN_MOUNTAIN: true}
 
+# Hard cap on how many tiles a single find_path call is allowed to expand before
+# giving up. Without this, a path search toward an unreachable or heavily
+# contested target keeps exploring the whole reachable area (potentially
+# thousands of tiles) before it fails. The cap bounds the worst-case cost of a
+# single call to a constant, regardless of map size or population.
+const DEFAULT_MAX_PATH_EXPANDED_TILES := 300
+
 var ground: TileMapLayer = null
 
 var tile_size := Vector2i(128, 128)
@@ -73,7 +80,7 @@ func spawn_predator_if_needed() -> void:
 		return
 
 	for creature in creature_anchors.keys():
-		if is_instance_valid(creature) and bool(creature.get("is_predator")):
+		if is_instance_valid(creature) and creature.has_method("get_is_predator") and creature.get_is_predator():
 			predator_spawn_done = true
 			return
 
@@ -83,8 +90,8 @@ func spawn_predator_if_needed() -> void:
 	predator.hunger = -1.0
 	predator.global_position = spawn_marker.global_position
 	creatures_root.add_child(predator)
-	predator.health = float(predator.max_health)
-	predator.hunger = float(predator.max_hunger)
+	predator.health = PREDATOR_SPECIES_DATA.max_health
+	predator.hunger = PREDATOR_SPECIES_DATA.max_hunger
 	predator_spawn_done = true
 
 
@@ -333,13 +340,18 @@ func get_neighbors(anchor_tile: Vector2i, footprint_size: Vector2i, creature: No
 	return neighbors
 
 
-func find_path(start_anchor: Vector2i, goal_anchor: Vector2i, footprint_size: Vector2i, creature: Node = null) -> Array[Vector2i]:
+func find_path(start_anchor: Vector2i, goal_anchor: Vector2i, footprint_size: Vector2i, creature: Node = null, max_expanded_tiles: int = DEFAULT_MAX_PATH_EXPANDED_TILES) -> Array[Vector2i]:
+	PerformanceStats.add_counter("path_calls")
+
 	if start_anchor == goal_anchor:
+		PerformanceStats.add_counter("path_same_tile")
 		return []
 
 	if not can_place_footprint(goal_anchor, footprint_size, creature):
+		PerformanceStats.add_counter("path_blocked_goal")
 		return []
 
+	var expanded_tiles := 0
 	var open_set: Array[Vector2i] = [start_anchor]
 	var open_lookup := {start_anchor: true}
 	var came_from: Dictionary = {}
@@ -347,10 +359,17 @@ func find_path(start_anchor: Vector2i, goal_anchor: Vector2i, footprint_size: Ve
 	var f_score := {start_anchor: _estimate_path_cost(start_anchor, goal_anchor)}
 
 	while not open_set.is_empty():
+		if expanded_tiles >= max_expanded_tiles:
+			PerformanceStats.add_counter("path_capped")
+			break
+
 		var current := _pop_lowest_score(open_set, f_score)
+		expanded_tiles += 1
 		open_lookup.erase(current)
 
 		if current == goal_anchor:
+			PerformanceStats.add_counter("path_success")
+			PerformanceStats.add_counter("path_expanded_tiles", expanded_tiles)
 			return _reconstruct_path(came_from, current, start_anchor)
 
 		for neighbor in get_neighbors(current, footprint_size, creature):
@@ -367,14 +386,35 @@ func find_path(start_anchor: Vector2i, goal_anchor: Vector2i, footprint_size: Ve
 				open_set.append(neighbor)
 				open_lookup[neighbor] = true
 
+	PerformanceStats.add_counter("path_failed")
+	PerformanceStats.add_counter("path_expanded_tiles", expanded_tiles)
 	return []
 
 
 # Grazing queries.
+# Returns only the single best grazing candidate. Kept for callers that only
+# ever want one target (e.g. the periodic hysteresis recheck).
 func find_best_grazing_target(origin_anchor: Vector2i, footprint_size: Vector2i, min_adult_grass: int, search_radius: int = -1, creature: Node = null, grass_weight: float = 10.0, distance_penalty: float = 2.5) -> Dictionary:
-	ensure_initialized()
+	var ranked_results := find_best_grazing_targets(origin_anchor, footprint_size, min_adult_grass, search_radius, creature, grass_weight, distance_penalty, 1)
 
-	var best_result: Dictionary = {}
+	if ranked_results.is_empty():
+		return {}
+
+	return ranked_results[0]
+
+
+# Returns up to max_results grazing candidates, best first. This lets a
+# creature try the next-best patch immediately if the top one turns out to be
+# physically unreachable, instead of re-scanning the whole map again.
+# The scan cost is identical to the single-result version - only the small
+# ranked list on top costs anything extra.
+func find_best_grazing_targets(origin_anchor: Vector2i, footprint_size: Vector2i, min_adult_grass: int, search_radius: int = -1, creature: Node = null, grass_weight: float = 10.0, distance_penalty: float = 2.5, max_results: int = 1) -> Array[Dictionary]:
+	ensure_initialized()
+	PerformanceStats.add_counter("grazing_searches")
+
+	var ranked_results: Array[Dictionary] = []
+	var candidate_checks := 0
+	var valid_footprint_checks := 0
 	var start_x := map_min.x
 	var start_y := map_min.y
 	var end_x := map_max.x - footprint_size.x + 1
@@ -388,11 +428,13 @@ func find_best_grazing_target(origin_anchor: Vector2i, footprint_size: Vector2i,
 
 	for y in range(start_y, end_y + 1):
 		for x in range(start_x, end_x + 1):
+			candidate_checks += 1
 			var candidate := Vector2i(x, y)
 
 			if not can_place_footprint(candidate, footprint_size, creature):
 				continue
 
+			valid_footprint_checks += 1
 			var adult_count := count_adult_grass_under_footprint(candidate, footprint_size)
 
 			if adult_count < min_adult_grass:
@@ -407,13 +449,45 @@ func find_best_grazing_target(origin_anchor: Vector2i, footprint_size: Vector2i,
 				"score": score
 			}
 
-			if best_result.is_empty() or _is_grazing_result_better(candidate_result, best_result):
-				best_result = candidate_result
+			_insert_ranked_grazing_result(ranked_results, candidate_result, max_results)
 
-	return best_result
+	PerformanceStats.add_counter("grazing_candidate_checks", candidate_checks)
+	PerformanceStats.add_counter("grazing_valid_footprints", valid_footprint_checks)
+
+	if ranked_results.is_empty():
+		PerformanceStats.add_counter("grazing_search_misses")
+	else:
+		PerformanceStats.add_counter("grazing_search_hits")
+
+	return ranked_results
+
+
+# Inserts a candidate into a small best-first ranked list, keeping only the
+# top max_results entries. With max_results being a small constant (e.g. 5),
+# this costs nothing meaningful compared to the surrounding map scan.
+func _insert_ranked_grazing_result(ranked_results: Array[Dictionary], candidate_result: Dictionary, max_results: int) -> void:
+	if max_results <= 0:
+		return
+
+	var insert_index := ranked_results.size()
+
+	for index in range(ranked_results.size()):
+		if _is_grazing_result_better(candidate_result, ranked_results[index]):
+			insert_index = index
+			break
+
+	if insert_index >= max_results:
+		return
+
+	ranked_results.insert(insert_index, candidate_result)
+
+	if ranked_results.size() > max_results:
+		ranked_results.resize(max_results)
 
 
 func count_adult_grass_under_footprint(anchor_tile: Vector2i, footprint_size: Vector2i) -> int:
+	PerformanceStats.add_counter("grazing_footprint_queries")
+	PerformanceStats.add_counter("grazing_footprint_tiles", footprint_size.x * footprint_size.y)
 	var adult_count := 0
 
 	for tile in get_footprint_tiles(anchor_tile, footprint_size):
@@ -429,6 +503,7 @@ func count_adult_grass_under_footprint(anchor_tile: Vector2i, footprint_size: Ve
 
 
 func consume_adult_grass_under_footprint(anchor_tile: Vector2i, footprint_size: Vector2i) -> int:
+	PerformanceStats.add_counter("grass_consume_queries")
 	var consumed_count := 0
 
 	for tile in get_footprint_tiles(anchor_tile, footprint_size):
@@ -443,6 +518,7 @@ func consume_adult_grass_under_footprint(anchor_tile: Vector2i, footprint_size: 
 		if grass.consume():
 			consumed_count += 1
 
+	PerformanceStats.add_counter("grass_consumed", consumed_count)
 	return consumed_count
 
 

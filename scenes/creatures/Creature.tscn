@@ -13,6 +13,10 @@ species_data = ExtResource("2_species_data")
 [node name="BodySprite" type="Sprite2D" parent="." unique_id=1794094611]
 z_index = 1
 
+[node name="WalkRightSprite" type="AnimatedSprite2D" parent="." unique_id=738291411]
+visible = false
+z_index = 1
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=546018239]
 
 [node name="EatingTimer" type="Timer" parent="." unique_id=1762048301]

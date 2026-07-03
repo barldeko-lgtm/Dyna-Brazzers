@@ -46,7 +46,7 @@ func _ready() -> void:
 
 # Prefer selected creature over hover.
 func _process(_delta: float) -> void:
-	fps_label.text = "FPS: %d" % Engine.get_frames_per_second()
+	fps_label.text = build_debug_status_text()
 
 	if not is_instance_valid(selected_creature):
 		selected_creature = null
@@ -67,6 +67,65 @@ func _process(_delta: float) -> void:
 		return
 
 	hide_creature_stats()
+
+
+
+func build_debug_status_text() -> String:
+	var world_grid := get_tree().get_first_node_in_group("world_grid")
+	var mouse_screen := get_viewport().get_mouse_position()
+	var mouse_world := get_mouse_world_position(mouse_screen)
+	var mouse_tile_text := "?"
+	var grass_count := 0
+	var creature_count := 0
+
+	if world_grid != null:
+		grass_count = world_grid.grass_by_tile.size()
+		creature_count = world_grid.creature_anchors.size()
+		mouse_tile_text = format_tile(world_grid.world_to_map_tile(mouse_world))
+
+	var elapsed_text := format_elapsed_time(PerformanceStats.get_elapsed_seconds())
+	var memory_mb := PerformanceStats.get_static_memory_mb()
+
+	var lines: Array[String] = []
+	lines.append("FPS: %d | Time: %s | Mem: %.1f MB" % [Engine.get_frames_per_second(), elapsed_text, memory_mb])
+	lines.append("Mouse: W%s | Tile: %s" % [format_vector2(mouse_world), mouse_tile_text])
+	lines.append("World: creatures %d | grass %d | nodes %d | objects %d" % [creature_count, grass_count, PerformanceStats.get_node_count(), PerformanceStats.get_object_count()])
+	lines.append("Grass/s: spread %d | checks %d | spawned %d" % [PerformanceStats.get_rate("grass_spread_events"), PerformanceStats.get_rate("grass_neighbor_checks"), PerformanceStats.get_rate("grass_spawned")])
+	lines.append("Graze/s: searches %d | candidate tiles %d | footprint checks %d" % [PerformanceStats.get_rate("grazing_searches"), PerformanceStats.get_rate("grazing_candidate_checks"), PerformanceStats.get_rate("grazing_footprint_queries")])
+	lines.append("Creature/s: physics %d | predator searches %d | candidates %d" % [PerformanceStats.get_rate("creature_physics_ticks"), PerformanceStats.get_rate("predator_prey_searches"), PerformanceStats.get_rate("predator_prey_candidates")])
+	lines.append("Path/s: calls %d | expanded %d | success %d | failed %d" % [PerformanceStats.get_rate("path_calls"), PerformanceStats.get_rate("path_expanded_tiles"), PerformanceStats.get_rate("path_success"), PerformanceStats.get_rate("path_failed")])
+	lines.append(PerformanceStats.get_csv_status_text())
+	return "\n".join(lines)
+
+
+func get_mouse_world_position(mouse_screen: Vector2) -> Vector2:
+	var camera := get_node_or_null("../Camera2D") as Camera2D
+
+	if camera == null:
+		return mouse_screen
+
+	var viewport_size := get_viewport().get_visible_rect().size
+	return camera.get_screen_center_position() + (mouse_screen - viewport_size * 0.5) / camera.zoom
+
+
+func format_vector2(value: Vector2) -> String:
+	return "(%d, %d)" % [int(round(value.x)), int(round(value.y))]
+
+
+func format_tile(tile: Vector2i) -> String:
+	return "(%d, %d)" % [tile.x, tile.y]
+
+
+func format_elapsed_time(total_seconds: float) -> String:
+	var seconds := int(total_seconds)
+	var hours := int(seconds / 3600)
+	var minutes := int((seconds % 3600) / 60)
+	var remaining_seconds := seconds % 60
+
+	if hours > 0:
+		return "%02d:%02d:%02d" % [hours, minutes, remaining_seconds]
+
+	return "%02d:%02d" % [minutes, remaining_seconds]
 
 
 func show_creature_stats(creature: Node) -> void:
@@ -116,23 +175,32 @@ func update_stats_text() -> void:
 	else:
 		health_bar.value = 0.0
 
-	health_value_label.text = build_bar_value_text("health", "max_health")
+	health_value_label.text = build_bar_value_text("health", "get_max_health")
 
 	if current_creature.has_method("get_hunger_percent"):
 		hunger_bar.value = current_creature.get_hunger_percent()
-		hunger_value_label.text = build_bar_value_text("hunger", "max_hunger")
+		hunger_value_label.text = build_bar_value_text("hunger", "get_max_hunger")
 		return
 
 	hunger_bar.value = 0.0
 	hunger_value_label.text = "0 / 0"
 
 
-func build_bar_value_text(current_property: String, max_property: String) -> String:
+func build_bar_value_text(current_property: String, max_getter: String) -> String:
 	if not is_instance_valid(current_creature):
 		return "0 / 0"
 
 	var current_value: float = float(current_creature.get(current_property))
-	var max_value: float = float(current_creature.get(max_property))
+	var max_value := 0.0
+
+	if current_creature.has_method(max_getter):
+		max_value = float(current_creature.call(max_getter))
+	else:
+		var species_data: Resource = current_creature.get("species_data")
+		if species_data != null:
+			var fallback_property := max_getter.replace("get_", "")
+			max_value = float(species_data.get(fallback_property))
+
 	return "%d / %d" % [int(round(current_value)), int(round(max_value))]
 
 

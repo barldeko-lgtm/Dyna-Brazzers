@@ -25,6 +25,7 @@ down_right_texture = ExtResource("6_down_right")
 speed = 150.0
 max_health = 110.0
 starting_health = 110.0
+max_age = 10.0
 starvation_health_decay_rate = 2.0
 well_fed_health_regen_rate = 1.0
 satiety_heal_threshold = 70.0

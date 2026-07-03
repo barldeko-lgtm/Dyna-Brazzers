@@ -61,8 +61,8 @@ func resolve_next_turn() -> void:
 		finish_from_current_state()
 		return
 
-	var attack_value: float = float(attacker.get("attack"))
-	var defense_value: float = float(defender.get("defense"))
+	var attack_value: float = get_combat_stat(attacker, "attack")
+	var defense_value: float = get_combat_stat(defender, "defense")
 	var damage: float = max(1.0, attack_value - defense_value)
 
 	if defender.has_method("take_duel_damage"):
@@ -74,6 +74,25 @@ func resolve_next_turn() -> void:
 
 	current_attacker = defender
 	tick_remaining = tick_interval
+
+
+func get_combat_stat(fighter: Node, stat_name: String) -> float:
+	if fighter == null or not is_instance_valid(fighter):
+		return 0.0
+
+	var getter_name := "get_%s" % stat_name
+	if fighter.has_method(getter_name):
+		return float(fighter.call(getter_name))
+
+	var fighter_species: Resource = fighter.get("species_data")
+	if fighter_species != null:
+		return float(fighter_species.get(stat_name))
+
+	var legacy_value = fighter.get(stat_name)
+	if legacy_value == null:
+		return 0.0
+
+	return float(legacy_value)
 
 
 func handle_fighter_death(dead_fighter: Node) -> void:

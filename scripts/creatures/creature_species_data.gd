@@ -19,11 +19,14 @@ class_name CreatureSpeciesData
 @export var right_texture: Texture2D
 @export var up_right_texture: Texture2D
 @export var down_right_texture: Texture2D
+@export var walk_right_frames: SpriteFrames
+@export var walk_animation_fps := 6.0
 
 # Balance: combat and survival.
 @export var speed := 140.0
 @export var max_health := 100.0
 @export var starting_health := 100.0
+@export var max_age := 10.0
 @export var starvation_health_decay_rate := 2.0
 @export var well_fed_health_regen_rate := 1.0
 @export var satiety_heal_threshold := 70.0

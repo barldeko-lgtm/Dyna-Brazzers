@@ -1,16 +1,11 @@
-[gd_scene format=4]
+[gd_scene format=4 uid="uid://dwlwta88eydnm"]
 
-[ext_resource type="PackedScene" path="res://scenes/creatures/creature.tscn" id="1_dphjl"]
-[ext_resource type="Script" path="res://scripts/world/world_grid.gd" id="1_world_grid"]
-[ext_resource type="PackedScene" path="res://scenes/resources/grass.tscn" id="2_grass_scene"]
-[ext_resource type="Texture2D" path="res://assets/sprites/terrain/ground.png" id="2_sl2e5"]
-[ext_resource type="Script" path="res://scripts/creatures/creature.gd" id="3_t5ptc"]
-[ext_resource type="Resource" path="res://data/species/stegosaurus.tres" id="4_bq33v"]
-[ext_resource type="Script" path="res://scripts/resources/grass.gd" id="6_5qq27"]
-[ext_resource type="Texture2D" path="res://assets/sprites/terrain/grass_stage_1.png" id="7_dlabj"]
-[ext_resource type="Texture2D" path="res://assets/sprites/terrain/grass_stage_2.png" id="8_srmg5"]
-[ext_resource type="Texture2D" path="res://assets/sprites/terrain/water_placeholder.png" id="10_umvgx"]
-[ext_resource type="Texture2D" path="res://assets/sprites/terrain/mountain_placeholder.png" id="11_mxkvs"]
+[ext_resource type="PackedScene" uid="uid://e3j5do0l0f20" path="res://scenes/creatures/creature.tscn" id="1_dphjl"]
+[ext_resource type="Script" uid="uid://1abxk8xlcuvy" path="res://scripts/world/world_grid.gd" id="1_world_grid"]
+[ext_resource type="PackedScene" uid="uid://dqht3158gnffd" path="res://scenes/resources/grass.tscn" id="2_grass_scene"]
+[ext_resource type="Texture2D" uid="uid://b47yxxmaql4cc" path="res://assets/sprites/terrain/ground.png" id="2_sl2e5"]
+[ext_resource type="Texture2D" uid="uid://c1cg3euyvlkt4" path="res://assets/sprites/terrain/water_placeholder.png" id="10_umvgx"]
+[ext_resource type="Texture2D" uid="uid://kunmhs5708pi" path="res://assets/sprites/terrain/mountain_placeholder.png" id="11_mxkvs"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_sl2e5"]
 texture = ExtResource("2_sl2e5")
@@ -39,48 +34,30 @@ script = ExtResource("1_world_grid")
 [node name="Creatures" type="Node2D" parent="." unique_id=2016915124]
 position = Vector2(500, 500)
 
-[node name="Creature" type="CharacterBody2D" parent="Creatures" unique_id=1243629843 instance=ExtResource("1_dphjl")]
-script = ExtResource("3_t5ptc")
-species_data = ExtResource("4_bq33v")
+[node name="Creature" parent="Creatures" unique_id=1243629843 instance=ExtResource("1_dphjl")]
 
-[node name="Creature_02" type="CharacterBody2D" parent="Creatures" unique_id=1943619285 instance=ExtResource("1_dphjl")]
-position = Vector2(384, 0)
-script = ExtResource("3_t5ptc")
-species_data = ExtResource("4_bq33v")
+[node name="Creature_02" parent="Creatures" unique_id=1943619285 instance=ExtResource("1_dphjl")]
+position = Vector2(384, 990)
 
-[node name="Creature_03" type="CharacterBody2D" parent="Creatures" unique_id=2046018791 instance=ExtResource("1_dphjl")]
+[node name="Creature_03" parent="Creatures" unique_id=2046018791 instance=ExtResource("1_dphjl")]
 position = Vector2(768, 0)
-script = ExtResource("3_t5ptc")
-species_data = ExtResource("4_bq33v")
 
 [node name="PredatorSpawn" type="Marker2D" parent="Creatures" unique_id=304279196]
 position = Vector2(1152, 0)
 
 [node name="Grasses" type="Node2D" parent="." unique_id=1551201401]
 
-[node name="Grass_01" type="Node2D" parent="Grasses" unique_id=19457675 instance=ExtResource("2_grass_scene")]
+[node name="Grass_01" parent="Grasses" unique_id=19457675 instance=ExtResource("2_grass_scene")]
 position = Vector2(640, 640)
-script = ExtResource("6_5qq27")
-stage_1_texture = ExtResource("7_dlabj")
-stage_2_texture = ExtResource("8_srmg5")
 
-[node name="Grass_04" type="Node2D" parent="Grasses" unique_id=1638619646 instance=ExtResource("2_grass_scene")]
+[node name="Grass_04" parent="Grasses" unique_id=1638619646 instance=ExtResource("2_grass_scene")]
 position = Vector2(768, 640)
-script = ExtResource("6_5qq27")
-stage_1_texture = ExtResource("7_dlabj")
-stage_2_texture = ExtResource("8_srmg5")
 
-[node name="Grass_02" type="Node2D" parent="Grasses" unique_id=1871280106 instance=ExtResource("2_grass_scene")]
+[node name="Grass_02" parent="Grasses" unique_id=1871280106 instance=ExtResource("2_grass_scene")]
 position = Vector2(1408, 640)
-script = ExtResource("6_5qq27")
-stage_1_texture = ExtResource("7_dlabj")
-stage_2_texture = ExtResource("8_srmg5")
 
-[node name="Grass_03" type="Node2D" parent="Grasses" unique_id=652804546 instance=ExtResource("2_grass_scene")]
+[node name="Grass_03" parent="Grasses" unique_id=652804546 instance=ExtResource("2_grass_scene")]
 position = Vector2(2048, 640)
-script = ExtResource("6_5qq27")
-stage_1_texture = ExtResource("7_dlabj")
-stage_2_texture = ExtResource("8_srmg5")
 
 [node name="Eggs" type="Node2D" parent="." unique_id=1552888863]
 

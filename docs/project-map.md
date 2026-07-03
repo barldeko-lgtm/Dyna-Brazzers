@@ -31,7 +31,7 @@ Main gameplay logic by subsystem.
 - `scripts/creatures/creature.gd` — base creature runtime logic
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore food search and grazing retarget helper
 - `scripts/debug/grid_debug_overlay.gd` — removable grid debug drawing and bottom-left debug info panel
-- `scripts/creatures/creature_species_data.gd` — species resource schema
+- `scripts/creatures/creature_species_data.gd` — species resource schema, including optional walk-animation slots
 - `scripts/resources/grass.gd` — grass lifecycle
 - `scripts/resources/egg.gd` — egg lifecycle and hatching
 - `data/species/stegosaurus.tres` — herbivore species data
@@ -56,7 +56,7 @@ Sprites and placeholders.
 ### `data/`
 Configurable game data resources.
 
-- `data/species/stegosaurus.tres` — herbivore species stats, visuals, and egg settings
+- `data/species/stegosaurus.tres` — herbivore species stats, visuals, egg settings, and walk-animation config
 - `data/species/predator.tres` — predator species stats, visuals, and hunt tuning
 
 ---

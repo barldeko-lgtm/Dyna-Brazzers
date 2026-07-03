@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=9 format=3]
+[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/creatures/creature_species_data.gd" id="1_species_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_down.png" id="2_down"]
@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://scenes/resources/egg.tscn" id="7_egg_scene"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/eggs/egg_stage_1.png" id="8_egg_stage_1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/eggs/egg_stage_2.png" id="9_egg_stage_2"]
+[ext_resource type="SpriteFrames" path="res://data/animations/stegosaurus_walk_right_frames.tres" id="10_walk_right_frames"]
 
 [resource]
 script = ExtResource("1_species_script")
@@ -20,9 +21,12 @@ up_texture = ExtResource("3_up")
 right_texture = ExtResource("4_right")
 up_right_texture = ExtResource("5_up_right")
 down_right_texture = ExtResource("6_down_right")
+walk_right_frames = ExtResource("10_walk_right_frames")
+walk_animation_fps = 4.0
 speed = 140.0
 max_health = 100.0
 starting_health = 100.0
+max_age = 10.0
 starvation_health_decay_rate = 2.0
 well_fed_health_regen_rate = 1.0
 satiety_heal_threshold = 70.0
