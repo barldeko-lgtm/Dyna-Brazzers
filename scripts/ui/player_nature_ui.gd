@@ -1,5 +1,7 @@
 extends PanelContainer
 
+const LIGHTNING_EFFECT_SCENE := preload("res://scenes/effects/lightning_strike_effect.tscn")
+
 # Player-facing nature powers HUD.
 @export var max_energy := 500.0
 @export var starting_energy := 0.0
@@ -78,6 +80,7 @@ func try_apply_lightning_to_creature(creature: Node) -> bool:
 			cancel_lightning_targeting()
 			return false
 
+		_spawn_lightning_effect(creature)
 		creature.take_direct_damage(lightning_damage)
 		cancel_lightning_targeting()
 		return true
@@ -150,6 +153,28 @@ func _update_spell_buttons() -> void:
 
 func _get_lightning_button_text() -> String:
 	return "Молния (%d)" % floori(lightning_energy_cost)
+
+
+func _spawn_lightning_effect(target: Node) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+
+	if not (target is Node2D):
+		return
+
+	var effect_parent := target.get_parent()
+	if effect_parent == null:
+		effect_parent = get_tree().current_scene
+
+	if effect_parent == null:
+		return
+
+	var effect := LIGHTNING_EFFECT_SCENE.instantiate() as Node2D
+	if effect == null:
+		return
+
+	effect_parent.add_child(effect)
+	effect.global_position = (target as Node2D).global_position
 
 
 func _unhandled_input(event: InputEvent) -> void:

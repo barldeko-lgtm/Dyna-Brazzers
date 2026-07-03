@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/effects/lightning_strike_effect.gd" id="1_script"]
+[ext_resource type="SpriteFrames" path="res://data/animations/lightning_strike_frames.tres" id="2_frames"]
+
+[node name="LightningStrikeEffect" type="Node2D"]
+z_index = 200
+script = ExtResource("1_script")
+lifetime = 1.0
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -128)
+sprite_frames = ExtResource("2_frames")
+centered = true
