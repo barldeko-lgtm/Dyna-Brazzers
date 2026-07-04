@@ -406,8 +406,15 @@ func find_best_grazing_target(origin_anchor: Vector2i, footprint_size: Vector2i,
 # Returns up to max_results grazing candidates, best first. This lets a
 # creature try the next-best patch immediately if the top one turns out to be
 # physically unreachable, instead of re-scanning the whole map again.
-# The scan cost is identical to the single-result version - only the small
-# ranked list on top costs anything extra.
+#
+# Candidate generation is driven by the grass registry (grass_by_tile) rather
+# than by iterating every coordinate in the search rectangle. Each registered
+# grass tile can be covered by a small, fixed number of footprint anchors
+# (footprint_size.x * footprint_size.y at most), so the scan cost now scales
+# with how much grass exists, not with map size. This matters most exactly
+# when grass is scarce (e.g. early game): previously that was the worst case
+# for this function (empty local search -> full map fallback scanning every
+# tile), now it is the cheapest case (few or no grass tiles to visit at all).
 func find_best_grazing_targets(origin_anchor: Vector2i, footprint_size: Vector2i, min_adult_grass: int, search_radius: int = -1, creature: Node = null, grass_weight: float = 10.0, distance_penalty: float = 2.5, max_results: int = 1) -> Array[Dictionary]:
 	ensure_initialized()
 	PerformanceStats.add_counter("grazing_searches")
@@ -426,30 +433,44 @@ func find_best_grazing_targets(origin_anchor: Vector2i, footprint_size: Vector2i
 		end_x = origin_anchor.x + search_radius
 		end_y = origin_anchor.y + search_radius
 
-	for y in range(start_y, end_y + 1):
-		for x in range(start_x, end_x + 1):
-			candidate_checks += 1
-			var candidate := Vector2i(x, y)
+	# Anchors are deduplicated because a single grass tile can be reached by
+	# up to footprint_size.x * footprint_size.y different anchor offsets, and
+	# neighboring grass tiles can map to the same anchor.
+	var checked_anchors: Dictionary = {}
 
-			if not can_place_footprint(candidate, footprint_size, creature):
-				continue
+	for grass_tile in grass_by_tile.keys():
+		for offset_x in range(footprint_size.x):
+			for offset_y in range(footprint_size.y):
+				var candidate := Vector2i(grass_tile.x - offset_x, grass_tile.y - offset_y)
 
-			valid_footprint_checks += 1
-			var adult_count := count_adult_grass_under_footprint(candidate, footprint_size)
+				if candidate.x < start_x or candidate.x > end_x or candidate.y < start_y or candidate.y > end_y:
+					continue
 
-			if adult_count < min_adult_grass:
-				continue
+				if checked_anchors.has(candidate):
+					continue
 
-			var distance := estimate_path_steps(origin_anchor, candidate)
-			var score := float(adult_count) * grass_weight - float(distance) * distance_penalty
-			var candidate_result := {
-				"anchor": candidate,
-				"adult_count": adult_count,
-				"distance": distance,
-				"score": score
-			}
+				checked_anchors[candidate] = true
+				candidate_checks += 1
 
-			_insert_ranked_grazing_result(ranked_results, candidate_result, max_results)
+				if not can_place_footprint(candidate, footprint_size, creature):
+					continue
+
+				valid_footprint_checks += 1
+				var adult_count := count_adult_grass_under_footprint(candidate, footprint_size)
+
+				if adult_count < min_adult_grass:
+					continue
+
+				var distance := estimate_path_steps(origin_anchor, candidate)
+				var score := float(adult_count) * grass_weight - float(distance) * distance_penalty
+				var candidate_result := {
+					"anchor": candidate,
+					"adult_count": adult_count,
+					"distance": distance,
+					"score": score
+				}
+
+				_insert_ranked_grazing_result(ranked_results, candidate_result, max_results)
 
 	PerformanceStats.add_counter("grazing_candidate_checks", candidate_checks)
 	PerformanceStats.add_counter("grazing_valid_footprints", valid_footprint_checks)
