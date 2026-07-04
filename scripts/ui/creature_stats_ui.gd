@@ -24,7 +24,7 @@ extends CanvasLayer
 @onready var time_speed_option: OptionButton = $TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeedOption
 
 # Time scale presets.
-const TIME_SPEED_VALUES := [1.0, 2.0, 3.0]
+const TIME_SPEED_VALUES := [1.0, 2.0, 3.0, 5.0]
 
 var current_creature: Node = null
 

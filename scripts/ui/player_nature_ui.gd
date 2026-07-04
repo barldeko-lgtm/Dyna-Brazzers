@@ -10,12 +10,12 @@ const SUN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/sun_target_preview.
 @export var energy_regen_per_second := 1.0
 @export var lightning_damage := 50.0
 @export var lightning_energy_cost := 50.0
-@export var rain_energy_cost := 25.0
-@export var rain_radius_tiles := 1
+@export var rain_energy_cost := 30.0
+@export var rain_radius_tiles := 2
 @export var sun_energy_cost := 100.0
-@export var sun_radius_tiles := 2
-@export var sun_spread_reset_radius_tiles := 3
-@export var sun_remove_grass_count := 8
+@export var sun_radius_tiles := 3
+@export var sun_spread_reset_radius_tiles := 4
+@export var sun_remove_grass_count := 20
 
 @onready var energy_bar: ProgressBar = get_node_or_null("MarginContainer/VBoxContainer/EnergyBar")
 @onready var energy_value_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EnergyBar/EnergyValueLabel")
