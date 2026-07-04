@@ -13,13 +13,14 @@ Current scope:
 - terrain types: ground, water, and mountain;
 - a herbivore base species plus a temporary predator species;
 - species data in `.tres` resources;
-- directional creature sprites and a right-facing walk animation for the stegosaurus;
+- directional creature sprites and right/up walk animations for the stegosaurus;
 - egg laying, a two-stage egg lifecycle, and hatching;
 - grass as the first renewable resource;
 - autonomous herbivore grazing;
 - temporary predator hunting;
 - a simple 1v1 duel layer;
-- first player influence action: lightning;
+- player nature energy economy;
+- player influence actions: lightning and rain;
 - debug UI for hover/selection and creature stats;
 - an FPS/debug status display with cursor/world/tile/time/performance data;
 - simulation speed control (`x1`, `x2`, `x3`);
@@ -52,7 +53,7 @@ This is still a simulation sandbox, not a full game.
 - Current species data lives in `data/species/stegosaurus.tres` and `data/species/predator.tres`.
 - The creature uses directional sprites by movement direction.
 - Left-facing views are mirrored from right-facing sprites.
-- The stegosaurus has a 6-frame right-facing walk animation resource.
+- The stegosaurus has right-facing and up-facing walk animation resources.
 - Logical position uses `anchor_tile`.
 - Current footprint is `2x2`.
 - Current states: `IDLE`, `WALK`, `SEEK_FOOD`, `EATING`, `LAYING_EGG`, `COMBAT`, `DEAD`.
@@ -89,6 +90,8 @@ This is still a simulation sandbox, not a full game.
 - Grass tries to spread only once.
 - Grass registers itself into the world by tile.
 - Grass cannot exist on blocked terrain tiles like water or mountains.
+- Rain can accelerate grass in a 3x3 area: stage 1 grass becomes stage 2, and stage 2 grass triggers the existing one-time spread logic.
+- Forced rain spread stops the current spread timer after the spread attempt, preventing a near-immediate double spread.
 
 ### Eggs and reproduction
 - When reproduction conditions pass, the creature enters egg-laying for the species-configured duration.
@@ -96,6 +99,18 @@ This is still a simulation sandbox, not a full game.
 - The egg then tries to expand right into blocking stage 2 `2x2`.
 - Egg stage 2 is an edible living object with bool logic and no HP system.
 - After stage 2, a new creature hatches with species-configured starting health and hunger.
+
+### Player nature powers
+- The player nature panel shows energy.
+- Energy starts at `0`, is capped at `500`, and regenerates at `+1/sec`.
+- Lightning costs `50` energy.
+- Lightning targeting is armed by the lightning button, then applied by left-clicking a creature.
+- Lightning deals `50` direct damage and spawns a short visual lightning strike effect.
+- Rain costs `25` energy.
+- Rain targeting is armed by the rain button, then applied by left-clicking a valid ground tile.
+- Rain affects a `3x3` tile area around the clicked tile.
+- While rain targeting is armed, a 3x3 tile preview follows the mouse cursor.
+- Right-click cancels armed lightning or rain targeting.
 
 ### UI, observation, and debug
 - The camera moves with WASD.
@@ -105,8 +120,6 @@ This is still a simulation sandbox, not a full game.
 - Clicking the same creature again or empty space clears selection.
 - There is an FPS/debug label.
 - Debug label includes cursor screen/world position, tile position, elapsed run time, memory, node/object counts, grass/creature counts, and performance rates.
-- There is a lightning button: press it, then left-click a creature to deal `50` damage.
-- Pressing the lightning button again or right-clicking cancels armed lightning targeting.
 - There is a simulation speed selector with `x1`, `x2`, and `x3`.
 - There is an F3 removable grid debug overlay with blocked terrain, grass, occupied tiles, selected creature footprint, pending footprint, grazing target, path, and a bottom-left debug text panel.
 - `PerformanceStats` is an autoload and can record CSV logs with F8 into `logs/`.
@@ -122,11 +135,13 @@ This is still a simulation sandbox, not a full game.
 5. `creature_reproduction_logic.gd` owns reproduction checks and egg spawning details.
 6. `creature_visual_controller.gd` owns directional sprite and walk-animation details.
 7. `duel.gd` provides the current 1v1 duel loop.
-8. `grass.gd` provides the first renewable resource loop.
+8. `grass.gd` provides the first renewable resource loop, including rain reaction hooks.
 9. `egg.gd` provides the current reproduction object lifecycle.
-10. `creature_stats_ui.gd` lets the user observe creature state and trigger lightning.
-11. `performance_stats.gd` provides runtime counters and CSV logging.
-12. `camera_controller.gd` lets the user observe the simulation.
+10. `creature_stats_ui.gd` lets the user observe creature state, debug status, and simulation speed.
+11. `player_nature_ui.gd` owns player energy, lightning, rain targeting, and nature action costs.
+12. `rain_target_preview.gd` draws the 3x3 rain targeting area.
+13. `performance_stats.gd` provides runtime counters and CSV logging.
+14. `camera_controller.gd` lets the user observe the simulation.
 
 ---
 
@@ -137,10 +152,9 @@ This is still a simulation sandbox, not a full game.
 - Combat aftermath is still placeholder-like: predator wins restore hunger directly instead of using corpse/eating logic.
 - The broader art pipeline for future species is not standardized.
 - The world still has few entity types.
-- There is no full player-as-nature system yet.
-- There is no player energy economy yet.
-- Lightning exists, but rain and other nature actions do not yet exist.
-- There is no general combat targeting system beyond the temporary predator workflow.
+- The player-as-nature system is still early: energy, lightning, and rain exist, but there is no broader spell/action framework yet.
+- Rain currently affects grass only; there are no direct creature morale/fear/weather reactions yet.
+- Other nature actions beyond lightning and rain do not yet exist.
 - Water and mountain exist as prototype blocked terrain, but there are no deeper biome-specific rules yet.
 - There is no full gameplay HUD beyond debug/prototype UI.
 - There is no save/load system.
@@ -163,6 +177,8 @@ This is still a simulation sandbox, not a full game.
 - `scenes/creatures/creature.tscn`
 - `scenes/resources/grass.tscn`
 - `scenes/resources/egg.tscn`
+- `scenes/effects/lightning_strike_effect.tscn`
+- `scenes/effects/rain_target_preview.tscn`
 - `scenes/debug/grid_debug_overlay.tscn`
 
 ### World simulation
@@ -179,6 +195,7 @@ This is still a simulation sandbox, not a full game.
 - `data/species/stegosaurus.tres`
 - `data/species/predator.tres`
 - `data/animations/stegosaurus_walk_right_frames.tres`
+- `data/animations/stegosaurus_walk_up_frames.tres`
 
 ### Resources
 - `scripts/resources/grass.gd`
@@ -186,6 +203,9 @@ This is still a simulation sandbox, not a full game.
 
 ### UI, debug, and view
 - `scripts/ui/creature_stats_ui.gd`
+- `scripts/ui/player_nature_ui.gd`
+- `scripts/effects/lightning_strike_effect.gd`
+- `scripts/effects/rain_target_preview.gd`
 - `scripts/debug/grid_debug_overlay.gd`
 - `scripts/debug/performance_stats.gd`
 - `scripts/camera/camera_controller.gd`
@@ -225,7 +245,12 @@ Path-to-prey logic and duel range checks are easy to accidentally loosen.
 Stage 2 eggs must register as blockers and must unregister before hatching/removal.
 Leaving stale blockers will corrupt walkability.
 
-### 6. Future file growth
+### 6. Player nature actions
+Player powers should stay indirect and simulation-friendly.
+Rain should accelerate grass lifecycle through `grass.gd`; it should not become a separate grass-spawning system in UI.
+Lightning currently applies direct damage, but future power design should avoid turning the game into direct unit control.
+
+### 7. Future file growth
 `creature.gd` is smaller than before thanks to helpers, but it is still the coordinator for many systems.
 Add new systems carefully so it does not become the next blob.
 
@@ -233,26 +258,27 @@ Add new systems carefully so it does not become the next blob.
 
 ## 7. Logical next directions
 
-### Option A — clean up the current combat layer
+### Option A — move into 0.5 visuals/interface
+- cleaner player nature HUD;
+- visual rain effect;
+- cleaner lightning effect integration;
+- improve readability of grass/eggs/creatures;
+- reduce debug-looking UI where possible.
+
+### Option B — clean up the current combat layer
 - corpse/eating aftermath instead of raw hunger restore;
 - better combat entry polish and stop-distance visuals;
 - keep combat logic isolated from wider creature logic.
 
-### Option B — expand the creature loop
+### Option C — expand the creature loop
 - more species resources;
 - better reproduction/population behaviour;
 - cleaner handling of death outcomes.
 
-### Option C — strengthen the world as a system
+### Option D — strengthen the world as a system
 - richer terrain visuals beyond placeholder water/mountain tiles;
 - biome-specific rules instead of one shared blocked-terrain rule;
 - stronger obstacle handling and terrain reactions.
-
-### Option D — continue opening the player role
-- player energy;
-- proper player-facing HUD;
-- rain and other indirect world actions;
-- creature/world reaction to player actions.
 
 ### Option E — keep improving instrumentation
 - use F8 CSV logs during performance issues;
@@ -269,6 +295,7 @@ Add new systems carefully so it does not become the next blob.
 - Creatures should feel alive and autonomous.
 - Species data should live in `.tres` resources, not one giant creature script.
 - Helper scripts should reduce blob growth, not hide unclear ownership.
+- Player powers should influence the world indirectly where possible.
 - Documentation should stay synchronized: update map/state/dependencies together when architecture changes.
 - The project direction is already clear even if the code is still prototype-grade.
 
@@ -286,21 +313,10 @@ Add new systems carefully so it does not become the next blob.
 Predator hunger reaches search threshold -> `CreaturePredatorLogic` finds nearest valid non-predator prey -> helper builds path to a side-adjacent anchor -> predator moves -> side-contact check passes -> helper creates `Duel` -> both fighters enter combat -> duel alternates attacks -> loser dies/leaves world -> winner detaches and predator restores hunger.
 
 ### Player lightning flow
-UI arms lightning mode -> player clicks a creature -> UI calls creature direct damage -> creature health may reach zero -> creature enters `DEAD` and unregisters from the world.
+`PlayerNatureUI` arms lightning mode -> player clicks a creature -> UI spends `50` energy -> lightning effect spawns -> UI calls creature direct damage -> creature health may reach zero -> creature enters `DEAD` and unregisters from the world.
+
+### Player rain flow
+`PlayerNatureUI` arms rain mode -> 3x3 preview follows the mouse tile -> player clicks a valid ground tile -> UI spends `25` energy -> each grass in the 3x3 area receives `apply_rain()` -> stage 1 grass becomes stage 2, while stage 2 grass triggers its existing one-time cardinal spread logic.
 
 ### Performance logging flow
 `PerformanceStats` autoload tracks elapsed time and counters -> UI displays current rates/status -> F8 toggles CSV recording -> samples are appended to `logs/perf_log_*.csv`.
-
----
-
-## 10. When to update this file
-
-Update `docs/current-state.md` when:
-- the set of key scenes changes;
-- a major system appears;
-- an existing system is disabled/enabled in a meaningful way;
-- the architecture canon changes;
-- a meaningful roadmap milestone is reached;
-- the prototype enters a new version phase.
-
-Even short updates save future sessions from unnecessary archaeology.

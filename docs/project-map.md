@@ -23,6 +23,8 @@ Scene assemblies and placed nodes.
 - `scenes/creatures/creature.tscn` — base creature scene.
 - `scenes/resources/grass.tscn` — grass resource scene.
 - `scenes/resources/egg.tscn` — egg resource scene.
+- `scenes/effects/lightning_strike_effect.tscn` — short visual lightning strike effect.
+- `scenes/effects/rain_target_preview.tscn` — 3x3 rain target preview overlay.
 - `scenes/debug/grid_debug_overlay.tscn` — removable debug grid overlay and info panel.
 
 ### `scripts/`
@@ -36,9 +38,12 @@ Main gameplay logic by subsystem.
 - `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, mirroring, and walk-animation helper.
 - `scripts/creatures/creature_species_data.gd` — species resource schema.
 - `scripts/combat/duel.gd` — isolated 1v1 duel loop.
-- `scripts/resources/grass.gd` — grass lifecycle.
+- `scripts/resources/grass.gd` — grass lifecycle and rain reaction hooks.
 - `scripts/resources/egg.gd` — egg lifecycle and hatching.
-- `scripts/ui/creature_stats_ui.gd` — creature HUD, selection UI, player lightning action, speed selector, debug status text.
+- `scripts/ui/creature_stats_ui.gd` — creature HUD, selection UI, debug status text, and simulation speed selector.
+- `scripts/ui/player_nature_ui.gd` — player nature HUD, energy economy, lightning targeting, rain targeting, and nature action costs.
+- `scripts/effects/lightning_strike_effect.gd` — plays the lightning animation and removes the effect after its lifetime.
+- `scripts/effects/rain_target_preview.gd` — draws the 3x3 rain target area while rain targeting is armed.
 - `scripts/debug/grid_debug_overlay.gd` — removable grid/path/occupancy debug drawing and info panel.
 - `scripts/debug/performance_stats.gd` — performance counters, elapsed time, memory/node/object counts, and F8 CSV logging.
 - `scripts/camera/camera_controller.gd` — observer camera movement and zoom.
@@ -48,7 +53,9 @@ Configurable game data resources.
 
 - `data/species/stegosaurus.tres` — herbivore species stats, visuals, egg settings, and walk-animation config.
 - `data/species/predator.tres` — temporary predator species stats, visuals, and hunt tuning.
-- `data/animations/stegosaurus_walk_right_frames.tres` — 6-frame right-facing stegosaurus walk animation.
+- `data/animations/stegosaurus_walk_right_frames.tres` — right-facing stegosaurus walk animation.
+- `data/animations/stegosaurus_walk_up_frames.tres` — up-facing stegosaurus walk animation.
+- `data/animations/lightning_strike_frames.tres` — lightning strike animation frames.
 
 ### `assets/`
 Sprites and placeholders.
@@ -58,9 +65,10 @@ Sprites and placeholders.
 - `assets/sprites/terrain/mountain_placeholder.png` — temporary mountain tile.
 - `assets/sprites/terrain/grass_stage_1.png` — small grass.
 - `assets/sprites/terrain/grass_stage_2.png` — adult grass.
-- `assets/sprites/creatures/stegosaurus/` — stegosaurus directional sprites and right-facing walk frames.
+- `assets/sprites/creatures/stegosaurus/` — stegosaurus directional sprites and walk frames.
 - `assets/sprites/creatures/predator/` — temporary predator directional sprite set.
 - `assets/sprites/creatures/eggs/` — egg sprites for both stages.
+- `assets/sprites/effects/lightning/` — lightning strike source frames.
 
 ---
 
@@ -72,7 +80,8 @@ Project entry point. Launches `res://scenes/main/main.tscn`. Also registers the 
 ### `scenes/main/main.tscn`
 Top-level scene. Currently contains:
 - `Camera2D` — camera using `camera_controller.gd`.
-- `UI` — creature stats, FPS/debug text, lightning action button, and simulation speed controls.
+- `UI` — creature stats panel, FPS/debug text, player nature panel, and simulation speed controls.
+- `PlayerNaturePanel` under `UI` — player energy, lightning, and rain controls using `player_nature_ui.gd`.
 - `Simulation` — currently an empty technical node.
 - `World` — an instance of `scenes/world/world.tscn`.
 - `GridDebugOverlay` — optional removable grid debug overlay.
@@ -85,7 +94,7 @@ Active simulation sandbox. Contains:
 - `Eggs` — creature eggs.
 - `Ground` (`TileMapLayer`) — map geometry and terrain types.
 
-Important: `World` with `world_grid.gd` is the logic center. Most gameplay entities find it by walking up the scene tree.
+Important: `World` with `world_grid.gd` is the logic center. Most gameplay entities find it by walking up the scene tree or through the `world_grid` group.
 
 ---
 
@@ -96,7 +105,7 @@ Important: `World` with `world_grid.gd` is the logic center. Most gameplay entit
 
 **Owns:** bootstrapping the prototype, observer camera, UI layer, optional grid overlay, and world scene attachment.
 
-**Keep in mind:** do not turn this into a heavy gameplay-logic scene. World/entity logic belongs in `world_grid.gd`, creature/resource scripts, and their helpers.
+**Keep in mind:** do not turn this into a heavy gameplay-logic scene. World/entity logic belongs in `world_grid.gd`, creature/resource scripts, and helpers. Player nature UI may call world/resource methods, but it should not become the owner of ecosystem rules.
 
 ### `scenes/world/world.tscn`
 **Role:** active gameplay sandbox.
@@ -132,6 +141,20 @@ Important: `World` with `world_grid.gd` is the logic center. Most gameplay entit
 **Structure:** `Node2D`, `BodySprite`, `Stage1Timer`, `ExpandRetryTimer`, `HatchTimer`.
 
 **Keep in mind:** stage 1 is a non-blocking vertical `1x2` egg. Stage 2 expands to blocking `2x2`, can be eaten, and later hatches a new creature.
+
+### `scenes/effects/lightning_strike_effect.tscn`
+**Role:** short-lived visual lightning strike.
+
+**Structure:** `Node2D`, `AnimatedSprite2D`.
+
+**Keep in mind:** this is purely visual. Actual damage is applied by `player_nature_ui.gd`.
+
+### `scenes/effects/rain_target_preview.tscn`
+**Role:** lightweight visual target helper for rain.
+
+**Structure:** `Node2D` with `rain_target_preview.gd`.
+
+**Keep in mind:** this is a removable visual overlay only. It follows the mouse-selected tile while rain targeting is armed and draws the 3x3 affected area. It should not own grass or world rules.
 
 ### `scenes/debug/grid_debug_overlay.tscn`
 **Role:** optional debug overlay.
@@ -201,7 +224,7 @@ Important: `World` with `world_grid.gd` is the logic center. Most gameplay entit
 ### `scripts/creatures/behaviors/creature_visual_controller.gd`
 **Role:** creature visual helper.
 
-**Owns:** directional sprite selection, horizontal mirroring, right-facing walk animation setup, and animation/static sprite switching.
+**Owns:** directional sprite selection, horizontal mirroring, right/up walk animation setup, and animation/static sprite switching.
 
 ### `scripts/creatures/creature_species_data.gd`
 **Role:** species resource schema.
@@ -216,7 +239,9 @@ Important: `World` with `world_grid.gd` is the logic center. Most gameplay entit
 ### `scripts/resources/grass.gd`
 **Role:** grass lifecycle.
 
-**Owns:** two growth stages, timers, world registration, single spread attempt, spreading to 4 cardinal neighbors, fallback to stage 1 after consumption.
+**Owns:** two growth stages, timers, world registration, single spread attempt, spreading to 4 cardinal neighbors, fallback to stage 1 after consumption, and rain reaction hooks.
+
+**Rain behaviour:** rain does not create grass directly. Stage 1 grass immediately becomes stage 2; stage 2 grass triggers the existing one-time spread logic and stops the spread timer so the forced spread does not double-fire.
 
 ### `scripts/resources/egg.gd`
 **Role:** creature egg lifecycle.
@@ -224,9 +249,26 @@ Important: `World` with `world_grid.gd` is the logic center. Most gameplay entit
 **Owns:** stage 1 placement, repeated expansion attempts, stage 2 blocker registration, bool-based edibility, hatching a configured creature scene.
 
 ### `scripts/ui/creature_stats_ui.gd`
-**Role:** creature HUD and lightweight player interaction UI.
+**Role:** creature HUD and lightweight observation/debug UI.
 
-**Owns:** hover preview, click-to-pin selection, name/age/health/hunger display, health/hunger bars, FPS/debug text, lightning target mode, simulation speed switching.
+**Owns:** hover preview, click-to-pin selection, name/age/health/hunger display, health/hunger bars, FPS/debug text, and simulation speed switching.
+
+### `scripts/ui/player_nature_ui.gd`
+**Role:** player-facing nature powers HUD.
+
+**Owns:** nature energy, energy regeneration, spell button enable/disable states, lightning targeting/damage/effect spawn, rain targeting, rain energy cost, and calling grass rain reactions in a 3x3 tile area.
+
+**Keep in mind:** player powers should stay indirect. Rain accelerates grass lifecycle through existing grass logic instead of spawning resources from nothing.
+
+### `scripts/effects/lightning_strike_effect.gd`
+**Role:** lightning visual effect lifecycle.
+
+**Owns:** playing the default lightning animation and queue-free after lifetime.
+
+### `scripts/effects/rain_target_preview.gd`
+**Role:** rain targeting preview helper.
+
+**Owns:** drawing the 3x3 highlighted tile area under the cursor while rain targeting is armed.
 
 ### `scripts/debug/grid_debug_overlay.gd`
 **Role:** removable world-grid debug overlay.
@@ -260,7 +302,10 @@ Eggs use the world to resolve anchors, placement, blocking, and hatch placement.
 `creature.gd` creates helper objects and delegates grazing, predator, reproduction, and visual details while keeping high-level state ownership.
 
 ### Creature -> UI
-`HoverArea` talks to the `creature_stats_ui` group. The UI asks creatures for name, age, health, hunger, and max values. Lightning applies direct damage through creature methods.
+`HoverArea` talks to the `creature_stats_ui` group. The UI asks creatures for name, age, health, hunger, and max values. Player nature UI can apply lightning damage through creature methods.
+
+### PlayerNatureUI -> Grass/World
+`player_nature_ui.gd` finds the `world_grid` group, converts mouse position to a tile, scans a 3x3 area for grass, and calls `grass.apply_rain()`. It should remain a caller of world/resource logic, not the owner of grass rules.
 
 ### Debug systems -> World/Creature
 The debug overlay and performance stats read world/creature state but should not become owners of gameplay state.
@@ -275,16 +320,19 @@ The current code already provides:
 - a tile-based world with ground, water, and mountain terrain;
 - blocked water/mountain tiles;
 - several test herbivores;
-- directional creature sprites plus stegosaurus right-walk animation;
+- directional creature sprites plus stegosaurus right/up walk animation;
 - age, hunger, health, starvation damage, well-fed healing, and death;
 - hover and click creature selection;
 - grid-based grass search and pathfinding;
 - adult grass eating and grass regrowth;
 - grass spreading once to cardinal neighbors;
+- rain accelerating grass growth/spread in a 3x3 area;
 - egg laying, egg growth, stage 2 blocking, and hatching;
 - simple predator species data and predator behaviour helper;
 - isolated 1v1 duel loop;
-- first player action: lightning damage;
+- player nature energy economy;
+- lightning damage with energy cost and visual strike effect;
+- rain action with energy cost and 3x3 target preview;
 - stats panel, FPS/debug text, simulation speed control;
 - F3 grid overlay;
 - F8 CSV performance recording.
@@ -296,64 +344,36 @@ The current code already provides:
 ### Movement / path / footprint / stuck behaviour
 1. `scripts/world/world_grid.gd`
 2. `scripts/creatures/creature.gd`
-3. `scripts/creatures/behaviors/creature_visual_controller.gd` if the issue is visual sync
-4. `scenes/world/world.tscn`
+3. `scripts/creatures/behaviors/creature_visual_controller.gd`
 
-### Grass / food / grazing
+### Grazing / grass search / eating
 1. `scripts/creatures/behaviors/creature_grazing_logic.gd`
-2. `scripts/resources/grass.gd`
-3. `scripts/world/world_grid.gd`
-4. `scripts/creatures/creature.gd`
+2. `scripts/world/world_grid.gd`
+3. `scripts/resources/grass.gd`
 
-### Egg / reproduction / hatching
-1. `scripts/creatures/behaviors/creature_reproduction_logic.gd`
-2. `scripts/resources/egg.gd`
-3. `scripts/creatures/creature.gd`
-4. `data/species/stegosaurus.tres`
+### Grass lifecycle / rain effect on grass
+1. `scripts/resources/grass.gd`
+2. `scripts/ui/player_nature_ui.gd`
+3. `scripts/effects/rain_target_preview.gd`
+
+### Player powers / energy / targeting
+1. `scripts/ui/player_nature_ui.gd`
+2. `scenes/main/main.tscn`
+3. `scripts/effects/lightning_strike_effect.gd`
+4. `scripts/effects/rain_target_preview.gd`
 
 ### Predator / combat
 1. `scripts/creatures/behaviors/creature_predator_logic.gd`
 2. `scripts/combat/duel.gd`
 3. `scripts/creatures/creature.gd`
-4. `data/species/predator.tres`
-5. `scripts/world/world_grid.gd`
 
-### Creature UI / player lightning / speed controls
+### Eggs / reproduction
+1. `scripts/creatures/behaviors/creature_reproduction_logic.gd`
+2. `scripts/resources/egg.gd`
+3. `scripts/creatures/creature_species_data.gd`
+
+### UI / selection / debug
 1. `scripts/ui/creature_stats_ui.gd`
-2. `scripts/creatures/creature.gd`
-3. `scenes/main/main.tscn`
-
-### Debug / performance logging
-1. `scripts/debug/performance_stats.gd`
-2. `scripts/debug/grid_debug_overlay.gd`
-3. `scripts/ui/creature_stats_ui.gd`
-4. `logs/`
-
-### Camera / world observation
-1. `scripts/camera/camera_controller.gd`
-2. `scenes/main/main.tscn`
-
----
-
-## 8. Places to avoid touching blindly
-
-- `anchor_tile`, `pending_anchor_tile`, and `movement_target_position` logic in `creature.gd`.
-- `register_creature`, `move_creature`, `can_place_footprint`, and blocker functions in `world_grid.gd`.
-- grazing target scoring and retarget logic.
-- predator side-contact duel entry.
-- egg stage 2 blocker registration/unregistration.
-- consistency between visual motion and logical creature position.
-
-If these areas are changed carelessly, a creature can visually stand in one place while logically eating, occupying, or fighting elsewhere.
-
----
-
-## 9. Design context worth preserving
-
-The project direction is:
-- a living autonomous ecosystem;
-- indirect player control;
-- a world that exists on its own;
-- gradual growth in species, resources, and player influence.
-
-This is not “a normal RTS with dinosaurs”. It is an observable simulation shaped by outside player influence.
+2. `scripts/ui/player_nature_ui.gd`
+3. `scripts/debug/grid_debug_overlay.gd`
+4. `scripts/debug/performance_stats.gd`

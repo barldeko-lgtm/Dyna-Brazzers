@@ -23,6 +23,13 @@
 - duel attachment;
 - helper coordination.
 
+`player_nature_ui.gd` owns the current player-facing nature action surface:
+- energy;
+- spell button states;
+- lightning targeting;
+- rain targeting;
+- calling world/resource methods for nature effects.
+
 Helper scripts own subsystem details, but they operate through the owning creature and world grid.
 
 ---
@@ -34,6 +41,9 @@ project.godot
 └── scenes/main/main.tscn
     ├── Camera2D -> scripts/camera/camera_controller.gd
     ├── UI -> scripts/ui/creature_stats_ui.gd
+    ├── PlayerNaturePanel -> scripts/ui/player_nature_ui.gd
+    │   ├── LightningStrikeEffect -> scenes/effects/lightning_strike_effect.tscn -> scripts/effects/lightning_strike_effect.gd
+    │   └── RainTargetPreview -> scenes/effects/rain_target_preview.tscn -> scripts/effects/rain_target_preview.gd
     ├── World -> scenes/world/world.tscn
     │   └── World -> scripts/world/world_grid.gd
     │       ├── Creatures -> scenes/creatures/creature.tscn -> scripts/creatures/creature.gd
@@ -68,10 +78,11 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 - `scenes/debug/grid_debug_overlay.tscn`
 - `scripts/camera/camera_controller.gd`
 - `scripts/ui/creature_stats_ui.gd`
+- `scripts/ui/player_nature_ui.gd`
 
 **Used by:** `project.godot`.
 
-**Touch when:** adding/removing top-level UI, camera, world instance, debug overlay, or global scene nodes.
+**Touch when:** adding/removing top-level UI, camera, world instance, debug overlay, global scene nodes, or player nature HUD nodes.
 
 ---
 
@@ -116,6 +127,8 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 - `scripts/debug/grid_debug_overlay.gd`
 - `scripts/debug/performance_stats.gd`
 - `scripts/ui/creature_stats_ui.gd`
+- `scripts/ui/player_nature_ui.gd`
+- `scripts/effects/rain_target_preview.gd`
 
 **Critical data dictionaries:**
 - `grass_by_tile`
@@ -165,12 +178,14 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 - `scripts/creatures/creature_species_data.gd`
 - `world_grid.gd` found through scene tree
 - `creature_stats_ui` group for hover/click UI
+- `player_nature_ui` group for player nature targeting, when creature clicks are forwarded to active player powers
 
 **Used by:**
 - `scenes/creatures/creature.tscn`
 - helper scripts through owner callbacks and owner state access
 - `duel.gd` through combat hooks
 - UI/debug scripts through public getters
+- `player_nature_ui.gd` for direct lightning damage
 
 **Main state:**
 - `state`
@@ -272,7 +287,7 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 **Depends on:**
 - `creature_species_data.gd`
 - stegosaurus directional textures
-- `data/animations/stegosaurus_walk_right_frames.tres`
+- walk animation resources
 - `scenes/resources/egg.tscn`
 - egg textures
 
@@ -293,18 +308,6 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 **Used by:** optional predator spawn and predator balancing.
 
 **Touch when:** changing predator stats, hunger threshold, target radius, combat numbers, or visuals.
-
----
-
-### `data/animations/stegosaurus_walk_right_frames.tres`
-**Owns:** stegosaurus right-facing walk animation frames.
-
-**Depends on:**
-- `assets/sprites/creatures/stegosaurus/stegosaurus_walk_right_01.png` through `_06.png`
-
-**Used by:** `data/species/stegosaurus.tres` and `creature_visual_controller.gd`.
-
-**Touch when:** changing walk frames, animation speed source, or animation resource path.
 
 ---
 
@@ -351,8 +354,9 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 **Used by:**
 - `world_grid.gd` through registration and consumption calls
 - creatures indirectly through grazing/world queries
+- `player_nature_ui.gd` indirectly through rain calling `apply_rain()` on grass in the targeted 3x3 area
 
-**Touch when:** growth timing, spreading, edibility, consumption, blocked-terrain handling, or grass visual stage changes.
+**Touch when:** growth timing, spreading, edibility, consumption, blocked-terrain handling, rain reaction, or grass visual stage changes.
 
 ---
 
@@ -363,7 +367,11 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 - `scripts/resources/egg.gd`
 - egg stage textures
 
-**Used by:** species data resources and reproduction helper.
+**Used by:**
+- `scenes/world/world.tscn`
+- species data resources and reproduction helper
+
+**Touch when:** egg node structure or default resource setup changes.
 
 ---
 
@@ -384,7 +392,7 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 ---
 
 ### `scripts/ui/creature_stats_ui.gd`
-**Owns:** prototype UI and player action surface.
+**Owns:** prototype creature/debug UI.
 
 **Depends on:**
 - UI node paths in `scenes/main/main.tscn`
@@ -395,7 +403,70 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 
 **Used by:** creature hover/click callbacks and player input.
 
-**Touch when:** stats panel, selection, lightning, speed controls, FPS/debug status, or UI input changes.
+**Touch when:** stats panel, selection, speed controls, FPS/debug status, or creature UI input changes.
+
+---
+
+### `scripts/ui/player_nature_ui.gd`
+**Owns:** player-facing nature powers HUD.
+
+**Depends on:**
+- UI node paths in `scenes/main/main.tscn` under `PlayerNaturePanel`
+- `world_grid` group for mouse tile conversion and grass lookup
+- creature public direct-damage method for lightning
+- `scripts/resources/grass.gd` exposing `apply_rain()`
+- `scenes/effects/lightning_strike_effect.tscn`
+- `scenes/effects/rain_target_preview.tscn`
+- `PerformanceStats` autoload for rain counters
+
+**Used by:** player input and creature click forwarding.
+
+**Touch when:** player energy, spell costs, lightning targeting, rain targeting, rain area size, or player nature UI changes.
+
+---
+
+### `scenes/effects/lightning_strike_effect.tscn`
+**Owns:** lightning visual effect instance.
+
+**Depends on:**
+- `scripts/effects/lightning_strike_effect.gd`
+- `data/animations/lightning_strike_frames.tres`
+
+**Used by:** `player_nature_ui.gd`.
+
+---
+
+### `scripts/effects/lightning_strike_effect.gd`
+**Owns:** lightning visual effect lifecycle.
+
+**Depends on:**
+- `AnimatedSprite2D`
+- `SpriteFrames` on the scene instance
+
+**Used by:** `scenes/effects/lightning_strike_effect.tscn`.
+
+---
+
+### `scenes/effects/rain_target_preview.tscn`
+**Owns:** visual rain target preview instance.
+
+**Depends on:**
+- `scripts/effects/rain_target_preview.gd`
+
+**Used by:** `player_nature_ui.gd`.
+
+---
+
+### `scripts/effects/rain_target_preview.gd`
+**Owns:** drawing the 3x3 rain target highlight.
+
+**Depends on:**
+- `world_grid.map_to_world_center()` called through the world grid reference
+- `world_grid.tile_size` for drawing tile-sized rectangles
+
+**Used by:** `scenes/effects/rain_target_preview.tscn`.
+
+**Touch when:** rain targeting visuals, highlight colours, tile preview sizing, or preview placement changes.
 
 ---
 
@@ -423,6 +494,8 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 
 **Used by:**
 - `creature_stats_ui.gd`
+- `player_nature_ui.gd`
+- `grass.gd`
 - any script that calls `PerformanceStats.add_counter()`
 
 **Touch when:** changing counters, CSV columns, sample frequency, log path, or F8 behaviour.
@@ -446,7 +519,7 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 ```text
 project.godot
 -> main.tscn
--> UI ready / camera ready / world instance ready / debug overlay ready
+-> UI ready / player nature UI ready / camera ready / world instance ready / debug overlay ready
 -> world_grid._ready()
 -> world caches Ground tile size and map bounds
 -> placed grass/creatures/eggs find world_grid and register/sync
@@ -454,215 +527,142 @@ project.godot
 
 ### Creature movement flow
 ```text
-creature.gd state update
--> decide next anchor/path step
--> world_grid.move_creature() reserves new footprint
--> creature stores pending_anchor_tile and movement_target_position
--> visual position moves smoothly
--> anchor_tile commits when movement reaches target
+creature state chooses movement/path
+-> world_grid.find_path()
+-> creature reserves/moves anchor through world_grid
+-> visual position interpolates toward anchor world position
 ```
 
-### Herbivore food flow
+### Herbivore grazing flow
 ```text
-hunger reaches search threshold
--> creature enters SEEK_FOOD
--> creature_grazing_logic requests candidates from world_grid
--> world_grid scores adult grass under possible footprints
--> creature builds path to selected anchor
--> creature reaches anchor
--> eating timer starts
+creature hunger reaches search threshold
+-> creature_grazing_logic finds/scans targets
+-> world_grid counts adult grass under candidate footprints
+-> creature paths to selected anchor
+-> eating timer completes
 -> world_grid.consume_adult_grass_under_footprint()
--> grass.consume() returns grass to stage 1
--> creature restores hunger
+-> grass.consume()
+-> grass returns to stage 1 and restarts growth timer
 ```
 
-### Grass lifecycle flow
+### Grass growth/spread flow
 ```text
-grass.tscn ready
--> grass finds world_grid
--> syncs tile position
--> registers grass_by_tile
--> growth timer turns stage 1 into stage 2
--> spread timer tries cardinal spread once
--> adult grass can be consumed and returns to stage 1
+grass starts at stage 1
+-> GrowthTimer completes
+-> grass becomes stage 2
+-> SpreadTimer starts
+-> spread tick triggers one-time cardinal spread
+-> spread timer stops
 ```
 
-### Reproduction and egg flow
+### Player rain flow
 ```text
-creature.gd reproduction update
--> creature_reproduction_logic checks species thresholds/cooldown
+PlayerNaturePanel/player_nature_ui.gd
+-> player spends 25 energy after clicking a valid ground tile
+-> rain preview is hidden
+-> UI scans the 3x3 tile area through world_grid tile/grass lookup
+-> grass.apply_rain()
+-> stage 1 grass becomes stage 2
+-> stage 2 grass triggers existing one-time cardinal spread logic
+```
+
+### Player lightning flow
+```text
+PlayerNaturePanel/player_nature_ui.gd
+-> player spends 50 energy after clicking a valid creature
+-> lightning effect scene is instanced at target position
+-> creature.take_direct_damage(50)
+-> creature may die and unregister from world_grid
+```
+
+### Reproduction flow
+```text
+creature meets reproduction thresholds
+-> creature_reproduction_logic picks available egg anchor
 -> creature enters LAYING_EGG
--> egg timer timeout
--> reproduction helper spawns egg.tscn in Eggs container
--> egg stage 1 starts non-blocking 1x2
--> egg tries to register stage 2 blocker 2x2
--> hatch timer timeout
--> egg unregisters blocker
--> egg spawns creature.tscn into Creatures container
+-> egg scene spawns into Eggs container
+-> stage 1 egg is non-blocking
+-> stage 2 expansion registers blocker
+-> hatch timer spawns new creature and unregisters blocker
 ```
 
 ### Predator combat flow
 ```text
-predator hunger reaches threshold
--> creature_predator_logic finds nearest valid non-predator prey
--> builds path to side-adjacent approach anchor
+predator hunger reaches hunt threshold
+-> creature_predator_logic finds prey
+-> path to side-adjacent anchor
 -> side-contact check passes
--> helper creates Duel
--> fighters attach duel and enter COMBAT
--> duel alternates attacks each second
--> loser dies / unregisters
--> winner detaches; predator restores hunger
-```
-
-### Lightning flow
-```text
-UI lightning button toggled on
--> next left-click on creature HoverArea
--> creature_stats_ui.try_apply_lightning_to_creature()
--> creature.take_direct_damage(50)
--> creature may enter DEAD and unregister from world_grid
-```
-
-### Performance logging flow
-```text
-PerformanceStats autoload runs
--> UI displays current status/rates
--> F8 toggles CSV recording
--> PerformanceStats writes samples to logs/perf_log_*.csv
+-> duel starts
+-> duel alternates attacks
+-> loser dies
+-> winner detaches
 ```
 
 ---
 
 ## 5. Task-based file bundles
 
-Use these bundles when the user does not know which files to provide.
+### Add/change a player nature action
+Read first:
+- `docs/project-map.md`
+- `docs/current-state.md`
+- `docs/dependencies.md`
+- `scripts/ui/player_nature_ui.gd`
+- `scenes/main/main.tscn`
 
-### Movement, stuck creatures, wrong position, ghost occupancy
-Send/check:
-1. `scripts/world/world_grid.gd`
-2. `scripts/creatures/creature.gd`
-3. `scripts/creatures/behaviors/creature_visual_controller.gd`
-4. `scenes/world/world.tscn`
-5. `scenes/creatures/creature.tscn`
+Often related:
+- `scripts/world/world_grid.gd`
+- target resource script, e.g. `scripts/resources/grass.gd`
+- visual helper scene/script if the action needs targeting or effect feedback
 
-### Grass search, eating, food retargeting, herbivore starvation
-Send/check:
-1. `scripts/creatures/behaviors/creature_grazing_logic.gd`
-2. `scripts/creatures/creature.gd`
-3. `scripts/world/world_grid.gd`
-4. `scripts/resources/grass.gd`
-5. `scenes/resources/grass.tscn`
-6. `data/species/stegosaurus.tres`
+### Change rain
+Read first:
+- `scripts/ui/player_nature_ui.gd`
+- `scripts/resources/grass.gd`
+- `scripts/effects/rain_target_preview.gd`
+- `scenes/main/main.tscn`
 
-### Grass growth/spread/performance spam
-Send/check:
-1. `scripts/resources/grass.gd`
-2. `scripts/world/world_grid.gd`
-3. `scripts/debug/performance_stats.gd`
-4. `scripts/ui/creature_stats_ui.gd`
-5. recent `logs/perf_log_*.csv` if available
+Rules:
+- rain should not spawn grass directly;
+- stage 1 grass should use the existing growth/stage logic;
+- stage 2 grass should use the existing one-time spread logic;
+- timers should not double-fire after forced rain spread.
 
-### Eggs, reproduction, hatching, blocker bugs
-Send/check:
-1. `scripts/creatures/behaviors/creature_reproduction_logic.gd`
-2. `scripts/resources/egg.gd`
-3. `scripts/creatures/creature.gd`
-4. `scripts/world/world_grid.gd`
-5. `scenes/resources/egg.tscn`
-6. `data/species/stegosaurus.tres`
+### Change lightning
+Read first:
+- `scripts/ui/player_nature_ui.gd`
+- `scenes/effects/lightning_strike_effect.tscn`
+- `scripts/effects/lightning_strike_effect.gd`
+- `data/animations/lightning_strike_frames.tres`
 
-### Predator hunting, combat entry, duel bugs
-Send/check:
-1. `scripts/creatures/behaviors/creature_predator_logic.gd`
-2. `scripts/combat/duel.gd`
-3. `scripts/creatures/creature.gd`
-4. `scripts/world/world_grid.gd`
-5. `data/species/predator.tres`
-6. `data/species/stegosaurus.tres`
+### Change grass lifecycle
+Read first:
+- `scripts/resources/grass.gd`
+- `scenes/resources/grass.tscn`
+- `scripts/world/world_grid.gd`
 
-### Creature visuals, animation, facing direction
-Send/check:
-1. `scripts/creatures/behaviors/creature_visual_controller.gd`
-2. `scripts/creatures/creature.gd`
-3. `scripts/creatures/creature_species_data.gd`
-4. `data/species/stegosaurus.tres`
-5. `data/animations/stegosaurus_walk_right_frames.tres`
-6. relevant sprite files under `assets/sprites/creatures/`
+### Change creature movement/pathing
+Read first:
+- `scripts/world/world_grid.gd`
+- `scripts/creatures/creature.gd`
+- `scripts/creatures/behaviors/creature_grazing_logic.gd`
 
-### Creature stats and balancing
-Send/check:
-1. `scripts/creatures/creature_species_data.gd`
-2. `data/species/stegosaurus.tres`
-3. `data/species/predator.tres`
-4. `scripts/creatures/creature.gd`
-5. relevant behaviour helper script
+### Change predator/combat
+Read first:
+- `scripts/creatures/behaviors/creature_predator_logic.gd`
+- `scripts/combat/duel.gd`
+- `scripts/creatures/creature.gd`
 
-### UI, selection, lightning, speed controls
-Send/check:
-1. `scripts/ui/creature_stats_ui.gd`
-2. `scenes/main/main.tscn`
-3. `scripts/creatures/creature.gd`
-4. `scripts/debug/performance_stats.gd` if debug status is involved
+### Change reproduction/eggs
+Read first:
+- `scripts/creatures/behaviors/creature_reproduction_logic.gd`
+- `scripts/resources/egg.gd`
+- `scenes/resources/egg.tscn`
+- `scripts/creatures/creature_species_data.gd`
 
-### Debug overlay and visual diagnostics
-Send/check:
-1. `scripts/debug/grid_debug_overlay.gd`
-2. `scenes/debug/grid_debug_overlay.tscn`
-3. `scripts/world/world_grid.gd`
-4. `scripts/creatures/creature.gd`
-5. `scripts/ui/creature_stats_ui.gd`
-
-### Performance logging / CSV / counters
-Send/check:
-1. `scripts/debug/performance_stats.gd`
-2. `scripts/ui/creature_stats_ui.gd`
-3. `project.godot`
-4. recent `logs/perf_log_*.csv`
-5. system scripts suspected of high activity, usually `grass.gd`, `creature.gd`, or `world_grid.gd`
-
-### Camera controls
-Send/check:
-1. `scripts/camera/camera_controller.gd`
-2. `scenes/main/main.tscn`
-
-### Terrain / water / mountains / path blocking
-Send/check:
-1. `scripts/world/world_grid.gd`
-2. `scenes/world/world.tscn`
-3. terrain sprites/imports under `assets/sprites/terrain/`
-4. any creature/pathing script affected by the issue
-
----
-
-## 6. Documentation dependency rules
-
-When code changes, update docs as follows:
-
-### Update `docs/current-state.md` when:
-- a feature starts working;
-- a feature is disabled/enabled in a meaningful way;
-- a major prototype limitation changes;
-- debug/performance tooling changes;
-- the real current behaviour no longer matches the snapshot.
-
-### Update `docs/project-map.md` when:
-- files/scenes are added, renamed, removed, or responsibilities move;
-- a subsystem is split into a helper script;
-- a new important data resource appears;
-- startup or scene structure changes.
-
-### Update `docs/dependencies.md` when:
-- a script starts calling another script/resource;
-- a new task bundle is useful;
-- ownership of a system moves;
-- fragile dependency links change.
-
-### Update `AGENTS.md` when:
-- agent rules change;
-- read order changes;
-- architecture canon changes;
-- fragile areas change.
-
-### Do not update `docs/design_roadmap.md` unless:
-- the user explicitly asks to edit roadmap/design vision;
-- roadmap milestones themselves change.
+### Change UI/debug
+Read first:
+- `scripts/ui/creature_stats_ui.gd`
+- `scripts/ui/player_nature_ui.gd`
+- `scripts/debug/grid_debug_overlay.gd`
+- `scripts/debug/performance_stats.gd`
