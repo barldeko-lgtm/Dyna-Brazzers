@@ -1,166 +1,87 @@
-# Dyna — Dependency Map
+# Dyna — Dependencies
 
-> Practical dependency graph for agents and future sessions. Use this when deciding which files to inspect or send for a task.
+> Purpose: explain how important files depend on each other and which files to inspect for common tasks. This file may be more detailed than the other docs because it is a working guide for code changes.
 
 ---
 
-## 1. Core principle
+## 1. Core dependency principles
 
-`world_grid.gd` is the source of truth for the physical simulation grid:
-- terrain;
+### World grid is the physical source of truth
+
+`res://scripts/world/world_grid.gd` owns:
+- terrain lookup;
 - walkability;
-- occupancy;
-- blockers;
-- paths;
+- footprint placement;
+- pathfinding;
 - grass lookup;
-- grazing target queries.
+- creature occupancy;
+- blocker occupancy.
 
-`creature.gd` is the source of truth for creature runtime state:
-- current state;
-- health/hunger/age;
-- anchor and movement state;
-- current path and targets;
-- duel attachment;
-- helper coordination.
+If a task touches movement, standing position, blocked tiles, resource lookup, or pathing, inspect `world_grid.gd`.
 
-`player_nature_ui.gd` owns the current player-facing nature action surface:
-- energy;
-- spell button states;
-- lightning targeting;
-- rain targeting;
-- sun targeting;
-- calling world/resource methods for nature effects.
+### Creature script is the runtime coordinator
 
-Helper scripts own subsystem details, but they operate through the owning creature and world grid.
+`res://scripts/creatures/creature.gd` owns high-level runtime state and delegates subsystem details to helpers.
 
-Balance values for player nature actions currently live in `scripts/ui/player_nature_ui.gd`. Do not duplicate those exported values in `scenes/main/main.tscn` unless a deliberate per-scene override is needed.
+Important linked helpers:
+- `res://scripts/creatures/behaviors/creature_grazing_logic.gd`
+- `res://scripts/creatures/behaviors/creature_predator_logic.gd`
+- `res://scripts/creatures/behaviors/creature_reproduction_logic.gd`
+- `res://scripts/creatures/behaviors/creature_visual_controller.gd`
 
----
+### Resources own their lifecycle
 
-## 2. High-level dependency graph
+Grass and eggs should manage their own internal state:
+- `res://scripts/resources/grass.gd`
+- `res://scripts/resources/egg.gd`
 
-```text
-project.godot
-└── scenes/main/main.tscn
-    ├── Camera2D -> scripts/camera/camera_controller.gd
-    ├── UI -> scripts/ui/creature_stats_ui.gd
-    ├── PlayerNaturePanel -> scripts/ui/player_nature_ui.gd
-    │   ├── LightningStrikeEffect -> scenes/effects/lightning_strike_effect.tscn -> scripts/effects/lightning_strike_effect.gd
-    │   ├── RainTargetPreview -> scenes/effects/rain_target_preview.tscn -> scripts/effects/rain_target_preview.gd
-    │   └── SunTargetPreview -> scenes/effects/sun_target_preview.tscn -> scripts/effects/rain_target_preview.gd
-    ├── World -> scenes/world/world.tscn
-    │   └── World -> scripts/world/world_grid.gd
-    │       ├── Creatures -> scenes/creatures/creature.tscn -> scripts/creatures/creature.gd
-    │       ├── Grasses -> scenes/resources/grass.tscn -> scripts/resources/grass.gd
-    │       ├── Eggs -> scenes/resources/egg.tscn -> scripts/resources/egg.gd
-    │       └── Ground -> TileMapLayer terrain source
-    └── GridDebugOverlay -> scripts/debug/grid_debug_overlay.gd
+Other systems should call their public methods rather than duplicating lifecycle rules elsewhere.
 
-PerformanceStats autoload -> scripts/debug/performance_stats.gd
-```
+### UI triggers actions but should not own simulation state
+
+Player and observation UI live mostly in:
+- `res://scripts/ui/player_nature_ui.gd`
+- `res://scripts/ui/creature_stats_ui.gd`
+
+UI can trigger actions and display data, but lasting world/entity/resource state should stay in world, creature, grass, egg, or species logic.
 
 ---
 
-## 3. File-by-file dependencies
+## 2. Scene links
 
-### `project.godot`
-**Owns:** main scene and autoload registration.
+### Main scene
 
-**Depends on:**
-- `scenes/main/main.tscn`
-- `scripts/debug/performance_stats.gd` as `PerformanceStats`
+`res://scenes/main/main.tscn`
 
-**Touch when:** changing startup scene or autoloads.
+Primary links:
+- `res://scripts/camera/camera_controller.gd`
+- `res://scripts/ui/creature_stats_ui.gd`
+- `res://scripts/ui/player_nature_ui.gd`
+- `res://scenes/world/world.tscn`
+- `res://scenes/debug/grid_debug_overlay.tscn`
 
----
+Inspect this scene when changing top-level UI composition, camera node wiring, world instance wiring, or debug overlay placement.
 
-### `scenes/main/main.tscn`
-**Owns:** top-level scene assembly.
+### World scene
 
-**Depends on:**
-- `scenes/world/world.tscn`
-- `scenes/debug/grid_debug_overlay.tscn`
-- `scripts/camera/camera_controller.gd`
-- `scripts/ui/creature_stats_ui.gd`
-- `scripts/ui/player_nature_ui.gd`
+`res://scenes/world/world.tscn`
 
-**Used by:** `project.godot`.
+Primary links:
+- `res://scripts/world/world_grid.gd`
+- `res://scenes/creatures/creature.tscn`
+- `res://scenes/resources/grass.tscn`
+- `res://scenes/resources/egg.tscn`
 
-**Touch when:** adding/removing top-level UI, camera, world instance, debug overlay, global scene nodes, or player nature HUD nodes.
+Inspect this scene when changing sandbox layout, terrain setup, placed grass, placed creatures, egg container, creature container, or spawn markers.
 
-**Important:** avoid scene-level overrides for player nature balance values unless intentional. Defaults should usually stay in `scripts/ui/player_nature_ui.gd`.
+### Creature scene
 
----
+`res://scenes/creatures/creature.tscn`
 
-### `scenes/world/world.tscn`
-**Owns:** world node layout and placed sandbox objects.
+Primary script:
+- `res://scripts/creatures/creature.gd`
 
-**Depends on:**
-- `scripts/world/world_grid.gd`
-- `scenes/creatures/creature.tscn`
-- `scenes/resources/grass.tscn`
-- terrain sprites in `assets/sprites/terrain/`
-
-**Used by:** `scenes/main/main.tscn`.
-
-**Important child nodes:**
-- `Creatures`
-- `PredatorSpawn`
-- `Grasses`
-- `Eggs`
-- `Ground`
-
-**Touch when:** changing test map, placed creatures/grass, terrain tile setup, spawn markers, or world containers.
-
----
-
-### `scripts/world/world_grid.gd`
-**Owns:** grid authority.
-
-**Depends on:**
-- `Ground` child from `scenes/world/world.tscn`
-- `scenes/creatures/creature.tscn` for optional predator spawn
-- `data/species/predator.tres` for optional predator spawn
-- grass/creature/egg nodes calling registration methods
-
-**Used by:**
-- `scripts/creatures/creature.gd`
-- `scripts/creatures/behaviors/creature_grazing_logic.gd`
-- `scripts/creatures/behaviors/creature_predator_logic.gd`
-- `scripts/creatures/behaviors/creature_reproduction_logic.gd`
-- `scripts/resources/grass.gd`
-- `scripts/resources/egg.gd`
-- `scripts/debug/grid_debug_overlay.gd`
-- `scripts/debug/performance_stats.gd`
-- `scripts/ui/creature_stats_ui.gd`
-- `scripts/ui/player_nature_ui.gd`
-- `scripts/effects/rain_target_preview.gd`
-
-**Critical data dictionaries:**
-- `grass_by_tile`
-- `creature_anchors`
-- `blocker_anchors`
-- `occupied_by_tile`
-
-**Touch when:** movement/pathing/terrain/occupancy/grass-search/blocker bugs appear.
-
-**Do not change blindly:** `register_creature`, `move_creature`, `unregister_creature`, `register_blocker`, `unregister_blocker`, `can_place_footprint`, pathfinding, and grazing scoring.
-
----
-
-### `scenes/creatures/creature.tscn`
-**Owns:** base creature node structure.
-
-**Depends on:**
-- `scripts/creatures/creature.gd`
-- `data/species/stegosaurus.tres` by default
-
-**Used by:**
-- `scenes/world/world.tscn`
-- `scripts/world/world_grid.gd` optional predator spawn
-- `scripts/resources/egg.gd` hatching
-
-**Important child nodes:**
+Important children:
 - `BodySprite`
 - `WalkRightSprite`
 - `CollisionShape2D`
@@ -168,312 +89,440 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 - `EggLayingTimer`
 - `HoverArea`
 
-**Touch when:** creature node structure, collisions, hover area, timers, or default species data change.
+Inspect this scene when changing creature node structure, collisions, timers, hover/click handling, or default species assignment.
+
+### Grass scene
+
+`res://scenes/resources/grass.tscn`
+
+Primary script:
+- `res://scripts/resources/grass.gd`
+
+Inspect when changing grass timers, visual stages, node structure, or scene-level resource setup.
+
+### Egg scene
+
+`res://scenes/resources/egg.tscn`
+
+Primary script:
+- `res://scripts/resources/egg.gd`
+
+Inspect when changing egg stages, timers, visuals, blocker shape, or hatching setup.
+
+### Effect scenes
+
+Lightning:
+- `res://scenes/effects/lightning_strike_effect.tscn`
+- `res://scripts/effects/lightning_strike_effect.gd`
+- `res://data/animations/lightning_strike_frames.tres`
+
+Rain preview:
+- `res://scenes/effects/rain_target_preview.tscn`
+- `res://scripts/effects/rain_target_preview.gd`
+
+Sun preview:
+- `res://scenes/effects/sun_target_preview.tscn`
+- `res://scripts/effects/rain_target_preview.gd`
+
+The rain preview script is currently a reusable square/tile-area preview helper used by more than one power.
 
 ---
 
-### `scripts/creatures/creature.gd`
-**Owns:** base creature runtime coordination.
+## 3. System dependency blocks
 
-**Depends on:**
-- `scripts/combat/duel.gd`
-- `scripts/creatures/behaviors/creature_grazing_logic.gd`
-- `scripts/creatures/behaviors/creature_predator_logic.gd`
-- `scripts/creatures/behaviors/creature_reproduction_logic.gd`
-- `scripts/creatures/behaviors/creature_visual_controller.gd`
-- `scripts/creatures/creature_species_data.gd`
-- `world_grid.gd` found through scene tree
-- `creature_stats_ui` group for hover/click UI
-- `player_nature_ui` group for player nature targeting, when creature clicks are forwarded to active player powers
+### World / grid / terrain
 
-**Used by:**
-- `scenes/creatures/creature.tscn`
-- helper scripts through owner callbacks and owner state access
-- `duel.gd` through combat hooks
-- UI/debug scripts through public getters
-- `player_nature_ui.gd` for direct lightning damage
+Main files:
+- `res://scripts/world/world_grid.gd`
+- `res://scenes/world/world.tscn`
+- `res://scripts/debug/grid_debug_overlay.gd`
 
-**Main state:**
-- `state`
-- `health`, `hunger`, `age`
-- `anchor_tile`, `pending_anchor_tile`, `movement_target_position`
-- `current_path`
-- `grazing_target_anchor`, `has_grazing_target`, `grazing_candidate_queue`
-- `current_duel`
+Usually relevant:
+- `res://scripts/creatures/creature.gd`
+- `res://scripts/resources/grass.gd`
+- `res://scripts/resources/egg.gd`
 
-**Touch when:** high-level creature lifecycle/state changes are needed.
+Important links:
+- creatures register anchors and occupied footprint tiles in `world_grid.gd`;
+- grass registers its tile in `world_grid.gd`;
+- eggs register blocker footprints in `world_grid.gd`;
+- debug overlay reads world-grid data for visualization.
 
-**Do not change blindly:** movement sync, eating entry, duel attach/detach, death/unregister flow, helper delegation.
+High-risk areas:
+- `grass_by_tile`
+- `creature_anchors`
+- `blocker_anchors`
+- `occupied_by_tile`
+- `can_place_footprint`
+- movement registration/unregistration
+- blocker registration/unregistration
+
+### Creature runtime
+
+Main files:
+- `res://scripts/creatures/creature.gd`
+- `res://scripts/creatures/creature_species_data.gd`
+- `res://data/species/*.tres`
+
+Helpers:
+- `res://scripts/creatures/behaviors/creature_grazing_logic.gd`
+- `res://scripts/creatures/behaviors/creature_predator_logic.gd`
+- `res://scripts/creatures/behaviors/creature_reproduction_logic.gd`
+- `res://scripts/creatures/behaviors/creature_visual_controller.gd`
+
+Important links:
+- `creature.gd` owns the high-level state machine and mutable runtime state;
+- helper scripts read/write owner creature state;
+- species resources provide static per-species configuration;
+- UI/debug calls public getters on creatures.
+
+High-risk areas:
+- logical anchor vs visual position;
+- movement path state;
+- state transitions;
+- death cleanup;
+- helper delegation;
+- runtime values vs species values.
+
+### Grass and grazing
+
+Main files:
+- `res://scripts/resources/grass.gd`
+- `res://scripts/creatures/behaviors/creature_grazing_logic.gd`
+- `res://scripts/world/world_grid.gd`
+
+Usually relevant:
+- `res://scripts/creatures/creature.gd`
+- `res://scripts/debug/performance_stats.gd`
+- `res://data/species/stegosaurus.tres`
+
+Important links:
+- grass registers in `world_grid.gd`;
+- `world_grid.gd` counts edible grass under possible creature footprints;
+- `creature_grazing_logic.gd` asks the world for targets and paths;
+- `creature.gd` starts eating after movement reaches a valid anchor;
+- `world_grid.gd` consumes edible grass under the footprint;
+- `grass.gd` handles the consumed state.
+
+High-risk areas:
+- target anchor validity;
+- retargeting;
+- unreachable targets;
+- repeated path rebuilds;
+- map-wide scans;
+- footprint grass count;
+- eating before arrival.
+
+### Eggs and reproduction
+
+Main files:
+- `res://scripts/creatures/behaviors/creature_reproduction_logic.gd`
+- `res://scripts/resources/egg.gd`
+- `res://scenes/resources/egg.tscn`
+- `res://scripts/world/world_grid.gd`
+- `res://scripts/creatures/creature_species_data.gd`
+
+Usually relevant:
+- `res://scripts/creatures/creature.gd`
+- `res://scenes/creatures/creature.tscn`
+- `res://data/species/*.tres`
+
+Important links:
+- reproduction helper checks creature/species conditions;
+- reproduction helper chooses an egg anchor using world placement rules;
+- egg scene handles stage timers;
+- egg registers blockers through `world_grid.gd` when needed;
+- egg unregisters blockers before hatching or removal;
+- hatching instantiates a creature scene.
+
+High-risk areas:
+- stale blockers;
+- invalid egg anchors;
+- hatching placement;
+- removal order;
+- stage transition cleanup.
+
+### Predator and combat
+
+Main files:
+- `res://scripts/creatures/behaviors/creature_predator_logic.gd`
+- `res://scripts/combat/duel.gd`
+- `res://scripts/creatures/creature.gd`
+- `res://scripts/world/world_grid.gd`
+
+Usually relevant:
+- `res://data/species/predator.tres`
+- `res://data/species/*.tres`
+
+Important links:
+- predator helper finds valid prey;
+- world grid provides pathing and placement checks;
+- predator helper seeks a side-contact position;
+- duel helper resolves combat loop;
+- creature death/cleanup is still handled by `creature.gd`.
+
+High-risk areas:
+- diagonal contact accidentally starting combat;
+- stuck combat state;
+- stale duel references;
+- death during duel;
+- predator hunger/combat aftermath behaviour.
+
+### Player nature powers
+
+Main files:
+- `res://scripts/ui/player_nature_ui.gd`
+- `res://scenes/main/main.tscn`
+
+For grass-affecting powers:
+- `res://scripts/resources/grass.gd`
+- `res://scripts/world/world_grid.gd`
+- `res://scripts/effects/rain_target_preview.gd`
+- `res://scenes/effects/rain_target_preview.tscn`
+- `res://scenes/effects/sun_target_preview.tscn`
+
+For creature-targeted powers:
+- `res://scripts/creatures/creature.gd`
+- `res://scripts/ui/creature_stats_ui.gd`
+- `res://scenes/effects/lightning_strike_effect.tscn`
+- `res://scripts/effects/lightning_strike_effect.gd`
+
+Important links:
+- `player_nature_ui.gd` owns energy and targeting;
+- terrain-targeted powers use world-grid tile lookup;
+- grass-affecting powers call public grass methods;
+- creature-targeted powers use creature public damage hooks;
+- creature click routing currently passes through prototype UI.
+
+High-risk areas:
+- UI bypassing resource lifecycle;
+- scene-level exported overrides hiding script defaults;
+- target preview mismatch;
+- world registration after deleting resources;
+- turning player powers into direct unit control.
+
+### Creature visuals and animation
+
+Main files:
+- `res://scripts/creatures/behaviors/creature_visual_controller.gd`
+- `res://scripts/creatures/creature.gd`
+- `res://scenes/creatures/creature.tscn`
+- `res://data/species/*.tres`
+- `res://data/animations/*.tres`
+
+Usually relevant:
+- creature sprites under `res://assets/sprites/creatures/`
+
+Important links:
+- species resources point to visual/animation data;
+- visual helper switches sprites/animations based on direction and state;
+- movement direction comes from creature runtime state.
+
+High-risk areas:
+- left/right mirroring;
+- animation not matching movement;
+- visual sprite position vs logical body;
+- missing animation resources.
+
+### UI and debug
+
+Main files:
+- `res://scripts/ui/creature_stats_ui.gd`
+- `res://scripts/ui/player_nature_ui.gd`
+- `res://scripts/debug/grid_debug_overlay.gd`
+- `res://scripts/debug/performance_stats.gd`
+- `res://scenes/main/main.tscn`
+
+Important links:
+- creature hover/click uses the creature stats UI group;
+- player powers use the player nature UI group;
+- debug status reads performance counters and world state;
+- grid debug overlay reads world/creature state but should not modify simulation.
+
+Known debt:
+- `creature_stats_ui.gd` currently mixes stats, debug text, and simulation speed;
+- split into smaller UI scripts during UI cleanup.
+
+### Performance and logs
+
+Main files:
+- `res://scripts/debug/performance_stats.gd`
+- `res://scripts/ui/creature_stats_ui.gd`
+
+Inspect the measured system too:
+- grazing/pathing: `res://scripts/world/world_grid.gd`, `res://scripts/creatures/behaviors/creature_grazing_logic.gd`
+- grass: `res://scripts/resources/grass.gd`
+- creature ticks: `res://scripts/creatures/creature.gd`
+- player powers: `res://scripts/ui/player_nature_ui.gd`
+
+Important links:
+- gameplay scripts add counters;
+- `PerformanceStats` aggregates rates;
+- debug UI displays status;
+- F8 CSV logs are used for diagnosis.
+
+High-risk areas:
+- counters becoming misleading;
+- logging too much;
+- diagnosing symptoms without checking the linked system.
 
 ---
 
-### `scripts/resources/grass.gd`
-**Owns:** grass lifecycle.
+## 4. Task bundles
 
-**Depends on:**
-- `world_grid.gd` found through scene tree
-- own scene path for spreading new grass
-- `BodySprite`, `GrowthTimer`, `SpreadTimer`
+### If changing movement, walkability, or footprint placement
 
-**Used by:**
-- `world_grid.gd` through registration and consumption calls
-- creatures indirectly through grazing/world queries
-- `player_nature_ui.gd` through rain calling `apply_rain()`
-- `player_nature_ui.gd` through sun calling `apply_sun()`, random removal, and `reset_spread_attempt()`
+Read first:
+- `res://scripts/world/world_grid.gd`
+- `res://scripts/creatures/creature.gd`
 
-**Touch when:** growth timing, spreading, edibility, consumption, blocked-terrain handling, rain reaction, sun reaction, spread-reset behaviour, or grass visual stage changes.
+Then, depending on issue:
+- `res://scenes/world/world.tscn`
+- `res://scripts/debug/grid_debug_overlay.gd`
+- `res://scripts/creatures/behaviors/creature_visual_controller.gd`
+
+### If changing grazing or food search
+
+Read first:
+- `res://scripts/creatures/behaviors/creature_grazing_logic.gd`
+- `res://scripts/world/world_grid.gd`
+- `res://scripts/resources/grass.gd`
+
+Then, depending on issue:
+- `res://scripts/creatures/creature.gd`
+- `res://scripts/debug/performance_stats.gd`
+- `res://data/species/stegosaurus.tres`
+
+### If changing grass lifecycle or grass nature reactions
+
+Read first:
+- `res://scripts/resources/grass.gd`
+- `res://scripts/world/world_grid.gd`
+
+Then, depending on issue:
+- `res://scripts/ui/player_nature_ui.gd`
+- `res://scripts/effects/rain_target_preview.gd`
+- `res://scenes/resources/grass.tscn`
+
+### If changing player powers
+
+Read first:
+- `res://scripts/ui/player_nature_ui.gd`
+- `res://scenes/main/main.tscn`
+
+For grass effects:
+- `res://scripts/resources/grass.gd`
+- `res://scripts/world/world_grid.gd`
+- `res://scripts/effects/rain_target_preview.gd`
+
+For creature effects:
+- `res://scripts/creatures/creature.gd`
+- `res://scripts/ui/creature_stats_ui.gd`
+- `res://scripts/effects/lightning_strike_effect.gd`
+
+### If changing reproduction or eggs
+
+Read first:
+- `res://scripts/creatures/behaviors/creature_reproduction_logic.gd`
+- `res://scripts/resources/egg.gd`
+- `res://scripts/world/world_grid.gd`
+
+Then, depending on issue:
+- `res://scenes/resources/egg.tscn`
+- `res://scripts/creatures/creature_species_data.gd`
+- `res://data/species/*.tres`
+
+### If changing predator or combat
+
+Read first:
+- `res://scripts/creatures/behaviors/creature_predator_logic.gd`
+- `res://scripts/combat/duel.gd`
+- `res://scripts/creatures/creature.gd`
+
+Then, depending on issue:
+- `res://scripts/world/world_grid.gd`
+- `res://data/species/predator.tres`
+
+### If changing creature visuals or animation
+
+Read first:
+- `res://scripts/creatures/behaviors/creature_visual_controller.gd`
+- `res://scripts/creatures/creature.gd`
+- `res://data/species/*.tres`
+- `res://data/animations/*.tres`
+
+Then, depending on issue:
+- `res://scenes/creatures/creature.tscn`
+- assets under `res://assets/sprites/creatures/`
+
+### If changing UI architecture
+
+Read first:
+- `res://scripts/ui/creature_stats_ui.gd`
+- `res://scripts/ui/player_nature_ui.gd`
+- `res://scenes/main/main.tscn`
+
+Goal:
+- keep player nature UI separate;
+- split creature stats, debug status, and simulation speed when appropriate;
+- avoid moving simulation rules into UI.
+
+### If analyzing performance logs
+
+Read first:
+- `res://scripts/debug/performance_stats.gd`
+- the CSV log;
+- the system whose counters spike.
+
+Common spike areas:
+- grazing candidate checks;
+- footprint queries;
+- path calls;
+- path expanded tiles;
+- grass spread events;
+- creature physics ticks;
+- node/object counts.
 
 ---
 
-### `scripts/ui/player_nature_ui.gd`
-**Owns:** player-facing nature powers HUD.
+## 5. Runtime flows that matter for dependencies
 
-**Depends on:**
-- UI node paths in `scenes/main/main.tscn` under `PlayerNaturePanel`
-- `world_grid` group for mouse tile conversion and grass lookup
-- creature public direct-damage method for lightning
-- `scripts/resources/grass.gd` exposing `apply_rain()`, `apply_sun()`, and `reset_spread_attempt()`
-- `scenes/effects/lightning_strike_effect.tscn`
-- `scenes/effects/rain_target_preview.tscn`
-- `scenes/effects/sun_target_preview.tscn`
-- `PerformanceStats` autoload for nature-action counters
+### Grazing
 
-**Used by:** player input and creature click forwarding.
+`creature.gd` detects hunger and delegates to `creature_grazing_logic.gd`. The grazing helper asks `world_grid.gd` for candidate anchors and paths. The creature moves to the chosen anchor. Eating uses `world_grid.gd` to consume grass, and `grass.gd` handles its own consumed state.
 
-**Touch when:** player energy, spell costs, lightning targeting, rain targeting, sun targeting, sun grass removal count, target area sizes, or player nature UI changes.
+### Grass spread and recovery
 
----
+`grass.gd` owns growth and spread. `world_grid.gd` only knows where grass exists and whether it can be found/consumed. Player powers should call grass hooks rather than duplicating growth/spread state in UI.
 
-### `scenes/effects/lightning_strike_effect.tscn`
-**Owns:** lightning visual effect instance.
+### Reproduction
 
-**Depends on:**
-- `scripts/effects/lightning_strike_effect.gd`
-- `data/animations/lightning_strike_frames.tres`
+`creature_reproduction_logic.gd` decides if and where an egg can be created. `egg.gd` owns its lifecycle after spawning. `world_grid.gd` validates placement and blocker state.
 
-**Used by:** `player_nature_ui.gd`.
+### Predator combat
+
+`creature_predator_logic.gd` owns hunting and duel entry. `duel.gd` owns the combat loop. `creature.gd` owns health, death, and state cleanup.
+
+### Player powers
+
+`player_nature_ui.gd` owns energy and targeting. It should call into world, grass, creature, and effect scripts. The affected system should own lasting state changes.
 
 ---
 
-### `scenes/effects/rain_target_preview.tscn`
-**Owns:** visual rain target preview instance.
+## 6. Documentation update policy
 
-**Depends on:**
-- `scripts/effects/rain_target_preview.gd`
+Update this file when:
+- a file responsibility changes;
+- a new dependency is introduced;
+- a scene/script link changes;
+- a task bundle becomes misleading;
+- a fragile rule changes.
 
-**Used by:** `player_nature_ui.gd`.
-
----
-
-### `scenes/effects/sun_target_preview.tscn`
-**Owns:** visual sun target preview instance.
-
-**Depends on:**
-- `scripts/effects/rain_target_preview.gd`
-
-**Used by:** `player_nature_ui.gd`.
-
----
-
-### `scripts/effects/rain_target_preview.gd`
-**Owns:** drawing configurable square target highlights.
-
-**Depends on:**
-- `world_grid.map_to_world_center()` called through the world grid reference
-- `world_grid.tile_size` for drawing tile-sized rectangles
-
-**Used by:**
-- `scenes/effects/rain_target_preview.tscn`
-- `scenes/effects/sun_target_preview.tscn`
-
-**Touch when:** tile targeting visuals, highlight colours, tile preview sizing, or preview placement changes.
-
----
-
-### `scripts/debug/performance_stats.gd`
-**Owns:** performance counters and CSV logging.
-
-**Depends on:**
-- autoload registration in `project.godot`
-- `world_grid` group for grass/creature counts
-- `logs/` folder creation/access
-
-**Used by:**
-- `creature_stats_ui.gd`
-- `player_nature_ui.gd`
-- `grass.gd`
-- any script that calls `PerformanceStats.add_counter()`
-
-**Touch when:** changing counters, CSV columns, sample frequency, log path, or F8 behaviour.
-
----
-
-## 4. Runtime flow maps
-
-### Startup flow
-```text
-project.godot
--> main.tscn
--> UI ready / player nature UI ready / camera ready / world instance ready / debug overlay ready
--> world_grid._ready()
--> world caches Ground tile size and map bounds
--> placed grass/creatures/eggs find world_grid and register/sync
-```
-
-### Creature movement flow
-```text
-creature state chooses movement/path
--> world_grid.find_path()
--> creature reserves/moves anchor through world_grid
--> visual position interpolates toward anchor world position
-```
-
-### Herbivore grazing flow
-```text
-creature hunger reaches search threshold
--> creature_grazing_logic finds/scans targets
--> world_grid counts adult grass under candidate footprints
--> creature paths to selected anchor
--> eating timer completes
--> world_grid.consume_adult_grass_under_footprint()
--> grass.consume()
--> grass returns to stage 1 and restarts growth timer
-```
-
-### Grass growth/spread flow
-```text
-grass starts at stage 1
--> GrowthTimer completes
--> grass becomes stage 2
--> SpreadTimer starts if has_tried_to_spread is false
--> spread tick triggers one-time cardinal spread
--> spread timer stops
-```
-
-### Player rain flow
-```text
-PlayerNaturePanel/player_nature_ui.gd
--> player spends 25 energy after clicking a valid ground tile
--> rain preview is hidden
--> UI scans the 3x3 tile area through world_grid tile/grass lookup
--> grass.apply_rain()
--> stage 1 grass becomes stage 2
--> stage 2 grass triggers existing one-time cardinal spread logic
-```
-
-### Player sun flow
-```text
-PlayerNaturePanel/player_nature_ui.gd
--> player spends 100 energy after clicking a valid ground tile
--> sun preview is hidden
--> UI scans the 5x5 tile area through world_grid tile/grass lookup
--> adult grass.apply_sun()
--> adult grass returns to stage 1
--> up to sun_remove_grass_count grass nodes are randomly queue_free()'d from the 5x5 area
--> UI scans the 7x7 spread-reset area
--> remaining grass.reset_spread_attempt()
--> mature remaining grass can start spread timer again
--> young remaining grass can spread after growing up again
-```
-
-### Player lightning flow
-```text
-PlayerNaturePanel/player_nature_ui.gd
--> player spends 50 energy after clicking a valid creature
--> lightning effect scene is instanced at target position
--> creature.take_direct_damage(50)
--> creature may die and unregister from world_grid
-```
-
----
-
-## 5. Task-based file bundles
-
-### Add/change a player nature action
-Read first:
-- `docs/project-map.md`
-- `docs/current-state.md`
-- `docs/dependencies.md`
-- `scripts/ui/player_nature_ui.gd`
-- `scenes/main/main.tscn`
-
-Often related:
-- `scripts/world/world_grid.gd`
-- target resource script, e.g. `scripts/resources/grass.gd`
-- visual helper scene/script if the action needs targeting or effect feedback
-
-### Change player nature balance
-Read first:
-- `scripts/ui/player_nature_ui.gd`
-
-Rule:
-- keep default balance values in `player_nature_ui.gd`;
-- avoid duplicating exported values in `scenes/main/main.tscn` unless a scene override is intentional.
-
-### Change rain
-Read first:
-- `scripts/ui/player_nature_ui.gd`
-- `scripts/resources/grass.gd`
-- `scripts/effects/rain_target_preview.gd`
-- `scenes/main/main.tscn`
-
-Rules:
-- rain should not spawn grass directly;
-- stage 1 grass should use the existing growth/stage logic;
-- stage 2 grass should use the existing one-time spread logic;
-- timers should not double-fire after forced rain spread.
-
-### Change sun
-Read first:
-- `scripts/ui/player_nature_ui.gd`
-- `scripts/resources/grass.gd`
-- `scenes/effects/sun_target_preview.tscn`
-- `scripts/effects/rain_target_preview.gd`
-- `scenes/main/main.tscn`
-
-Rules:
-- visible sun target area is 5x5 (`sun_radius_tiles := 2`);
-- spread-reset area is 7x7 (`sun_spread_reset_radius_tiles := 3`);
-- grass removal count is `sun_remove_grass_count`;
-- sun should spend energy on valid ground click even if little/no grass is affected;
-- deleted grass should be removed with `queue_free()` so `_exit_tree()` unregisters it from `world_grid`;
-- sun should not leave areas permanently unable to spread.
-
-### Change lightning
-Read first:
-- `scripts/ui/player_nature_ui.gd`
-- `scenes/effects/lightning_strike_effect.tscn`
-- `scripts/effects/lightning_strike_effect.gd`
-- `data/animations/lightning_strike_frames.tres`
-
-### Change grass lifecycle
-Read first:
-- `scripts/resources/grass.gd`
-- `scenes/resources/grass.tscn`
-- `scripts/world/world_grid.gd`
-
-### Change creature movement/pathing
-Read first:
-- `scripts/world/world_grid.gd`
-- `scripts/creatures/creature.gd`
-- `scripts/creatures/behaviors/creature_grazing_logic.gd`
-
-### Change predator/combat
-Read first:
-- `scripts/creatures/behaviors/creature_predator_logic.gd`
-- `scripts/combat/duel.gd`
-- `scripts/creatures/creature.gd`
-
-### Change reproduction/eggs
-Read first:
-- `scripts/creatures/behaviors/creature_reproduction_logic.gd`
-- `scripts/resources/egg.gd`
-- `scenes/resources/egg.tscn`
-- `scripts/creatures/creature_species_data.gd`
-
-### Change UI/debug
-Read first:
-- `scripts/ui/creature_stats_ui.gd`
-- `scripts/ui/player_nature_ui.gd`
-- `scripts/debug/grid_debug_overlay.gd`
-- `scripts/debug/performance_stats.gd`
+Do not update this file for ordinary tuning changes:
+- costs;
+- radii;
+- delays;
+- counts;
+- speed presets;
+- damage values;
+- other temporary balance numbers.
