@@ -28,9 +28,12 @@
 - spell button states;
 - lightning targeting;
 - rain targeting;
+- sun targeting;
 - calling world/resource methods for nature effects.
 
 Helper scripts own subsystem details, but they operate through the owning creature and world grid.
+
+Balance values for player nature actions currently live in `scripts/ui/player_nature_ui.gd`. Do not duplicate those exported values in `scenes/main/main.tscn` unless a deliberate per-scene override is needed.
 
 ---
 
@@ -43,7 +46,8 @@ project.godot
     ├── UI -> scripts/ui/creature_stats_ui.gd
     ├── PlayerNaturePanel -> scripts/ui/player_nature_ui.gd
     │   ├── LightningStrikeEffect -> scenes/effects/lightning_strike_effect.tscn -> scripts/effects/lightning_strike_effect.gd
-    │   └── RainTargetPreview -> scenes/effects/rain_target_preview.tscn -> scripts/effects/rain_target_preview.gd
+    │   ├── RainTargetPreview -> scenes/effects/rain_target_preview.tscn -> scripts/effects/rain_target_preview.gd
+    │   └── SunTargetPreview -> scenes/effects/sun_target_preview.tscn -> scripts/effects/rain_target_preview.gd
     ├── World -> scenes/world/world.tscn
     │   └── World -> scripts/world/world_grid.gd
     │       ├── Creatures -> scenes/creatures/creature.tscn -> scripts/creatures/creature.gd
@@ -83,6 +87,8 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 **Used by:** `project.godot`.
 
 **Touch when:** adding/removing top-level UI, camera, world instance, debug overlay, global scene nodes, or player nature HUD nodes.
+
+**Important:** avoid scene-level overrides for player nature balance values unless intentional. Defaults should usually stay in `scripts/ui/player_nature_ui.gd`.
 
 ---
 
@@ -201,148 +207,6 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 
 ---
 
-### `scripts/creatures/behaviors/creature_grazing_logic.gd`
-**Owns:** herbivore grazing detail logic.
-
-**Depends on:**
-- owner `creature.gd`
-- owner `world_grid`
-- `world_grid.find_best_grazing_targets()`
-- `world_grid.count_adult_grass_under_footprint()`
-- `world_grid.find_path()`
-
-**Used by:** `creature.gd`.
-
-**Touch when:** herbivore food search, target selection, retargeting, path-to-food, or eating eligibility breaks.
-
----
-
-### `scripts/creatures/behaviors/creature_predator_logic.gd`
-**Owns:** predator detail logic.
-
-**Depends on:**
-- owner `creature.gd`
-- `scripts/combat/duel.gd`
-- owner `world_grid`
-- `world_grid.creature_anchors`
-- `world_grid.find_path()` and `world_grid.estimate_path_steps()`
-- `species_data` flags/tuning such as `is_predator`, `predator_target_radius`, `hunger_search_threshold`
-
-**Used by:** `creature.gd`.
-
-**Touch when:** predator target choice, chase path, duel range, or side-contact rules break.
-
----
-
-### `scripts/creatures/behaviors/creature_reproduction_logic.gd`
-**Owns:** reproduction detail logic.
-
-**Depends on:**
-- owner `creature.gd`
-- owner `world_grid`
-- `species_data` egg scene/textures/timing/hatchling stats/reproduction thresholds
-- `scenes/resources/egg.tscn`
-- `Eggs` container in world scene
-
-**Used by:** `creature.gd`.
-
-**Touch when:** reproduction conditions, egg placement, egg tuning transfer, or egg spawning breaks.
-
----
-
-### `scripts/creatures/behaviors/creature_visual_controller.gd`
-**Owns:** creature visual detail logic.
-
-**Depends on:**
-- owner `creature.gd`
-- owner `species_data` directional textures and walk frames
-- `BodySprite`
-- `WalkRightSprite`
-
-**Used by:** `creature.gd`.
-
-**Touch when:** sprite direction, mirroring, animation/static switching, or walk animation setup breaks.
-
----
-
-### `scripts/creatures/creature_species_data.gd`
-**Owns:** species resource schema.
-
-**Used by:**
-- `data/species/stegosaurus.tres`
-- `data/species/predator.tres`
-- `creature.gd`
-- behaviour helpers
-- `egg.gd` through hatch species configuration
-
-**Touch when:** adding new species-wide stat fields, visuals, animation fields, hunger tuning, reproduction tuning, or predator tuning.
-
-**Important:** changing this schema can require updating every `.tres` species resource.
-
----
-
-### `data/species/stegosaurus.tres`
-**Owns:** current herbivore tuning and visuals.
-
-**Depends on:**
-- `creature_species_data.gd`
-- stegosaurus directional textures
-- walk animation resources
-- `scenes/resources/egg.tscn`
-- egg textures
-
-**Used by:** creature scene default, hatched creatures, and balancing.
-
-**Touch when:** changing herbivore stats, visuals, hunger, reproduction, egg timings, or walk animation.
-
----
-
-### `data/species/predator.tres`
-**Owns:** current temporary predator tuning and visuals.
-
-**Depends on:**
-- `creature_species_data.gd`
-- predator directional textures
-- egg scene/textures, although reproduction is effectively disabled through very high thresholds
-
-**Used by:** optional predator spawn and predator balancing.
-
-**Touch when:** changing predator stats, hunger threshold, target radius, combat numbers, or visuals.
-
----
-
-### `scripts/combat/duel.gd`
-**Owns:** isolated duel loop.
-
-**Depends on:** fighters exposing methods/properties:
-- `attach_duel()`
-- `detach_duel()`
-- `can_continue_duel()`
-- `take_duel_damage()`
-- `get_attack()` / `get_defense()` or species data fallback
-
-**Used by:**
-- `creature.gd`
-- `creature_predator_logic.gd`
-
-**Touch when:** turn order, duel timing, damage formula, or finish behaviour changes.
-
----
-
-### `scenes/resources/grass.tscn`
-**Owns:** grass scene node structure.
-
-**Depends on:**
-- `scripts/resources/grass.gd`
-- `assets/sprites/terrain/grass_stage_1.png`
-- `assets/sprites/terrain/grass_stage_2.png`
-
-**Used by:**
-- `scenes/world/world.tscn`
-- `grass.gd` self-spread instancing
-
----
-
 ### `scripts/resources/grass.gd`
 **Owns:** grass lifecycle.
 
@@ -354,56 +218,10 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 **Used by:**
 - `world_grid.gd` through registration and consumption calls
 - creatures indirectly through grazing/world queries
-- `player_nature_ui.gd` indirectly through rain calling `apply_rain()` on grass in the targeted 3x3 area
+- `player_nature_ui.gd` through rain calling `apply_rain()`
+- `player_nature_ui.gd` through sun calling `apply_sun()`, random removal, and `reset_spread_attempt()`
 
-**Touch when:** growth timing, spreading, edibility, consumption, blocked-terrain handling, rain reaction, or grass visual stage changes.
-
----
-
-### `scenes/resources/egg.tscn`
-**Owns:** egg scene node structure.
-
-**Depends on:**
-- `scripts/resources/egg.gd`
-- egg stage textures
-
-**Used by:**
-- `scenes/world/world.tscn`
-- species data resources and reproduction helper
-
-**Touch when:** egg node structure or default resource setup changes.
-
----
-
-### `scripts/resources/egg.gd`
-**Owns:** egg lifecycle and hatching.
-
-**Depends on:**
-- `world_grid.gd` found through scene tree
-- `BodySprite`, `Stage1Timer`, `ExpandRetryTimer`, `HatchTimer`
-- `hatch_species_data`
-- `hatch_creature_scene`
-- `Creatures` container in world scene
-
-**Used by:** reproduction system and predator/creature food logic if eggs are treated as edible targets later.
-
-**Touch when:** egg placement, expansion, blocker registration, edibility, hatching, or hatchling setup changes.
-
----
-
-### `scripts/ui/creature_stats_ui.gd`
-**Owns:** prototype creature/debug UI.
-
-**Depends on:**
-- UI node paths in `scenes/main/main.tscn`
-- creature public methods and properties
-- `PerformanceStats` autoload
-- `world_grid` group for debug status
-- camera node for mouse world position
-
-**Used by:** creature hover/click callbacks and player input.
-
-**Touch when:** stats panel, selection, speed controls, FPS/debug status, or creature UI input changes.
+**Touch when:** growth timing, spreading, edibility, consumption, blocked-terrain handling, rain reaction, sun reaction, spread-reset behaviour, or grass visual stage changes.
 
 ---
 
@@ -414,14 +232,15 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 - UI node paths in `scenes/main/main.tscn` under `PlayerNaturePanel`
 - `world_grid` group for mouse tile conversion and grass lookup
 - creature public direct-damage method for lightning
-- `scripts/resources/grass.gd` exposing `apply_rain()`
+- `scripts/resources/grass.gd` exposing `apply_rain()`, `apply_sun()`, and `reset_spread_attempt()`
 - `scenes/effects/lightning_strike_effect.tscn`
 - `scenes/effects/rain_target_preview.tscn`
-- `PerformanceStats` autoload for rain counters
+- `scenes/effects/sun_target_preview.tscn`
+- `PerformanceStats` autoload for nature-action counters
 
 **Used by:** player input and creature click forwarding.
 
-**Touch when:** player energy, spell costs, lightning targeting, rain targeting, rain area size, or player nature UI changes.
+**Touch when:** player energy, spell costs, lightning targeting, rain targeting, sun targeting, sun grass removal count, target area sizes, or player nature UI changes.
 
 ---
 
@@ -436,17 +255,6 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 
 ---
 
-### `scripts/effects/lightning_strike_effect.gd`
-**Owns:** lightning visual effect lifecycle.
-
-**Depends on:**
-- `AnimatedSprite2D`
-- `SpriteFrames` on the scene instance
-
-**Used by:** `scenes/effects/lightning_strike_effect.tscn`.
-
----
-
 ### `scenes/effects/rain_target_preview.tscn`
 **Owns:** visual rain target preview instance.
 
@@ -457,30 +265,28 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 
 ---
 
+### `scenes/effects/sun_target_preview.tscn`
+**Owns:** visual sun target preview instance.
+
+**Depends on:**
+- `scripts/effects/rain_target_preview.gd`
+
+**Used by:** `player_nature_ui.gd`.
+
+---
+
 ### `scripts/effects/rain_target_preview.gd`
-**Owns:** drawing the 3x3 rain target highlight.
+**Owns:** drawing configurable square target highlights.
 
 **Depends on:**
 - `world_grid.map_to_world_center()` called through the world grid reference
 - `world_grid.tile_size` for drawing tile-sized rectangles
 
-**Used by:** `scenes/effects/rain_target_preview.tscn`.
+**Used by:**
+- `scenes/effects/rain_target_preview.tscn`
+- `scenes/effects/sun_target_preview.tscn`
 
-**Touch when:** rain targeting visuals, highlight colours, tile preview sizing, or preview placement changes.
-
----
-
-### `scripts/debug/grid_debug_overlay.gd`
-**Owns:** optional visual debug overlay.
-
-**Depends on:**
-- `world_grid` group
-- creature selection/hover state from UI or groups
-- world dictionaries and creature path/target properties
-
-**Used by:** `scenes/debug/grid_debug_overlay.tscn`.
-
-**Touch when:** debug visualization, F3 toggle, or debug info panel changes.
+**Touch when:** tile targeting visuals, highlight colours, tile preview sizing, or preview placement changes.
 
 ---
 
@@ -499,17 +305,6 @@ PerformanceStats autoload -> scripts/debug/performance_stats.gd
 - any script that calls `PerformanceStats.add_counter()`
 
 **Touch when:** changing counters, CSV columns, sample frequency, log path, or F8 behaviour.
-
----
-
-### `scripts/camera/camera_controller.gd`
-**Owns:** observer camera.
-
-**Depends on:** Camera2D node in main scene.
-
-**Used by:** `scenes/main/main.tscn`.
-
-**Touch when:** camera movement, zoom, bounds, or future observer camera behaviour changes.
 
 ---
 
@@ -550,7 +345,7 @@ creature hunger reaches search threshold
 grass starts at stage 1
 -> GrowthTimer completes
 -> grass becomes stage 2
--> SpreadTimer starts
+-> SpreadTimer starts if has_tried_to_spread is false
 -> spread tick triggers one-time cardinal spread
 -> spread timer stops
 ```
@@ -566,6 +361,21 @@ PlayerNaturePanel/player_nature_ui.gd
 -> stage 2 grass triggers existing one-time cardinal spread logic
 ```
 
+### Player sun flow
+```text
+PlayerNaturePanel/player_nature_ui.gd
+-> player spends 100 energy after clicking a valid ground tile
+-> sun preview is hidden
+-> UI scans the 5x5 tile area through world_grid tile/grass lookup
+-> adult grass.apply_sun()
+-> adult grass returns to stage 1
+-> up to sun_remove_grass_count grass nodes are randomly queue_free()'d from the 5x5 area
+-> UI scans the 7x7 spread-reset area
+-> remaining grass.reset_spread_attempt()
+-> mature remaining grass can start spread timer again
+-> young remaining grass can spread after growing up again
+```
+
 ### Player lightning flow
 ```text
 PlayerNaturePanel/player_nature_ui.gd
@@ -573,29 +383,6 @@ PlayerNaturePanel/player_nature_ui.gd
 -> lightning effect scene is instanced at target position
 -> creature.take_direct_damage(50)
 -> creature may die and unregister from world_grid
-```
-
-### Reproduction flow
-```text
-creature meets reproduction thresholds
--> creature_reproduction_logic picks available egg anchor
--> creature enters LAYING_EGG
--> egg scene spawns into Eggs container
--> stage 1 egg is non-blocking
--> stage 2 expansion registers blocker
--> hatch timer spawns new creature and unregisters blocker
-```
-
-### Predator combat flow
-```text
-predator hunger reaches hunt threshold
--> creature_predator_logic finds prey
--> path to side-adjacent anchor
--> side-contact check passes
--> duel starts
--> duel alternates attacks
--> loser dies
--> winner detaches
 ```
 
 ---
@@ -615,6 +402,14 @@ Often related:
 - target resource script, e.g. `scripts/resources/grass.gd`
 - visual helper scene/script if the action needs targeting or effect feedback
 
+### Change player nature balance
+Read first:
+- `scripts/ui/player_nature_ui.gd`
+
+Rule:
+- keep default balance values in `player_nature_ui.gd`;
+- avoid duplicating exported values in `scenes/main/main.tscn` unless a scene override is intentional.
+
 ### Change rain
 Read first:
 - `scripts/ui/player_nature_ui.gd`
@@ -627,6 +422,22 @@ Rules:
 - stage 1 grass should use the existing growth/stage logic;
 - stage 2 grass should use the existing one-time spread logic;
 - timers should not double-fire after forced rain spread.
+
+### Change sun
+Read first:
+- `scripts/ui/player_nature_ui.gd`
+- `scripts/resources/grass.gd`
+- `scenes/effects/sun_target_preview.tscn`
+- `scripts/effects/rain_target_preview.gd`
+- `scenes/main/main.tscn`
+
+Rules:
+- visible sun target area is 5x5 (`sun_radius_tiles := 2`);
+- spread-reset area is 7x7 (`sun_spread_reset_radius_tiles := 3`);
+- grass removal count is `sun_remove_grass_count`;
+- sun should spend energy on valid ground click even if little/no grass is affected;
+- deleted grass should be removed with `queue_free()` so `_exit_tree()` unregisters it from `world_grid`;
+- sun should not leave areas permanently unable to spread.
 
 ### Change lightning
 Read first:

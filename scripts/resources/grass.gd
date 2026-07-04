@@ -20,14 +20,14 @@ enum Stage {
 
 @export var growth_time := 8.0
 
-@export var spread_delay := 10.0
+@export var spread_delay := 20.0
 
 @export var start_stage: Stage = Stage.STAGE_1
 
 var current_stage: Stage = Stage.STAGE_1
 
 # Mature grass should try to spread only once.
-# This keeps old grass from endlessly checking neighbours every spread_delay seconds.
+# Some nature powers can reset this to let an area recover again.
 var has_tried_to_spread := false
 
 var world_grid: Node = null
@@ -102,6 +102,27 @@ func apply_rain() -> bool:
 		return _try_spread_once()
 
 	return false
+
+
+# Sun.
+func apply_sun() -> bool:
+	if current_stage != Stage.STAGE_2:
+		return false
+
+	PerformanceStats.add_counter("sun_grass_reverted")
+	set_stage(Stage.STAGE_1)
+	return true
+
+
+func reset_spread_attempt() -> bool:
+	var changed := has_tried_to_spread
+	has_tried_to_spread = false
+
+	if current_stage == Stage.STAGE_2:
+		update_timers()
+		return true
+
+	return changed
 
 
 # Visuals.

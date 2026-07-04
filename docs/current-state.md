@@ -20,7 +20,7 @@ Current scope:
 - temporary predator hunting;
 - a simple 1v1 duel layer;
 - player nature energy economy;
-- player influence actions: lightning and rain;
+- player influence actions: lightning, rain, and sun;
 - debug UI for hover/selection and creature stats;
 - an FPS/debug status display with cursor/world/tile/time/performance data;
 - simulation speed control (`x1`, `x2`, `x3`);
@@ -87,11 +87,14 @@ This is still a simulation sandbox, not a full game.
 - Adult grass is edible.
 - After being eaten, grass falls back to stage 1.
 - Grass spreads in the 4 cardinal directions.
-- Grass tries to spread only once.
+- Grass normally tries to spread only once.
 - Grass registers itself into the world by tile.
 - Grass cannot exist on blocked terrain tiles like water or mountains.
 - Rain can accelerate grass in a 3x3 area: stage 1 grass becomes stage 2, and stage 2 grass triggers the existing one-time spread logic.
 - Forced rain spread stops the current spread timer after the spread attempt, preventing a near-immediate double spread.
+- Sun can revert adult grass in a 5x5 area back to stage 1.
+- Sun randomly removes up to `sun_remove_grass_count` grass nodes from the 5x5 area.
+- Sun also resets grass spread attempts in a 7x7 area so the local grass field can recover and spread again later.
 
 ### Eggs and reproduction
 - When reproduction conditions pass, the creature enters egg-laying for the species-configured duration.
@@ -110,7 +113,13 @@ This is still a simulation sandbox, not a full game.
 - Rain targeting is armed by the rain button, then applied by left-clicking a valid ground tile.
 - Rain affects a `3x3` tile area around the clicked tile.
 - While rain targeting is armed, a 3x3 tile preview follows the mouse cursor.
-- Right-click cancels armed lightning or rain targeting.
+- Sun costs `100` energy.
+- Sun targeting is armed by the sun button, then applied by left-clicking a valid ground tile.
+- Sun uses a visible `5x5` target area.
+- Sun reverts all adult grass in the `5x5` area to stage 1, then randomly removes up to `8` grass nodes from that same area.
+- Sun additionally resets grass spread attempts in a `7x7` area around the clicked tile.
+- Energy is spent on valid ground click for rain and sun even if the target area contains little or no grass.
+- Right-click cancels armed lightning, rain, or sun targeting.
 
 ### UI, observation, and debug
 - The camera moves with WASD.
@@ -124,6 +133,11 @@ This is still a simulation sandbox, not a full game.
 - There is an F3 removable grid debug overlay with blocked terrain, grass, occupied tiles, selected creature footprint, pending footprint, grazing target, path, and a bottom-left debug text panel.
 - `PerformanceStats` is an autoload and can record CSV logs with F8 into `logs/`.
 
+### Balance ownership
+- Player nature balance defaults are kept in `scripts/ui/player_nature_ui.gd`.
+- `scenes/main/main.tscn` should not duplicate those values unless a deliberate scene-specific override is needed.
+- Current sun grass removal default is `sun_remove_grass_count := 8`.
+
 ---
 
 ## 3. Current project core
@@ -135,11 +149,11 @@ This is still a simulation sandbox, not a full game.
 5. `creature_reproduction_logic.gd` owns reproduction checks and egg spawning details.
 6. `creature_visual_controller.gd` owns directional sprite and walk-animation details.
 7. `duel.gd` provides the current 1v1 duel loop.
-8. `grass.gd` provides the first renewable resource loop, including rain reaction hooks.
+8. `grass.gd` provides the first renewable resource loop, including rain/sun reaction hooks.
 9. `egg.gd` provides the current reproduction object lifecycle.
 10. `creature_stats_ui.gd` lets the user observe creature state, debug status, and simulation speed.
-11. `player_nature_ui.gd` owns player energy, lightning, rain targeting, and nature action costs.
-12. `rain_target_preview.gd` draws the 3x3 rain targeting area.
+11. `player_nature_ui.gd` owns player energy, lightning, rain, sun targeting, and nature action costs.
+12. `rain_target_preview.gd` draws configurable square targeting areas for rain/sun previews.
 13. `performance_stats.gd` provides runtime counters and CSV logging.
 14. `camera_controller.gd` lets the user observe the simulation.
 
@@ -152,9 +166,9 @@ This is still a simulation sandbox, not a full game.
 - Combat aftermath is still placeholder-like: predator wins restore hunger directly instead of using corpse/eating logic.
 - The broader art pipeline for future species is not standardized.
 - The world still has few entity types.
-- The player-as-nature system is still early: energy, lightning, and rain exist, but there is no broader spell/action framework yet.
-- Rain currently affects grass only; there are no direct creature morale/fear/weather reactions yet.
-- Other nature actions beyond lightning and rain do not yet exist.
+- The player-as-nature system is still early: energy, lightning, rain, and sun exist, but there is no broader spell/action framework yet.
+- Rain and sun currently affect grass only; there are no direct creature morale/fear/weather reactions yet.
+- Other nature actions beyond lightning, rain, and sun do not yet exist.
 - Water and mountain exist as prototype blocked terrain, but there are no deeper biome-specific rules yet.
 - There is no full gameplay HUD beyond debug/prototype UI.
 - There is no save/load system.
@@ -179,6 +193,7 @@ This is still a simulation sandbox, not a full game.
 - `scenes/resources/egg.tscn`
 - `scenes/effects/lightning_strike_effect.tscn`
 - `scenes/effects/rain_target_preview.tscn`
+- `scenes/effects/sun_target_preview.tscn`
 - `scenes/debug/grid_debug_overlay.tscn`
 
 ### World simulation
@@ -248,6 +263,7 @@ Leaving stale blockers will corrupt walkability.
 ### 6. Player nature actions
 Player powers should stay indirect and simulation-friendly.
 Rain should accelerate grass lifecycle through `grass.gd`; it should not become a separate grass-spawning system in UI.
+Sun should reduce/clear grass through `grass.gd` and world-grid lookup; it should not corrupt world registration or permanently sterilize an area.
 Lightning currently applies direct damage, but future power design should avoid turning the game into direct unit control.
 
 ### 7. Future file growth
@@ -260,7 +276,7 @@ Add new systems carefully so it does not become the next blob.
 
 ### Option A — move into 0.5 visuals/interface
 - cleaner player nature HUD;
-- visual rain effect;
+- visual rain and sun effects;
 - cleaner lightning effect integration;
 - improve readability of grass/eggs/creatures;
 - reduce debug-looking UI where possible.
@@ -296,6 +312,7 @@ Add new systems carefully so it does not become the next blob.
 - Species data should live in `.tres` resources, not one giant creature script.
 - Helper scripts should reduce blob growth, not hide unclear ownership.
 - Player powers should influence the world indirectly where possible.
+- Balance values for player nature actions currently live in `scripts/ui/player_nature_ui.gd`.
 - Documentation should stay synchronized: update map/state/dependencies together when architecture changes.
 - The project direction is already clear even if the code is still prototype-grade.
 
@@ -317,6 +334,9 @@ Predator hunger reaches search threshold -> `CreaturePredatorLogic` finds neares
 
 ### Player rain flow
 `PlayerNatureUI` arms rain mode -> 3x3 preview follows the mouse tile -> player clicks a valid ground tile -> UI spends `25` energy -> each grass in the 3x3 area receives `apply_rain()` -> stage 1 grass becomes stage 2, while stage 2 grass triggers its existing one-time cardinal spread logic.
+
+### Player sun flow
+`PlayerNatureUI` arms sun mode -> 5x5 preview follows the mouse tile -> player clicks a valid ground tile -> UI spends `100` energy -> adult grass in the 5x5 area receives `apply_sun()` and returns to stage 1 -> up to `sun_remove_grass_count` grass nodes in the 5x5 area are randomly removed -> remaining grass in the 7x7 spread-reset area receives `reset_spread_attempt()` so it can spread again.
 
 ### Performance logging flow
 `PerformanceStats` autoload tracks elapsed time and counters -> UI displays current rates/status -> F8 toggles CSV recording -> samples are appended to `logs/perf_log_*.csv`.

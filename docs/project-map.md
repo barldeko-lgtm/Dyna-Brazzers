@@ -12,7 +12,7 @@ Fast entry point for a new session: what lives where, what each part owns, and w
 - `docs/project-map.md` — this file: structure, responsibilities, and where to look first.
 - `docs/current-state.md` — live prototype snapshot.
 - `docs/dependencies.md` — dependency graph, system links, and task-based file bundles.
-- `docs/design_roadmap.md` — broader design vision and roadmap. Do not edit unless asked.
+- `docs/design_roadmap.md` — broader design vision and roadmap.
 - `logs/` — CSV performance logs created by F8 recording.
 
 ### `scenes/`
@@ -25,6 +25,7 @@ Scene assemblies and placed nodes.
 - `scenes/resources/egg.tscn` — egg resource scene.
 - `scenes/effects/lightning_strike_effect.tscn` — short visual lightning strike effect.
 - `scenes/effects/rain_target_preview.tscn` — 3x3 rain target preview overlay.
+- `scenes/effects/sun_target_preview.tscn` — 5x5 sun target preview overlay.
 - `scenes/debug/grid_debug_overlay.tscn` — removable debug grid overlay and info panel.
 
 ### `scripts/`
@@ -38,12 +39,12 @@ Main gameplay logic by subsystem.
 - `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, mirroring, and walk-animation helper.
 - `scripts/creatures/creature_species_data.gd` — species resource schema.
 - `scripts/combat/duel.gd` — isolated 1v1 duel loop.
-- `scripts/resources/grass.gd` — grass lifecycle and rain reaction hooks.
+- `scripts/resources/grass.gd` — grass lifecycle plus rain/sun reaction hooks.
 - `scripts/resources/egg.gd` — egg lifecycle and hatching.
 - `scripts/ui/creature_stats_ui.gd` — creature HUD, selection UI, debug status text, and simulation speed selector.
-- `scripts/ui/player_nature_ui.gd` — player nature HUD, energy economy, lightning targeting, rain targeting, and nature action costs.
+- `scripts/ui/player_nature_ui.gd` — player nature HUD, energy economy, lightning targeting, rain targeting, sun targeting, and nature action costs.
 - `scripts/effects/lightning_strike_effect.gd` — plays the lightning animation and removes the effect after its lifetime.
-- `scripts/effects/rain_target_preview.gd` — draws the 3x3 rain target area while rain targeting is armed.
+- `scripts/effects/rain_target_preview.gd` — draws the configurable square target area for rain and sun previews.
 - `scripts/debug/grid_debug_overlay.gd` — removable grid/path/occupancy debug drawing and info panel.
 - `scripts/debug/performance_stats.gd` — performance counters, elapsed time, memory/node/object counts, and F8 CSV logging.
 - `scripts/camera/camera_controller.gd` — observer camera movement and zoom.
@@ -81,10 +82,12 @@ Project entry point. Launches `res://scenes/main/main.tscn`. Also registers the 
 Top-level scene. Currently contains:
 - `Camera2D` — camera using `camera_controller.gd`.
 - `UI` — creature stats panel, FPS/debug text, player nature panel, and simulation speed controls.
-- `PlayerNaturePanel` under `UI` — player energy, lightning, and rain controls using `player_nature_ui.gd`.
+- `PlayerNaturePanel` under `UI` — player energy, lightning, rain, and sun controls using `player_nature_ui.gd`.
 - `Simulation` — currently an empty technical node.
 - `World` — an instance of `scenes/world/world.tscn`.
 - `GridDebugOverlay` — optional removable grid debug overlay.
+
+Important: balance values for player nature actions are kept in `scripts/ui/player_nature_ui.gd`. `main.tscn` should not duplicate these exported values unless there is a deliberate scene-specific override.
 
 ### `scenes/world/world.tscn`
 Active simulation sandbox. Contains:
@@ -133,7 +136,7 @@ Important: `World` with `world_grid.gd` is the logic center. Most gameplay entit
 
 **Structure:** `Node2D`, `BodySprite`, `GrowthTimer`, `SpreadTimer`.
 
-**Keep in mind:** grass exists on tiles, registers into `world_grid`, grows from stage 1 to adult stage 2, adult grass is edible, and grass tries to spread only once.
+**Keep in mind:** grass exists on tiles, registers into `world_grid`, grows from stage 1 to adult stage 2, adult grass is edible, and grass normally tries to spread only once. Nature powers can force or reset parts of this lifecycle.
 
 ### `scenes/resources/egg.tscn`
 **Role:** base creature egg scene.
@@ -154,7 +157,14 @@ Important: `World` with `world_grid.gd` is the logic center. Most gameplay entit
 
 **Structure:** `Node2D` with `rain_target_preview.gd`.
 
-**Keep in mind:** this is a removable visual overlay only. It follows the mouse-selected tile while rain targeting is armed and draws the 3x3 affected area. It should not own grass or world rules.
+**Keep in mind:** this is a removable visual overlay only. It follows the mouse-selected tile while rain targeting is armed and draws the affected area. It should not own grass or world rules.
+
+### `scenes/effects/sun_target_preview.tscn`
+**Role:** lightweight visual target helper for sun.
+
+**Structure:** `Node2D` using the same configurable preview script as rain, but with sun colors and radius `2`.
+
+**Keep in mind:** this is a removable visual overlay only. It shows the 5x5 sun target area. The separate 7x7 spread-reset area is gameplay logic, not necessarily previewed.
 
 ### `scenes/debug/grid_debug_overlay.tscn`
 **Role:** optional debug overlay.
@@ -206,47 +216,14 @@ Important: `World` with `world_grid.gd` is the logic center. Most gameplay entit
 
 **Keep in mind:** this file is still the central creature coordinator. Add new systems carefully; prefer helpers when a subsystem can be isolated.
 
-### `scripts/creatures/behaviors/creature_grazing_logic.gd`
-**Role:** herbivore grazing helper.
-
-**Owns:** local recheck, global fallback, target scoring/retargeting, target validity, path rebuilding toward grazing anchor, and deciding when eating can start.
-
-### `scripts/creatures/behaviors/creature_predator_logic.gd`
-**Role:** predator behaviour helper.
-
-**Owns:** nearest-prey search, prey validation, side-contact combat range, pathing to prey-adjacent anchors, and duel creation.
-
-### `scripts/creatures/behaviors/creature_reproduction_logic.gd`
-**Role:** reproduction helper.
-
-**Owns:** reproduction condition checks, egg anchor choice, egg spawning, and egg parameter transfer from species data.
-
-### `scripts/creatures/behaviors/creature_visual_controller.gd`
-**Role:** creature visual helper.
-
-**Owns:** directional sprite selection, horizontal mirroring, right/up walk animation setup, and animation/static sprite switching.
-
-### `scripts/creatures/creature_species_data.gd`
-**Role:** species resource schema.
-
-**Owns:** species identity, predator/herbivore flags, hunt tuning, directional visuals, optional walk animation, survival/combat stats, hunger tuning, egg lifecycle tuning, reproduction thresholds/costs, and hatchling starting stats.
-
-### `scripts/combat/duel.gd`
-**Role:** isolated 1v1 duel loop.
-
-**Owns:** fighter references, initiator-first turn order, 1-second alternating turns, `max(1, attack - defense)` damage, and duel finish signal.
-
 ### `scripts/resources/grass.gd`
 **Role:** grass lifecycle.
 
-**Owns:** two growth stages, timers, world registration, single spread attempt, spreading to 4 cardinal neighbors, fallback to stage 1 after consumption, and rain reaction hooks.
+**Owns:** two growth stages, timers, world registration, single spread attempt, spreading to 4 cardinal neighbors, fallback to stage 1 after consumption, rain reaction hooks, sun reaction hooks, and spread-attempt reset support.
 
 **Rain behaviour:** rain does not create grass directly. Stage 1 grass immediately becomes stage 2; stage 2 grass triggers the existing one-time spread logic and stops the spread timer so the forced spread does not double-fire.
 
-### `scripts/resources/egg.gd`
-**Role:** creature egg lifecycle.
-
-**Owns:** stage 1 placement, repeated expansion attempts, stage 2 blocker registration, bool-based edibility, hatching a configured creature scene.
+**Sun behaviour:** sun can revert adult stage 2 grass to stage 1, then selected grass nodes can be removed by the player nature UI. A separate reset hook clears `has_tried_to_spread` so sun-hit areas can recover and spread again instead of becoming sterile.
 
 ### `scripts/ui/creature_stats_ui.gd`
 **Role:** creature HUD and lightweight observation/debug UI.
@@ -256,34 +233,29 @@ Important: `World` with `world_grid.gd` is the logic center. Most gameplay entit
 ### `scripts/ui/player_nature_ui.gd`
 **Role:** player-facing nature powers HUD.
 
-**Owns:** nature energy, energy regeneration, spell button enable/disable states, lightning targeting/damage/effect spawn, rain targeting, rain energy cost, and calling grass rain reactions in a 3x3 tile area.
+**Owns:** nature energy, energy regeneration, spell button enable/disable states, lightning targeting/damage/effect spawn, rain targeting, sun targeting, nature action costs, and calling grass reactions in tile areas.
 
-**Keep in mind:** player powers should stay indirect. Rain accelerates grass lifecycle through existing grass logic instead of spawning resources from nothing.
+**Current balance defaults live here:**
+- `max_energy := 500.0`
+- `starting_energy := 0.0`
+- `energy_regen_per_second := 1.0`
+- `lightning_damage := 50.0`
+- `lightning_energy_cost := 50.0`
+- `rain_energy_cost := 25.0`
+- `rain_radius_tiles := 1` (`3x3`)
+- `sun_energy_cost := 100.0`
+- `sun_radius_tiles := 2` (`5x5`)
+- `sun_spread_reset_radius_tiles := 3` (`7x7`)
+- `sun_remove_grass_count := 8`
 
-### `scripts/effects/lightning_strike_effect.gd`
-**Role:** lightning visual effect lifecycle.
-
-**Owns:** playing the default lightning animation and queue-free after lifetime.
+**Keep in mind:** player powers should stay indirect. Rain accelerates grass lifecycle through existing grass logic. Sun reduces/clears grass and resets spread opportunity in the local area, but should not become direct creature control.
 
 ### `scripts/effects/rain_target_preview.gd`
-**Role:** rain targeting preview helper.
+**Role:** configurable square targeting preview helper.
 
-**Owns:** drawing the 3x3 highlighted tile area under the cursor while rain targeting is armed.
+**Owns:** drawing the highlighted tile area under the cursor while a tile-targeted nature power is armed.
 
-### `scripts/debug/grid_debug_overlay.gd`
-**Role:** removable world-grid debug overlay.
-
-**Owns:** F3 toggle, drawing blocked terrain/grass/occupied tiles/footprints/targets/paths, and bottom-left selected/hovered creature debug text.
-
-### `scripts/debug/performance_stats.gd`
-**Role:** performance instrumentation autoload.
-
-**Owns:** elapsed time, counters/rates, static memory, node/object counts, F8 CSV recording, and log file creation under `logs/`.
-
-### `scripts/camera/camera_controller.gd`
-**Role:** observer camera control.
-
-**Owns:** WASD movement, mouse-wheel zoom, and zoom range limits.
+**Used by:** rain preview and sun preview scenes.
 
 ---
 
@@ -305,7 +277,7 @@ Eggs use the world to resolve anchors, placement, blocking, and hatch placement.
 `HoverArea` talks to the `creature_stats_ui` group. The UI asks creatures for name, age, health, hunger, and max values. Player nature UI can apply lightning damage through creature methods.
 
 ### PlayerNatureUI -> Grass/World
-`player_nature_ui.gd` finds the `world_grid` group, converts mouse position to a tile, scans a 3x3 area for grass, and calls `grass.apply_rain()`. It should remain a caller of world/resource logic, not the owner of grass rules.
+`player_nature_ui.gd` finds the `world_grid` group, converts mouse position to a tile, scans tile areas for grass, and calls grass methods such as `apply_rain()`, `apply_sun()`, and `reset_spread_attempt()`. It should remain a caller of world/resource logic, not the owner of grass rules.
 
 ### Debug systems -> World/Creature
 The debug overlay and performance stats read world/creature state but should not become owners of gameplay state.
@@ -327,12 +299,14 @@ The current code already provides:
 - adult grass eating and grass regrowth;
 - grass spreading once to cardinal neighbors;
 - rain accelerating grass growth/spread in a 3x3 area;
+- sun reverting/removing grass in a 5x5 area and resetting spread opportunity in a 7x7 area;
 - egg laying, egg growth, stage 2 blocking, and hatching;
 - simple predator species data and predator behaviour helper;
 - isolated 1v1 duel loop;
 - player nature energy economy;
 - lightning damage with energy cost and visual strike effect;
 - rain action with energy cost and 3x3 target preview;
+- sun action with energy cost and 5x5 target preview;
 - stats panel, FPS/debug text, simulation speed control;
 - F3 grid overlay;
 - F8 CSV performance recording.
@@ -351,10 +325,12 @@ The current code already provides:
 2. `scripts/world/world_grid.gd`
 3. `scripts/resources/grass.gd`
 
-### Grass lifecycle / rain effect on grass
+### Grass lifecycle / nature effects on grass
 1. `scripts/resources/grass.gd`
 2. `scripts/ui/player_nature_ui.gd`
 3. `scripts/effects/rain_target_preview.gd`
+4. `scenes/effects/rain_target_preview.tscn`
+5. `scenes/effects/sun_target_preview.tscn`
 
 ### Player powers / energy / targeting
 1. `scripts/ui/player_nature_ui.gd`
