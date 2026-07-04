@@ -90,6 +90,20 @@ func set_stage(new_stage: Stage) -> void:
 	update_timers()
 
 
+# Rain.
+func apply_rain() -> bool:
+	if current_stage == Stage.STAGE_1:
+		PerformanceStats.add_counter("rain_grass_grown")
+		set_stage(Stage.STAGE_2)
+		return true
+
+	if current_stage == Stage.STAGE_2:
+		PerformanceStats.add_counter("rain_grass_spread_requests")
+		return _try_spread_once()
+
+	return false
+
+
 # Visuals.
 func apply_current_stage_visual() -> void:
 	match current_stage:
@@ -120,18 +134,22 @@ func _on_growth_timer_timeout() -> void:
 
 func _on_spread_timer_timeout() -> void:
 	PerformanceStats.add_counter("grass_spread_timer_ticks")
+	_try_spread_once()
 
+
+func _try_spread_once() -> bool:
 	if current_stage != Stage.STAGE_2:
-		return
+		return false
 
 	if has_tried_to_spread:
 		spread_timer.stop()
-		return
+		return false
 
 	has_tried_to_spread = true
 	PerformanceStats.add_counter("grass_spread_events")
 	spread_to_cardinal_tiles()
 	spread_timer.stop()
+	return true
 
 
 # Spread.

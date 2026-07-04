@@ -127,13 +127,15 @@ anchor_right = 1.0
 offset_left = -252.0
 offset_top = 16.0
 offset_right = -16.0
-offset_bottom = 118.0
+offset_bottom = 154.0
 script = ExtResource("5_player_nature_ui")
 max_energy = 500.0
 starting_energy = 0.0
 energy_regen_per_second = 1.0
 lightning_damage = 50.0
 lightning_energy_cost = 50.0
+rain_energy_cost = 25.0
+rain_radius_tiles = 1
 
 [node name="MarginContainer" type="MarginContainer" parent="UI/PlayerNaturePanel"]
 layout_mode = 2
@@ -169,6 +171,11 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(216, 0)
 layout_mode = 2
 text = "Молния"
+
+[node name="RainButton" type="Button" parent="UI/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(216, 0)
+layout_mode = 2
+text = "Дождь"
 
 [node name="TimeControlsPanel" type="PanelContainer" parent="UI" unique_id=180026917]
 anchors_preset = 3
