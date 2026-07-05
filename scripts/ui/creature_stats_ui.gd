@@ -21,7 +21,7 @@ extends CanvasLayer
 
 @onready var fps_label: Label = $FpsLabel
 
-@onready var time_speed_option: OptionButton = $TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeedOption
+@onready var time_speed_option: OptionButton = $PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeedOption
 
 # Time scale presets.
 const TIME_SPEED_VALUES := [1.0, 2.0, 3.0, 5.0]

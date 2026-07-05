@@ -1,3 +1,6 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Performance/debug logs generated at runtime (F8 CSV logging)
+logs/
