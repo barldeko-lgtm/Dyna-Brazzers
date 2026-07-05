@@ -1,14 +1,12 @@
 extends Button
 
 # Small helper for the player UI spell section.
-# Keeps the nature power buttons hidden until the spell menu button is opened.
+# Opens a fixed-size spell submenu without moving the energy block.
 @export var spell_button_paths: Array[NodePath] = []
-@export var resize_control_path: NodePath
-@export var collapsed_height := 96.0
-@export var expanded_height := 148.0
+@export var back_button_path: NodePath
 
 var spell_buttons: Array[Control] = []
-var resize_control: Control = null
+var back_button: Button = null
 
 
 func _ready() -> void:
@@ -21,9 +19,12 @@ func _ready() -> void:
 		if node is Control:
 			spell_buttons.append(node)
 
-	var resize_node := get_node_or_null(resize_control_path)
-	if resize_node is Control:
-		resize_control = resize_node
+	var back_node := get_node_or_null(back_button_path)
+	if back_node is Button:
+		back_button = back_node
+		back_button.focus_mode = Control.FOCUS_NONE
+		if not back_button.pressed.is_connected(_on_back_button_pressed):
+			back_button.pressed.connect(_on_back_button_pressed)
 
 	if not toggled.is_connected(_on_toggled):
 		toggled.connect(_on_toggled)
@@ -35,14 +36,18 @@ func _on_toggled(toggled_on: bool) -> void:
 	_apply_open_state(toggled_on)
 
 
+func _on_back_button_pressed() -> void:
+	button_pressed = false
+	set_pressed_no_signal(false)
+	_apply_open_state(false)
+
+
 func _apply_open_state(is_open: bool) -> void:
+	visible = not is_open
+
 	for spell_button in spell_buttons:
 		if is_instance_valid(spell_button):
 			spell_button.visible = is_open
 
-	if resize_control != null and is_instance_valid(resize_control):
-		var size := resize_control.custom_minimum_size
-		size.y = expanded_height if is_open else collapsed_height
-		resize_control.custom_minimum_size = size
-
-	text = "✦" if not is_open else "✦"
+	if back_button != null and is_instance_valid(back_button):
+		back_button.visible = is_open
