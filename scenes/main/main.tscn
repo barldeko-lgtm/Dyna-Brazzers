@@ -35,12 +35,20 @@ corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_player_side_panel_bg"]
-bg_color = Color(0.05, 0.07, 0.08, 0.92)
+bg_color = Color(0.015, 0.035, 0.09, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.22, 0.25, 0.27, 1)
+border_color = Color(0.12, 0.18, 0.28, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_minimap_placeholder_bg"]
+bg_color = Color(0, 0, 0, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.18, 0.23, 0.32, 1)
 
 [node name="Main" type="Node2D" unique_id=1663448340]
 
@@ -134,7 +142,7 @@ anchor_left = 1.0
 anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -200.0
+offset_left = -300.0
 offset_top = 0.0
 offset_right = 0.0
 offset_bottom = 0.0
@@ -142,14 +150,19 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_player_side_panel_bg")
 
 [node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
 [node name="VBoxContainer" type="VBoxContainer" parent="UI/PlayerSidePanel/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
+
+[node name="MiniMapPlaceholder" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(280, 280)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_minimap_placeholder_bg")
 
 [node name="TopSpacer" type="Control" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -179,7 +192,7 @@ layout_mode = 2
 text = "Энергия природы"
 
 [node name="EnergyBar" type="ProgressBar" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/PlayerNaturePanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(160, 20)
+custom_minimum_size = Vector2(260, 20)
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_hunger_bar_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_energy_bar_fill")
@@ -194,17 +207,17 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="LightningButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/PlayerNaturePanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(160, 0)
+custom_minimum_size = Vector2(260, 0)
 layout_mode = 2
 text = "Молния"
 
 [node name="RainButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/PlayerNaturePanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(160, 0)
+custom_minimum_size = Vector2(260, 0)
 layout_mode = 2
 text = "Дождь"
 
 [node name="SunButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/PlayerNaturePanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(160, 0)
+custom_minimum_size = Vector2(260, 0)
 layout_mode = 2
 text = "Солнце"
 
@@ -220,15 +233,31 @@ theme_override_constants/margin_bottom = 6
 
 [node name="HBoxContainer" type="HBoxContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer" unique_id=1497686245]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="TimeSpeedLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer" unique_id=1783765130]
 layout_mode = 2
 text = "Скорость"
 
-[node name="TimeSpeedOption" type="OptionButton" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer" unique_id=184774814]
-custom_minimum_size = Vector2(72, 0)
+[node name="TimeSpeed1Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(38, 0)
 layout_mode = 2
+text = "x1"
+
+[node name="TimeSpeed2Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(38, 0)
+layout_mode = 2
+text = "x2"
+
+[node name="TimeSpeed3Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(38, 0)
+layout_mode = 2
+text = "x3"
+
+[node name="TimeSpeed5Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(38, 0)
+layout_mode = 2
+text = "x5"
 
 [node name="Simulation" type="Node" parent="." unique_id=898770180]
 

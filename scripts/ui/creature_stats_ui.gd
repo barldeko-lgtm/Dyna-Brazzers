@@ -21,7 +21,12 @@ extends CanvasLayer
 
 @onready var fps_label: Label = $FpsLabel
 
-@onready var time_speed_option: OptionButton = $PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeedOption
+@onready var time_speed_buttons: Array[Button] = [
+	$PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed1Button,
+	$PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed2Button,
+	$PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed3Button,
+	$PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed5Button,
+]
 
 # Time scale presets.
 const TIME_SPEED_VALUES := [1.0, 2.0, 3.0, 5.0]
@@ -247,23 +252,25 @@ func clear_selected_creature() -> void:
 
 # Time controls.
 func setup_time_speed_controls() -> void:
-	time_speed_option.clear()
-
-	for index in range(TIME_SPEED_VALUES.size()):
-		var speed_value: float = TIME_SPEED_VALUES[index]
-		time_speed_option.add_item("x%d" % int(speed_value), index)
-
 	var selected_index := 0
 
 	for index in range(TIME_SPEED_VALUES.size()):
 		if is_equal_approx(Engine.time_scale, TIME_SPEED_VALUES[index]):
 			selected_index = index
 			break
-	time_speed_option.select(selected_index)
-	apply_time_speed_by_index(selected_index)
 
-	if not time_speed_option.item_selected.is_connected(_on_time_speed_option_item_selected):
-		time_speed_option.item_selected.connect(_on_time_speed_option_item_selected)
+	for index in range(time_speed_buttons.size()):
+		var button := time_speed_buttons[index]
+
+		if button == null:
+			continue
+
+		button.toggle_mode = true
+		button.text = "x%d" % int(TIME_SPEED_VALUES[index])
+		button.focus_mode = Control.FOCUS_NONE
+		button.pressed.connect(_on_time_speed_button_pressed.bind(index))
+
+	apply_time_speed_by_index(selected_index)
 
 
 func apply_time_speed_by_index(index: int) -> void:
@@ -272,8 +279,14 @@ func apply_time_speed_by_index(index: int) -> void:
 
 	Engine.time_scale = TIME_SPEED_VALUES[index]
 
+	for button_index in range(time_speed_buttons.size()):
+		var button := time_speed_buttons[button_index]
 
-func _on_time_speed_option_item_selected(index: int) -> void:
+		if button != null:
+			button.set_pressed_no_signal(button_index == index)
+
+
+func _on_time_speed_button_pressed(index: int) -> void:
 	apply_time_speed_by_index(index)
 
 
