@@ -30,6 +30,10 @@ func can_use_walk_up_animation() -> bool:
 	return _has_valid_walk_animation(creature.species_data.walk_up_frames)
 
 
+func can_use_walk_up_right_animation() -> bool:
+	return _has_valid_walk_animation(creature.species_data.walk_up_right_frames)
+
+
 func update_sprite_visual() -> void:
 	var body_sprite := _get_body_sprite()
 	if body_sprite == null:
@@ -53,7 +57,7 @@ func update_sprite_visual() -> void:
 		return
 
 	# Use walk_up only for upward movement where vertical motion is stronger than horizontal motion.
-	# Equal 45-degree movement stays diagonal and uses the existing static diagonal sprite.
+	# Equal 45-degree movement stays diagonal and can use the dedicated up-right animation.
 	if is_vertical_dominant:
 		if faces_up:
 			if _should_play_walk_animation() and can_use_walk_up_animation():
@@ -82,12 +86,18 @@ func update_sprite_visual() -> void:
 		_apply_static_texture(body_sprite, creature.species_data.right_texture, faces_left)
 		return
 
-	# Equal diagonal movement uses the existing static diagonal sprites.
-	set_walk_animation_active(false)
-
+	# Equal diagonal movement uses diagonal sprites or animation.
 	if faces_up:
+		if _should_play_walk_animation() and can_use_walk_up_right_animation():
+			body_sprite.visible = false
+			set_walk_animation_active(true, faces_left, creature.species_data.walk_up_right_frames)
+			return
+
+		set_walk_animation_active(false)
 		_apply_static_texture(body_sprite, creature.species_data.up_right_texture, faces_left)
 		return
+
+	set_walk_animation_active(false)
 
 	if faces_down:
 		_apply_static_texture(body_sprite, creature.species_data.down_right_texture, faces_left)
