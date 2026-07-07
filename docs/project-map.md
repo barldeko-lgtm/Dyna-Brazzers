@@ -60,7 +60,7 @@
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore grazing and food targeting.
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — predator search, chase, and duel entry.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction checks and egg spawning.
-- `scripts/creatures/behaviors/creature_visual_controller.gd` — creature directional visuals and walk-animation switching.
+- `scripts/creatures/behaviors/creature_visual_controller.gd` — creature directional visuals and walk/eating-animation switching.
 
 ### Combat
 
@@ -101,6 +101,8 @@
 
 - `data/animations/stegosaurus_walk_right_frames.tres` — stegosaurus right-facing walk animation frames.
 - `data/animations/stegosaurus_walk_up_frames.tres` — stegosaurus up-facing walk animation frames.
+- `data/animations/stegosaurus_walk_up_right_frames.tres` — stegosaurus up-right walk animation frames, mirrored for up-left movement.
+- `data/animations/stegosaurus_eating_right_frames.tres` — stegosaurus right-facing eating animation frames, mirrored for left-facing eating.
 - `data/animations/lightning_strike_frames.tres` — lightning effect animation frames.
 
 ---
@@ -113,7 +115,7 @@
 
 ### Creatures
 
-- `assets/sprites/creatures/stegosaurus/` — stegosaurus sprites and walk frames.
+- `assets/sprites/creatures/stegosaurus/` — stegosaurus sprites and walk/eating frames.
 - `assets/sprites/creatures/predator/` — temporary predator sprites.
 - `assets/sprites/creatures/eggs/` — egg sprites.
 

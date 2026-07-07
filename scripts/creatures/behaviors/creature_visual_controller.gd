@@ -1,6 +1,7 @@
 extends RefCounted
 
 var creature: Node
+var last_faces_left := false
 
 
 func _init(owner_creature: Node) -> void:
@@ -23,15 +24,19 @@ func configure_walk_animation() -> void:
 
 
 func can_use_walk_right_animation() -> bool:
-	return _has_valid_walk_animation(creature.species_data.walk_right_frames)
+	return _has_valid_animation(creature.species_data.walk_right_frames)
 
 
 func can_use_walk_up_animation() -> bool:
-	return _has_valid_walk_animation(creature.species_data.walk_up_frames)
+	return _has_valid_animation(creature.species_data.walk_up_frames)
 
 
 func can_use_walk_up_right_animation() -> bool:
-	return _has_valid_walk_animation(creature.species_data.walk_up_right_frames)
+	return _has_valid_animation(creature.species_data.walk_up_right_frames)
+
+
+func can_use_eating_right_animation() -> bool:
+	return _has_valid_animation(creature.species_data.eating_right_frames)
 
 
 func update_sprite_visual() -> void:
@@ -48,8 +53,20 @@ func update_sprite_visual() -> void:
 	var is_vertical_dominant := abs_y > abs_x
 	var is_horizontal_dominant := abs_x > abs_y
 
+	_update_last_horizontal_facing(direction)
+
 	body_sprite.flip_h = false
 	body_sprite.visible = true
+
+	if creature.state == creature.State.EATING:
+		if _should_play_eating_animation() and can_use_eating_right_animation():
+			body_sprite.visible = false
+			set_walk_animation_active(true, last_faces_left, creature.species_data.eating_right_frames, creature.species_data.eating_animation_fps)
+			return
+
+		set_walk_animation_active(false)
+		_apply_static_texture(body_sprite, creature.species_data.right_texture, last_faces_left)
+		return
 
 	if abs_x <= 0.01 and abs_y <= 0.01:
 		set_walk_animation_active(false)
@@ -106,7 +123,7 @@ func update_sprite_visual() -> void:
 	_apply_static_texture(body_sprite, creature.species_data.right_texture, faces_left)
 
 
-func set_walk_animation_active(active: bool, flip_h: bool = false, sprite_frames: SpriteFrames = null) -> void:
+func set_walk_animation_active(active: bool, flip_h: bool = false, sprite_frames: SpriteFrames = null, animation_fps: float = -1.0) -> void:
 	var walk_sprite := _get_walk_sprite()
 	if walk_sprite == null:
 		return
@@ -119,7 +136,7 @@ func set_walk_animation_active(active: bool, flip_h: bool = false, sprite_frames
 
 		walk_sprite.visible = true
 		walk_sprite.flip_h = flip_h
-		walk_sprite.speed_scale = max(float(creature.species_data.walk_animation_fps), 0.0)
+		walk_sprite.speed_scale = max(_get_animation_fps(animation_fps), 0.0)
 
 		if walk_sprite.sprite_frames != sprite_frames:
 			walk_sprite.sprite_frames = sprite_frames
@@ -158,7 +175,11 @@ func _should_play_walk_animation() -> bool:
 	return creature.state == creature.State.WALK or creature.state == creature.State.SEEK_FOOD
 
 
-func _has_valid_walk_animation(sprite_frames: SpriteFrames) -> bool:
+func _should_play_eating_animation() -> bool:
+	return creature.state == creature.State.EATING
+
+
+func _has_valid_animation(sprite_frames: SpriteFrames) -> bool:
 	if sprite_frames == null:
 		return false
 
@@ -174,6 +195,22 @@ func _has_valid_walk_animation(sprite_frames: SpriteFrames) -> bool:
 			return false
 
 	return true
+
+
+func _get_animation_fps(animation_fps: float) -> float:
+	if animation_fps >= 0.0:
+		return animation_fps
+
+	return float(creature.species_data.walk_animation_fps)
+
+
+func _update_last_horizontal_facing(direction: Vector2) -> void:
+	if direction.x < -0.01:
+		last_faces_left = true
+		return
+
+	if direction.x > 0.01:
+		last_faces_left = false
 
 
 func _apply_static_texture(body_sprite: Sprite2D, texture: Texture2D, flip_h: bool) -> void:

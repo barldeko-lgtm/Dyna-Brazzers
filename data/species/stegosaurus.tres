@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=12 format=3]
+[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/creatures/creature_species_data.gd" id="1_species_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_down.png" id="2_down"]
@@ -12,6 +12,7 @@
 [ext_resource type="SpriteFrames" path="res://data/animations/stegosaurus_walk_right_frames.tres" id="10_walk_right_frames"]
 [ext_resource type="SpriteFrames" path="res://data/animations/stegosaurus_walk_up_frames.tres" id="11_walk_up_frames"]
 [ext_resource type="SpriteFrames" path="res://data/animations/stegosaurus_walk_up_right_frames.tres" id="12_walk_up_right_frames"]
+[ext_resource type="SpriteFrames" path="res://data/animations/stegosaurus_eating_right_frames.tres" id="13_eating_right_frames"]
 
 [resource]
 script = ExtResource("1_species_script")
@@ -26,7 +27,9 @@ down_right_texture = ExtResource("6_down_right")
 walk_right_frames = ExtResource("10_walk_right_frames")
 walk_up_frames = ExtResource("11_walk_up_frames")
 walk_up_right_frames = ExtResource("12_walk_up_right_frames")
+eating_right_frames = ExtResource("13_eating_right_frames")
 walk_animation_fps = 4.0
+eating_animation_fps = 4.0
 speed = 140.0
 max_health = 100.0
 starting_health = 100.0

@@ -65,9 +65,13 @@ The world contains autonomous creatures with:
 - food seeking;
 - eating;
 - egg laying;
-- combat state.
+- combat state;
+- directional walking animations;
+- right-facing eating animation with left-facing mirroring.
 
 Creature logic is split between the main creature coordinator and helper scripts for grazing, predator behaviour, reproduction, and visuals.
+
+Creature visual logic supports static directional sprites plus SpriteFrames-based animation resources assigned through species data. Current stegosaurus animation coverage includes right, up, and up-right walking, plus right-facing eating that can be mirrored left.
 
 ### Species
 
@@ -176,6 +180,10 @@ The right-side player HUD is assembled in `main.tscn`. It now contains several v
 ### Creature coordinator growth
 
 `creature.gd` is still a central coordinator. Keep pushing clear subsystem logic into helpers instead of growing it into a blob.
+
+### Creature animation coverage
+
+Creature animations are still partial. The stegosaurus has several movement/eating animations, but not every direction and state has a dedicated animation yet. Missing directions should fall back to static sprites or mirrored animations instead of breaking the visual state.
 
 ### Grazing performance
 

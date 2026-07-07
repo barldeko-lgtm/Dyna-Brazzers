@@ -22,7 +22,9 @@ class_name CreatureSpeciesData
 @export var walk_right_frames: SpriteFrames
 @export var walk_up_frames: SpriteFrames
 @export var walk_up_right_frames: SpriteFrames
+@export var eating_right_frames: SpriteFrames
 @export var walk_animation_fps := 6.0
+@export var eating_animation_fps := 4.0
 
 # Balance: combat and survival.
 @export var speed := 140.0
