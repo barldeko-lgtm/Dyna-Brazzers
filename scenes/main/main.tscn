@@ -45,6 +45,14 @@ border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.18, 0.23, 0.32, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_entity_counts_bg"]
+bg_color = Color(0.02, 0.025, 0.04, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.18, 0.23, 0.32, 1)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spell_button_normal"]
 bg_color = Color(0.74, 0.76, 0.8, 1)
 border_width_left = 2
@@ -207,8 +215,117 @@ custom_minimum_size = Vector2(280, 280)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_minimap_placeholder_bg")
 
+[node name="EntityCountsPanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(280, 88)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_entity_counts_bg")
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 5
+
+[node name="GridContainer" type="GridContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 4
+columns = 5
+
+[node name="CornerLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(34, 18)
+layout_mode = 2
+text = ""
+
+[node name="HerbivoreIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(48, 18)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 1, 0.42, 1)
+text = "Тр"
+horizontal_alignment = 1
+
+[node name="PredatorIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(48, 18)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.42, 0.32, 1)
+text = "Хщ"
+horizontal_alignment = 1
+
+[node name="EggIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(48, 18)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.58, 1)
+text = "Яй"
+horizontal_alignment = 1
+
+[node name="TotalIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(48, 18)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.84, 1, 1)
+text = "Вс"
+horizontal_alignment = 1
+
+[node name="PlayerSideIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(34, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 1, 0.35, 1)
+theme_override_font_sizes/font_size = 18
+text = "●"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PlayerHerbivoreCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="PlayerPredatorCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="PlayerEggCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="PlayerTotalCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="EnemySideIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(34, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.25, 0.25, 1)
+theme_override_font_sizes/font_size = 18
+text = "●"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="EnemyHerbivoreCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="EnemyPredatorCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="EnemyEggCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="EnemyTotalCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
 [node name="PlayerNaturePanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(280, 232)
+custom_minimum_size = Vector2(280, 300)
 layout_mode = 2
 script = ExtResource("5_player_nature_ui")
 
@@ -220,7 +337,7 @@ theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 8
 
 [node name="VBoxContainer" type="Control" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer"]
-custom_minimum_size = Vector2(260, 216)
+custom_minimum_size = Vector2(260, 284)
 layout_mode = 2
 
 [node name="EnergyIcon" type="TextureRect" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
@@ -282,37 +399,37 @@ text = "x5"
 [node name="MainMenuGrid" type="GridContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
 offset_top = 66.0
 offset_right = 260.0
-offset_bottom = 216.0
+offset_bottom = 284.0
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 2
 
 [node name="MainPlaceholder1" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
-custom_minimum_size = Vector2(126, 44)
+custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_font_sizes/font_size = 22
-text = "?"
-tooltip_text = "Заглушка"
+theme_override_font_sizes/font_size = 30
+text = "🥚"
+tooltip_text = "Яйцо"
 
 [node name="MainPlaceholder2" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
-custom_minimum_size = Vector2(126, 44)
+custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_font_sizes/font_size = 22
-text = "?"
-tooltip_text = "Заглушка"
+theme_override_font_sizes/font_size = 18
+text = "BASE"
+tooltip_text = "База"
 
 [node name="SpellMenuButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
-custom_minimum_size = Vector2(126, 44)
+custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
@@ -321,7 +438,7 @@ theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_colors/font_hover_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_colors/font_pressed_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 30
 text = "✦"
 tooltip_text = "Заклинания"
 script = ExtResource("6_spell_menu_toggle")
@@ -330,40 +447,40 @@ back_button_path = NodePath("../../SpellBackButton")
 menu_to_hide_paths = [NodePath("..")]
 
 [node name="MainPlaceholder3" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
-custom_minimum_size = Vector2(126, 44)
+custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_font_sizes/font_size = 22
-text = "?"
-tooltip_text = "Заглушка"
+theme_override_font_sizes/font_size = 18
+text = "ENEMY"
+tooltip_text = "Противник"
 
 [node name="MainPlaceholder4" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
-custom_minimum_size = Vector2(126, 44)
+custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_font_sizes/font_size = 22
-text = "?"
-tooltip_text = "Заглушка"
+theme_override_font_sizes/font_size = 30
+text = "⚑"
+tooltip_text = "Флажок"
 
 [node name="MainPlaceholder5" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
-custom_minimum_size = Vector2(126, 44)
+custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_font_sizes/font_size = 22
-text = "?"
-tooltip_text = "Заглушка"
+theme_override_font_sizes/font_size = 18
+text = "MENU"
+tooltip_text = "Меню"
 
 [node name="LightningButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
 visible = false
