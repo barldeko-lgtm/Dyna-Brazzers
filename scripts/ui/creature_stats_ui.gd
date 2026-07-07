@@ -21,6 +21,12 @@ extends CanvasLayer
 
 @onready var fps_label: Label = $FpsLabel
 
+@onready var player_herbivore_count_label: Label = $PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerHerbivoreCountLabel
+
+@onready var player_egg_count_label: Label = $PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerEggCountLabel
+
+@onready var player_total_count_label: Label = $PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerTotalCountLabel
+
 @onready var time_speed_buttons: Array[Button] = [
 	$PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed1Button,
 	$PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed2Button,
@@ -31,22 +37,33 @@ extends CanvasLayer
 # Time scale presets.
 const TIME_SPEED_VALUES := [1.0, 2.0, 3.0, 5.0]
 
+const ENTITY_COUNTS_REFRESH_INTERVAL := 0.5
+
 var current_creature: Node = null
 
 var hovered_creature: Node = null
 
 var selected_creature: Node = null
 
+var entity_counts_refresh_timer := 0.0
+
 
 func _ready() -> void:
 	add_to_group("creature_stats_ui")
 	panel.visible = false
 	setup_time_speed_controls()
+	update_entity_counts_text()
+	entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
 
 
 # Prefer selected creature over hover.
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	fps_label.text = build_debug_status_text()
+
+	entity_counts_refresh_timer -= delta
+	if entity_counts_refresh_timer <= 0.0:
+		entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
+		update_entity_counts_text()
 
 	if not is_instance_valid(selected_creature):
 		selected_creature = null
@@ -96,6 +113,55 @@ func build_debug_status_text() -> String:
 	lines.append("Path/s: calls %d | expanded %d | success %d | failed %d" % [PerformanceStats.get_rate("path_calls"), PerformanceStats.get_rate("path_expanded_tiles"), PerformanceStats.get_rate("path_success"), PerformanceStats.get_rate("path_failed")])
 	lines.append(PerformanceStats.get_csv_status_text())
 	return "\n".join(lines)
+
+
+func update_entity_counts_text() -> void:
+	var herbivore_count := count_herbivore_creatures()
+	var egg_count := count_eggs()
+
+	player_herbivore_count_label.text = str(herbivore_count)
+	player_egg_count_label.text = str(egg_count)
+	player_total_count_label.text = str(herbivore_count + egg_count)
+
+
+func count_herbivore_creatures() -> int:
+	var count := 0
+
+	for creature in get_tree().get_nodes_in_group("creatures"):
+		if not is_instance_valid(creature):
+			continue
+
+		if creature.is_queued_for_deletion():
+			continue
+
+		if is_herbivore_creature(creature):
+			count += 1
+
+	return count
+
+
+func is_herbivore_creature(creature: Node) -> bool:
+	var species_data: Resource = creature.get("species_data")
+
+	if species_data == null:
+		return false
+
+	return not bool(species_data.get("is_predator"))
+
+
+func count_eggs() -> int:
+	var count := 0
+
+	for egg in get_tree().get_nodes_in_group("eggs"):
+		if not is_instance_valid(egg):
+			continue
+
+		if egg.is_queued_for_deletion():
+			continue
+
+		count += 1
+
+	return count
 
 
 func get_mouse_world_position(mouse_screen: Vector2) -> Vector2:
