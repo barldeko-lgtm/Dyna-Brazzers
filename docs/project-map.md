@@ -20,7 +20,7 @@
 
 ### `scenes/main/`
 
-- `scenes/main/main.tscn` — top-level assembly: camera, UI, world instance, and debug overlay.
+- `scenes/main/main.tscn` — top-level assembly: camera, right-side player HUD, creature stats/debug UI, world instance, and debug overlay.
 
 ### `scenes/world/`
 
@@ -75,6 +75,7 @@
 
 - `scripts/ui/creature_stats_ui.gd` — prototype creature stats, selection, debug status, and simulation speed UI.
 - `scripts/ui/player_nature_ui.gd` — player energy and nature-power targeting/effects.
+- `scripts/ui/spell_menu_toggle.gd` — small helper for opening/closing the right-side spell submenu.
 
 ### Effects
 
@@ -120,6 +121,10 @@
 
 - `assets/sprites/effects/lightning/` — lightning effect frames.
 
+### UI
+
+- `assets/ui/nature_energy_icon.png` — nature energy icon used by the right-side player HUD.
+
 ---
 
 ## 6. Ownership summary
@@ -132,6 +137,7 @@
 - Egg lifecycle belongs in `scripts/resources/egg.gd`.
 - Player powers belong in `scripts/ui/player_nature_ui.gd`.
 - Debug and performance tooling belongs in `scripts/debug/`.
+- The current right-side HUD layout lives in `scenes/main/main.tscn`.
 
 ---
 

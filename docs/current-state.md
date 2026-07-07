@@ -15,6 +15,7 @@ The project currently has:
 - eggs, hatching, and population growth;
 - a temporary predator and simple duel combat;
 - player nature powers;
+- a structured right-side player HUD;
 - debug/performance tools;
 - a free observer camera.
 
@@ -124,21 +125,27 @@ Current power categories:
 - terrain-targeted grass acceleration;
 - terrain-targeted grass reduction/recovery interaction.
 
-Exact costs, radii, damage, counts, and other tuning values are intentionally not documented here. Read current values from exported variables/resources in code.
+The player energy cap is currently `9999`. Exact costs, radii, damage, counts, and other tuning values are intentionally not documented here. Read current values from exported variables/resources in code.
 
 ### UI, debug, and performance
 
 The prototype currently includes:
+- a persistent right-side player HUD panel;
+- a minimap placeholder area;
+- placeholder player/enemy creature and egg counters;
+- a nature-energy icon and numeric energy display;
+- simulation speed buttons;
+- a 2x3 main action button grid;
+- a collapsible spell submenu for lightning, rain/cloud, and sun;
 - creature hover/selection;
 - creature stats display;
 - debug status text;
-- simulation speed selection;
 - grid/path/occupancy debug overlay;
 - runtime counters;
 - CSV performance logging;
 - observer camera movement and zoom.
 
-The UI is still prototype-level. Some responsibilities are mixed and should be split during UI cleanup.
+The main player HUD is now far closer to the intended Dyna-style right-side command panel. Some UI responsibilities are still prototype-level and should be split during UI cleanup.
 
 ---
 
@@ -164,6 +171,8 @@ The following systems work but are not final:
 
 `creature_stats_ui.gd` currently handles creature stats, selection, debug status, and simulation speed UI. This should be split during UI work.
 
+The right-side player HUD is assembled in `main.tscn`. It now contains several visual placeholder blocks, including the minimap placeholder, creature/egg counter panel, main action grid, and spell submenu.
+
 ### Creature coordinator growth
 
 `creature.gd` is still a central coordinator. Keep pushing clear subsystem logic into helpers instead of growing it into a blob.
@@ -187,12 +196,15 @@ Current powers work, but the system is not yet a general reusable action framewo
 - Egg blockers must unregister before hatching or removal.
 - Player powers should not bypass grass/egg/creature lifecycle rules.
 - Species stats should remain in species resources unless a value is truly per-instance runtime state.
+- UI buttons should trigger powers or future actions, not directly command autonomous creatures.
 
 ---
 
 ## 7. Useful next directions
 
 Possible near-term work:
+- connect the creature/egg counter panel to real world data;
+- build the actual minimap;
 - compact UI cleanup;
 - better visual feedback for nature powers;
 - grazing/pathfinding performance improvements;
