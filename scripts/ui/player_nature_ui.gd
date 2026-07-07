@@ -5,7 +5,7 @@ const RAIN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/rain_target_previe
 const SUN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/sun_target_preview.tscn"
 
 # Player-facing nature powers HUD.
-@export var max_energy := 500.0
+@export var max_energy := 9999.0
 @export var starting_energy := 0.0
 @export var energy_regen_per_second := 1.0
 @export var lightning_damage := 50.0
@@ -17,8 +17,7 @@ const SUN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/sun_target_preview.
 @export var sun_spread_reset_radius_tiles := 4
 @export var sun_remove_grass_count := 20
 
-@onready var energy_bar: ProgressBar = get_node_or_null("MarginContainer/VBoxContainer/EnergyBar")
-@onready var energy_value_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EnergyBar/EnergyValueLabel")
+@onready var energy_value_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EnergyValueLabel")
 @onready var lightning_button: Button = get_node_or_null("MarginContainer/VBoxContainer/LightningButton")
 @onready var rain_button: Button = get_node_or_null("MarginContainer/VBoxContainer/RainButton")
 @onready var sun_button: Button = get_node_or_null("MarginContainer/VBoxContainer/SunButton")
@@ -35,11 +34,6 @@ func _ready() -> void:
 	add_to_group("player_nature_ui")
 	set_process(true)
 	current_energy = clamp(starting_energy, 0.0, max_energy)
-
-	if energy_bar != null:
-		energy_bar.min_value = 0.0
-		energy_bar.max_value = max_energy
-		energy_bar.show_percentage = false
 
 	setup_lightning_button()
 	setup_rain_button()
@@ -261,11 +255,8 @@ func get_max_energy() -> float:
 
 
 func _update_energy_ui() -> void:
-	if energy_bar != null:
-		energy_bar.value = current_energy
-
 	if energy_value_label != null:
-		energy_value_label.text = "%d / %d" % [floori(current_energy), floori(max_energy)]
+		energy_value_label.text = "%d" % floori(current_energy)
 
 	_update_spell_buttons()
 

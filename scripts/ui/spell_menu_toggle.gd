@@ -1,11 +1,13 @@
 extends Button
 
 # Small helper for the player UI spell section.
-# Opens a fixed-size spell submenu without moving the energy block.
+# Opens the spell submenu and can hide the main action menu while it is open.
 @export var spell_button_paths: Array[NodePath] = []
 @export var back_button_path: NodePath
+@export var menu_to_hide_paths: Array[NodePath] = []
 
 var spell_buttons: Array[Control] = []
+var menus_to_hide: Array[Control] = []
 var back_button: Button = null
 
 
@@ -18,6 +20,11 @@ func _ready() -> void:
 		var node := get_node_or_null(spell_button_path)
 		if node is Control:
 			spell_buttons.append(node)
+
+	for menu_path in menu_to_hide_paths:
+		var node := get_node_or_null(menu_path)
+		if node is Control:
+			menus_to_hide.append(node)
 
 	var back_node := get_node_or_null(back_button_path)
 	if back_node is Button:
@@ -43,7 +50,13 @@ func _on_back_button_pressed() -> void:
 
 
 func _apply_open_state(is_open: bool) -> void:
+	# The button can either hide only itself, or hide the whole main action menu
+	# when menu_to_hide_paths is configured.
 	visible = not is_open
+
+	for menu in menus_to_hide:
+		if is_instance_valid(menu):
+			menu.visible = not is_open
 
 	for spell_button in spell_buttons:
 		if is_instance_valid(spell_button):

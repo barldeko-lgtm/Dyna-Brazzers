@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/debug/grid_debug_overlay.tscn" id="4_grid_debug_overlay"]
 [ext_resource type="Script" path="res://scripts/ui/player_nature_ui.gd" id="5_player_nature_ui"]
 [ext_resource type="Script" path="res://scripts/ui/spell_menu_toggle.gd" id="6_spell_menu_toggle"]
+[ext_resource type="Texture2D" path="res://assets/ui/nature_energy_icon.png" id="7_nature_energy_icon"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hunger_bar_bg"]
 bg_color = Color(0.14, 0.14, 0.14, 1)
@@ -23,13 +24,6 @@ corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hunger_bar_fill"]
 bg_color = Color(0.2, 0.8, 0.32, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_energy_bar_fill"]
-bg_color = Color(0.25, 0.55, 1, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -214,47 +208,112 @@ layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_minimap_placeholder_bg")
 
 [node name="PlayerNaturePanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(280, 232)
 layout_mode = 2
 script = ExtResource("5_player_nature_ui")
 
 [node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 6
+theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 8
 
 [node name="VBoxContainer" type="Control" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer"]
-custom_minimum_size = Vector2(260, 204)
+custom_minimum_size = Vector2(260, 216)
 layout_mode = 2
 
-[node name="EnergyTitleLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
-offset_right = 260.0
-offset_bottom = 17.0
-text = "Энергия природы"
+[node name="EnergyIcon" type="TextureRect" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(50, 50)
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 50.0
+offset_bottom = 50.0
+texture = ExtResource("7_nature_energy_icon")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="EnergyBar" type="ProgressBar" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(260, 20)
-offset_top = 22.0
-offset_right = 260.0
-offset_bottom = 42.0
-theme_override_styles/background = SubResource("StyleBoxFlat_hunger_bar_bg")
-theme_override_styles/fill = SubResource("StyleBoxFlat_energy_bar_fill")
-show_percentage = false
-
-[node name="EnergyValueLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/EnergyBar"]
-layout_mode = 0
-anchor_right = 1.0
-anchor_bottom = 1.0
-text = "0 / 500"
-horizontal_alignment = 1
+[node name="EnergyValueLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(76, 50)
+offset_left = 52.0
+offset_right = 128.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 28
+text = "0"
+horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="SpellMenuButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(78, 44)
-offset_top = 56.0
-offset_right = 78.0
-offset_bottom = 100.0
+[node name="TimeControlsPanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=180026917]
+offset_left = 132.0
+offset_right = 260.0
+offset_bottom = 50.0
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel" unique_id=826031806]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 8
+
+[node name="HBoxContainer" type="HBoxContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer" unique_id=1497686245]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="TimeSpeed1Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "x1"
+
+[node name="TimeSpeed2Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "x2"
+
+[node name="TimeSpeed3Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "x3"
+
+[node name="TimeSpeed5Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "x5"
+
+[node name="MainMenuGrid" type="GridContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+offset_top = 66.0
+offset_right = 260.0
+offset_bottom = 216.0
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 2
+
+[node name="MainPlaceholder1" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
+custom_minimum_size = Vector2(126, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 22
+text = "?"
+tooltip_text = "Заглушка"
+
+[node name="MainPlaceholder2" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
+custom_minimum_size = Vector2(126, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 22
+text = "?"
+tooltip_text = "Заглушка"
+
+[node name="SpellMenuButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
+custom_minimum_size = Vector2(126, 44)
+layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
@@ -266,15 +325,52 @@ theme_override_font_sizes/font_size = 26
 text = "✦"
 tooltip_text = "Заклинания"
 script = ExtResource("6_spell_menu_toggle")
-spell_button_paths = [NodePath("../LightningButton"), NodePath("../RainButton"), NodePath("../SunButton")]
-back_button_path = NodePath("../SpellBackButton")
+spell_button_paths = [NodePath("../../LightningButton"), NodePath("../../RainButton"), NodePath("../../SunButton")]
+back_button_path = NodePath("../../SpellBackButton")
+menu_to_hide_paths = [NodePath("..")]
+
+[node name="MainPlaceholder3" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
+custom_minimum_size = Vector2(126, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 22
+text = "?"
+tooltip_text = "Заглушка"
+
+[node name="MainPlaceholder4" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
+custom_minimum_size = Vector2(126, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 22
+text = "?"
+tooltip_text = "Заглушка"
+
+[node name="MainPlaceholder5" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
+custom_minimum_size = Vector2(126, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 22
+text = "?"
+tooltip_text = "Заглушка"
 
 [node name="LightningButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(78, 44)
-offset_top = 56.0
+offset_top = 66.0
 offset_right = 78.0
-offset_bottom = 100.0
+offset_bottom = 110.0
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
@@ -304,9 +400,9 @@ mouse_filter = 2
 visible = false
 custom_minimum_size = Vector2(78, 44)
 offset_left = 91.0
-offset_top = 56.0
+offset_top = 66.0
 offset_right = 169.0
-offset_bottom = 100.0
+offset_bottom = 110.0
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
@@ -336,9 +432,9 @@ mouse_filter = 2
 visible = false
 custom_minimum_size = Vector2(78, 44)
 offset_left = 182.0
-offset_top = 56.0
+offset_top = 66.0
 offset_right = 260.0
-offset_bottom = 100.0
+offset_bottom = 110.0
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
@@ -367,9 +463,9 @@ mouse_filter = 2
 [node name="SpellBackButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(78, 44)
-offset_top = 110.0
+offset_top = 120.0
 offset_right = 78.0
-offset_bottom = 154.0
+offset_bottom = 164.0
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
@@ -380,52 +476,6 @@ theme_override_colors/font_pressed_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_font_sizes/font_size = 26
 text = "←"
 tooltip_text = "Назад"
-
-[node name="TopSpacer" type="Control" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="BottomControls" type="VBoxContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="TimeControlsPanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls" unique_id=180026917]
-layout_mode = 2
-
-[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel" unique_id=826031806]
-layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 6
-
-[node name="HBoxContainer" type="HBoxContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer" unique_id=1497686245]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="TimeSpeedLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer" unique_id=1783765130]
-layout_mode = 2
-text = "Скорость"
-
-[node name="TimeSpeed1Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer"]
-custom_minimum_size = Vector2(38, 0)
-layout_mode = 2
-text = "x1"
-
-[node name="TimeSpeed2Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer"]
-custom_minimum_size = Vector2(38, 0)
-layout_mode = 2
-text = "x2"
-
-[node name="TimeSpeed3Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer"]
-custom_minimum_size = Vector2(38, 0)
-layout_mode = 2
-text = "x3"
-
-[node name="TimeSpeed5Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer"]
-custom_minimum_size = Vector2(38, 0)
-layout_mode = 2
-text = "x5"
 
 [node name="Simulation" type="Node" parent="." unique_id=898770180]
 

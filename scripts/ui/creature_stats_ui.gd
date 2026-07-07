@@ -22,10 +22,10 @@ extends CanvasLayer
 @onready var fps_label: Label = $FpsLabel
 
 @onready var time_speed_buttons: Array[Button] = [
-	$PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed1Button,
-	$PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed2Button,
-	$PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed3Button,
-	$PlayerSidePanel/MarginContainer/VBoxContainer/BottomControls/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed5Button,
+	$PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed1Button,
+	$PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed2Button,
+	$PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed3Button,
+	$PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed5Button,
 ]
 
 # Time scale presets.
