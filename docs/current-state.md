@@ -1,10 +1,8 @@
 # Dyna — Current Project State
 
-> Purpose: describe what the prototype currently is and what systems already work. This file should not duplicate the project file map or detailed dependency bundles.
+> Purpose: describe what the prototype currently is and what systems already work.
 
----
-
-## 1. Status
+## Status
 
 Dyna is an early Godot 4.7 simulation prototype.
 
@@ -16,14 +14,14 @@ The project currently has:
 - a temporary predator and simple duel combat;
 - player nature powers;
 - a structured right-side player HUD;
+- live player-side creature/egg counters;
+- manually selectable water and mountain terrain visual variants;
 - debug/performance tools;
 - a free observer camera.
 
 The project is still a simulation sandbox, not a finished game.
 
----
-
-## 2. Design direction
+## Design direction
 
 The player is not a direct unit commander. The intended feel is an ecosystem that mostly runs by itself while the player influences conditions from above.
 
@@ -33,9 +31,7 @@ Important direction rules:
 - keep world/resource/entity logic separate from UI;
 - avoid turning the project into a standard RTS.
 
----
-
-## 3. Implemented systems
+## Implemented systems
 
 ### World
 
@@ -50,6 +46,21 @@ The world currently supports:
 - blocker tracking;
 - pathfinding;
 - grass/resource lookup.
+
+Terrain is source-id driven:
+- source id `0` is ground;
+- source id `1` is water;
+- source id `2` is mountain.
+
+Water and mountain tiles now have multiple manually selectable visual variants. These variants are not autotiles and are not separate gameplay types.
+
+### Terrain visuals
+
+Current terrain visual work includes:
+- a water atlas with 9 independent manually selectable water variants;
+- a mountain atlas with 9 independent manually selectable mountain variants.
+
+These visual variants are meant for hand-painting nicer water and mountain shapes in the editor. They do not change terrain logic by themselves.
 
 ### Creatures
 
@@ -66,26 +77,13 @@ The world contains autonomous creatures with:
 - eating;
 - egg laying;
 - combat state;
-- directional walking animations;
-- right-facing eating animation with left-facing mirroring.
+- directional walking animations.
 
 Creature logic is split between the main creature coordinator and helper scripts for grazing, predator behaviour, reproduction, and visuals.
 
-Creature visual logic supports static directional sprites plus SpriteFrames-based animation resources assigned through species data. Current stegosaurus animation coverage includes right, up, and up-right walking, plus right-facing eating that can be mirrored left.
-
-### Species
-
-Static creature data lives in species resources. Current species coverage includes:
-- a herbivore species;
-- a temporary predator species.
-
-Species resources hold the stable per-species data that should not be duplicated into every creature script.
-
 ### Grass
 
-Grass is the first renewable resource.
-
-It currently supports:
+Grass supports:
 - growth stages;
 - edible adult state;
 - consumption;
@@ -93,11 +91,7 @@ It currently supports:
 - tile registration in the world grid;
 - reaction hooks for player nature powers.
 
-Grass lifecycle logic belongs to grass itself.
-
 ### Eggs and reproduction
-
-Reproduction currently works through eggs.
 
 Eggs support:
 - staged lifecycle;
@@ -105,38 +99,13 @@ Eggs support:
 - vulnerability rules;
 - hatching into a creature.
 
-Egg blocker cleanup is important for honest world walkability.
-
-### Predator and combat
-
-The predator system is a temporary prototype layer.
-
-It currently supports:
-- prey search;
-- chase/pathing toward valid contact;
-- side-contact-only duel entry;
-- simple one-on-one duel combat;
-- basic combat cleanup.
-
-Combat aftermath is still prototype-level and may need a richer corpse/eating/resource flow later.
-
-### Player nature powers
-
-The player has energy and nature powers.
-
-Current power categories:
-- creature-targeted damage;
-- terrain-targeted grass acceleration;
-- terrain-targeted grass reduction/recovery interaction.
-
-The player energy cap is currently `9999`. Exact costs, radii, damage, counts, and other tuning values are intentionally not documented here. Read current values from exported variables/resources in code.
-
 ### UI, debug, and performance
 
 The prototype currently includes:
 - a persistent right-side player HUD panel;
 - a minimap placeholder area;
-- placeholder player/enemy creature and egg counters;
+- live player-side herbivore and egg counters;
+- placeholder/enemy-side counter slots for future use;
 - a nature-energy icon and numeric energy display;
 - simulation speed buttons;
 - a 2x3 main action button grid;
@@ -149,76 +118,29 @@ The prototype currently includes:
 - CSV performance logging;
 - observer camera movement and zoom.
 
-The main player HUD is now far closer to the intended Dyna-style right-side command panel. Some UI responsibilities are still prototype-level and should be split during UI cleanup.
+## Known technical debt
 
----
+- `creature_stats_ui.gd` still mixes stats, selection, debug status, simulation speed UI, and counters.
+- `creature.gd` is still a central coordinator.
+- Creature animation coverage is still partial.
+- Terrain logic depends on TileSet source ids, so source-id meaning must stay documented and consistent.
+- Current powers work, but the system is not yet a general reusable action framework.
 
-## 4. Prototype-level or unfinished areas
-
-The following systems work but are not final:
-- predator behaviour;
-- combat aftermath;
-- player nature-power framework;
-- UI organization;
-- visual effects;
-- terrain/biome depth;
-- population balance;
-- species variety;
-- save/load;
-- art pipeline and asset consistency.
-
----
-
-## 5. Known technical debt
-
-### UI responsibility mixing
-
-`creature_stats_ui.gd` currently handles creature stats, selection, debug status, and simulation speed UI. This should be split during UI work.
-
-The right-side player HUD is assembled in `main.tscn`. It now contains several visual placeholder blocks, including the minimap placeholder, creature/egg counter panel, main action grid, and spell submenu.
-
-### Creature coordinator growth
-
-`creature.gd` is still a central coordinator. Keep pushing clear subsystem logic into helpers instead of growing it into a blob.
-
-### Creature animation coverage
-
-Creature animations are still partial. The stegosaurus has several movement/eating animations, but not every direction and state has a dedicated animation yet. Missing directions should fall back to static sprites or mirrored animations instead of breaking the visual state.
-
-### Grazing performance
-
-Food search/pathfinding can become expensive. Keep performance counters useful and check logs when grazing/path spikes appear.
-
-### Player power framework
-
-Current powers work, but the system is not yet a general reusable action framework.
-
----
-
-## 6. Current fragile rules
+## Fragile rules
 
 - Creature logical anchors, pending anchors, visual position, and world occupancy must stay synchronized.
-- Creatures should only eat after reaching a valid grazing anchor.
 - World-grid registration for grass, creatures, and blockers must stay honest.
-- Predator combat must remain side-contact-only unless deliberately redesigned.
-- Egg blockers must unregister before hatching or removal.
-- Player powers should not bypass grass/egg/creature lifecycle rules.
-- Species stats should remain in species resources unless a value is truly per-instance runtime state.
+- Terrain TileSet source ids must stay aligned with `world_grid.gd` constants.
+- Water variants must remain in source id `1` if they should behave as water.
+- Mountain variants must remain in source id `2` if they should behave as mountains/blockers.
 - UI buttons should trigger powers or future actions, not directly command autonomous creatures.
 
----
-
-## 7. Useful next directions
+## Useful next directions
 
 Possible near-term work:
-- connect the creature/egg counter panel to real world data;
 - build the actual minimap;
 - compact UI cleanup;
 - better visual feedback for nature powers;
-- grazing/pathfinding performance improvements;
-- predator/combat polish;
+- paint nicer water/mountain forms using the new visual variants;
 - richer terrain and resource interactions;
-- additional species;
-- improved debug/performance instrumentation.
-
-These are not strict roadmap items; see `docs/design_roadmap.md` for broader planning.
+- additional species.
