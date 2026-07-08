@@ -1,21 +1,26 @@
 [gd_scene format=3 uid="uid://dqht3158gnffd"]
 
 [ext_resource type="Script" uid="uid://47bf27sp422j" path="res://scripts/resources/grass.gd" id="1_grass_script"]
-[ext_resource type="Texture2D" uid="uid://bjo436o0abn0o" path="res://assets/sprites/terrain/grass_stage_1.png" id="2_grass_stage_1"]
-[ext_resource type="Texture2D" uid="uid://c5nxqm0b4vc6i" path="res://assets/sprites/terrain/grass_stage_2.png" id="3_grass_stage_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/terrain/grass_stage_1.png" id="2_grass_stage_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/terrain/grass_stage_2.png" id="3_grass_stage_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/terrain/grass_stage_3.png" id="4_grass_stage_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/terrain/grass_stage_4.png" id="5_grass_stage_4"]
 
 [node name="Grass" type="Node2D" unique_id=967574626]
 script = ExtResource("1_grass_script")
 stage_1_texture = ExtResource("2_grass_stage_1")
 stage_2_texture = ExtResource("3_grass_stage_2")
+stage_3_texture = ExtResource("4_grass_stage_3")
+stage_4_texture = ExtResource("5_grass_stage_4")
+growth_time = 5.0
 
 [node name="BodySprite" type="Sprite2D" parent="." unique_id=1265757433]
 texture = ExtResource("2_grass_stage_1")
 
 [node name="GrowthTimer" type="Timer" parent="." unique_id=119334545]
-wait_time = 8.0
+wait_time = 5.0
 one_shot = true
 
 [node name="SpreadTimer" type="Timer" parent="." unique_id=1804818480]
-wait_time = 10.0
+wait_time = 20.0
 one_shot = true

@@ -10,7 +10,9 @@ extends Node2D
 # Growth stages.
 enum Stage {
 	STAGE_1,
-	STAGE_2
+	STAGE_2,
+	STAGE_3,
+	STAGE_4
 }
 
 # Timing and visuals.
@@ -18,7 +20,11 @@ enum Stage {
 
 @export var stage_2_texture: Texture2D
 
-@export var growth_time := 8.0
+@export var stage_3_texture: Texture2D
+
+@export var stage_4_texture: Texture2D
+
+@export var growth_time := 5.0
 
 @export var spread_delay := 20.0
 
@@ -35,6 +41,8 @@ var world_grid: Node = null
 var tile_position := Vector2i.ZERO
 
 var render_offset := Vector2.ZERO
+
+var last_consumed_food_value := 0
 
 const CARDINAL_TILE_OFFSETS := [
 	Vector2i.RIGHT,
@@ -73,13 +81,30 @@ func _exit_tree() -> void:
 
 # Consumption.
 func can_be_eaten() -> bool:
-	return current_stage == Stage.STAGE_2
+	return current_stage >= Stage.STAGE_2
+
+
+func get_food_value() -> int:
+	match current_stage:
+		Stage.STAGE_2:
+			return 3
+		Stage.STAGE_3:
+			return 5
+		Stage.STAGE_4:
+			return 7
+		_:
+			return 0
+
+
+func get_last_consumed_food_value() -> int:
+	return last_consumed_food_value
 
 
 func consume() -> bool:
 	if not can_be_eaten():
 		return false
 
+	last_consumed_food_value = get_food_value()
 	set_stage(Stage.STAGE_1)
 	return true
 
@@ -92,25 +117,22 @@ func set_stage(new_stage: Stage) -> void:
 
 # Rain.
 func apply_rain() -> bool:
-	if current_stage == Stage.STAGE_1:
+	if current_stage != Stage.STAGE_4:
 		PerformanceStats.add_counter("rain_grass_grown")
-		set_stage(Stage.STAGE_2)
+		set_stage(get_next_stage())
 		return true
 
-	if current_stage == Stage.STAGE_2:
-		PerformanceStats.add_counter("rain_grass_spread_requests")
-		return _try_spread_once()
-
-	return false
+	PerformanceStats.add_counter("rain_grass_spread_requests")
+	return _try_spread_once()
 
 
 # Sun.
 func apply_sun() -> bool:
-	if current_stage != Stage.STAGE_2:
+	if current_stage == Stage.STAGE_1:
 		return false
 
 	PerformanceStats.add_counter("sun_grass_reverted")
-	set_stage(Stage.STAGE_1)
+	set_stage(get_sun_reduced_stage())
 	return true
 
 
@@ -118,7 +140,7 @@ func reset_spread_attempt() -> bool:
 	var changed := has_tried_to_spread
 	has_tried_to_spread = false
 
-	if current_stage == Stage.STAGE_2:
+	if current_stage == Stage.STAGE_4:
 		update_timers()
 		return true
 
@@ -132,11 +154,39 @@ func apply_current_stage_visual() -> void:
 			body_sprite.texture = stage_1_texture
 		Stage.STAGE_2:
 			body_sprite.texture = stage_2_texture
+		Stage.STAGE_3:
+			body_sprite.texture = stage_3_texture
+		Stage.STAGE_4:
+			body_sprite.texture = stage_4_texture
+
+
+func get_next_stage() -> Stage:
+	match current_stage:
+		Stage.STAGE_1:
+			return Stage.STAGE_2
+		Stage.STAGE_2:
+			return Stage.STAGE_3
+		Stage.STAGE_3:
+			return Stage.STAGE_4
+		_:
+			return Stage.STAGE_4
+
+
+func get_sun_reduced_stage() -> Stage:
+	match current_stage:
+		Stage.STAGE_4:
+			return Stage.STAGE_2
+		Stage.STAGE_3:
+			return Stage.STAGE_1
+		Stage.STAGE_2:
+			return Stage.STAGE_1
+		_:
+			return Stage.STAGE_1
 
 
 # Stage timers.
 func update_timers() -> void:
-	if current_stage == Stage.STAGE_1:
+	if current_stage != Stage.STAGE_4:
 		growth_timer.start(growth_time)
 		spread_timer.stop()
 	else:
@@ -150,7 +200,7 @@ func update_timers() -> void:
 
 func _on_growth_timer_timeout() -> void:
 	PerformanceStats.add_counter("grass_growth_done")
-	set_stage(Stage.STAGE_2)
+	set_stage(get_next_stage())
 
 
 func _on_spread_timer_timeout() -> void:
@@ -159,7 +209,7 @@ func _on_spread_timer_timeout() -> void:
 
 
 func _try_spread_once() -> bool:
-	if current_stage != Stage.STAGE_2:
+	if current_stage != Stage.STAGE_4:
 		return false
 
 	if has_tried_to_spread:

@@ -526,6 +526,7 @@ func count_adult_grass_under_footprint(anchor_tile: Vector2i, footprint_size: Ve
 func consume_adult_grass_under_footprint(anchor_tile: Vector2i, footprint_size: Vector2i) -> int:
 	PerformanceStats.add_counter("grass_consume_queries")
 	var consumed_count := 0
+	var restored_satiety := 0
 
 	for tile in get_footprint_tiles(anchor_tile, footprint_size):
 		var grass: Node = grass_by_tile.get(tile, null)
@@ -539,8 +540,14 @@ func consume_adult_grass_under_footprint(anchor_tile: Vector2i, footprint_size: 
 		if grass.consume():
 			consumed_count += 1
 
+			if grass.has_method("get_last_consumed_food_value"):
+				restored_satiety += int(grass.get_last_consumed_food_value())
+			else:
+				restored_satiety += 1
+
 	PerformanceStats.add_counter("grass_consumed", consumed_count)
-	return consumed_count
+	PerformanceStats.add_counter("grass_satiety_restored", restored_satiety)
+	return restored_satiety
 
 
 func estimate_path_steps(from_anchor: Vector2i, to_anchor: Vector2i) -> int:
