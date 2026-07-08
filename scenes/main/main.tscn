@@ -4,9 +4,9 @@
 [ext_resource type="Script" uid="uid://b7vbapxldrm6c" path="res://scripts/camera/camera_controller.gd" id="1_iuonh"]
 [ext_resource type="Script" uid="uid://dbmpjk3xc5rw8" path="res://scripts/ui/creature_stats_ui.gd" id="3_creature_stats_ui"]
 [ext_resource type="PackedScene" path="res://scenes/debug/grid_debug_overlay.tscn" id="4_grid_debug_overlay"]
-[ext_resource type="Script" path="res://scripts/ui/player_nature_ui.gd" id="5_player_nature_ui"]
-[ext_resource type="Script" path="res://scripts/ui/spell_menu_toggle.gd" id="6_spell_menu_toggle"]
-[ext_resource type="Texture2D" path="res://assets/ui/nature_energy_icon.png" id="7_nature_energy_icon"]
+[ext_resource type="Script" uid="uid://c604a6ecpm1ew" path="res://scripts/ui/player_nature_ui.gd" id="5_player_nature_ui"]
+[ext_resource type="Script" uid="uid://dsxo1awod4pux" path="res://scripts/ui/spell_menu_toggle.gd" id="6_spell_menu_toggle"]
+[ext_resource type="Texture2D" uid="uid://cqt4cqgnsyeea" path="res://assets/ui/nature_energy_icon.png" id="7_nature_energy_icon"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hunger_bar_bg"]
 bg_color = Color(0.14, 0.14, 0.14, 1)
@@ -65,18 +65,6 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spell_button_hover"]
-bg_color = Color(0.88, 0.9, 0.94, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.48, 0.52, 0.6, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spell_button_pressed"]
 bg_color = Color(0.56, 0.6, 0.68, 1)
 border_width_left = 2
@@ -84,6 +72,18 @@ border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.18, 0.24, 0.34, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spell_button_hover"]
+bg_color = Color(0.88, 0.9, 0.94, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.48, 0.52, 0.6, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -187,86 +187,81 @@ offset_right = 760.0
 offset_bottom = -13.0
 text = "FPS: 0"
 
-[node name="PlayerSidePanel" type="PanelContainer" parent="UI"]
-anchors_preset = 15
+[node name="PlayerSidePanel" type="PanelContainer" parent="UI" unique_id=1389197869]
+anchors_preset = 11
 anchor_left = 1.0
-anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -300.0
-offset_top = 0.0
-offset_right = 0.0
-offset_bottom = 0.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_player_side_panel_bg")
 
-[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel"]
+[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel" unique_id=1763537628]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/PlayerSidePanel/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/PlayerSidePanel/MarginContainer" unique_id=1567790934]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="MiniMapPlaceholder" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer"]
+[node name="MiniMapPlaceholder" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer" unique_id=343139167]
 custom_minimum_size = Vector2(280, 280)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_minimap_placeholder_bg")
 
-[node name="EntityCountsPanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer"]
+[node name="EntityCountsPanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer" unique_id=1847693417]
 custom_minimum_size = Vector2(280, 88)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_entity_counts_bg")
 
-[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel" unique_id=668699243]
 layout_mode = 2
 theme_override_constants/margin_left = 6
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 6
 theme_override_constants/margin_bottom = 5
 
-[node name="GridContainer" type="GridContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer"]
+[node name="GridContainer" type="GridContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer" unique_id=2126935476]
 layout_mode = 2
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 4
 columns = 5
 
-[node name="CornerLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="CornerLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=393007375]
 custom_minimum_size = Vector2(34, 18)
 layout_mode = 2
-text = ""
 
-[node name="HerbivoreIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="HerbivoreIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=356106764]
 custom_minimum_size = Vector2(48, 18)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 1, 0.42, 1)
 text = "Тр"
 horizontal_alignment = 1
 
-[node name="PredatorIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="PredatorIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=214302831]
 custom_minimum_size = Vector2(48, 18)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.42, 0.32, 1)
 text = "Хщ"
 horizontal_alignment = 1
 
-[node name="EggIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="EggIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1716856533]
 custom_minimum_size = Vector2(48, 18)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.58, 1)
 text = "Яй"
 horizontal_alignment = 1
 
-[node name="TotalIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="TotalIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=380507571]
 custom_minimum_size = Vector2(48, 18)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.84, 1, 1)
 text = "Вс"
 horizontal_alignment = 1
 
-[node name="PlayerSideIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="PlayerSideIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1921474825]
 custom_minimum_size = Vector2(34, 22)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.35, 1, 0.35, 1)
@@ -275,27 +270,27 @@ text = "●"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="PlayerHerbivoreCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="PlayerHerbivoreCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=980403894]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="PlayerPredatorCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="PlayerPredatorCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=238595174]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="PlayerEggCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="PlayerEggCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=42782873]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="PlayerTotalCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="PlayerTotalCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1541372232]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="EnemySideIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="EnemySideIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=716283280]
 custom_minimum_size = Vector2(34, 22)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.25, 0.25, 1)
@@ -304,54 +299,54 @@ text = "●"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="EnemyHerbivoreCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="EnemyHerbivoreCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1804006483]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="EnemyPredatorCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="EnemyPredatorCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1353340732]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="EnemyEggCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="EnemyEggCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1597992523]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="EnemyTotalCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="EnemyTotalCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1562244772]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="PlayerNaturePanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer"]
+[node name="PlayerNaturePanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer" unique_id=1787863019]
 custom_minimum_size = Vector2(280, 300)
 layout_mode = 2
 script = ExtResource("5_player_nature_ui")
 
-[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel"]
+[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel" unique_id=1843573389]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 8
 
-[node name="VBoxContainer" type="Control" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer"]
+[node name="VBoxContainer" type="Control" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer" unique_id=624755338]
 custom_minimum_size = Vector2(260, 284)
 layout_mode = 2
 
-[node name="EnergyIcon" type="TextureRect" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+[node name="EnergyIcon" type="TextureRect" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=1206186472]
 custom_minimum_size = Vector2(50, 50)
-offset_left = 0.0
-offset_top = 0.0
+layout_mode = 0
 offset_right = 50.0
 offset_bottom = 50.0
 texture = ExtResource("7_nature_energy_icon")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="EnergyValueLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+[node name="EnergyValueLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=1659551091]
 custom_minimum_size = Vector2(76, 50)
+layout_mode = 0
 offset_left = 52.0
 offset_right = 128.0
 offset_bottom = 50.0
@@ -361,6 +356,7 @@ horizontal_alignment = 2
 vertical_alignment = 1
 
 [node name="TimeControlsPanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=180026917]
+layout_mode = 0
 offset_left = 132.0
 offset_right = 260.0
 offset_bottom = 50.0
@@ -376,27 +372,28 @@ theme_override_constants/margin_bottom = 8
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="TimeSpeed1Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
+[node name="TimeSpeed1Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer" unique_id=165431860]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
 text = "x1"
 
-[node name="TimeSpeed2Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
+[node name="TimeSpeed2Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer" unique_id=1270850233]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
 text = "x2"
 
-[node name="TimeSpeed3Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
+[node name="TimeSpeed3Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer" unique_id=331391751]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
 text = "x3"
 
-[node name="TimeSpeed5Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
+[node name="TimeSpeed5Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer" unique_id=25016948]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
 text = "x5"
 
-[node name="MainMenuGrid" type="GridContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+[node name="MainMenuGrid" type="GridContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=669104991]
+layout_mode = 0
 offset_top = 66.0
 offset_right = 260.0
 offset_bottom = 284.0
@@ -404,105 +401,106 @@ theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 2
 
-[node name="MainPlaceholder1" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
+[node name="MainPlaceholder1" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid" unique_id=2099805288]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_font_sizes/font_size = 30
-text = "🥚"
 tooltip_text = "Яйцо"
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "🥚"
 
-[node name="MainPlaceholder2" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
+[node name="MainPlaceholder2" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid" unique_id=288503833]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_font_sizes/font_size = 18
-text = "BASE"
 tooltip_text = "База"
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "BASE"
 
-[node name="SpellMenuButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
+[node name="SpellMenuButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid" unique_id=952642894]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_colors/font_hover_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_colors/font_pressed_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_font_sizes/font_size = 30
-text = "✦"
 tooltip_text = "Заклинания"
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "✦"
 script = ExtResource("6_spell_menu_toggle")
-spell_button_paths = [NodePath("../../LightningButton"), NodePath("../../RainButton"), NodePath("../../SunButton")]
+spell_button_paths = Array[NodePath]([NodePath("../../LightningButton"), NodePath("../../RainButton"), NodePath("../../SunButton")])
 back_button_path = NodePath("../../SpellBackButton")
-menu_to_hide_paths = [NodePath("..")]
+menu_to_hide_paths = Array[NodePath]([NodePath("..")])
 
-[node name="MainPlaceholder3" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
+[node name="MainPlaceholder3" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid" unique_id=625874295]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+tooltip_text = "Противник"
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 text = "ENEMY"
-tooltip_text = "Противник"
 
-[node name="MainPlaceholder4" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
+[node name="MainPlaceholder4" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid" unique_id=79527851]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+tooltip_text = "Флажок"
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 text = "⚑"
-tooltip_text = "Флажок"
 
-[node name="MainPlaceholder5" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
+[node name="MainPlaceholder5" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid" unique_id=1111792915]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+tooltip_text = "Меню"
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 text = "MENU"
-tooltip_text = "Меню"
 
-[node name="LightningButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+[node name="LightningButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=250761824]
 visible = false
 custom_minimum_size = Vector2(78, 44)
+layout_mode = 0
 offset_top = 66.0
 offset_right = 78.0
 offset_bottom = 110.0
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-theme_override_font_sizes/font_size = 1
-clip_text = true
-theme_override_colors/font_color = Color(0, 0, 0, 0)
-theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
-theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
-theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
-theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
-text = "Молния"
 tooltip_text = "Молния"
+theme_override_colors/font_color = Color(0, 0, 0, 0)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
+theme_override_font_sizes/font_size = 1
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "Молния"
+clip_text = true
 
-[node name="IconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/LightningButton"]
+[node name="IconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/LightningButton" unique_id=517094192]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -511,30 +509,30 @@ theme_override_font_sizes/font_size = 26
 text = "⚡"
 horizontal_alignment = 1
 vertical_alignment = 1
-mouse_filter = 2
 
-[node name="RainButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+[node name="RainButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=565272644]
 visible = false
 custom_minimum_size = Vector2(78, 44)
+layout_mode = 0
 offset_left = 91.0
 offset_top = 66.0
 offset_right = 169.0
 offset_bottom = 110.0
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-theme_override_font_sizes/font_size = 1
-clip_text = true
-theme_override_colors/font_color = Color(0, 0, 0, 0)
-theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
-theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
-theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
-theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
-text = "Дождь"
 tooltip_text = "Дождь"
+theme_override_colors/font_color = Color(0, 0, 0, 0)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
+theme_override_font_sizes/font_size = 1
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "Дождь"
+clip_text = true
 
-[node name="IconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/RainButton"]
+[node name="IconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/RainButton" unique_id=507450011]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -543,30 +541,30 @@ theme_override_font_sizes/font_size = 26
 text = "☁"
 horizontal_alignment = 1
 vertical_alignment = 1
-mouse_filter = 2
 
-[node name="SunButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+[node name="SunButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=458097041]
 visible = false
 custom_minimum_size = Vector2(78, 44)
+layout_mode = 0
 offset_left = 182.0
 offset_top = 66.0
 offset_right = 260.0
 offset_bottom = 110.0
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-theme_override_font_sizes/font_size = 1
-clip_text = true
-theme_override_colors/font_color = Color(0, 0, 0, 0)
-theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
-theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
-theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
-theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
-text = "Солнце"
 tooltip_text = "Солнце"
+theme_override_colors/font_color = Color(0, 0, 0, 0)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
+theme_override_font_sizes/font_size = 1
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "Солнце"
+clip_text = true
 
-[node name="IconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/SunButton"]
+[node name="IconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/SunButton" unique_id=697467302]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -575,24 +573,24 @@ theme_override_font_sizes/font_size = 26
 text = "☀"
 horizontal_alignment = 1
 vertical_alignment = 1
-mouse_filter = 2
 
-[node name="SpellBackButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+[node name="SpellBackButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=1163990658]
 visible = false
 custom_minimum_size = Vector2(78, 44)
+layout_mode = 0
 offset_top = 120.0
 offset_right = 78.0
 offset_bottom = 164.0
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_colors/font_hover_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_colors/font_pressed_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_font_sizes/font_size = 26
-text = "←"
 tooltip_text = "Назад"
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "←"
 
 [node name="Simulation" type="Node" parent="." unique_id=898770180]
 
