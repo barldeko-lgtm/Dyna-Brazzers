@@ -8,7 +8,8 @@ const PREDATOR_SPAWN_ENABLED := false
 const TERRAIN_GROUND := 0
 const TERRAIN_WATER := 1
 const TERRAIN_MOUNTAIN := 2
-const BLOCKED_TERRAIN_SOURCES := {TERRAIN_WATER: true, TERRAIN_MOUNTAIN: true}
+const TERRAIN_TREE := 3
+const BLOCKED_TERRAIN_SOURCES := {TERRAIN_WATER: true, TERRAIN_MOUNTAIN: true, TERRAIN_TREE: true}
 
 # Hard cap on how many tiles a single find_path call is allowed to expand before
 # giving up. Without this, a path search toward an unreachable or heavily
