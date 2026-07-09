@@ -10,6 +10,7 @@ Current prototype includes:
 - 4-stage renewable grass;
 - eggs, hatching, and population growth;
 - temporary predator and simple duel combat;
+- creature death state with a short corpse/death-pose visual before removal;
 - player nature powers;
 - right-side HUD with live creature/egg counters;
 - separated player UI, creature info UI, and debug status UI;
@@ -98,6 +99,23 @@ Rules:
 - sun reduces grass by 2 stages, but never below stage 1;
 - random sun-based grass removal remains separate.
 
+## Creature death / corpse visual
+
+Current death rules:
+- death is entered through `scripts/creatures/creature.gd`;
+- a dead creature stops normal behaviour immediately;
+- its world-grid creature occupancy is released immediately so other creatures can path through those tiles;
+- collision and hover/click picking are disabled for the corpse;
+- a species death texture can be shown for a short corpse lifetime;
+- after the corpse lifetime expires, the creature is removed with `queue_free()`.
+
+Current stegosaurus death asset:
+- `assets/sprites/creatures/stegosaurus/stegosaurus_dead.png`
+
+Current species fields:
+- `death_texture`
+- `corpse_lifetime`
+
 ## Fragile rules
 
 - Water variants must remain in source id `1`.
@@ -107,4 +125,5 @@ Rules:
 - Do not use `texture_origin` hacks for trees.
 - Grass is edible from stage 2, but spreads only from stage 4.
 - Grass food values are `3 / 5 / 7` for stages `2 / 3 / 4`.
+- Dead creatures must unregister creature occupancy immediately, before their corpse visual disappears.
 - Do not put player counters, time speed controls, or debug status back into `creature_stats_ui.gd`.

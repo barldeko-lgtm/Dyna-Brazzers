@@ -25,6 +25,8 @@ class_name CreatureSpeciesData
 @export var eating_right_frames: SpriteFrames
 @export var walk_animation_fps := 6.0
 @export var eating_animation_fps := 4.0
+@export var death_texture: Texture2D
+@export var corpse_lifetime := 3.0
 
 # Balance: combat and survival.
 @export var speed := 140.0

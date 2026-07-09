@@ -10,9 +10,11 @@ The current prototype includes:
 - a temporary predator species and simple one-on-one combat;
 - grass as the first renewable resource;
 - egg laying, egg stages, and hatching;
-- basic terrain blocking with ground, water, and mountains;
+- basic terrain blocking with ground, water, mountains, and trees;
+- creature death state with a short non-blocking corpse/death-pose visual;
 - player nature powers: lightning, rain, and sun;
 - hover/click observation UI;
+- separated player UI, creature info UI, and debug status UI;
 - debug/performance tools;
 - a free observer camera.
 
@@ -38,11 +40,12 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 
 - The world grid is the source of truth for terrain, walkability, occupancy, blockers, pathfinding, and resource lookup.
 - Creatures make decisions in grid/anchor space but move smoothly in world space.
-- Species stats, visuals, egg tuning, and species identity live in `.tres` resources.
+- Species stats, visuals, egg tuning, death texture, corpse lifetime, and species identity live in `.tres` resources.
 - `creature.gd` is the creature runtime coordinator.
 - Grazing, predator, reproduction, and visual logic are split into helper scripts.
 - Grass owns its own lifecycle and registers itself with the world grid.
 - Eggs are world objects and must correctly register/unregister blocking state.
+- Dead creatures release world-grid occupancy immediately; corpse visuals are non-blocking.
 - Player nature UI triggers powers and spends energy, but long-term simulation state should remain in world/entity/resource logic.
 - Player powers should influence the ecosystem indirectly where possible.
 
@@ -58,19 +61,24 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 - `scenes/effects/rain_target_preview.tscn` — rain targeting preview.
 - `scenes/effects/sun_target_preview.tscn` — sun targeting preview.
 - `scenes/debug/grid_debug_overlay.tscn` — optional grid debug overlay.
+- `data/species/stegosaurus.tres` — stegosaurus species resource, including death texture/corpse lifetime.
+- `assets/sprites/creatures/stegosaurus/stegosaurus_dead.png` — stegosaurus death-pose sprite.
 - `scripts/world/world_grid.gd` — central grid/world authority.
-- `scripts/creatures/creature.gd` — creature runtime coordinator.
+- `scripts/creatures/creature.gd` — creature runtime coordinator and death/corpse cleanup.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore grazing helper.
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — predator targeting/chasing/combat-entry helper.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and egg spawn helper.
-- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional sprites and animation helper.
+- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional sprites, animation, and death visual handling.
 - `scripts/creatures/creature_species_data.gd` — species resource schema.
 - `scripts/combat/duel.gd` — isolated duel loop.
 - `scripts/resources/grass.gd` — grass lifecycle and nature-power reactions.
 - `scripts/resources/egg.gd` — egg lifecycle and hatching.
-- `scripts/ui/creature_stats_ui.gd` — creature stats UI plus temporary debug/speed UI.
+- `scripts/ui/creature_stats_ui.gd` — creature info panel, hover/selection, empty-click deselection, lightning click bridge.
+- `scripts/ui/player_ui.gd` — player counters and time speed controls.
+- `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text.
 - `scripts/ui/player_nature_ui.gd` — player energy and nature powers.
 - `scripts/debug/performance_stats.gd` — runtime counters and CSV logging.
+- `scripts/debug/grid_debug_overlay.gd` — F3 grid overlay.
 - `scripts/camera/camera_controller.gd` — observer camera.
 
 ## Recommended read order for a new agent/session
@@ -86,11 +94,12 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 
 - Visual vs logical creature position: `anchor_tile`, `pending_anchor_tile`, `movement_target_position`, `global_position`, and world occupancy must stay consistent.
 - Grazing target selection and retargeting must not let creatures eat before reaching a valid target anchor.
-- Grass, creatures, and blockers must correctly register/unregister in `world_grid.gd`.
+- Grass, creatures, eggs, and blockers must correctly register/unregister in `world_grid.gd`.
+- Dead creatures must unregister creature occupancy immediately, before their corpse visual disappears.
 - Predator combat should start from side contact, not diagonal corner contact.
 - Egg stage transitions must not leave stale blockers.
 - Player powers should not corrupt world registration or bypass resource lifecycle rules.
-- UI currently mixes creature stats, debug status, and simulation speed. This is acceptable for the prototype but should be cleaned up during UI work.
+- UI ownership is split: do not move player counters, speed controls, or debug status back into `creature_stats_ui.gd`.
 
 ## Project meaning
 

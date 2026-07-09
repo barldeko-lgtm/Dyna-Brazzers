@@ -23,8 +23,10 @@
 - `scripts/world/world_grid.gd` — terrain/walkability, occupancy, blockers, pathfinding, grass lookup, grass consumption aggregation.
 - `scripts/resources/grass.gd` — 4-stage grass lifecycle, consumption, spreading, rain/sun reactions, per-stage food value.
 - `scripts/resources/egg.gd` — egg lifecycle, blocker handling, hatching.
-- `scripts/creatures/creature.gd` — base creature runtime coordinator.
+- `scripts/creatures/creature.gd` — base creature runtime coordinator, including death/corpse cleanup.
+- `scripts/creatures/creature_species_data.gd` — species resource schema for stats, visuals, eggs, death texture, and corpse lifetime.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore grazing and food targeting.
+- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional sprites, walking/eating animations, and death-pose visual locking.
 - `scripts/ui/creature_stats_ui.gd` — creature info panel, hover/selection, empty-click deselection, lightning click bridge.
 - `scripts/ui/player_ui.gd` — player side-panel counters and time speed controls.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed text debug.
@@ -39,14 +41,21 @@
 - `assets/sprites/terrain/tree_tiles_independent.png` — tree atlas with 4 trees split into normal 128x128 TileMap tiles.
 - `assets/sprites/terrain/grass_stage_1.png` ... `grass_stage_4.png` — grass growth-stage sprites.
 
+## Creature and species assets
+
+- `data/species/stegosaurus.tres` — stegosaurus stats, directional textures, animation resources, egg tuning, death texture, and corpse lifetime.
+- `assets/sprites/creatures/stegosaurus/stegosaurus_dead.png` — stegosaurus defeated/death pose shown briefly before removal.
+
 ## Ownership summary
 
 - World rules belong in `scripts/world/world_grid.gd`.
 - Terrain TileSet setup lives in `scenes/world/world.tscn`.
 - Terrain visual variants belong in `assets/sprites/terrain/`.
+- Creature species stats and species-specific visual references belong in `data/species/*.tres`.
 - Grass lifecycle and per-stage food value belong in `scripts/resources/grass.gd`.
 - Grass consumption aggregation belongs in `scripts/world/world_grid.gd`.
-- Creature runtime coordination belongs in `scripts/creatures/creature.gd`.
+- Creature runtime coordination, death state entry, and corpse cleanup belong in `scripts/creatures/creature.gd`.
+- Creature visual selection/animation details belong in `scripts/creatures/behaviors/creature_visual_controller.gd`.
 - Creature info UI belongs in `scripts/ui/creature_stats_ui.gd`.
 - Player HUD counters and speed controls belong in `scripts/ui/player_ui.gd`.
 - Always-visible compact debug and F4 detailed text debug belong in `scripts/ui/debug_status_ui.gd`.

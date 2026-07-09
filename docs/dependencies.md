@@ -12,7 +12,7 @@
 - blocker occupancy;
 - counting/consuming edible grass under creature footprints.
 
-If a task touches movement, blocked tiles, tree blocking, grass consumption, or pathing, inspect `world_grid.gd`.
+If a task touches movement, blocked tiles, tree blocking, grass consumption, corpse passability, or pathing, inspect `world_grid.gd`.
 
 ## UI ownership
 
@@ -35,7 +35,8 @@ Rules:
 - do not put counters or time speed controls back into `creature_stats_ui.gd`;
 - do not put detailed debug text back into `creature_stats_ui.gd`;
 - F3 grid overlay and F4 text debug are separate systems;
-- creature click selection should stay compatible with lightning targeting.
+- creature click selection should stay compatible with lightning targeting;
+- dead/corpse creatures should not remain selectable unless deliberately reworked later.
 
 ## Terrain source ids
 
@@ -106,6 +107,30 @@ Current grass stages:
 - Stage 2 — edible, restores 3 satiety;
 - Stage 3 — edible, restores 5 satiety;
 - Stage 4 — edible, restores 7 satiety and can spread.
+
+## Creature death and corpse visuals
+
+Main files:
+- `res://scripts/creatures/creature.gd`
+- `res://scripts/creatures/creature_species_data.gd`
+- `res://scripts/creatures/behaviors/creature_visual_controller.gd`
+- `res://data/species/stegosaurus.tres`
+- `res://assets/sprites/creatures/stegosaurus/stegosaurus_dead.png`
+
+Runtime flow:
+1. `creature.gd` enters `State.DEAD`.
+2. Any active duel is notified.
+3. Timers, current pathing, grazing target, and creature input picking are stopped.
+4. The creature unregisters itself from `world_grid.gd` immediately.
+5. Collision/Area2D picking is disabled recursively.
+6. The species `death_texture` is shown as the corpse visual.
+7. After `corpse_lifetime`, the creature is removed.
+
+Rules:
+- corpse visuals are not blockers;
+- dead creatures must not keep stale creature occupancy in `world_grid.gd`;
+- `death_texture` and `corpse_lifetime` belong to species data, not hard-coded per scene;
+- do not delay world-grid unregistration until `queue_free()`.
 
 ## Task bundle: trees or terrain blocking
 

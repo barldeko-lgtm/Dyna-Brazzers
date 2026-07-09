@@ -474,8 +474,61 @@ func enter_dead() -> void:
 	clear_path()
 	eating_timer.stop()
 	egg_laying_timer.stop()
-	hover_area.input_pickable = false
-	call_deferred("queue_free")
+	release_world_occupancy_for_corpse()
+	disable_corpse_collision()
+	show_death_visual()
+	remove_from_group("creatures")
+
+	var corpse_time := 3.0
+	if species_data != null:
+		corpse_time = max(species_data.corpse_lifetime, 0.0)
+
+	await get_tree().create_timer(corpse_time).timeout
+	queue_free()
+
+
+func release_world_occupancy_for_corpse() -> void:
+	if world_grid == null:
+		return
+
+	world_grid.unregister_creature(self, footprint_size)
+
+
+func disable_corpse_collision() -> void:
+	collision_layer = 0
+	collision_mask = 0
+	disable_collision_objects_recursive(self)
+
+
+func disable_collision_objects_recursive(node: Node) -> void:
+	for child: Node in node.get_children():
+		if child is CollisionShape2D:
+			child.set_deferred("disabled", true)
+		elif child is CollisionPolygon2D:
+			child.set_deferred("disabled", true)
+		elif child is Area2D:
+			child.input_pickable = false
+			child.monitoring = false
+			child.monitorable = false
+
+		disable_collision_objects_recursive(child)
+
+
+func show_death_visual() -> void:
+	set_walk_right_animation_active(false)
+
+	if sprite == null:
+		return
+
+	sprite.visible = true
+	sprite.flip_h = false
+
+	if species_data != null and species_data.death_texture != null:
+		sprite.texture = species_data.death_texture
+		return
+
+	if species_data != null and species_data.right_texture != null:
+		sprite.texture = species_data.right_texture
 
 
 func choose_random_wander_step() -> void:
@@ -578,7 +631,6 @@ func advance_movement(delta: float) -> void:
 		clear_path()
 		has_grazing_target = false
 		return
-
 	anchor_tile = pending_anchor_tile
 
 	if state == State.SEEK_FOOD and can_start_eating_here() and (not has_grazing_target or anchor_tile == grazing_target_anchor):
@@ -708,7 +760,6 @@ func detach_duel(duel: Duel) -> void:
 
 	if state == State.DEAD:
 		return
-
 	if hunger <= species_data.hunger_search_threshold:
 		enter_hungry_behavior()
 		return
