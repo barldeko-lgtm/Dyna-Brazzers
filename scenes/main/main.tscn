@@ -7,6 +7,8 @@
 [ext_resource type="Script" uid="uid://c604a6ecpm1ew" path="res://scripts/ui/player_nature_ui.gd" id="5_player_nature_ui"]
 [ext_resource type="Script" uid="uid://dsxo1awod4pux" path="res://scripts/ui/spell_menu_toggle.gd" id="6_spell_menu_toggle"]
 [ext_resource type="Texture2D" uid="uid://cqt4cqgnsyeea" path="res://assets/ui/nature_energy_icon.png" id="7_nature_energy_icon"]
+[ext_resource type="Script" path="res://scripts/ui/debug_status_ui.gd" id="8_debug_status_ui"]
+[ext_resource type="Script" path="res://scripts/ui/player_ui.gd" id="9_player_ui"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hunger_bar_bg"]
 bg_color = Color(0.14, 0.14, 0.14, 1)
@@ -101,47 +103,47 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[node name="Main" type="Node2D" unique_id=1663448340]
+[node name="Main" type="Node2D"]
 
-[node name="Camera2D" type="Camera2D" parent="." unique_id=1935161786]
+[node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(0.8, 0.8)
 script = ExtResource("1_iuonh")
 min_zoom = 0.3
 max_zoom = 5.0
 
-[node name="UI" type="CanvasLayer" parent="." unique_id=2023045864]
+[node name="UI" type="CanvasLayer" parent="."]
 script = ExtResource("3_creature_stats_ui")
 
-[node name="CreatureStatsPanel" type="PanelContainer" parent="UI" unique_id=683171868]
+[node name="CreatureStatsPanel" type="PanelContainer" parent="UI"]
 visible = false
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 220.0
 offset_bottom = 176.0
 
-[node name="MarginContainer" type="MarginContainer" parent="UI/CreatureStatsPanel" unique_id=1964774994]
+[node name="MarginContainer" type="MarginContainer" parent="UI/CreatureStatsPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 10
 
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/CreatureStatsPanel/MarginContainer" unique_id=1652789500]
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/CreatureStatsPanel/MarginContainer"]
 layout_mode = 2
 
-[node name="TitleLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer" unique_id=386548216]
+[node name="TitleLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Существо"
 
-[node name="AgeLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer" unique_id=144104220]
+[node name="AgeLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Возраст: 0"
 
-[node name="HealthLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer" unique_id=577492015]
+[node name="HealthLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Здоровье"
 
-[node name="HealthBar" type="ProgressBar" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer" unique_id=1201007713]
+[node name="HealthBar" type="ProgressBar" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_hunger_bar_bg")
@@ -149,7 +151,7 @@ theme_override_styles/fill = SubResource("StyleBoxFlat_health_bar_fill")
 value = 100.0
 show_percentage = false
 
-[node name="HealthValueLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer/HealthBar" unique_id=1840849160]
+[node name="HealthValueLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer/HealthBar"]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -157,11 +159,11 @@ text = "100 / 100"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HungerLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer" unique_id=1865689474]
+[node name="HungerLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Сытость"
 
-[node name="HungerBar" type="ProgressBar" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer" unique_id=1279874166]
+[node name="HungerBar" type="ProgressBar" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_hunger_bar_bg")
@@ -169,7 +171,7 @@ theme_override_styles/fill = SubResource("StyleBoxFlat_hunger_bar_fill")
 value = 100.0
 show_percentage = false
 
-[node name="HungerValueLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer/HungerBar" unique_id=1382029187]
+[node name="HungerValueLabel" type="Label" parent="UI/CreatureStatsPanel/MarginContainer/VBoxContainer/HungerBar"]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -177,7 +179,7 @@ text = "100 / 100"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="FpsLabel" type="Label" parent="UI" unique_id=458780955]
+[node name="FpsLabel" type="Label" parent="UI"]
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
@@ -186,82 +188,84 @@ offset_top = -178.0
 offset_right = 760.0
 offset_bottom = -13.0
 text = "FPS: 0"
+script = ExtResource("8_debug_status_ui")
 
-[node name="PlayerSidePanel" type="PanelContainer" parent="UI" unique_id=1389197869]
+[node name="PlayerSidePanel" type="PanelContainer" parent="UI"]
 anchors_preset = 11
 anchor_left = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -300.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_player_side_panel_bg")
+script = ExtResource("9_player_ui")
 
-[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel" unique_id=1763537628]
+[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/PlayerSidePanel/MarginContainer" unique_id=1567790934]
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/PlayerSidePanel/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="MiniMapPlaceholder" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer" unique_id=343139167]
+[node name="MiniMapPlaceholder" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(280, 280)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_minimap_placeholder_bg")
 
-[node name="EntityCountsPanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer" unique_id=1847693417]
+[node name="EntityCountsPanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(280, 88)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_entity_counts_bg")
 
-[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel" unique_id=668699243]
+[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 6
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 6
 theme_override_constants/margin_bottom = 5
 
-[node name="GridContainer" type="GridContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer" unique_id=2126935476]
+[node name="GridContainer" type="GridContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer"]
 layout_mode = 2
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 4
 columns = 5
 
-[node name="CornerLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=393007375]
+[node name="CornerLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(34, 18)
 layout_mode = 2
 
-[node name="HerbivoreIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=356106764]
+[node name="HerbivoreIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(48, 18)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 1, 0.42, 1)
 text = "Тр"
 horizontal_alignment = 1
 
-[node name="PredatorIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=214302831]
+[node name="PredatorIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(48, 18)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.42, 0.32, 1)
 text = "Хщ"
 horizontal_alignment = 1
 
-[node name="EggIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1716856533]
+[node name="EggIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(48, 18)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.58, 1)
 text = "Яй"
 horizontal_alignment = 1
 
-[node name="TotalIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=380507571]
+[node name="TotalIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(48, 18)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.84, 1, 1)
 text = "Вс"
 horizontal_alignment = 1
 
-[node name="PlayerSideIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1921474825]
+[node name="PlayerSideIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(34, 22)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.35, 1, 0.35, 1)
@@ -270,27 +274,27 @@ text = "●"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="PlayerHerbivoreCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=980403894]
+[node name="PlayerHerbivoreCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="PlayerPredatorCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=238595174]
+[node name="PlayerPredatorCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="PlayerEggCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=42782873]
+[node name="PlayerEggCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="PlayerTotalCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1541372232]
+[node name="PlayerTotalCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="EnemySideIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=716283280]
+[node name="EnemySideIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(34, 22)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.25, 0.25, 1)
@@ -299,43 +303,43 @@ text = "●"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="EnemyHerbivoreCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1804006483]
+[node name="EnemyHerbivoreCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="EnemyPredatorCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1353340732]
+[node name="EnemyPredatorCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="EnemyEggCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1597992523]
+[node name="EnemyEggCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="EnemyTotalCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer" unique_id=1562244772]
+[node name="EnemyTotalCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
-[node name="PlayerNaturePanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer" unique_id=1787863019]
+[node name="PlayerNaturePanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(280, 300)
 layout_mode = 2
 script = ExtResource("5_player_nature_ui")
 
-[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel" unique_id=1843573389]
+[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 8
 
-[node name="VBoxContainer" type="Control" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer" unique_id=624755338]
+[node name="VBoxContainer" type="Control" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer"]
 custom_minimum_size = Vector2(260, 284)
 layout_mode = 2
 
-[node name="EnergyIcon" type="TextureRect" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=1206186472]
+[node name="EnergyIcon" type="TextureRect" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 0
 offset_right = 50.0
@@ -344,7 +348,7 @@ texture = ExtResource("7_nature_energy_icon")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="EnergyValueLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=1659551091]
+[node name="EnergyValueLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(76, 50)
 layout_mode = 0
 offset_left = 52.0
@@ -355,44 +359,44 @@ text = "0"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="TimeControlsPanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=180026917]
+[node name="TimeControlsPanel" type="PanelContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
 layout_mode = 0
 offset_left = 132.0
 offset_right = 260.0
 offset_bottom = 50.0
 
-[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel" unique_id=826031806]
+[node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 4
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 4
 theme_override_constants/margin_bottom = 8
 
-[node name="HBoxContainer" type="HBoxContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer" unique_id=1497686245]
+[node name="HBoxContainer" type="HBoxContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="TimeSpeed1Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer" unique_id=165431860]
+[node name="TimeSpeed1Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
 text = "x1"
 
-[node name="TimeSpeed2Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer" unique_id=1270850233]
+[node name="TimeSpeed2Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
 text = "x2"
 
-[node name="TimeSpeed3Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer" unique_id=331391751]
+[node name="TimeSpeed3Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
 text = "x3"
 
-[node name="TimeSpeed5Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer" unique_id=25016948]
+[node name="TimeSpeed5Button" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
 text = "x5"
 
-[node name="MainMenuGrid" type="GridContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=669104991]
+[node name="MainMenuGrid" type="GridContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
 layout_mode = 0
 offset_top = 66.0
 offset_right = 260.0
@@ -401,7 +405,7 @@ theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 2
 
-[node name="MainPlaceholder1" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid" unique_id=2099805288]
+[node name="MainPlaceholder1" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 tooltip_text = "Яйцо"
@@ -413,7 +417,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 text = "🥚"
 
-[node name="MainPlaceholder2" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid" unique_id=288503833]
+[node name="MainPlaceholder2" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 tooltip_text = "База"
@@ -425,7 +429,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 text = "BASE"
 
-[node name="SpellMenuButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid" unique_id=952642894]
+[node name="SpellMenuButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 tooltip_text = "Заклинания"
@@ -443,7 +447,7 @@ spell_button_paths = Array[NodePath]([NodePath("../../LightningButton"), NodePat
 back_button_path = NodePath("../../SpellBackButton")
 menu_to_hide_paths = Array[NodePath]([NodePath("..")])
 
-[node name="MainPlaceholder3" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid" unique_id=625874295]
+[node name="MainPlaceholder3" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 tooltip_text = "Противник"
@@ -455,7 +459,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 text = "ENEMY"
 
-[node name="MainPlaceholder4" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid" unique_id=79527851]
+[node name="MainPlaceholder4" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 tooltip_text = "Флажок"
@@ -467,7 +471,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 text = "⚑"
 
-[node name="MainPlaceholder5" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid" unique_id=1111792915]
+[node name="MainPlaceholder5" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 tooltip_text = "Меню"
@@ -479,7 +483,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 text = "MENU"
 
-[node name="LightningButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=250761824]
+[node name="LightningButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(78, 44)
 layout_mode = 0
@@ -500,7 +504,7 @@ theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled
 text = "Молния"
 clip_text = true
 
-[node name="IconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/LightningButton" unique_id=517094192]
+[node name="IconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/LightningButton"]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -510,7 +514,7 @@ text = "⚡"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="RainButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=565272644]
+[node name="RainButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(78, 44)
 layout_mode = 0
@@ -532,7 +536,7 @@ theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled
 text = "Дождь"
 clip_text = true
 
-[node name="IconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/RainButton" unique_id=507450011]
+[node name="IconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/RainButton"]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -542,7 +546,7 @@ text = "☁"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SunButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=458097041]
+[node name="SunButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(78, 44)
 layout_mode = 0
@@ -564,7 +568,7 @@ theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled
 text = "Солнце"
 clip_text = true
 
-[node name="IconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/SunButton" unique_id=697467302]
+[node name="IconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/SunButton"]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -574,7 +578,7 @@ text = "☀"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SpellBackButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer" unique_id=1163990658]
+[node name="SpellBackButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(78, 44)
 layout_mode = 0
@@ -592,8 +596,8 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 text = "←"
 
-[node name="Simulation" type="Node" parent="." unique_id=898770180]
+[node name="Simulation" type="Node" parent="."]
 
-[node name="World" parent="." unique_id=1194176976 instance=ExtResource("1_hyk8p")]
+[node name="World" parent="." instance=ExtResource("1_hyk8p")]
 
-[node name="GridDebugOverlay" parent="." unique_id=1999698547 instance=ExtResource("4_grid_debug_overlay")]
+[node name="GridDebugOverlay" parent="." instance=ExtResource("4_grid_debug_overlay")]

@@ -11,11 +11,12 @@
 
 ## Key scenes
 
-- `scenes/main/main.tscn` — camera, HUD, world instance, debug overlay.
+- `scenes/main/main.tscn` — camera, HUD, world instance, debug overlay, UI script wiring.
 - `scenes/world/world.tscn` — active sandbox world: terrain TileMap, terrain TileSet sources, creatures, grass, eggs, world grid.
 - `scenes/resources/grass.tscn` — grass resource scene with 4 growth-stage textures.
 - `scenes/resources/egg.tscn` — egg resource scene.
 - `scenes/creatures/creature.tscn` — base creature scene.
+- `scenes/debug/grid_debug_overlay.tscn` — F3 grid/debug overlay scene.
 
 ## Key scripts
 
@@ -24,8 +25,11 @@
 - `scripts/resources/egg.gd` — egg lifecycle, blocker handling, hatching.
 - `scripts/creatures/creature.gd` — base creature runtime coordinator.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore grazing and food targeting.
+- `scripts/ui/creature_stats_ui.gd` — creature info panel, hover/selection, empty-click deselection, lightning click bridge.
+- `scripts/ui/player_ui.gd` — player side-panel counters and time speed controls.
+- `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed text debug.
 - `scripts/ui/player_nature_ui.gd` — player energy and nature powers.
-- `scripts/ui/creature_stats_ui.gd` — stats, selection, debug status, speed UI, live counters.
+- `scripts/debug/grid_debug_overlay.gd` — F3 grid overlay: blocked terrain, grass, occupancy, footprint, path.
 
 ## Terrain assets
 
@@ -43,6 +47,10 @@
 - Grass lifecycle and per-stage food value belong in `scripts/resources/grass.gd`.
 - Grass consumption aggregation belongs in `scripts/world/world_grid.gd`.
 - Creature runtime coordination belongs in `scripts/creatures/creature.gd`.
+- Creature info UI belongs in `scripts/ui/creature_stats_ui.gd`.
+- Player HUD counters and speed controls belong in `scripts/ui/player_ui.gd`.
+- Always-visible compact debug and F4 detailed text debug belong in `scripts/ui/debug_status_ui.gd`.
+- F3 grid visualization belongs in `scripts/debug/grid_debug_overlay.gd`.
 
 ## Removed / not used
 

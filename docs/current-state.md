@@ -12,6 +12,10 @@ Current prototype includes:
 - temporary predator and simple duel combat;
 - player nature powers;
 - right-side HUD with live creature/egg counters;
+- separated player UI, creature info UI, and debug status UI;
+- compact always-visible FPS/Time/Mem line;
+- F4 detailed text debug status;
+- F3 grid/debug overlay;
 - manually selectable water and mountain variants;
 - tree terrain tiles;
 - debug/performance tools;
@@ -26,6 +30,17 @@ Keep:
 - indirect player influence;
 - world/resource/entity logic separate from UI;
 - simulation-first design, not a standard RTS.
+
+## UI split
+
+Current UI ownership:
+- `scripts/ui/creature_stats_ui.gd` owns only creature info panel, hover/selection, empty-click deselection, and the lightning click bridge.
+- `scripts/ui/player_ui.gd` owns side-panel creature/egg counters and time speed controls.
+- `scripts/ui/debug_status_ui.gd` owns the always-visible compact FPS/Time/Mem line and F4 detailed text debug.
+- `scripts/ui/player_nature_ui.gd` owns player energy and nature powers.
+- `scripts/debug/grid_debug_overlay.gd` owns the F3 grid/debug overlay.
+
+`scenes/main/main.tscn` should wire these scripts directly to their UI nodes. Avoid reconnecting player/debug UI from `creature_stats_ui.gd`.
 
 ## Terrain
 
@@ -92,3 +107,4 @@ Rules:
 - Do not use `texture_origin` hacks for trees.
 - Grass is edible from stage 2, but spreads only from stage 4.
 - Grass food values are `3 / 5 / 7` for stages `2 / 3 / 4`.
+- Do not put player counters, time speed controls, or debug status back into `creature_stats_ui.gd`.

@@ -1,70 +1,30 @@
 extends CanvasLayer
 
-# Debug creature HUD.
+# Creature info window + creature selection.
+# Keep this script focused on the selected/hovered creature panel only.
+
 @onready var panel: PanelContainer = $CreatureStatsPanel
-
 @onready var title_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/TitleLabel
-
 @onready var age_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/AgeLabel
-
 @onready var hunger_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/HungerLabel
-
 @onready var health_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/HealthLabel
-
 @onready var health_bar: ProgressBar = $CreatureStatsPanel/MarginContainer/VBoxContainer/HealthBar
-
 @onready var health_value_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/HealthBar/HealthValueLabel
-
 @onready var hunger_bar: ProgressBar = $CreatureStatsPanel/MarginContainer/VBoxContainer/HungerBar
-
 @onready var hunger_value_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/HungerBar/HungerValueLabel
 
-@onready var fps_label: Label = $FpsLabel
-
-@onready var player_herbivore_count_label: Label = $PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerHerbivoreCountLabel
-
-@onready var player_egg_count_label: Label = $PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerEggCountLabel
-
-@onready var player_total_count_label: Label = $PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerTotalCountLabel
-
-@onready var time_speed_buttons: Array[Button] = [
-	$PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed1Button,
-	$PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed2Button,
-	$PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed3Button,
-	$PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed5Button,
-]
-
-# Time scale presets.
-const TIME_SPEED_VALUES := [1.0, 2.0, 3.0, 5.0]
-
-const ENTITY_COUNTS_REFRESH_INTERVAL := 0.5
-
 var current_creature: Node = null
-
 var hovered_creature: Node = null
-
 var selected_creature: Node = null
-
-var entity_counts_refresh_timer := 0.0
 
 
 func _ready() -> void:
 	add_to_group("creature_stats_ui")
 	panel.visible = false
-	setup_time_speed_controls()
-	update_entity_counts_text()
-	entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
 
 
 # Prefer selected creature over hover.
-func _process(delta: float) -> void:
-	fps_label.text = build_debug_status_text()
-
-	entity_counts_refresh_timer -= delta
-	if entity_counts_refresh_timer <= 0.0:
-		entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
-		update_entity_counts_text()
-
+func _process(_delta: float) -> void:
 	if not is_instance_valid(selected_creature):
 		selected_creature = null
 
@@ -84,114 +44,6 @@ func _process(delta: float) -> void:
 		return
 
 	hide_creature_stats()
-
-
-
-func build_debug_status_text() -> String:
-	var world_grid := get_tree().get_first_node_in_group("world_grid")
-	var mouse_screen := get_viewport().get_mouse_position()
-	var mouse_world := get_mouse_world_position(mouse_screen)
-	var mouse_tile_text := "?"
-	var grass_count := 0
-	var creature_count := 0
-
-	if world_grid != null:
-		grass_count = world_grid.grass_by_tile.size()
-		creature_count = world_grid.creature_anchors.size()
-		mouse_tile_text = format_tile(world_grid.world_to_map_tile(mouse_world))
-
-	var elapsed_text := format_elapsed_time(PerformanceStats.get_elapsed_seconds())
-	var memory_mb := PerformanceStats.get_static_memory_mb()
-
-	var lines: Array[String] = []
-	lines.append("FPS: %d | Time: %s | Mem: %.1f MB" % [Engine.get_frames_per_second(), elapsed_text, memory_mb])
-	lines.append("Mouse: W%s | Tile: %s" % [format_vector2(mouse_world), mouse_tile_text])
-	lines.append("World: creatures %d | grass %d | nodes %d | objects %d" % [creature_count, grass_count, PerformanceStats.get_node_count(), PerformanceStats.get_object_count()])
-	lines.append("Grass/s: spread %d | checks %d | spawned %d" % [PerformanceStats.get_rate("grass_spread_events"), PerformanceStats.get_rate("grass_neighbor_checks"), PerformanceStats.get_rate("grass_spawned")])
-	lines.append("Graze/s: searches %d | candidate tiles %d | footprint checks %d" % [PerformanceStats.get_rate("grazing_searches"), PerformanceStats.get_rate("grazing_candidate_checks"), PerformanceStats.get_rate("grazing_footprint_queries")])
-	lines.append("Creature/s: physics %d | predator searches %d | candidates %d" % [PerformanceStats.get_rate("creature_physics_ticks"), PerformanceStats.get_rate("predator_prey_searches"), PerformanceStats.get_rate("predator_prey_candidates")])
-	lines.append("Path/s: calls %d | expanded %d | success %d | failed %d" % [PerformanceStats.get_rate("path_calls"), PerformanceStats.get_rate("path_expanded_tiles"), PerformanceStats.get_rate("path_success"), PerformanceStats.get_rate("path_failed")])
-	lines.append(PerformanceStats.get_csv_status_text())
-	return "\n".join(lines)
-
-
-func update_entity_counts_text() -> void:
-	var herbivore_count := count_herbivore_creatures()
-	var egg_count := count_eggs()
-
-	player_herbivore_count_label.text = str(herbivore_count)
-	player_egg_count_label.text = str(egg_count)
-	player_total_count_label.text = str(herbivore_count + egg_count)
-
-
-func count_herbivore_creatures() -> int:
-	var count := 0
-
-	for creature in get_tree().get_nodes_in_group("creatures"):
-		if not is_instance_valid(creature):
-			continue
-
-		if creature.is_queued_for_deletion():
-			continue
-
-		if is_herbivore_creature(creature):
-			count += 1
-
-	return count
-
-
-func is_herbivore_creature(creature: Node) -> bool:
-	var species_data: Resource = creature.get("species_data")
-
-	if species_data == null:
-		return false
-
-	return not bool(species_data.get("is_predator"))
-
-
-func count_eggs() -> int:
-	var count := 0
-
-	for egg in get_tree().get_nodes_in_group("eggs"):
-		if not is_instance_valid(egg):
-			continue
-
-		if egg.is_queued_for_deletion():
-			continue
-
-		count += 1
-
-	return count
-
-
-func get_mouse_world_position(mouse_screen: Vector2) -> Vector2:
-	var camera := get_node_or_null("../Camera2D") as Camera2D
-
-	if camera == null:
-		return mouse_screen
-
-	var viewport_size := get_viewport().get_visible_rect().size
-	return camera.get_screen_center_position() + (mouse_screen - viewport_size * 0.5) / camera.zoom
-
-
-func format_vector2(value: Vector2) -> String:
-	return "(%d, %d)" % [int(round(value.x)), int(round(value.y))]
-
-
-func format_tile(tile: Vector2i) -> String:
-	return "(%d, %d)" % [tile.x, tile.y]
-
-
-func format_elapsed_time(total_seconds: float) -> String:
-	var seconds := int(total_seconds)
-	var hours := int(seconds / 3600)
-	var minutes := int((seconds % 3600) / 60)
-	var remaining_seconds := seconds % 60
-
-	if hours > 0:
-		return "%02d:%02d:%02d" % [hours, minutes, remaining_seconds]
-
-	return "%02d:%02d" % [minutes, remaining_seconds]
 
 
 func show_creature_stats(creature: Node) -> void:
@@ -218,7 +70,6 @@ func hide_creature_stats() -> void:
 	panel.visible = false
 
 
-# UI refresh.
 func update_stats_text() -> void:
 	if not is_instance_valid(current_creature):
 		return
@@ -314,46 +165,6 @@ func clear_selected_creature() -> void:
 
 	current_creature = null
 	panel.visible = false
-
-
-# Time controls.
-func setup_time_speed_controls() -> void:
-	var selected_index := 0
-
-	for index in range(TIME_SPEED_VALUES.size()):
-		if is_equal_approx(Engine.time_scale, TIME_SPEED_VALUES[index]):
-			selected_index = index
-			break
-
-	for index in range(time_speed_buttons.size()):
-		var button := time_speed_buttons[index]
-
-		if button == null:
-			continue
-
-		button.toggle_mode = true
-		button.text = "x%d" % int(TIME_SPEED_VALUES[index])
-		button.focus_mode = Control.FOCUS_NONE
-		button.pressed.connect(_on_time_speed_button_pressed.bind(index))
-
-	apply_time_speed_by_index(selected_index)
-
-
-func apply_time_speed_by_index(index: int) -> void:
-	if index < 0 or index >= TIME_SPEED_VALUES.size():
-		return
-
-	Engine.time_scale = TIME_SPEED_VALUES[index]
-
-	for button_index in range(time_speed_buttons.size()):
-		var button := time_speed_buttons[button_index]
-
-		if button != null:
-			button.set_pressed_no_signal(button_index == index)
-
-
-func _on_time_speed_button_pressed(index: int) -> void:
-	apply_time_speed_by_index(index)
 
 
 # Clear selection on empty click.

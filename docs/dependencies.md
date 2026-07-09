@@ -14,6 +14,29 @@
 
 If a task touches movement, blocked tiles, tree blocking, grass consumption, or pathing, inspect `world_grid.gd`.
 
+## UI ownership
+
+`res://scenes/main/main.tscn` owns active UI node wiring.
+
+Current UI scripts:
+- `res://scripts/ui/creature_stats_ui.gd` — creature info panel and selection only.
+- `res://scripts/ui/player_ui.gd` — side-panel counters and time speed controls.
+- `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text.
+- `res://scripts/ui/player_nature_ui.gd` — energy and nature powers.
+- `res://scripts/debug/grid_debug_overlay.gd` — F3 grid/debug overlay.
+
+Expected scene wiring:
+- `UI` uses `creature_stats_ui.gd`.
+- `UI/FpsLabel` uses `debug_status_ui.gd`.
+- `UI/PlayerSidePanel` uses `player_ui.gd`.
+- `UI/PlayerSidePanel/.../PlayerNaturePanel` uses `player_nature_ui.gd`.
+
+Rules:
+- do not put counters or time speed controls back into `creature_stats_ui.gd`;
+- do not put detailed debug text back into `creature_stats_ui.gd`;
+- F3 grid overlay and F4 text debug are separate systems;
+- creature click selection should stay compatible with lightning targeting.
+
 ## Terrain source ids
 
 `res://scenes/world/world.tscn` owns the active TileSet terrain sources.
