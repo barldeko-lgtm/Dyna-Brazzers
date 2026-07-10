@@ -14,6 +14,7 @@ The current prototype includes:
 - creature death state with a short non-blocking corpse/death-pose visual;
 - player nature powers: lightning, rain, and sun;
 - hover/click observation UI;
+- stone corner highlight frame for hover/selection;
 - separated player UI, creature info UI, and debug status UI;
 - debug/performance tools;
 - a free observer camera.
@@ -63,8 +64,9 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 - `scenes/debug/grid_debug_overlay.tscn` — optional grid debug overlay.
 - `data/species/stegosaurus.tres` — stegosaurus species resource, including death texture/corpse lifetime.
 - `assets/sprites/creatures/stegosaurus/stegosaurus_dead.png` — stegosaurus death-pose sprite.
+- `assets/ui/creature_selection_frame.png` — stone corner creature selection frame.
 - `scripts/world/world_grid.gd` — central grid/world authority.
-- `scripts/creatures/creature.gd` — creature runtime coordinator and death/corpse cleanup.
+- `scripts/creatures/creature.gd` — creature runtime coordinator, death/corpse cleanup, and world-space highlight overlay.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore grazing helper.
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — predator targeting/chasing/combat-entry helper.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and egg spawn helper.
@@ -73,7 +75,7 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 - `scripts/combat/duel.gd` — isolated duel loop.
 - `scripts/resources/grass.gd` — grass lifecycle and nature-power reactions.
 - `scripts/resources/egg.gd` — egg lifecycle and hatching.
-- `scripts/ui/creature_stats_ui.gd` — creature info panel, hover/selection, empty-click deselection, lightning click bridge.
+- `scripts/ui/creature_stats_ui.gd` — creature info panel, hover/selection, empty-click deselection, lightning click bridge, and highlight coordination.
 - `scripts/ui/player_ui.gd` — player counters and time speed controls.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text.
 - `scripts/ui/player_nature_ui.gd` — player energy and nature powers.
@@ -100,6 +102,7 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 - Egg stage transitions must not leave stale blockers.
 - Player powers should not corrupt world registration or bypass resource lifecycle rules.
 - UI ownership is split: do not move player counters, speed controls, or debug status back into `creature_stats_ui.gd`.
+- The creature highlight overlay should stay above grass/world props and should be scaled to the intended footprint size rather than rendered at texture-native size.
 
 ## Project meaning
 

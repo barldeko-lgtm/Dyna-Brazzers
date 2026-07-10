@@ -88,6 +88,12 @@ position = Vector2(1152, 0)
 [node name="Grass_01" parent="Grasses" unique_id=19457675 instance=ExtResource("2_grass_scene")]
 position = Vector2(640, 640)
 
+[node name="Grass_05" parent="Grasses" unique_id=967574626 instance=ExtResource("2_grass_scene")]
+position = Vector2(1408, 128)
+
+[node name="Grass_06" parent="Grasses" unique_id=1457953990 instance=ExtResource("2_grass_scene")]
+position = Vector2(1536, 640)
+
 [node name="Grass_04" parent="Grasses" unique_id=1638619646 instance=ExtResource("2_grass_scene")]
 position = Vector2(768, 640)
 

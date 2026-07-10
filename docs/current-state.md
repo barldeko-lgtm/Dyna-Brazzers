@@ -14,6 +14,7 @@ Current prototype includes:
 - player nature powers;
 - right-side HUD with live creature/egg counters;
 - separated player UI, creature info UI, and debug status UI;
+- stone corner hover/selection frame over creatures;
 - compact always-visible FPS/Time/Mem line;
 - F4 detailed text debug status;
 - F3 grid/debug overlay;
@@ -98,6 +99,17 @@ Rules:
 - rain advances grass by 1 stage; stage 4 tries to spread;
 - sun reduces grass by 2 stages, but never below stage 1;
 - random sun-based grass removal remains separate.
+
+## Creature selection highlight
+
+Current creature highlight rules:
+- hover and selection highlighting are coordinated by `scripts/ui/creature_stats_ui.gd`;
+- the frame asset is `assets/ui/creature_selection_frame.png`;
+- the frame is rendered as a world-space overlay from `scripts/creatures/creature.gd`;
+- selected highlight persists while the creature is selected;
+- hover highlight is suppressed when the same creature is already selected;
+- the highlight overlay uses a high absolute z-index so it stays above grass and other world props;
+- dead creatures clear their highlight immediately.
 
 ## Creature death / corpse visual
 

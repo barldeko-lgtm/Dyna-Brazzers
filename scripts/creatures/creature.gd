@@ -5,6 +5,7 @@ const CreatureGrazingLogic = preload("res://scripts/creatures/behaviors/creature
 const CreatureVisualController = preload("res://scripts/creatures/behaviors/creature_visual_controller.gd")
 const CreatureReproductionLogic = preload("res://scripts/creatures/behaviors/creature_reproduction_logic.gd")
 const CreaturePredatorLogic = preload("res://scripts/creatures/behaviors/creature_predator_logic.gd")
+const CREATURE_SELECTION_FRAME_TEXTURE := preload("res://assets/ui/creature_selection_frame.png")
 
 # Core creature FSM.
 @onready var sprite: Sprite2D = $BodySprite
@@ -68,6 +69,11 @@ enum State {
 # Static species config. All species stats and visuals live in this resource.
 @export var species_data: CreatureSpeciesData
 
+@export_group("Selection Highlight")
+@export var selection_highlight_target_size := Vector2(256.0, 256.0)
+@export var hover_highlight_modulate := Color(0.82, 1.0, 0.88, 0.58)
+@export var selected_highlight_modulate := Color(1.0, 1.0, 1.0, 1.0)
+
 var eating_anchor_tile := Vector2i.ZERO
 
 # Runtime stats/state that can change per creature instance.
@@ -125,6 +131,10 @@ var grazing_logic: RefCounted
 var visual_controller: RefCounted
 var reproduction_logic: RefCounted
 var predator_logic: RefCounted
+
+var is_hover_highlighted := false
+var is_selected_highlighted := false
+var interaction_highlight_sprite: Sprite2D = null
 
 
 
@@ -201,6 +211,7 @@ func _ready() -> void:
 		sprite.position = Vector2.ZERO
 
 	configure_walk_animation()
+	configure_interaction_highlight()
 	enter_walk()
 
 
@@ -477,6 +488,7 @@ func enter_dead() -> void:
 	release_world_occupancy_for_corpse()
 	disable_corpse_collision()
 	show_death_visual()
+	clear_interaction_highlights()
 	remove_from_group("creatures")
 
 	var corpse_time := 3.0
@@ -823,6 +835,73 @@ func find_world_grid() -> Node:
 		current = current.get_parent()
 
 	return null
+
+
+
+func configure_interaction_highlight() -> void:
+	interaction_highlight_sprite = Sprite2D.new()
+	interaction_highlight_sprite.name = "InteractionHighlight"
+	interaction_highlight_sprite.texture = CREATURE_SELECTION_FRAME_TEXTURE
+	interaction_highlight_sprite.centered = true
+	interaction_highlight_sprite.position = Vector2.ZERO
+	interaction_highlight_sprite.visible = false
+	interaction_highlight_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	interaction_highlight_sprite.z_as_relative = false
+	interaction_highlight_sprite.z_index = 1000
+
+	var texture_size := CREATURE_SELECTION_FRAME_TEXTURE.get_size()
+	if texture_size.x > 0.0 and texture_size.y > 0.0:
+		interaction_highlight_sprite.scale = Vector2(
+			selection_highlight_target_size.x / texture_size.x,
+			selection_highlight_target_size.y / texture_size.y
+		)
+
+	add_child(interaction_highlight_sprite)
+	move_child(interaction_highlight_sprite, 0)
+	refresh_interaction_highlight()
+
+
+func set_hover_highlighted(enabled: bool) -> void:
+	if is_hover_highlighted == enabled:
+		return
+
+	is_hover_highlighted = enabled
+	refresh_interaction_highlight()
+
+
+func set_selected_highlighted(enabled: bool) -> void:
+	if is_selected_highlighted == enabled:
+		return
+
+	is_selected_highlighted = enabled
+	refresh_interaction_highlight()
+
+
+func clear_interaction_highlights() -> void:
+	is_hover_highlighted = false
+	is_selected_highlighted = false
+	refresh_interaction_highlight()
+
+
+func refresh_interaction_highlight() -> void:
+	if interaction_highlight_sprite == null:
+		return
+
+	if state == State.DEAD:
+		interaction_highlight_sprite.visible = false
+		return
+
+	if is_selected_highlighted:
+		interaction_highlight_sprite.modulate = selected_highlight_modulate
+		interaction_highlight_sprite.visible = true
+		return
+
+	if is_hover_highlighted:
+		interaction_highlight_sprite.modulate = hover_highlight_modulate
+		interaction_highlight_sprite.visible = true
+		return
+
+	interaction_highlight_sprite.visible = false
 
 
 # UI helpers.

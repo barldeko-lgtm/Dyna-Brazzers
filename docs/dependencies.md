@@ -19,7 +19,7 @@ If a task touches movement, blocked tiles, tree blocking, grass consumption, cor
 `res://scenes/main/main.tscn` owns active UI node wiring.
 
 Current UI scripts:
-- `res://scripts/ui/creature_stats_ui.gd` — creature info panel and selection only.
+- `res://scripts/ui/creature_stats_ui.gd` — creature info panel, selection, and hover/selection highlight coordination.
 - `res://scripts/ui/player_ui.gd` — side-panel counters and time speed controls.
 - `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text.
 - `res://scripts/ui/player_nature_ui.gd` — energy and nature powers.
@@ -35,7 +35,7 @@ Rules:
 - do not put counters or time speed controls back into `creature_stats_ui.gd`;
 - do not put detailed debug text back into `creature_stats_ui.gd`;
 - F3 grid overlay and F4 text debug are separate systems;
-- creature click selection should stay compatible with lightning targeting;
+- creature click selection should stay compatible with lightning targeting and highlight updates;
 - dead/corpse creatures should not remain selectable unless deliberately reworked later.
 
 ## Terrain source ids
@@ -107,6 +107,28 @@ Current grass stages:
 - Stage 2 — edible, restores 3 satiety;
 - Stage 3 — edible, restores 5 satiety;
 - Stage 4 — edible, restores 7 satiety and can spread.
+
+## Creature highlight frame
+
+Main files:
+- `res://scripts/creatures/creature.gd`
+- `res://scripts/ui/creature_stats_ui.gd`
+- `res://assets/ui/creature_selection_frame.png`
+
+Runtime flow:
+1. `creature_stats_ui.gd` tracks hovered and selected creatures.
+2. It toggles hover/selected highlight flags on the creature node.
+3. `creature.gd` shows `InteractionHighlight` using the shared stone frame texture.
+4. The highlight sprite scales the source texture to `256x256`.
+5. The highlight sprite uses a high absolute z-index so it renders above grass and other world props.
+6. On death, the creature clears highlight state and hides the overlay.
+
+Rules:
+- the frame asset may be authored larger than `256x256`; the script scales it down automatically;
+- hover uses a softer modulate, selection uses a stronger modulate;
+- do not leave the highlight at texture-native size;
+- keep the highlight overlay above world resources/grass;
+- keep highlight logic split: UI owns selection intent, creature owns visual overlay.
 
 ## Creature death and corpse visuals
 
