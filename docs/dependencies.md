@@ -108,6 +108,32 @@ Current grass stages:
 - Stage 3 — edible, restores 5 satiety;
 - Stage 4 — edible, restores 7 satiety and can spread.
 
+## Rain cast visual
+
+Main files:
+- `res://scripts/ui/player_nature_ui.gd`
+- `res://scripts/effects/rain_target_preview.gd`
+- `res://scripts/effects/rain_cast_effect.gd`
+- `res://scenes/effects/rain_target_preview.tscn`
+- `res://scenes/effects/rain_cast_effect.tscn`
+- `res://assets/sprites/effects/rain/rain_cast_01.png` ... `rain_cast_04.png`
+
+Runtime flow:
+1. `player_nature_ui.gd` keeps ownership of rain energy, targeting, and grass application.
+2. `rain_target_preview.gd` follows the current 5x5 target area.
+3. The preview tracks the last valid target tile while rain targeting is active.
+4. When rain targeting ends, the preview confirms that rain energy was actually spent.
+5. Only then does it spawn `rain_cast_effect.tscn` at the tracked center tile.
+6. `rain_cast_effect.gd` displays four frames over exactly 1 real second.
+7. The effect queues itself for deletion after the fourth frame.
+
+Rules:
+- rain gameplay and rain visuals must remain separate;
+- the visual effect must not apply grass changes itself;
+- preserve the 640x640 source size because it matches 5 tiles at 128 pixels each;
+- keep the animation duration independent of `Engine.time_scale`;
+- retain real alpha transparency in all four PNG frames.
+
 ## Creature highlight frame
 
 Main files:

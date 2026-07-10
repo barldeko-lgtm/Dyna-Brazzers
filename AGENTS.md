@@ -13,6 +13,7 @@ The current prototype includes:
 - basic terrain blocking with ground, water, mountains, and trees;
 - creature death state with a short non-blocking corpse/death-pose visual;
 - player nature powers: lightning, rain, and sun;
+- one-second local four-frame rain cast VFX;
 - hover/click observation UI;
 - stone corner highlight frame for hover/selection;
 - separated player UI, creature info UI, and debug status UI;
@@ -60,6 +61,7 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 - `scenes/resources/egg.tscn` — egg resource scene.
 - `scenes/effects/lightning_strike_effect.tscn` — lightning visual effect.
 - `scenes/effects/rain_target_preview.tscn` — rain targeting preview.
+- `scenes/effects/rain_cast_effect.tscn` — four-frame rain cast animation.
 - `scenes/effects/sun_target_preview.tscn` — sun targeting preview.
 - `scenes/debug/grid_debug_overlay.tscn` — optional grid debug overlay.
 - `data/species/stegosaurus.tres` — stegosaurus species resource, including death texture/corpse lifetime.
@@ -79,6 +81,8 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 - `scripts/ui/player_ui.gd` — player counters and time speed controls.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text.
 - `scripts/ui/player_nature_ui.gd` — player energy and nature powers.
+- `scripts/effects/rain_target_preview.gd` — rain target preview and cast-visual trigger.
+- `scripts/effects/rain_cast_effect.gd` — real-time rain animation playback.
 - `scripts/debug/performance_stats.gd` — runtime counters and CSV logging.
 - `scripts/debug/grid_debug_overlay.gd` — F3 grid overlay.
 - `scripts/camera/camera_controller.gd` — observer camera.

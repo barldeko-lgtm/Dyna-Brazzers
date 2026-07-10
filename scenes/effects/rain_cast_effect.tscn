@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/effects/rain_cast_effect.gd" id="1_script"]
+
+[node name="RainCastEffect" type="Node2D"]
+z_as_relative = false
+z_index = 900
+script = ExtResource("1_script")
+duration_seconds = 1.0
+
+[node name="EffectSprite" type="Sprite2D" parent="."]
+texture_filter = 2
+centered = true

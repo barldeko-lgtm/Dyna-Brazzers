@@ -17,6 +17,7 @@
 - `scenes/resources/egg.tscn` — egg resource scene.
 - `scenes/creatures/creature.tscn` — base creature scene.
 - `scenes/debug/grid_debug_overlay.tscn` — F3 grid/debug overlay scene.
+- `scenes/effects/rain_cast_effect.tscn` — one-second, four-frame rain cast animation.
 
 ## Key scripts
 
@@ -32,6 +33,8 @@
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed text debug.
 - `scripts/ui/player_nature_ui.gd` — player energy and nature powers.
 - `scripts/debug/grid_debug_overlay.gd` — F3 grid overlay: blocked terrain, grass, occupancy, footprint, path.
+- `scripts/effects/rain_cast_effect.gd` — real-time four-frame rain animation playback and cleanup.
+- `scripts/effects/rain_target_preview.gd` — rain area preview and successful-cast visual trigger.
 
 ## Terrain assets
 
@@ -40,6 +43,10 @@
 - `assets/sprites/terrain/mountain_tiles_independent.png` — 9 manually selectable mountain variants.
 - `assets/sprites/terrain/tree_tiles_independent.png` — tree atlas with 4 trees split into normal 128x128 TileMap tiles.
 - `assets/sprites/terrain/grass_stage_1.png` ... `grass_stage_4.png` — grass growth-stage sprites.
+
+## Effect assets
+
+- `assets/sprites/effects/rain/rain_cast_01.png` ... `rain_cast_04.png` — four transparent 640x640 rain frames covering a 5x5-tile area.
 
 ## Creature and species assets
 

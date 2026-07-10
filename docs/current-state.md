@@ -12,6 +12,7 @@ Current prototype includes:
 - temporary predator and simple duel combat;
 - creature death state with a short corpse/death-pose visual before removal;
 - player nature powers;
+- one-second four-frame local rain VFX;
 - right-side HUD with live creature/egg counters;
 - separated player UI, creature info UI, and debug status UI;
 - stone corner hover/selection frame over creatures;
@@ -110,6 +111,17 @@ Current creature highlight rules:
 - hover highlight is suppressed when the same creature is already selected;
 - the highlight overlay uses a high absolute z-index so it stays above grass and other world props;
 - dead creatures clear their highlight immediately.
+
+## Rain visual effect
+
+Current rain visual rules:
+- the existing 5x5 targeting preview remains unchanged;
+- after a successful rain placement and confirmed energy spend, a four-frame 640x640 animation appears over the selected 5x5-tile area;
+- total animation duration is 1 real second;
+- playback uses real elapsed time and is not accelerated by simulation speeds x2/x3/x5;
+- the effect is visual only; grass simulation changes still happen through the existing rain gameplay logic;
+- the effect removes itself after the fourth frame;
+- the rain overlay renders above normal world entities and below the creature selection frame.
 
 ## Creature death / corpse visual
 
