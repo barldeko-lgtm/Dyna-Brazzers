@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://c66x7w4kpw6by"]
 
-[ext_resource type="PackedScene" uid="uid://dwlwta88eydnm" path="res://scenes/world/world.tscn" id="1_hyk8p"]
+[ext_resource type="PackedScene" path="res://scenes/world/world_triceratops.tscn" id="1_hyk8p"]
 [ext_resource type="Script" uid="uid://b7vbapxldrm6c" path="res://scripts/camera/camera_controller.gd" id="1_iuonh"]
 [ext_resource type="Script" uid="uid://dbmpjk3xc5rw8" path="res://scripts/ui/creature_stats_ui.gd" id="3_creature_stats_ui"]
 [ext_resource type="PackedScene" path="res://scenes/debug/grid_debug_overlay.tscn" id="4_grid_debug_overlay"]
