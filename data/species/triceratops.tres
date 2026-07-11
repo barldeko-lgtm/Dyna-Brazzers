@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scripts/creatures/creature_species_data.gd" id="1_species_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_down.png" id="2_down"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_up.png" id="3_up"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_right.png" id="4_right"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_up_right.png" id="5_up_right"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_down_right.png" id="6_down_right"]
+[ext_resource type="PackedScene" path="res://scenes/resources/egg.tscn" id="7_egg_scene"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/eggs/egg_stage_1.png" id="8_egg_stage_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/eggs/egg_stage_2.png" id="9_egg_stage_2"]
+[ext_resource type="SpriteFrames" path="res://data/animations/stegosaurus_walk_right_frames.tres" id="10_walk_right_frames"]
+[ext_resource type="SpriteFrames" path="res://data/animations/stegosaurus_walk_up_frames.tres" id="11_walk_up_frames"]
+[ext_resource type="SpriteFrames" path="res://data/animations/stegosaurus_walk_up_right_frames.tres" id="12_walk_up_right_frames"]
+[ext_resource type="SpriteFrames" path="res://data/animations/stegosaurus_eating_right_frames.tres" id="13_eating_right_frames"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_dead.png" id="14_death"]
+
+[resource]
+script = ExtResource("1_species_script")
+species_id = "triceratops"
+species_name = "Трицератопс"
+creature_name = "Трицератопс"
+is_predator = false
+down_texture = ExtResource("2_down")
+up_texture = ExtResource("3_up")
+right_texture = ExtResource("4_right")
+up_right_texture = ExtResource("5_up_right")
+down_right_texture = ExtResource("6_down_right")
+walk_right_frames = ExtResource("10_walk_right_frames")
+walk_up_frames = ExtResource("11_walk_up_frames")
+walk_up_right_frames = ExtResource("12_walk_up_right_frames")
+eating_right_frames = ExtResource("13_eating_right_frames")
+walk_animation_fps = 4.0
+eating_animation_fps = 4.0
+death_texture = ExtResource("14_death")
+corpse_lifetime = 3.0
+speed = 140.0
+max_health = 100.0
+starting_health = 100.0
+max_age = 10.0
+starvation_health_decay_rate = 2.0
+well_fed_health_regen_rate = 1.0
+satiety_heal_threshold = 70.0
+attack = 10.0
+defense = 5.0
+max_hunger = 100.0
+starting_hunger = 100.0
+hunger_decay_rate = 5
+hunger_search_threshold = 70.0
+hunger_restore_amount = 1.0
+eating_duration = 3.0
+egg_scene = ExtResource("7_egg_scene")
+egg_stage_1_texture = ExtResource("8_egg_stage_1")
+egg_stage_2_texture = ExtResource("9_egg_stage_2")
+egg_laying_duration = 5.0
+egg_stage_1_duration = 5.0
+egg_expand_retry_interval = 1.0
+egg_stage_2_duration = 5.0
+hatchling_health = 100.0
+hatchling_hunger = 50.0
+reproduction_min_health = 30.0
+reproduction_min_hunger = 70.0
+reproduction_min_age = 3.0
+reproduction_cooldown = 20.0
+reproduction_hunger_cost = 20.0
