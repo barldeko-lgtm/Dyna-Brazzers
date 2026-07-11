@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" uid="uid://tbxmubvynlmm" path="res://assets/sprites/terrain/tree_tiles_independent.png" id="7_trees"]
 [ext_resource type="Script" uid="uid://bbumbecqsltub" path="res://scripts/world/start_map_layout.gd" id="8_map_layout"]
 [ext_resource type="Resource" path="res://data/species/triceratops.tres" id="9_triceratops"]
+[ext_resource type="Resource" path="res://data/species/tyrannosaurus.tres" id="10_tyrannosaurus"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ground"]
 texture = ExtResource("4_ground")
@@ -92,6 +93,10 @@ position = Vector2(1792, 8320)
 position = Vector2(2688, 8960)
 species_data = ExtResource("9_triceratops")
 
+[node name="Tyrannosaurus" parent="Creatures" unique_id=1373332998 instance=ExtResource("1_creature")]
+position = Vector2(3264, 8512)
+species_data = ExtResource("10_tyrannosaurus")
+
 [node name="PredatorSpawn" type="Marker2D" parent="Creatures" unique_id=324360104]
 position = Vector2(3264, 8512)
 
@@ -117,6 +122,15 @@ position = Vector2(1856, 8768)
 
 [node name="Grass_07" parent="Grasses" unique_id=1147031735 instance=ExtResource("3_grass_scene")]
 position = Vector2(1856, 8896)
+
+[node name="Grass_11" parent="Grasses" unique_id=967574626 instance=ExtResource("3_grass_scene")]
+position = Vector2(1984, 8128)
+
+[node name="Grass_12" parent="Grasses" unique_id=1429164454 instance=ExtResource("3_grass_scene")]
+position = Vector2(2624, 7744)
+
+[node name="Grass_13" parent="Grasses" unique_id=1923775044 instance=ExtResource("3_grass_scene")]
+position = Vector2(1984, 8768)
 
 [node name="Grass_08" parent="Grasses" unique_id=301020476 instance=ExtResource("3_grass_scene")]
 position = Vector2(2496, 9664)

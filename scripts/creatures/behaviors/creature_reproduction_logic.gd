@@ -11,9 +11,6 @@ func _init(owner_creature: Node) -> void:
 
 
 func update_reproduction_behavior() -> void:
-	if creature.species_data.is_predator:
-		return
-
 	if creature.world_grid == null:
 		return
 
@@ -88,8 +85,13 @@ func spawn_egg_at_pending_anchor() -> bool:
 
 	new_egg.set("species_id", creature.species_data.species_id)
 	new_egg.set("hatch_species_data", creature.species_data)
-	new_egg.set("stage_1_texture", creature.species_data.egg_stage_1_texture)
-	new_egg.set("stage_2_texture", creature.species_data.egg_stage_2_texture)
+
+	if creature.species_data.egg_stage_1_texture != null:
+		new_egg.set("stage_1_texture", creature.species_data.egg_stage_1_texture)
+
+	if creature.species_data.egg_stage_2_texture != null:
+		new_egg.set("stage_2_texture", creature.species_data.egg_stage_2_texture)
+
 	new_egg.set("stage_1_duration", creature.species_data.egg_stage_1_duration)
 	new_egg.set("expand_retry_interval", creature.species_data.egg_expand_retry_interval)
 	new_egg.set("stage_2_duration", creature.species_data.egg_stage_2_duration)

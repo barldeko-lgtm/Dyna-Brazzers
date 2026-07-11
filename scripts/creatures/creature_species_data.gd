@@ -19,6 +19,7 @@ class_name CreatureSpeciesData
 @export var right_texture: Texture2D
 @export var up_right_texture: Texture2D
 @export var down_right_texture: Texture2D
+@export var idle_texture: Texture2D
 @export var walk_right_frames: SpriteFrames
 @export var walk_up_frames: SpriteFrames
 @export var walk_up_right_frames: SpriteFrames

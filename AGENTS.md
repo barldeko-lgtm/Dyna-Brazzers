@@ -8,7 +8,7 @@ The current prototype includes:
 
 - an editable 85x85 tile-based world on `TileMapLayer`;
 - autonomous stegosaurus and triceratops herbivores;
-- a temporary predator species and simple one-on-one combat code;
+- one tyrannosaurus predator with egg reproduction and simple one-on-one combat;
 - grass as the first renewable resource;
 - egg laying, egg stages, and hatching;
 - terrain blocking with ground, water, mountains, and trees;
@@ -82,6 +82,7 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 - `data/species/stegosaurus.tres` — stegosaurus species resource.
 - `data/species/triceratops.tres` — triceratops species resource.
 - `data/species/predator.tres` — temporary predator species resource.
+- `data/species/tyrannosaurus.tres` — tyrannosaurus species resource.
 - `scenes/resources/grass.tscn` and `scripts/resources/grass.gd` — grass scene and lifecycle.
 - `scenes/resources/egg.tscn` and `scripts/resources/egg.gd` — egg scene and lifecycle.
 - `scripts/ui/creature_stats_ui.gd` — creature information and selection.

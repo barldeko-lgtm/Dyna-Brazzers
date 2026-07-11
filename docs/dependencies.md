@@ -275,3 +275,4 @@ Species dependencies:
 - new species are added through `.tres` data and visual assets;
 - do not create a separate copy of the world scene solely to assign a species;
 - saves restore species through their resource paths.
+- tyrannosaurus uses the shared egg lifecycle; when a species has no custom egg textures, preserve `egg.tscn`'s default textures rather than assigning `null`.

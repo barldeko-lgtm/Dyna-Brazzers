@@ -58,6 +58,11 @@ func update_sprite_visual() -> void:
 	body_sprite.flip_h = false
 	body_sprite.visible = true
 
+	if creature.state == creature.State.LAYING_EGG and creature.species_data.idle_texture != null:
+		set_walk_animation_active(false)
+		_apply_static_texture(body_sprite, creature.species_data.idle_texture, false)
+		return
+
 	if creature.state == creature.State.EATING:
 		if _should_play_eating_animation() and can_use_eating_right_animation():
 			body_sprite.visible = false

@@ -13,7 +13,7 @@
 
 - `scenes/ui/start_screen.tscn` — centered startup screen with New Game, three-slot Load, placeholder Menu, and Exit.
 - `scenes/main/main.tscn` — camera, HUD, world instance, debug overlay, and UI wiring.
-- `scenes/world/world.tscn` — only active gameplay world: 85x85 terrain TileMap, initial grass, two stegosauruses, one triceratops, eggs container, camera marker, and world grid.
+- `scenes/world/world.tscn` — only active gameplay world: 85x85 terrain TileMap, initial grass, two stegosauruses, one triceratops, one tyrannosaurus, eggs container, camera marker, and world grid.
 - `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures.
 - `scenes/resources/egg.tscn` — egg resource scene.
 - `scenes/creatures/creature.tscn` — shared base creature scene.
@@ -95,11 +95,13 @@ Terrain source ids in `world.tscn`:
 
 - `data/species/stegosaurus.tres` — stegosaurus stats, visuals, animations, egg data, and death settings.
 - `data/species/triceratops.tres` — triceratops stats and directional visuals.
-- `data/species/predator.tres` — temporary predator configuration.
+- `data/species/predator.tres` — temporary predator species resource.
+- `data/species/tyrannosaurus.tres` — tyrannosaurus species resource.
 - `assets/sprites/creatures/stegosaurus/` — stegosaurus sprites and animation resources.
 - `assets/sprites/creatures/triceratops/` — triceratops directional sprites.
+- `assets/sprites/creatures/tyrannosaurus/` — tyrannosaurus directional and idle sprites.
 
-The third starting creature in `world.tscn` references `triceratops.tres` directly. A separate `world_triceratops.tscn` is not part of the active structure.
+The third starting creature in `world.tscn` references `triceratops.tres` directly; `Tyrannosaurus` references `tyrannosaurus.tres`. A separate `world_triceratops.tscn` is not part of the active structure.
 
 ## Ownership summary
 
