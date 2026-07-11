@@ -253,12 +253,18 @@ func try_spawn_grass(target_tile: Vector2i) -> void:
 	if new_grass == null:
 		return
 
-	get_parent().add_child(new_grass)
-	PerformanceStats.add_counter("grass_spawned")
-	new_grass.global_position = world_grid.grass_tile_to_world_position(target_tile)
+	var grass_parent := get_parent() as Node2D
 
-	if new_grass.has_method("sync_tile_position_with_world"):
-		new_grass.sync_tile_position_with_world()
+	if grass_parent == null:
+		return
+
+	# Set the future local position before add_child().
+	# _ready() runs during add_child(), so the grass must already point at the
+	# target ground tile instead of briefly appearing at world tile (0, 0).
+	var target_world_position: Vector2 = world_grid.grass_tile_to_world_position(target_tile)
+	new_grass.position = grass_parent.to_local(target_world_position)
+	grass_parent.add_child(new_grass)
+	PerformanceStats.add_counter("grass_spawned")
 
 
 # Grid sync.

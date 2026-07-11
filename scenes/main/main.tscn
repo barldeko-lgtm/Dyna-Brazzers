@@ -327,6 +327,7 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(280, 300)
 layout_mode = 2
 script = ExtResource("5_player_nature_ui")
+starting_energy = 500.0
 
 [node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel"]
 layout_mode = 2

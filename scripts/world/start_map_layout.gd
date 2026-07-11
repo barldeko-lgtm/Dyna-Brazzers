@@ -99,34 +99,6 @@ const MAP_ROWS := [
 	"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"
 ]
 
-const GRASS_ALLOWED_TILES := [Vector2i(20, 59), Vector2i(14, 63), Vector2i(20, 66), Vector2i(20, 67), Vector2i(21, 67), Vector2i(14, 68), Vector2i(14, 69), Vector2i(19, 75), Vector2i(20, 75), Vector2i(21, 75)]
-
-
-func _enter_tree() -> void:
-	if tile_set == null:
-		call_deferred("_build_map_when_ready")
-		return
-
-	_build_map_and_sync()
-
-
-func _build_map_when_ready() -> void:
-	if tile_set == null:
-		return
-
-	_build_map_and_sync()
-
-
-func _build_map_and_sync() -> void:
-	_build_static_map()
-
-	# In the editor we only need the terrain preview.
-	if Engine.is_editor_hint():
-		return
-
-	var world_grid: Node = get_parent()
-	if world_grid != null and world_grid.has_method("set_grass_allowed_tiles"):
-		world_grid.set_grass_allowed_tiles(GRASS_ALLOWED_TILES)
 
 
 func _build_static_map() -> void:
@@ -139,13 +111,13 @@ func _build_static_map() -> void:
 
 		for x in range(MAP_WIDTH):
 			var tile := Vector2i(x, y)
-			var marker := row.substr(x, 1)
+			var marker: String = row.substr(x, 1)
 
 			match marker:
 				"W":
-					set_cell(tile, TERRAIN_WATER, Vector2i(_variant_for_tile(tile, 9), 0))
+					set_cell(tile, TERRAIN_WATER, Vector2i(_get_water_atlas_x(tile), 0))
 				"M":
-					set_cell(tile, TERRAIN_MOUNTAIN, Vector2i(_variant_for_tile(tile, 9), 0))
+					set_cell(tile, TERRAIN_MOUNTAIN, Vector2i(_get_mountain_atlas_x(tile), 0))
 				"T":
 					set_cell(tile, TERRAIN_GROUND, Vector2i.ZERO)
 					tree_anchors.append(tile)
@@ -154,6 +126,126 @@ func _build_static_map() -> void:
 
 	for anchor in tree_anchors:
 		_place_tree(anchor, _variant_for_tile(anchor, 4))
+
+
+# The water atlas uses:
+# 0 full water;
+# 1/2/3/4 shore toward north/south/west/east land;
+# 5/6/7/8 the matching two-sided shore corners.
+func _get_water_atlas_x(tile: Vector2i) -> int:
+	var land_mask: int = 0
+
+	if _is_land_next_to_water(tile + Vector2i.UP):
+		land_mask |= 1
+	if _is_land_next_to_water(tile + Vector2i.RIGHT):
+		land_mask |= 2
+	if _is_land_next_to_water(tile + Vector2i.DOWN):
+		land_mask |= 4
+	if _is_land_next_to_water(tile + Vector2i.LEFT):
+		land_mask |= 8
+
+	match land_mask:
+		0:
+			return 0
+		1:
+			return 1
+		4:
+			return 2
+		8:
+			return 3
+		2:
+			return 4
+		9:
+			return 5
+		3:
+			return 6
+		12:
+			return 7
+		6:
+			return 8
+		# The atlas has no three-sided or channel tiles.
+		# Use the edge facing the only open water direction.
+		7:
+			return 4
+		14:
+			return 2
+		11:
+			return 1
+		13:
+			return 3
+		_:
+			return 0
+
+
+# The mountain atlas uses:
+# 4 full mountains;
+# the other eight tiles are edges/corners facing surrounding ground.
+func _get_mountain_atlas_x(tile: Vector2i) -> int:
+	var exposed_mask: int = 0
+
+	if _is_mountain_edge(tile + Vector2i.UP):
+		exposed_mask |= 1
+	if _is_mountain_edge(tile + Vector2i.RIGHT):
+		exposed_mask |= 2
+	if _is_mountain_edge(tile + Vector2i.DOWN):
+		exposed_mask |= 4
+	if _is_mountain_edge(tile + Vector2i.LEFT):
+		exposed_mask |= 8
+
+	match exposed_mask:
+		0:
+			return 4
+		1:
+			return 8
+		2:
+			return 5
+		4:
+			return 1
+		8:
+			return 6
+		3:
+			return 7
+		9:
+			return 0
+		6:
+			return 2
+		12:
+			return 3
+		# The atlas has no three-sided or one-tile corridor pieces.
+		# Keep the mountain connected toward its only mountain neighbour.
+		7:
+			return 5
+		14:
+			return 1
+		11:
+			return 8
+		13:
+			return 6
+		_:
+			return 4
+
+
+func _is_land_next_to_water(tile: Vector2i) -> bool:
+	if not _is_inside_layout(tile):
+		return false
+
+	return _get_layout_marker(tile) != "W"
+
+
+func _is_mountain_edge(tile: Vector2i) -> bool:
+	if not _is_inside_layout(tile):
+		return true
+
+	return _get_layout_marker(tile) != "M"
+
+
+func _is_inside_layout(tile: Vector2i) -> bool:
+	return tile.x >= 0 and tile.x < MAP_WIDTH and tile.y >= 0 and tile.y < MAP_HEIGHT
+
+
+func _get_layout_marker(tile: Vector2i) -> String:
+	var row: String = MAP_ROWS[tile.y]
+	return row.substr(tile.x, 1)
 
 
 func _place_tree(anchor: Vector2i, variant: int) -> void:
