@@ -1,9 +1,0 @@
-[gd_scene load_steps=3 format=3]
-
-[ext_resource type="PackedScene" path="res://scenes/world/world.tscn" id="1_base_world"]
-[ext_resource type="Resource" path="res://data/species/triceratops.tres" id="2_triceratops"]
-
-[node name="World" instance=ExtResource("1_base_world")]
-
-[node name="Creature_03" parent="Creatures" index="2"]
-species_data = ExtResource("2_triceratops")

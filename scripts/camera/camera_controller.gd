@@ -9,7 +9,7 @@ extends Camera2D
 @export var use_camera_start_marker := true
 
 var world_grid: Node = null
-var start_position_checked := false
+var start_position_checked: bool = false
 
 
 func _ready() -> void:
@@ -20,7 +20,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_ensure_world_grid()
 
-	var direction := Vector2.ZERO
+	var direction: Vector2 = Vector2.ZERO
 
 	if Input.is_key_pressed(KEY_D):
 		direction.x += 1
@@ -41,7 +41,7 @@ func _initialize_camera() -> void:
 	_ensure_world_grid()
 
 	if use_camera_start_marker and not start_position_checked:
-		var start_marker := get_tree().get_first_node_in_group("camera_start")
+		var start_marker: Node = get_tree().get_first_node_in_group("camera_start")
 
 		# SaveSystem restores a non-zero camera position after loading.
 		# Only a fresh New Game session starts at the authored red marker.
@@ -94,7 +94,7 @@ func _clamp_camera_to_world() -> void:
 	var viewport_size: Vector2 = get_viewport_rect().size
 	var safe_zoom_x: float = maxf(zoom.x, 0.001)
 	var safe_zoom_y: float = maxf(zoom.y, 0.001)
-	var half_visible := Vector2(
+	var half_visible: Vector2 = Vector2(
 		viewport_size.x / safe_zoom_x,
 		viewport_size.y / safe_zoom_y
 	) * 0.5

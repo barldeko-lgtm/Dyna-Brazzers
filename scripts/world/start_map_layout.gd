@@ -101,6 +101,29 @@ const MAP_ROWS := [
 
 
 
+func _enter_tree() -> void:
+	if tile_set == null:
+		call_deferred("_build_map_when_ready")
+		return
+
+	_build_map_if_empty()
+
+
+func _build_map_when_ready() -> void:
+	if tile_set == null:
+		return
+
+	_build_map_if_empty()
+
+
+func _build_map_if_empty() -> void:
+	# Never overwrite a TileMap that was edited and saved in Godot.
+	if not get_used_cells().is_empty():
+		return
+
+	_build_static_map()
+
+
 func _build_static_map() -> void:
 	clear()
 
@@ -110,7 +133,7 @@ func _build_static_map() -> void:
 		var row: String = MAP_ROWS[y]
 
 		for x in range(MAP_WIDTH):
-			var tile := Vector2i(x, y)
+			var tile: Vector2i = Vector2i(x, y)
 			var marker: String = row.substr(x, 1)
 
 			match marker:
@@ -249,7 +272,7 @@ func _get_layout_marker(tile: Vector2i) -> String:
 
 
 func _place_tree(anchor: Vector2i, variant: int) -> void:
-	var atlas_x := variant * 2
+	var atlas_x: int = variant * 2
 
 	set_cell(anchor, TERRAIN_TREE, Vector2i(atlas_x, 0))
 	set_cell(anchor + Vector2i.RIGHT, TERRAIN_TREE, Vector2i(atlas_x + 1, 0))
