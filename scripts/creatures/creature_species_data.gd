@@ -10,6 +10,13 @@ class_name CreatureSpeciesData
 @export var creature_name := "Стегозавр"
 
 # Behavior.
+enum DietType {
+	HERBIVORE,
+	PREDATOR,
+	EGG_EATER
+}
+
+@export var diet_type: DietType = DietType.HERBIVORE
 @export var is_predator := false
 @export var predator_target_radius := 8
 
@@ -53,7 +60,7 @@ class_name CreatureSpeciesData
 @export var egg_laying_duration := 5.0
 @export var egg_stage_1_duration := 5.0
 @export var egg_expand_retry_interval := 1.0
-@export var egg_stage_2_duration := 5.0
+@export var egg_stage_2_duration := 10.0
 @export var hatchling_health := 100.0
 @export var hatchling_hunger := 50.0
 
@@ -63,3 +70,7 @@ class_name CreatureSpeciesData
 @export var reproduction_min_age := 3.0
 @export var reproduction_cooldown := 20.0
 @export var reproduction_hunger_cost := 20.0
+
+
+func is_egg_eater() -> bool:
+	return diet_type == DietType.EGG_EATER

@@ -5,6 +5,7 @@ const CreatureGrazingLogic = preload("res://scripts/creatures/behaviors/creature
 const CreatureVisualController = preload("res://scripts/creatures/behaviors/creature_visual_controller.gd")
 const CreatureReproductionLogic = preload("res://scripts/creatures/behaviors/creature_reproduction_logic.gd")
 const CreaturePredatorLogic = preload("res://scripts/creatures/behaviors/creature_predator_logic.gd")
+const CreatureEggEaterLogic = preload("res://scripts/creatures/behaviors/creature_egg_eater_logic.gd")
 const CREATURE_SELECTION_FRAME_TEXTURE := preload("res://assets/ui/creature_selection_frame.png")
 
 # Core creature FSM.
@@ -131,6 +132,7 @@ var grazing_logic: RefCounted
 var visual_controller: RefCounted
 var reproduction_logic: RefCounted
 var predator_logic: RefCounted
+var egg_eater_logic: RefCounted
 
 var is_hover_highlighted := false
 var is_selected_highlighted := false
@@ -169,6 +171,7 @@ func _ready() -> void:
 	visual_controller = CreatureVisualController.new(self)
 	reproduction_logic = CreatureReproductionLogic.new(self)
 	predator_logic = CreaturePredatorLogic.new(self)
+	egg_eater_logic = CreatureEggEaterLogic.new(self)
 	eating_timer.one_shot = true
 	egg_laying_timer.one_shot = true
 
@@ -178,7 +181,7 @@ func _ready() -> void:
 		set_physics_process(false)
 		return
 
-	if not species_data.is_predator:
+	if not species_data.is_predator and not is_egg_eater():
 		grazing_logic = CreatureGrazingLogic.new(self)
 
 	if not eating_timer.timeout.is_connected(_on_eating_timer_timeout):
@@ -269,6 +272,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	update_predator_behavior()
+	update_egg_eater_behavior()
 	update_reproduction_behavior()
 	update_food_behavior()
 
@@ -362,6 +366,11 @@ func update_predator_behavior() -> void:
 	predator_logic.update_predator_behavior()
 
 
+func update_egg_eater_behavior() -> void:
+	if egg_eater_logic != null:
+		egg_eater_logic.update_egg_eater_behavior()
+
+
 func update_food_behavior() -> void:
 	if grazing_logic == null:
 		return
@@ -443,7 +452,7 @@ func enter_walk() -> void:
 
 
 func enter_seek_food() -> void:
-	if species_data != null and species_data.is_predator:
+	if species_data != null and (species_data.is_predator or is_egg_eater()):
 		enter_walk()
 		return
 
@@ -454,7 +463,7 @@ func enter_seek_food() -> void:
 
 
 func enter_hungry_behavior() -> void:
-	if species_data != null and species_data.is_predator:
+	if species_data != null and (species_data.is_predator or is_egg_eater()):
 		enter_walk()
 		return
 
@@ -985,6 +994,10 @@ func get_creature_name() -> String:
 
 func get_is_predator() -> bool:
 	return species_data != null and species_data.is_predator
+
+
+func is_egg_eater() -> bool:
+	return species_data != null and species_data.is_egg_eater()
 
 
 func get_attack() -> float:

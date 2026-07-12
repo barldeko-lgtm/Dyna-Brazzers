@@ -252,6 +252,21 @@ Rules:
 - keep the overlay above normal world props;
 - clear hover/selection state when the creature dies or disappears.
 
+## Egg-eater behavior
+
+Main files:
+
+- `res://scripts/creatures/behaviors/creature_egg_eater_logic.gd`;
+- `res://scripts/resources/egg.gd`;
+- `res://data/species/egg_eater.tres`.
+
+Rules:
+
+- egg eaters are a separate diet category, not predators;
+- they reuse predator-style pathing but never start duels;
+- only `STAGE_2` eggs are valid targets;
+- they consume an adjacent egg and restore hunger.
+
 ## Creature ground shadows
 
 Main file:

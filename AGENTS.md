@@ -8,7 +8,7 @@ The current prototype includes:
 
 - an editable 85x85 tile-based world on `TileMapLayer`;
 - autonomous stegosaurus and triceratops herbivores;
-- one tyrannosaurus and one raptor predator, both with egg reproduction and simple one-on-one combat;
+- one tyrannosaurus and one raptor predator, plus one egg eater that targets stage-2 eggs;
 - grass as the first renewable resource;
 - egg laying, egg stages, and hatching;
 - terrain blocking with ground, water, mountains, and trees;
@@ -57,7 +57,7 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 - Creatures make decisions in grid/anchor space but move smoothly in world space.
 - Species stats, visuals, egg tuning, death texture, corpse lifetime, and species identity live in `.tres` resources.
 - `creature.gd` is the creature runtime coordinator.
-- Grazing, predator, reproduction, and visual logic are split into helper scripts.
+- Grazing, predator, egg-eater, reproduction, and visual logic are split into helper scripts.
 - Grass owns its lifecycle and registers itself with the world grid.
 - Grass may spread across normal walkable ground; initial grass placements are not growth boundaries.
 - Eggs are world objects and must correctly register and unregister blocking state.
@@ -84,6 +84,7 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 - `data/species/predator.tres` — temporary predator species resource.
 - `data/species/tyrannosaurus.tres` — tyrannosaurus species resource.
 - `data/species/raptor.tres` — raptor species resource.
+- `data/species/egg_eater.tres` — egg-eater species resource.
 - `scenes/resources/grass.tscn` and `scripts/resources/grass.gd` — grass scene and lifecycle.
 - `scenes/resources/egg.tscn` and `scripts/resources/egg.gd` — egg scene and lifecycle.
 - `scripts/ui/creature_stats_ui.gd` — creature information and selection.

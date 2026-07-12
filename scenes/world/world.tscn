@@ -11,6 +11,7 @@
 [ext_resource type="Resource" path="res://data/species/triceratops.tres" id="9_triceratops"]
 [ext_resource type="Resource" path="res://data/species/tyrannosaurus.tres" id="10_tyrannosaurus"]
 [ext_resource type="Resource" path="res://data/species/raptor.tres" id="11_raptor"]
+[ext_resource type="Resource" path="res://data/species/egg_eater.tres" id="12_egg_eater"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ground"]
 texture = ExtResource("4_ground")
@@ -113,6 +114,10 @@ species_data = ExtResource("10_tyrannosaurus")
 [node name="Raptor" parent="Creatures" unique_id=276081424 instance=ExtResource("1_creature")]
 position = Vector2(3520, 8512)
 species_data = ExtResource("11_raptor")
+
+[node name="EggEater" parent="Creatures" unique_id=197016879 instance=ExtResource("1_creature")]
+position = Vector2(896, 7424)
+species_data = ExtResource("12_egg_eater")
 
 [node name="PredatorSpawn" type="Marker2D" parent="Creatures" unique_id=324360104]
 position = Vector2(3264, 8512)

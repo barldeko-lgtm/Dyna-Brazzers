@@ -15,6 +15,7 @@ species_id = "tyrannosaurus"
 species_name = "Тираннозавр"
 creature_name = "Тираннозавр"
 is_predator = true
+diet_type = 1
 predator_target_radius = 10
 down_texture = ExtResource("2_down")
 up_texture = ExtResource("3_up")
