@@ -260,7 +260,8 @@ Main file:
 
 Rules:
 
-- a soft radial shadow is created at runtime below the body sprite and above terrain;
+- a dark semi-transparent contour shadow mirrors the active static texture or animated frame below the body sprite and above terrain;
+- contour shadows synchronize their animation frame and apply the horizontal correction from the active upward-diagonal texture or frame set;
 - shadows are static because the game has no day/night cycle;
 - predator and herbivore offsets are configured separately to fit their art;
 - shadows must not affect collision, occupancy, selection, or pathfinding.

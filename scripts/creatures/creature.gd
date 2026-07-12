@@ -6,7 +6,6 @@ const CreatureVisualController = preload("res://scripts/creatures/behaviors/crea
 const CreatureReproductionLogic = preload("res://scripts/creatures/behaviors/creature_reproduction_logic.gd")
 const CreaturePredatorLogic = preload("res://scripts/creatures/behaviors/creature_predator_logic.gd")
 const CREATURE_SELECTION_FRAME_TEXTURE := preload("res://assets/ui/creature_selection_frame.png")
-const GROUND_SHADOW_TEXTURE_SIZE := 128
 
 # Core creature FSM.
 @onready var sprite: Sprite2D = $BodySprite
@@ -136,6 +135,7 @@ var predator_logic: RefCounted
 var is_hover_highlighted := false
 var is_selected_highlighted := false
 var ground_shadow_sprite: Sprite2D = null
+var ground_shadow_uses_upward_diagonal := false
 var interaction_highlight_sprite: Sprite2D = null
 
 
@@ -530,6 +530,7 @@ func disable_collision_objects_recursive(node: Node) -> void:
 
 
 func show_death_visual() -> void:
+	set_ground_shadow_upward_diagonal(false)
 	set_walk_right_animation_active(false)
 
 	if sprite == null:
@@ -540,10 +541,10 @@ func show_death_visual() -> void:
 
 	if species_data != null and species_data.death_texture != null:
 		sprite.texture = species_data.death_texture
-		return
-
-	if species_data != null and species_data.right_texture != null:
+	elif species_data != null and species_data.right_texture != null:
 		sprite.texture = species_data.right_texture
+
+	sync_ground_shadow_from_current_visual()
 
 
 func choose_random_wander_step() -> void:
@@ -737,6 +738,7 @@ func update_sprite_visual() -> void:
 		return
 
 	visual_controller.update_sprite_visual()
+	sync_ground_shadow_from_current_visual()
 
 
 func can_continue_duel(duel: Duel) -> bool:
@@ -842,34 +844,56 @@ func find_world_grid() -> Node:
 
 
 func configure_ground_shadow() -> void:
-	var gradient := Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.58, 1.0])
-	gradient.colors = PackedColorArray([
-		Color(0.0, 0.0, 0.0, 0.24),
-		Color(0.0, 0.0, 0.0, 0.12),
-		Color(0.0, 0.0, 0.0, 0.0),
-	])
-
-	var shadow_texture := GradientTexture2D.new()
-	shadow_texture.gradient = gradient
-	shadow_texture.fill = GradientTexture2D.FILL_RADIAL
-	shadow_texture.fill_from = Vector2(0.5, 0.5)
-	shadow_texture.fill_to = Vector2(1.0, 0.5)
-	shadow_texture.width = GROUND_SHADOW_TEXTURE_SIZE
-	shadow_texture.height = GROUND_SHADOW_TEXTURE_SIZE
-
-	var shadow_offset_y := 80.0 if species_data != null and species_data.is_predator else 58.0
+	var shadow_offset_y := 90.0 if species_data != null and species_data.is_predator else 72.0
 
 	ground_shadow_sprite = Sprite2D.new()
 	ground_shadow_sprite.name = "GroundShadow"
-	ground_shadow_sprite.texture = shadow_texture
 	ground_shadow_sprite.position = Vector2(0.0, shadow_offset_y)
-	ground_shadow_sprite.scale = Vector2(1.35, 0.48)
-	ground_shadow_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	ground_shadow_sprite.scale = Vector2(1.0, 0.36)
+	ground_shadow_sprite.flip_v = true
+	ground_shadow_sprite.modulate = Color(0.08, 0.06, 0.04, 0.34)
+	ground_shadow_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	ground_shadow_sprite.z_as_relative = false
 	ground_shadow_sprite.z_index = 0
 	add_child(ground_shadow_sprite)
 	move_child(ground_shadow_sprite, 0)
+
+	if not walk_right_sprite.frame_changed.is_connected(sync_ground_shadow_from_current_visual):
+		walk_right_sprite.frame_changed.connect(sync_ground_shadow_from_current_visual)
+
+
+func set_ground_shadow_upward_diagonal(enabled: bool) -> void:
+	ground_shadow_uses_upward_diagonal = enabled
+
+
+func get_ground_shadow_flip_h(source_flip_h: bool) -> bool:
+	var uses_upward_diagonal := ground_shadow_uses_upward_diagonal
+
+	if species_data != null:
+		if sprite.texture == species_data.up_right_texture and species_data.up_right_texture != null:
+			uses_upward_diagonal = true
+		elif walk_right_sprite.visible and walk_right_sprite.sprite_frames == species_data.walk_up_right_frames and species_data.walk_up_right_frames != null:
+			uses_upward_diagonal = true
+
+	return not source_flip_h if uses_upward_diagonal else source_flip_h
+
+
+func sync_ground_shadow_from_current_visual() -> void:
+	if ground_shadow_sprite == null:
+		return
+
+	if walk_right_sprite != null and walk_right_sprite.visible and walk_right_sprite.sprite_frames != null:
+		var frames := walk_right_sprite.sprite_frames
+		var animation := walk_right_sprite.animation
+		if frames.has_animation(animation):
+			ground_shadow_sprite.texture = frames.get_frame_texture(animation, walk_right_sprite.frame)
+			ground_shadow_sprite.flip_h = get_ground_shadow_flip_h(walk_right_sprite.flip_h)
+			ground_shadow_sprite.visible = ground_shadow_sprite.texture != null
+			return
+
+	ground_shadow_sprite.texture = sprite.texture
+	ground_shadow_sprite.flip_h = get_ground_shadow_flip_h(sprite.flip_h)
+	ground_shadow_sprite.visible = sprite.visible and ground_shadow_sprite.texture != null
 
 
 func configure_interaction_highlight() -> void:

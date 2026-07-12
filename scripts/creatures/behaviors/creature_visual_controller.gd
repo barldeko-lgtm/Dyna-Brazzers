@@ -44,6 +44,8 @@ func update_sprite_visual() -> void:
 	if body_sprite == null:
 		return
 
+	creature.set_ground_shadow_upward_diagonal(false)
+
 	var direction: Vector2 = creature.direction
 	var abs_x := absf(direction.x)
 	var abs_y := absf(direction.y)
@@ -110,6 +112,7 @@ func update_sprite_visual() -> void:
 
 	# Equal diagonal movement uses diagonal sprites or animation.
 	if faces_up:
+		creature.set_ground_shadow_upward_diagonal(true)
 		if _should_play_walk_animation() and can_use_walk_up_right_animation():
 			body_sprite.visible = false
 			set_walk_animation_active(true, faces_left, creature.species_data.walk_up_right_frames)
