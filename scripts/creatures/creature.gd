@@ -138,6 +138,10 @@ var is_hover_highlighted := false
 var is_selected_highlighted := false
 var ground_shadow_sprite: Sprite2D = null
 var ground_shadow_uses_upward_diagonal := false
+var ground_shadow_offset_y := 0.0
+var ground_shadow_base_scale_y := 0.36
+var ground_shadow_diagonal_rotation_degrees := 0.0
+var ground_shadow_diagonal_scale_y := 0.0
 var interaction_highlight_sprite: Sprite2D = null
 
 
@@ -853,12 +857,18 @@ func find_world_grid() -> Node:
 
 
 func configure_ground_shadow() -> void:
-	var shadow_offset_y := 90.0 if species_data != null and species_data.is_predator else 72.0
+	ground_shadow_offset_y = 90.0 if species_data != null and species_data.is_predator else 72.0
+	# Diagonal poses rotate the shadow instead of squishing it straight down,
+	# so it follows the 3/4 diagonal art. A slightly gentler squish (bigger
+	# scale.y than the normal 0.36) keeps it from looking like a thin line
+	# once rotated. Starting guesses — tune both numbers in-game.
+	ground_shadow_diagonal_rotation_degrees = -30.0
+	ground_shadow_diagonal_scale_y = 0.48
 
 	ground_shadow_sprite = Sprite2D.new()
 	ground_shadow_sprite.name = "GroundShadow"
-	ground_shadow_sprite.position = Vector2(0.0, shadow_offset_y)
-	ground_shadow_sprite.scale = Vector2(1.0, 0.36)
+	ground_shadow_sprite.position = Vector2(0.0, ground_shadow_offset_y)
+	ground_shadow_sprite.scale = Vector2(1.0, ground_shadow_base_scale_y)
 	ground_shadow_sprite.flip_v = true
 	ground_shadow_sprite.modulate = Color(0.08, 0.06, 0.04, 0.34)
 	ground_shadow_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -875,16 +885,37 @@ func set_ground_shadow_upward_diagonal(enabled: bool) -> void:
 	ground_shadow_uses_upward_diagonal = enabled
 
 
-func get_ground_shadow_flip_h(source_flip_h: bool) -> bool:
-	var uses_upward_diagonal := ground_shadow_uses_upward_diagonal
+func ground_shadow_is_diagonal() -> bool:
+	if ground_shadow_uses_upward_diagonal:
+		return true
 
 	if species_data != null:
 		if sprite.texture == species_data.up_right_texture and species_data.up_right_texture != null:
-			uses_upward_diagonal = true
-		elif walk_right_sprite.visible and walk_right_sprite.sprite_frames == species_data.walk_up_right_frames and species_data.walk_up_right_frames != null:
-			uses_upward_diagonal = true
+			return true
+		if walk_right_sprite.visible and walk_right_sprite.sprite_frames == species_data.walk_up_right_frames and species_data.walk_up_right_frames != null:
+			return true
 
-	return not source_flip_h if uses_upward_diagonal else source_flip_h
+	return false
+
+
+func get_ground_shadow_flip_h(source_flip_h: bool) -> bool:
+	# The shadow mirrors the same way as the body sprite, with no extra
+	# forced flip for diagonal poses. Diagonal poses get a rotation instead,
+	# see apply_ground_shadow_pose().
+	return source_flip_h
+
+
+func apply_ground_shadow_pose(flip_h: bool) -> void:
+	ground_shadow_sprite.position = Vector2(0.0, ground_shadow_offset_y)
+
+	if ground_shadow_is_diagonal():
+		var rotation_sign := -1.0 if flip_h else 1.0
+		ground_shadow_sprite.rotation = deg_to_rad(ground_shadow_diagonal_rotation_degrees) * rotation_sign
+		ground_shadow_sprite.scale = Vector2(1.0, ground_shadow_diagonal_scale_y)
+		return
+
+	ground_shadow_sprite.rotation = 0.0
+	ground_shadow_sprite.scale = Vector2(1.0, ground_shadow_base_scale_y)
 
 
 func sync_ground_shadow_from_current_visual() -> void:
@@ -898,11 +929,13 @@ func sync_ground_shadow_from_current_visual() -> void:
 			ground_shadow_sprite.texture = frames.get_frame_texture(animation, walk_right_sprite.frame)
 			ground_shadow_sprite.flip_h = get_ground_shadow_flip_h(walk_right_sprite.flip_h)
 			ground_shadow_sprite.visible = ground_shadow_sprite.texture != null
+			apply_ground_shadow_pose(ground_shadow_sprite.flip_h)
 			return
 
 	ground_shadow_sprite.texture = sprite.texture
 	ground_shadow_sprite.flip_h = get_ground_shadow_flip_h(sprite.flip_h)
 	ground_shadow_sprite.visible = sprite.visible and ground_shadow_sprite.texture != null
+	apply_ground_shadow_pose(ground_shadow_sprite.flip_h)
 
 
 func configure_interaction_highlight() -> void:
