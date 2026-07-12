@@ -14,6 +14,7 @@ Current prototype includes:
 - species-specific data resources;
 - temporary predator and simple duel-combat code;
 - creature death with a short corpse/death-pose visual before removal;
+- static soft ground shadows beneath creatures;
 - player nature powers;
 - a local four-frame rain VFX;
 - right-side HUD with live creature and egg counters;

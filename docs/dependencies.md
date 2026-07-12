@@ -252,6 +252,19 @@ Rules:
 - keep the overlay above normal world props;
 - clear hover/selection state when the creature dies or disappears.
 
+## Creature ground shadows
+
+Main file:
+
+- `res://scripts/creatures/creature.gd`.
+
+Rules:
+
+- a soft radial shadow is created at runtime below the body sprite and above terrain;
+- shadows are static because the game has no day/night cycle;
+- predator and herbivore offsets are configured separately to fit their art;
+- shadows must not affect collision, occupancy, selection, or pathfinding.
+
 ## Creature death and corpse visuals
 
 Main files:

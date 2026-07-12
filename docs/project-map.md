@@ -34,7 +34,7 @@
 
 ### Creatures and resources
 
-- `scripts/creatures/creature.gd` — creature runtime coordinator, movement state, death cleanup, and world-space highlight overlay.
+- `scripts/creatures/creature.gd` — creature runtime coordinator, movement state, death cleanup, and world-space shadow/highlight overlays.
 - `scripts/creatures/creature_species_data.gd` — shared species resource schema.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore food search and target ranking.
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — temporary predator targeting and combat-entry logic.

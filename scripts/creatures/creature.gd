@@ -6,6 +6,7 @@ const CreatureVisualController = preload("res://scripts/creatures/behaviors/crea
 const CreatureReproductionLogic = preload("res://scripts/creatures/behaviors/creature_reproduction_logic.gd")
 const CreaturePredatorLogic = preload("res://scripts/creatures/behaviors/creature_predator_logic.gd")
 const CREATURE_SELECTION_FRAME_TEXTURE := preload("res://assets/ui/creature_selection_frame.png")
+const GROUND_SHADOW_TEXTURE_SIZE := 128
 
 # Core creature FSM.
 @onready var sprite: Sprite2D = $BodySprite
@@ -134,6 +135,7 @@ var predator_logic: RefCounted
 
 var is_hover_highlighted := false
 var is_selected_highlighted := false
+var ground_shadow_sprite: Sprite2D = null
 var interaction_highlight_sprite: Sprite2D = null
 
 
@@ -211,6 +213,7 @@ func _ready() -> void:
 		sprite.position = Vector2.ZERO
 
 	configure_walk_animation()
+	configure_ground_shadow()
 	configure_interaction_highlight()
 	enter_walk()
 
@@ -836,6 +839,37 @@ func find_world_grid() -> Node:
 
 	return null
 
+
+
+func configure_ground_shadow() -> void:
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.58, 1.0])
+	gradient.colors = PackedColorArray([
+		Color(0.0, 0.0, 0.0, 0.24),
+		Color(0.0, 0.0, 0.0, 0.12),
+		Color(0.0, 0.0, 0.0, 0.0),
+	])
+
+	var shadow_texture := GradientTexture2D.new()
+	shadow_texture.gradient = gradient
+	shadow_texture.fill = GradientTexture2D.FILL_RADIAL
+	shadow_texture.fill_from = Vector2(0.5, 0.5)
+	shadow_texture.fill_to = Vector2(1.0, 0.5)
+	shadow_texture.width = GROUND_SHADOW_TEXTURE_SIZE
+	shadow_texture.height = GROUND_SHADOW_TEXTURE_SIZE
+
+	var shadow_offset_y := 80.0 if species_data != null and species_data.is_predator else 58.0
+
+	ground_shadow_sprite = Sprite2D.new()
+	ground_shadow_sprite.name = "GroundShadow"
+	ground_shadow_sprite.texture = shadow_texture
+	ground_shadow_sprite.position = Vector2(0.0, shadow_offset_y)
+	ground_shadow_sprite.scale = Vector2(1.35, 0.48)
+	ground_shadow_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	ground_shadow_sprite.z_as_relative = false
+	ground_shadow_sprite.z_index = 0
+	add_child(ground_shadow_sprite)
+	move_child(ground_shadow_sprite, 0)
 
 
 func configure_interaction_highlight() -> void:
