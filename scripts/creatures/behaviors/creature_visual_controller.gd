@@ -35,6 +35,10 @@ func can_use_walk_up_right_animation() -> bool:
 	return _has_valid_animation(creature.species_data.walk_up_right_frames)
 
 
+func can_use_walk_down_right_animation() -> bool:
+	return _has_valid_animation(creature.species_data.walk_down_right_frames)
+
+
 func can_use_eating_right_animation() -> bool:
 	return _has_valid_animation(creature.species_data.eating_right_frames)
 
@@ -122,12 +126,17 @@ func update_sprite_visual() -> void:
 		_apply_static_texture(body_sprite, creature.species_data.up_right_texture, faces_left)
 		return
 
-	set_walk_animation_active(false)
-
 	if faces_down:
+		if _should_play_walk_animation() and can_use_walk_down_right_animation():
+			body_sprite.visible = false
+			set_walk_animation_active(true, faces_left, creature.species_data.walk_down_right_frames)
+			return
+
+		set_walk_animation_active(false)
 		_apply_static_texture(body_sprite, creature.species_data.down_right_texture, faces_left)
 		return
 
+	set_walk_animation_active(false)
 	_apply_static_texture(body_sprite, creature.species_data.right_texture, faces_left)
 
 
