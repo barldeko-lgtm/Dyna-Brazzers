@@ -1,8 +1,10 @@
 extends RefCounted
 
 const INVALID_ANCHOR := Vector2i(2147483647, 2147483647)
+const FOOD_SEARCH_INTERVAL := 0.5
 
 var creature: Node
+var search_cooldown_remaining := 0.0
 
 
 func _init(owner_creature: Node) -> void:
@@ -14,11 +16,21 @@ func update_egg_eater_behavior() -> void:
 		return
 
 	if creature.hunger > creature.species_data.hunger_search_threshold:
+		search_cooldown_remaining = 0.0
 		return
 
 	if creature.state == creature.State.DEAD or creature.state == creature.State.EATING or creature.state == creature.State.LAYING_EGG or creature.state == creature.State.COMBAT:
 		return
 
+	search_cooldown_remaining = max(
+		search_cooldown_remaining - creature.get_physics_process_delta_time(),
+		0.0
+	)
+
+	if search_cooldown_remaining > 0.0:
+		return
+
+	search_cooldown_remaining = FOOD_SEARCH_INTERVAL
 	var egg := find_nearest_edible_egg()
 
 	if egg == null:
@@ -60,7 +72,14 @@ func find_nearest_edible_egg() -> Node:
 
 
 func is_valid_egg_target(candidate: Node) -> bool:
-	return candidate != null and is_instance_valid(candidate) and candidate.has_method("can_be_eaten") and candidate.can_be_eaten()
+	if candidate == null or not is_instance_valid(candidate):
+		return false
+
+	if not candidate.has_method("can_be_eaten") or not candidate.can_be_eaten():
+		return false
+
+	var candidate_species_id := String(candidate.get("species_id"))
+	return candidate_species_id != creature.species_data.species_id
 
 
 func is_egg_in_eating_range(egg: Node) -> bool:
