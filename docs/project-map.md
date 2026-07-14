@@ -13,7 +13,7 @@
 
 - `scenes/ui/start_screen.tscn` — centered startup screen with New Game, three-slot Load, placeholder Menu, and Exit.
 - `scenes/main/main.tscn` — camera, HUD, world instance, debug overlay, and UI wiring.
-- `scenes/world/world.tscn` — only active gameplay world: 85x85 terrain TileMap, initial grass, two stegosauruses, four triceratops, one tyrannosaurus, one raptor, one egg eater, eggs container, camera marker, and world grid.
+- `scenes/world/world.tscn` — only active gameplay world: 85x85 terrain TileMap, initial grass, two stegosauruses, four triceratops, one tyrannosaurus, one raptor, one pterodactyl, one egg eater, eggs container, camera marker, and world grid.
 - `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures.
 - `scenes/resources/egg.tscn` — egg resource scene.
 - `scenes/creatures/creature.tscn` — shared base creature scene.
@@ -99,14 +99,16 @@ Terrain source ids in `world.tscn`:
 - `data/species/predator.tres` — temporary predator species resource.
 - `data/species/tyrannosaurus.tres` — tyrannosaurus species resource.
 - `data/species/raptor.tres` — raptor species resource.
+- `data/species/pterodactyl.tres` — pterodactyl species resource.
 - `data/species/egg_eater.tres` — egg-eater stats and directional visuals.
 - `assets/sprites/creatures/stegosaurus/` — stegosaurus sprites and animation resources.
 - `assets/sprites/creatures/triceratops/` — triceratops directional sprites.
 - `assets/sprites/creatures/tyrannosaurus/` — tyrannosaurus directional and idle sprites.
 - `assets/sprites/creatures/raptor/` — raptor directional sprites; the right-facing sprite is also used as temporary idle.
+- `assets/sprites/creatures/pterodactyl/` — pterodactyl directional sprites; the right-facing sprite is also used as temporary idle.
 - `assets/sprites/creatures/egg_eater/` — egg-eater directional sprites.
 
-The third starting creature in `world.tscn` references `triceratops.tres` directly; `Tyrannosaurus`, `Raptor`, and `EggEater` reference their species resources. A separate `world_triceratops.tscn` is not part of the active structure.
+The third starting creature in `world.tscn` references `triceratops.tres` directly; `Tyrannosaurus`, `Raptor`, `Pterodactyl`, and `EggEater` reference their species resources. A separate `world_triceratops.tscn` is not part of the active structure.
 
 ## Ownership summary
 

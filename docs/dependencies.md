@@ -301,7 +301,7 @@ Rules:
 Species dependencies:
 
 - the shared creature scene must remain species-agnostic;
-- new species are added through `.tres` data and visual assets;
+- new species, including the pterodactyl, are added through `.tres` data and visual assets;
 - do not create a separate copy of the world scene solely to assign a species;
 - saves restore species through their resource paths.
 - tyrannosaurus uses the shared egg lifecycle; when a species has no custom egg textures, preserve `egg.tscn`'s default textures rather than assigning `null`.

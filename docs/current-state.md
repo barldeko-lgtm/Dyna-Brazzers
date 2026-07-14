@@ -7,7 +7,7 @@ Dyna is an early Godot 4.7 ecosystem simulation prototype.
 Current prototype includes:
 
 - an editable 85x85 tile-based 2D world;
-- autonomous stegosaurus and triceratops herbivores, plus one tyrannosaurus and one raptor predator with egg reproduction;
+- autonomous stegosaurus and triceratops herbivores, plus one tyrannosaurus, one raptor, and one pterodactyl predator with egg reproduction;
 - one egg eater that uses predator-style navigation to consume only stage-2 eggs;
 - quality-aware grass targeting;
 - four-stage renewable grass;

@@ -12,6 +12,7 @@
 [ext_resource type="Resource" path="res://data/species/tyrannosaurus.tres" id="10_tyrannosaurus"]
 [ext_resource type="Resource" path="res://data/species/raptor.tres" id="11_raptor"]
 [ext_resource type="Resource" path="res://data/species/egg_eater.tres" id="12_egg_eater"]
+[ext_resource type="Resource" path="res://data/species/pterodactyl.tres" id="13_pterodactyl"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ground"]
 texture = ExtResource("4_ground")
@@ -88,6 +89,12 @@ position = Vector2(2240, 8512)
 [node name="Creature" parent="Creatures" unique_id=663531536 instance=ExtResource("1_creature")]
 position = Vector2(1792, 7552)
 
+[node name="Creature2" parent="Creatures" unique_id=834845466 instance=ExtResource("1_creature")]
+position = Vector2(2048, 6784)
+
+[node name="Creature3" parent="Creatures" unique_id=78961656 instance=ExtResource("1_creature")]
+position = Vector2(2752, 6720)
+
 [node name="Creature_02" parent="Creatures" unique_id=1795849223 instance=ExtResource("1_creature")]
 position = Vector2(1792, 8320)
 
@@ -95,7 +102,7 @@ position = Vector2(1792, 8320)
 position = Vector2(2688, 8960)
 species_data = ExtResource("9_triceratops")
 
-[node name="Creature_04" parent="Creatures" unique_id=834845466 instance=ExtResource("1_creature")]
+[node name="Creature_04" parent="Creatures" unique_id=1640071615 instance=ExtResource("1_creature")]
 position = Vector2(2240, 8192)
 species_data = ExtResource("9_triceratops")
 
@@ -118,6 +125,10 @@ species_data = ExtResource("11_raptor")
 [node name="EggEater" parent="Creatures" unique_id=197016879 instance=ExtResource("1_creature")]
 position = Vector2(896, 7424)
 species_data = ExtResource("12_egg_eater")
+
+[node name="Pterodactyl" parent="Creatures" unique_id=1890256844 instance=ExtResource("1_creature")]
+position = Vector2(2752, 7616)
+species_data = ExtResource("13_pterodactyl")
 
 [node name="PredatorSpawn" type="Marker2D" parent="Creatures" unique_id=324360104]
 position = Vector2(3264, 8512)
@@ -144,6 +155,39 @@ position = Vector2(2496, 8768)
 
 [node name="Grass_16" parent="Grasses" unique_id=1662729767 instance=ExtResource("3_grass_scene")]
 position = Vector2(2944, 8000)
+
+[node name="Grass_21" parent="Grasses" unique_id=1966265321 instance=ExtResource("3_grass_scene")]
+position = Vector2(2304, 6976)
+
+[node name="Grass_22" parent="Grasses" unique_id=1158209789 instance=ExtResource("3_grass_scene")]
+position = Vector2(2432, 6976)
+
+[node name="Grass_23" parent="Grasses" unique_id=673212766 instance=ExtResource("3_grass_scene")]
+position = Vector2(2176, 6976)
+
+[node name="Grass_24" parent="Grasses" unique_id=839113114 instance=ExtResource("3_grass_scene")]
+position = Vector2(2176, 6848)
+
+[node name="Grass_25" parent="Grasses" unique_id=882535403 instance=ExtResource("3_grass_scene")]
+position = Vector2(1792, 7168)
+
+[node name="Grass_26" parent="Grasses" unique_id=1846220320 instance=ExtResource("3_grass_scene")]
+position = Vector2(1920, 7168)
+
+[node name="Grass_27" parent="Grasses" unique_id=859521314 instance=ExtResource("3_grass_scene")]
+position = Vector2(2880, 6848)
+
+[node name="Grass_28" parent="Grasses" unique_id=839825899 instance=ExtResource("3_grass_scene")]
+position = Vector2(3008, 6848)
+
+[node name="Grass_29" parent="Grasses" unique_id=1806663843 instance=ExtResource("3_grass_scene")]
+position = Vector2(1984, 8000)
+
+[node name="Grass_30" parent="Grasses" unique_id=703097563 instance=ExtResource("3_grass_scene")]
+position = Vector2(1472, 8256)
+
+[node name="Grass_31" parent="Grasses" unique_id=697977041 instance=ExtResource("3_grass_scene")]
+position = Vector2(1344, 8256)
 
 [node name="Grass_17" parent="Grasses" unique_id=1881214057 instance=ExtResource("3_grass_scene")]
 position = Vector2(3072, 8000)
