@@ -5,6 +5,7 @@ const FOOD_SEARCH_INTERVAL := 0.5
 
 var creature: Node
 var search_cooldown_remaining := 0.0
+var target_egg: Node = null
 
 
 func _init(owner_creature: Node) -> void:
@@ -16,6 +17,7 @@ func update_egg_eater_behavior() -> void:
 		return
 
 	if creature.hunger > creature.species_data.hunger_search_threshold:
+		clear_target()
 		search_cooldown_remaining = 0.0
 		return
 
@@ -27,26 +29,48 @@ func update_egg_eater_behavior() -> void:
 		0.0
 	)
 
+	if target_egg != null and not is_valid_egg_target(target_egg):
+		clear_target()
+
+	if target_egg != null:
+		update_current_target()
+		return
+
 	if search_cooldown_remaining > 0.0:
 		return
 
 	search_cooldown_remaining = FOOD_SEARCH_INTERVAL
-	var egg := find_nearest_edible_egg()
+	target_egg = find_nearest_edible_egg()
 
-	if egg == null:
+	if target_egg == null:
 		return
 
-	if is_egg_in_eating_range(egg):
-		consume_egg(egg)
+	update_current_target()
+
+
+func update_current_target() -> void:
+	if target_egg == null or not is_valid_egg_target(target_egg):
+		clear_target()
 		return
 
-	if creature.is_moving or creature.predator_path_retry_cooldown_remaining > 0.0:
+	if is_egg_in_eating_range(target_egg):
+		consume_egg(target_egg)
 		return
 
-	build_path_to_egg(egg)
+	if creature.is_moving:
+		return
+
+	if not creature.current_path.is_empty():
+		creature.start_next_path_step_if_needed()
+		return
+
+	if creature.predator_path_retry_cooldown_remaining > 0.0:
+		return
+
+	build_path_to_egg(target_egg)
 	creature.start_next_path_step_if_needed()
 
-	if creature.current_path.is_empty():
+	if creature.current_path.is_empty() and not creature.is_moving:
 		creature.predator_path_retry_cooldown_remaining = creature.predator_path_retry_interval
 
 
@@ -83,7 +107,7 @@ func is_valid_egg_target(candidate: Node) -> bool:
 
 
 func is_egg_in_eating_range(egg: Node) -> bool:
-	if egg == null:
+	if egg == null or not is_instance_valid(egg):
 		return false
 
 	var egg_anchor: Vector2i = egg.get("anchor_tile")
@@ -92,7 +116,7 @@ func is_egg_in_eating_range(egg: Node) -> bool:
 
 
 func build_path_to_egg(egg: Node) -> void:
-	if egg == null:
+	if egg == null or not is_instance_valid(egg):
 		return
 
 	var egg_anchor: Vector2i = egg.get("anchor_tile")
@@ -104,7 +128,7 @@ func build_path_to_egg(egg: Node) -> void:
 		Vector2i(0, egg_footprint.y)
 	]
 	var best_anchor := INVALID_ANCHOR
-	var best_distance := INF
+	var best_distance: float = INF
 
 	for offset in approach_offsets:
 		var candidate_anchor: Vector2i = egg_anchor + offset
@@ -121,7 +145,20 @@ func build_path_to_egg(egg: Node) -> void:
 	if best_anchor == INVALID_ANCHOR:
 		return
 
-	creature.current_path = creature.world_grid.find_path(creature.anchor_tile, best_anchor, creature.footprint_size, creature, creature.max_path_search_tiles)
+	creature.current_path = creature.world_grid.find_path(
+		creature.anchor_tile,
+		best_anchor,
+		creature.footprint_size,
+		creature,
+		creature.max_path_search_tiles
+	)
+
+	# Keep one zero-length final step as an interaction hold. Without it, the
+	# generic WALK logic immediately chooses a random wander step in the same
+	# physics frame in which the egg eater reaches the egg. The next frame then
+	# starts with the creature already walking away and the egg is never eaten.
+	if not creature.current_path.is_empty():
+		creature.current_path.append(best_anchor)
 
 
 func get_egg_footprint(egg: Node) -> Vector2i:
@@ -132,11 +169,26 @@ func get_egg_footprint(egg: Node) -> Vector2i:
 
 
 func consume_egg(egg: Node) -> void:
-	if egg == null or not egg.has_method("consume"):
+	if egg == null or not is_instance_valid(egg) or not egg.has_method("consume"):
+		clear_target()
 		return
 
 	if not egg.consume():
+		clear_target()
 		return
 
-	creature.hunger = clamp(creature.hunger + creature.species_data.hunger_restore_amount, 0.0, creature.species_data.max_hunger)
+	target_egg = null
+	creature.hunger = clamp(
+		creature.hunger + creature.species_data.hunger_restore_amount,
+		0.0,
+		creature.species_data.max_hunger
+	)
 	creature.enter_walk()
+
+
+func clear_target() -> void:
+	target_egg = null
+
+	# Drop queued target steps but let an already-started tile step finish.
+	# Stopping movement mid-step would leave the sprite between grid anchors.
+	creature.current_path.clear()
