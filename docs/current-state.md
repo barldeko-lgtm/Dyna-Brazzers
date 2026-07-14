@@ -13,6 +13,7 @@ Current prototype includes:
 - four-stage renewable grass;
 - eggs, hatching, and population growth;
 - species-specific data resources;
+- species-specific two-stage egg visuals for all current reproducing species;
 - temporary predator and simple duel-combat code;
 - creature death with a short corpse/death-pose visual before removal;
 - static flattened contour shadows beneath creatures;
@@ -32,7 +33,7 @@ Current prototype includes:
 - return to Main Menu with full active-session reset;
 - Exit buttons in both the startup screen and the in-game menu.
 
-Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` has started with triceratops, tyrannosaurus, raptor, and retained predator/combat prototype code.
+Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` has started with triceratops, tyrannosaurus, raptor, pterodactyl, and retained predator/combat prototype code.
 
 Automatic predator spawning is currently disabled.
 
@@ -160,6 +161,26 @@ Rules:
 
 Dynamically created grass is positioned before it is added to the scene tree. This prevents `_ready()` from registering it on an incorrect temporary tile.
 
+## Eggs
+
+Eggs use the shared lifecycle from `scenes/resources/egg.tscn` and `scripts/resources/egg.gd`.
+
+Current reproducing species use their own two-stage egg textures:
+
+- stegosaurus;
+- triceratops;
+- tyrannosaurus;
+- raptor;
+- pterodactyl;
+- egg eater.
+
+The texture references live in each species `.tres` through:
+
+- `egg_stage_1_texture`;
+- `egg_stage_2_texture`.
+
+The shared egg scene remains the fallback for a future species that does not yet provide custom egg textures.
+
 ## Grazing target scoring
 
 Herbivores evaluate the total available food under their full footprint and compare it with travel distance.
@@ -218,6 +239,8 @@ The stegosaurus currently has a dedicated death-pose asset. Death visuals and co
 - Grass spreads only onto normal walkable terrain.
 - Initial grass nodes are starting seeds, not a growth whitelist.
 - New grass must be positioned before `add_child()`.
+- Species-specific egg textures belong in the species `.tres`, not in duplicated egg scenes.
+- When custom egg textures are absent, preserve the shared egg scene defaults rather than assigning `null`.
 - Dead creatures must unregister occupancy before their corpse visual disappears.
 - Do not put counters, speed controls, or debug status back into `creature_stats_ui.gd`.
 - Do not duplicate the in-game menu outside the existing `MENU` button.

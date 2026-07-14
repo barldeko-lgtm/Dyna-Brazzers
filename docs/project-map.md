@@ -15,7 +15,7 @@
 - `scenes/main/main.tscn` — camera, HUD, world instance, debug overlay, and UI wiring.
 - `scenes/world/world.tscn` — only active gameplay world: 85x85 terrain TileMap, initial grass, two stegosauruses, four triceratops, one tyrannosaurus, one raptor, one pterodactyl, one egg eater, eggs container, camera marker, and world grid.
 - `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures.
-- `scenes/resources/egg.tscn` — egg resource scene.
+- `scenes/resources/egg.tscn` — shared two-stage egg scene used by all reproducing species.
 - `scenes/creatures/creature.tscn` — shared base creature scene.
 - `scenes/debug/grid_debug_overlay.tscn` — F3 grid/debug overlay.
 - `scenes/effects/lightning_strike_effect.tscn` — lightning effect.
@@ -35,7 +35,7 @@
 ### Creatures and resources
 
 - `scripts/creatures/creature.gd` — creature runtime coordinator, movement state, death cleanup, and world-space shadow/highlight overlays.
-- `scripts/creatures/creature_species_data.gd` — shared species resource schema.
+- `scripts/creatures/creature_species_data.gd` — shared species resource schema, including per-species egg texture fields.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore food search and target ranking.
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — temporary predator targeting and combat-entry logic.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — stage-2 egg targeting and consumption logic.
@@ -43,7 +43,7 @@
 - `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, animations, and death pose.
 - `scripts/combat/duel.gd` — temporary one-on-one combat loop.
 - `scripts/resources/grass.gd` — grass growth, consumption, spread, and nature-power reactions.
-- `scripts/resources/egg.gd` — egg stages, blocker handling, and hatching.
+- `scripts/resources/egg.gd` — egg stages, species texture application, blocker handling, and hatching.
 
 ### UI, effects, saving, and debug
 
@@ -95,20 +95,20 @@ Terrain source ids in `world.tscn`:
 ## Creature and species assets
 
 - `data/species/stegosaurus.tres` — stegosaurus stats, visuals, animations, egg data, and death settings.
-- `data/species/triceratops.tres` — triceratops stats and directional visuals.
+- `data/species/triceratops.tres` — triceratops stats, directional visuals, and custom egg textures.
 - `data/species/predator.tres` — temporary predator species resource.
-- `data/species/tyrannosaurus.tres` — tyrannosaurus species resource.
-- `data/species/raptor.tres` — raptor species resource.
-- `data/species/pterodactyl.tres` — pterodactyl species resource.
-- `data/species/egg_eater.tres` — egg-eater stats and directional visuals.
-- `assets/sprites/creatures/stegosaurus/` — stegosaurus sprites and animation resources.
-- `assets/sprites/creatures/triceratops/` — triceratops directional sprites.
-- `assets/sprites/creatures/tyrannosaurus/` — tyrannosaurus directional and idle sprites.
-- `assets/sprites/creatures/raptor/` — raptor directional sprites; the right-facing sprite is also used as temporary idle.
-- `assets/sprites/creatures/pterodactyl/` — pterodactyl directional sprites; the right-facing sprite is also used as temporary idle.
-- `assets/sprites/creatures/egg_eater/` — egg-eater directional sprites.
+- `data/species/tyrannosaurus.tres` — tyrannosaurus stats, visuals, and custom egg textures.
+- `data/species/raptor.tres` — raptor stats, visuals, and custom egg textures.
+- `data/species/pterodactyl.tres` — pterodactyl stats, visuals, and custom egg textures.
+- `data/species/egg_eater.tres` — egg-eater stats, visuals, and custom egg textures.
+- `assets/sprites/creatures/stegosaurus/` — stegosaurus sprites, animations, and egg sprites.
+- `assets/sprites/creatures/triceratops/` — triceratops directional, animation, and egg sprites.
+- `assets/sprites/creatures/tyrannosaurus/` — tyrannosaurus directional, idle, and egg sprites.
+- `assets/sprites/creatures/raptor/` — raptor directional, idle, and egg sprites.
+- `assets/sprites/creatures/pterodactyl/` — pterodactyl directional and egg sprites.
+- `assets/sprites/creatures/egg_eater/` — egg-eater directional and egg sprites.
 
-The third starting creature in `world.tscn` references `triceratops.tres` directly; `Tyrannosaurus`, `Raptor`, `Pterodactyl`, and `EggEater` reference their species resources. A separate `world_triceratops.tscn` is not part of the active structure.
+The current species resources assign their stage-1 and stage-2 egg textures directly. `egg.tscn` remains shared and supplies defaults for future incomplete species.
 
 ## Ownership summary
 
@@ -116,7 +116,7 @@ The third starting creature in `world.tscn` references `triceratops.tres` direct
 - Empty-map bootstrap and terrain edge selection belong in `scripts/world/start_map_layout.gd`.
 - Terrain, movement permissions, occupancy, blockers, pathfinding, and resource lookup belong in world-grid scripts.
 - Camera movement and visual boundary clamping belong in `scripts/camera/camera_controller.gd`.
-- Species stats and species-specific visual references belong in `data/species/*.tres`.
+- Species stats, species visuals, and species-specific egg texture references belong in `data/species/*.tres`.
 - Creature runtime coordination belongs in `scripts/creatures/creature.gd`.
 - Specialized creature behaviour belongs in `scripts/creatures/behaviors/`.
 - Grass and egg lifecycles belong in their own resource scripts.
@@ -132,9 +132,10 @@ The third starting creature in `world.tscn` references `triceratops.tres` direct
 Do not use:
 
 - `scenes/world/world_triceratops.tscn`;
+- species-specific duplicate egg scenes;
 - `scenes/resources/tree.tscn`;
 - `scripts/resources/tree.gd`;
 - `assets/sprites/terrain/trees/`;
 - `assets/sprites/terrain/tree_tiles_large.png`.
 
-Trees are TileMap terrain, and species should not require separate copies of the world scene.
+Trees are TileMap terrain, and species should not require separate copies of the world or egg scenes.

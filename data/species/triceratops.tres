@@ -7,8 +7,8 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/triceratops/triceratops_up_right.png" id="5_up_right"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/triceratops/triceratops_down_right.png" id="6_down_right"]
 [ext_resource type="PackedScene" path="res://scenes/resources/egg.tscn" id="7_egg_scene"]
-[ext_resource type="Texture2D" path="res://assets/sprites/creatures/eggs/egg_stage_1.png" id="8_egg_stage_1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/creatures/eggs/egg_stage_2.png" id="9_egg_stage_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/triceratops/triceratops_egg_stage_1.png" id="8_egg_stage_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/triceratops/triceratops_egg_stage_2.png" id="9_egg_stage_2"]
 [ext_resource type="SpriteFrames" path="res://data/animations/triceratops_walk_right_frames.tres" id="10_walk_right_frames"]
 [ext_resource type="SpriteFrames" path="res://data/animations/triceratops_walk_down_right_frames.tres" id="11_walk_down_right_frames"]
 

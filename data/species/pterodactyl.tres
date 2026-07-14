@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=9 format=3]
+[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/creatures/creature_species_data.gd" id="1_species_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/pterodactyl/pterodactyl_down.png" id="2_down"]
@@ -7,6 +7,8 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/pterodactyl/pterodactyl_up_right.png" id="5_up_right"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/pterodactyl/pterodactyl_down_right.png" id="6_down_right"]
 [ext_resource type="PackedScene" path="res://scenes/resources/egg.tscn" id="7_egg_scene"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/pterodactyl/pterodactyl_egg_stage_1.png" id="8_egg_stage_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/pterodactyl/pterodactyl_egg_stage_2.png" id="9_egg_stage_2"]
 
 [resource]
 script = ExtResource("1_species_script")
@@ -39,6 +41,8 @@ hunger_search_threshold = 130.0
 hunger_restore_amount = 120.0
 eating_duration = 3.0
 egg_scene = ExtResource("7_egg_scene")
+egg_stage_1_texture = ExtResource("8_egg_stage_1")
+egg_stage_2_texture = ExtResource("9_egg_stage_2")
 reproduction_min_health = 80.0
 reproduction_min_hunger = 100.0
 reproduction_min_age = 4.0

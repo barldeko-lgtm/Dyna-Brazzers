@@ -217,6 +217,36 @@ Rules:
 - initial targeting and periodic retargeting must use the same ranking;
 - do not allow consumption before the creature reaches a valid eating anchor.
 
+## Egg lifecycle and species visuals
+
+Main files:
+
+- `res://scenes/resources/egg.tscn`;
+- `res://scripts/resources/egg.gd`;
+- `res://scripts/creatures/creature_species_data.gd`;
+- `res://scripts/creatures/behaviors/creature_reproduction_logic.gd`;
+- species resources under `res://data/species/`;
+- species egg PNGs under `res://assets/sprites/creatures/<species>/`.
+
+Current custom egg sets exist for:
+
+- stegosaurus;
+- triceratops;
+- tyrannosaurus;
+- raptor;
+- pterodactyl;
+- egg eater.
+
+Rules:
+
+- use the shared egg scene and lifecycle for all species;
+- store stage-1 and stage-2 texture references in the species `.tres`;
+- do not duplicate `egg.tscn` per species;
+- when a species provides custom textures, assign both stages;
+- when custom textures are absent, preserve the defaults from `egg.tscn` rather than assigning `null`;
+- stage changes, blocking, hatching, saving, and egg-eater targeting must remain independent of the selected visuals;
+- renaming or moving species egg assets requires updating their `.tres` references.
+
 ## Rain cast visual
 
 Main files:
@@ -265,7 +295,8 @@ Rules:
 - egg eaters are a separate diet category, not predators;
 - they reuse predator-style pathing but never start duels;
 - only `STAGE_2` eggs are valid targets;
-- they consume an adjacent egg and restore hunger.
+- they consume an adjacent egg and restore hunger;
+- changing egg visuals must not change egg stage identity or targeting rules.
 
 ## Creature ground shadows
 
@@ -303,5 +334,5 @@ Species dependencies:
 - the shared creature scene must remain species-agnostic;
 - new species, including the pterodactyl, are added through `.tres` data and visual assets;
 - do not create a separate copy of the world scene solely to assign a species;
-- saves restore species through their resource paths.
-- tyrannosaurus uses the shared egg lifecycle; when a species has no custom egg textures, preserve `egg.tscn`'s default textures rather than assigning `null`.
+- saves restore species through their resource paths;
+- species-specific egg visuals remain data references and do not require separate creature or egg scenes.
