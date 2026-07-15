@@ -21,6 +21,7 @@ Current prototype includes:
 - player nature powers;
 - a local four-frame rain VFX;
 - right-side HUD with live creature and egg counters;
+- a static right-side terrain minimap showing ground, water, mountains, and trees;
 - separated player UI, creature info UI, debug status UI, and save system;
 - stone corner hover/selection frame over creatures;
 - compact always-visible FPS/Time/Mem line;
@@ -34,7 +35,7 @@ Current prototype includes:
 - return to Main Menu with full active-session reset;
 - Exit buttons in both the startup screen and the in-game menu.
 
-Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, retained predator/combat prototype code, and the fixed player-base foundation for future egg creation.
+Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, retained predator/combat prototype code, and the fixed player-base foundation for future egg creation. Roadmap block `0.7 — Player expansion and atmosphere` has started with the terrain-only minimap pass.
 
 Automatic predator spawning is currently disabled.
 
@@ -95,13 +96,25 @@ Current UI ownership:
 
 - `scripts/ui/start_screen.gd` owns startup-screen flow and startup loading;
 - `scripts/ui/creature_stats_ui.gd` owns creature information, hover/selection, deselection, and the lightning click bridge;
-- `scripts/ui/player_ui.gd` owns creature/egg counters and time-speed controls;
+- `scripts/ui/player_ui.gd` owns the terrain minimap, creature/egg counters, and time-speed controls;
 - `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
 - `scripts/ui/player_nature_ui.gd` owns player energy and nature powers;
 - `scripts/save/save_system.gd` owns persistence and the save/load content shown through the existing `MENU` button;
 - `scripts/debug/grid_debug_overlay.gd` owns the F3 grid/debug overlay.
 
 `scenes/main/main.tscn` wires these scripts directly to their normal UI nodes.
+
+## Terrain minimap
+
+Current minimap rules:
+
+- `scripts/ui/player_ui.gd` builds the minimap inside the existing `MiniMapPlaceholder` panel;
+- the minimap reads the current used bounds and terrain source ids from the active `Ground` TileMapLayer;
+- the entire authored map is compressed into the existing 280x280 right-side interface area;
+- ground, water, mountains, and trees use separate simple colours;
+- the minimap texture is generated at runtime and does not require a separate manually maintained map image;
+- the minimap is currently static because terrain does not change during a session;
+- camera position, creatures, eggs, the player base, and world events are not shown yet.
 
 ## Terrain
 
@@ -249,6 +262,7 @@ The stegosaurus currently has a dedicated death-pose asset. Death visuals and co
 - Water variants must remain in source id `1`.
 - Mountain variants must remain in source id `2`.
 - Tree terrain must remain in source id `3`.
+- The terrain minimap reads those source ids and must never modify TileMap data.
 - Trees use normal 128x128 tiles assembled into 2x2 visuals.
 - The player base must stay a static 2x2 blocker and must not be serialized as a dynamic creature/resource entity.
 - Grass spreads only onto normal walkable terrain and must not spread onto the player-base footprint.

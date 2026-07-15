@@ -12,7 +12,7 @@
 ## Key scenes
 
 - `scenes/ui/start_screen.tscn` — centered startup screen with New Game, three-slot Load, placeholder Menu, and Exit.
-- `scenes/main/main.tscn` — camera, HUD, world instance, debug overlay, and UI wiring.
+- `scenes/main/main.tscn` — camera, right-side HUD with terrain minimap, world instance, debug overlay, and UI wiring.
 - `scenes/world/world.tscn` — only active gameplay world: 85x85 terrain TileMap, initial grass, two stegosauruses, four triceratops, one tyrannosaurus, one raptor, one pterodactyl, one egg eater, eggs container, camera marker, and world grid.
 - `scenes/world/player_base.tscn` — fixed 2x2 player nature base, spawned at the authored `CameraStart` marker and reserved for future egg creation.
 - `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures.
@@ -51,7 +51,7 @@
 
 - `scripts/ui/start_screen.gd` — startup menu and slot loading.
 - `scripts/ui/creature_stats_ui.gd` — creature information, hover, selection, and lightning click bridge.
-- `scripts/ui/player_ui.gd` — creature/egg counters and time-speed controls.
+- `scripts/ui/player_ui.gd` — terrain minimap generation, creature/egg counters, and time-speed controls.
 - `scripts/ui/player_nature_ui.gd` — player energy and nature powers.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug.
 - `scripts/save/save_system.gd` — three-slot JSON persistence, in-game menu integration, and runtime reconstruction.
@@ -88,6 +88,8 @@ Terrain source ids in `world.tscn`:
 - `1` — water;
 - `2` — mountain;
 - `3` — tree.
+
+The terrain minimap reads these source ids directly from the active `Ground` TileMapLayer and generates its display texture at runtime.
 
 ## Effect assets
 
@@ -130,7 +132,7 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Startup flow belongs in `start_screen.gd` and `start_screen.tscn`.
 - Save collection, reconstruction, slot files, and in-game save menu belong in `save_system.gd`.
 - Creature observation and selection belong in `creature_stats_ui.gd`.
-- Counters and speed controls belong in `player_ui.gd`.
+- Terrain minimap generation, counters, and speed controls belong in `player_ui.gd`.
 - Nature energy and powers belong in `player_nature_ui.gd`.
 - Text and grid diagnostics belong in their dedicated debug scripts.
 

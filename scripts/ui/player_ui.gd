@@ -1,6 +1,7 @@
 extends PanelContainer
 
 # Player side-panel UI:
+# - terrain minimap
 # - entity counters
 # - time speed controls
 #
@@ -9,7 +10,21 @@ extends PanelContainer
 
 const TIME_SPEED_VALUES := [1.0, 2.0, 3.0, 5.0]
 const ENTITY_COUNTS_REFRESH_INTERVAL := 0.5
+const MINIMAP_WORLD_RETRY_FRAMES := 12
 
+const TERRAIN_GROUND := 0
+const TERRAIN_WATER := 1
+const TERRAIN_MOUNTAIN := 2
+const TERRAIN_TREE := 3
+
+const MINIMAP_EMPTY_COLOR := Color(0x04070cff)
+const MINIMAP_GROUND_COLOR := Color(0x577e3dff)
+const MINIMAP_WATER_COLOR := Color(0x306692ff)
+const MINIMAP_MOUNTAIN_COLOR := Color(0x74695bff)
+const MINIMAP_TREE_COLOR := Color(0x31572fff)
+const MINIMAP_BORDER_COLOR := Color(0x2e3b52ff)
+
+@onready var minimap_placeholder: PanelContainer = get_node_or_null("MarginContainer/VBoxContainer/MiniMapPlaceholder") as PanelContainer
 @onready var player_herbivore_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerHerbivoreCountLabel")
 @onready var player_egg_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerEggCountLabel")
 @onready var player_total_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerTotalCountLabel")
@@ -22,6 +37,8 @@ const ENTITY_COUNTS_REFRESH_INTERVAL := 0.5
 ]
 
 var entity_counts_refresh_timer := 0.0
+var terrain_minimap_texture: ImageTexture = null
+var terrain_minimap_style_box: StyleBoxTexture = null
 
 
 func _ready() -> void:
@@ -29,6 +46,7 @@ func _ready() -> void:
 	setup_time_speed_controls()
 	update_entity_counts_text()
 	entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
+	call_deferred("initialize_terrain_minimap")
 
 
 func _process(delta: float) -> void:
@@ -37,6 +55,86 @@ func _process(delta: float) -> void:
 	if entity_counts_refresh_timer <= 0.0:
 		entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
 		update_entity_counts_text()
+
+
+func initialize_terrain_minimap() -> void:
+	for _attempt in range(MINIMAP_WORLD_RETRY_FRAMES):
+		if rebuild_terrain_minimap():
+			return
+
+		await get_tree().process_frame
+
+	push_warning("Terrain minimap could not find the active Ground TileMapLayer.")
+
+
+func rebuild_terrain_minimap() -> bool:
+	if minimap_placeholder == null:
+		return false
+
+	var ground := find_ground_tile_map()
+
+	if ground == null:
+		return false
+
+	var used_rect := ground.get_used_rect()
+	var map_min := used_rect.position
+	var map_width := used_rect.size.x
+	var map_height := used_rect.size.y
+
+	if map_width <= 0 or map_height <= 0:
+		return false
+
+	var minimap_image := Image.create_empty(map_width + 2, map_height + 2, false, Image.FORMAT_RGBA8)
+	minimap_image.fill(MINIMAP_BORDER_COLOR)
+
+	for image_y in range(map_height):
+		for image_x in range(map_width):
+			var map_tile := map_min + Vector2i(image_x, image_y)
+			var source_id := ground.get_cell_source_id(map_tile)
+			minimap_image.set_pixel(image_x + 1, image_y + 1, get_minimap_terrain_color(source_id))
+
+	terrain_minimap_texture = ImageTexture.create_from_image(minimap_image)
+
+	if terrain_minimap_texture == null:
+		return false
+
+	terrain_minimap_style_box = StyleBoxTexture.new()
+	terrain_minimap_style_box.texture = terrain_minimap_texture
+	minimap_placeholder.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	minimap_placeholder.add_theme_stylebox_override("panel", terrain_minimap_style_box)
+	minimap_placeholder.tooltip_text = "Миникарта мира"
+	return true
+
+
+func find_ground_tile_map() -> TileMapLayer:
+	var world_grid := get_tree().get_first_node_in_group("world_grid")
+
+	if world_grid != null:
+		var grouped_ground := world_grid.get_node_or_null("Ground") as TileMapLayer
+
+		if grouped_ground != null:
+			return grouped_ground
+
+	var current_scene := get_tree().current_scene
+
+	if current_scene == null:
+		return null
+
+	return current_scene.get_node_or_null("World/Ground") as TileMapLayer
+
+
+func get_minimap_terrain_color(source_id: int) -> Color:
+	match source_id:
+		TERRAIN_GROUND:
+			return MINIMAP_GROUND_COLOR
+		TERRAIN_WATER:
+			return MINIMAP_WATER_COLOR
+		TERRAIN_MOUNTAIN:
+			return MINIMAP_MOUNTAIN_COLOR
+		TERRAIN_TREE:
+			return MINIMAP_TREE_COLOR
+		_:
+			return MINIMAP_EMPTY_COLOR
 
 
 func update_entity_counts_text() -> void:
