@@ -12,6 +12,7 @@ const TIME_SPEED_VALUES := [1.0, 2.0, 3.0, 5.0]
 const ENTITY_COUNTS_REFRESH_INTERVAL := 0.5
 const MINIMAP_WORLD_RETRY_FRAMES := 12
 const MINIMAP_CAMERA_MIN_PIXEL_SIZE := 2
+const MINIMAP_ENTITY_REFRESH_INTERVAL := 0.15
 
 const TERRAIN_GROUND := 0
 const TERRAIN_WATER := 1
@@ -25,6 +26,9 @@ const MINIMAP_MOUNTAIN_COLOR := Color(0x41464eff)
 const MINIMAP_TREE_COLOR := Color(0x31572fff)
 const MINIMAP_BORDER_COLOR := Color(0x2e3b52ff)
 const MINIMAP_CAMERA_COLOR := Color(0xfff1a3ff)
+const MINIMAP_HERBIVORE_COLOR := Color(0x9be26aff)
+const MINIMAP_PREDATOR_COLOR := Color(0xe25757ff)
+const MINIMAP_EGG_EATER_COLOR := Color(0x1f3d74ff)
 
 @onready var minimap_placeholder: PanelContainer = get_node_or_null("MarginContainer/VBoxContainer/MiniMapPlaceholder") as PanelContainer
 @onready var player_herbivore_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerHerbivoreCountLabel")
@@ -48,6 +52,7 @@ var minimap_world_bounds := Rect2()
 var last_minimap_camera_position := Vector2.ZERO
 var last_minimap_camera_zoom := Vector2.ZERO
 var has_minimap_camera_state := false
+var minimap_entity_refresh_timer := 0.0
 
 
 func _ready() -> void:
@@ -55,6 +60,7 @@ func _ready() -> void:
 	setup_time_speed_controls()
 	update_entity_counts_text()
 	entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
+	minimap_entity_refresh_timer = 0.0
 	call_deferred("initialize_terrain_minimap")
 
 
@@ -65,7 +71,14 @@ func _process(delta: float) -> void:
 		entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
 		update_entity_counts_text()
 
-	update_minimap_camera_view()
+	var force_minimap_update := false
+	minimap_entity_refresh_timer -= delta
+
+	if minimap_entity_refresh_timer <= 0.0:
+		minimap_entity_refresh_timer = MINIMAP_ENTITY_REFRESH_INTERVAL
+		force_minimap_update = true
+
+	update_minimap_camera_view(force_minimap_update)
 
 
 func initialize_terrain_minimap() -> void:
@@ -128,6 +141,7 @@ func rebuild_terrain_minimap() -> bool:
 		minimap_placeholder.gui_input.connect(minimap_input_callable)
 
 	has_minimap_camera_state = false
+	minimap_entity_refresh_timer = 0.0
 	update_minimap_camera_view(true)
 	return true
 
@@ -207,6 +221,7 @@ func update_minimap_camera_view(force_update := false) -> void:
 	if minimap_image == null:
 		return
 
+	draw_creature_markers_on_minimap(minimap_image)
 	draw_camera_rect_on_minimap(minimap_image, get_camera_world_rect(camera))
 	terrain_minimap_texture.update(minimap_image)
 
@@ -223,6 +238,69 @@ func find_active_camera() -> Camera2D:
 		return null
 
 	return current_scene.get_node_or_null("Camera2D") as Camera2D
+
+
+func draw_creature_markers_on_minimap(minimap_image: Image) -> void:
+	for creature in get_tree().get_nodes_in_group("creatures"):
+		if not is_instance_valid(creature):
+			continue
+
+		if creature.is_queued_for_deletion() or not (creature is Node2D):
+			continue
+
+		var creature_node := creature as Node2D
+		var minimap_pixel := world_to_minimap_pixel(creature_node.global_position)
+
+		if minimap_pixel.x < 0 or minimap_pixel.y < 0:
+			continue
+
+		draw_triangle_marker_on_minimap(minimap_image, minimap_pixel, get_minimap_creature_color(creature))
+
+
+func get_minimap_creature_color(creature: Node) -> Color:
+	var species_data: Resource = creature.get("species_data")
+
+	if species_data != null:
+		var resource_path := species_data.resource_path.to_lower()
+
+		if resource_path.contains("egg_eater"):
+			return MINIMAP_EGG_EATER_COLOR
+
+		if bool(species_data.get("is_predator")):
+			return MINIMAP_PREDATOR_COLOR
+
+	return MINIMAP_HERBIVORE_COLOR
+
+
+func world_to_minimap_pixel(world_position: Vector2) -> Vector2i:
+	if minimap_map_size.x <= 0 or minimap_map_size.y <= 0:
+		return Vector2i(-1, -1)
+
+	if minimap_world_bounds.size.x <= 0.0 or minimap_world_bounds.size.y <= 0.0:
+		return Vector2i(-1, -1)
+
+	var normalized_x := clampf((world_position.x - minimap_world_bounds.position.x) / minimap_world_bounds.size.x, 0.0, 1.0)
+	var normalized_y := clampf((world_position.y - minimap_world_bounds.position.y) / minimap_world_bounds.size.y, 0.0, 1.0)
+	var pixel_x := 1 + clampi(int(round(normalized_x * float(minimap_map_size.x - 1))), 0, minimap_map_size.x - 1)
+	var pixel_y := 1 + clampi(int(round(normalized_y * float(minimap_map_size.y - 1))), 0, minimap_map_size.y - 1)
+	return Vector2i(pixel_x, pixel_y)
+
+
+func draw_triangle_marker_on_minimap(minimap_image: Image, center_pixel: Vector2i, marker_color: Color) -> void:
+	set_minimap_map_pixel(minimap_image, center_pixel.x, center_pixel.y - 1, marker_color)
+	set_minimap_map_pixel(minimap_image, center_pixel.x - 1, center_pixel.y, marker_color)
+	set_minimap_map_pixel(minimap_image, center_pixel.x, center_pixel.y, marker_color)
+	set_minimap_map_pixel(minimap_image, center_pixel.x + 1, center_pixel.y, marker_color)
+
+
+func set_minimap_map_pixel(minimap_image: Image, pixel_x: int, pixel_y: int, pixel_color: Color) -> void:
+	if pixel_x < 1 or pixel_x > minimap_map_size.x:
+		return
+
+	if pixel_y < 1 or pixel_y > minimap_map_size.y:
+		return
+
+	minimap_image.set_pixel(pixel_x, pixel_y, pixel_color)
 
 
 func get_camera_world_rect(camera: Camera2D) -> Rect2:
@@ -316,6 +394,7 @@ func move_camera_to_minimap_position(local_position: Vector2) -> void:
 
 	camera.global_position = minimap_world_bounds.position + normalized_position * minimap_world_bounds.size
 	has_minimap_camera_state = false
+	minimap_entity_refresh_timer = 0.0
 	update_minimap_camera_view(true)
 
 

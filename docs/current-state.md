@@ -21,7 +21,7 @@ Current prototype includes:
 - player nature powers;
 - a local four-frame rain VFX;
 - right-side HUD with live creature and egg counters;
-- an interactive right-side terrain minimap showing ground, water, mountains, trees, and the current camera view;
+- an interactive right-side terrain minimap showing ground, water, mountains, trees, creature markers, and the current camera view;
 - separated player UI, creature info UI, debug status UI, and save system;
 - stone corner hover/selection frame over creatures;
 - compact always-visible FPS/Time/Mem line;
@@ -96,7 +96,7 @@ Current UI ownership:
 
 - `scripts/ui/start_screen.gd` owns startup-screen flow and startup loading;
 - `scripts/ui/creature_stats_ui.gd` owns creature information, hover/selection, deselection, and the lightning click bridge;
-- `scripts/ui/player_ui.gd` owns the interactive terrain minimap, camera-frame display and click navigation, creature/egg counters, and time-speed controls;
+- `scripts/ui/player_ui.gd` owns the interactive terrain minimap, creature markers, camera-frame display and click navigation, creature/egg counters, and time-speed controls;
 - `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
 - `scripts/ui/player_nature_ui.gd` owns player energy and nature powers;
 - `scripts/save/save_system.gd` owns persistence and the save/load content shown through the existing `MENU` button;
@@ -113,10 +113,13 @@ Current minimap rules:
 - the entire authored map is compressed into the existing 280x280 right-side interface area;
 - ground is light brown, water is blue, mountains are dark grey, and trees are dark green;
 - the minimap texture is generated at runtime and does not require a separate manually maintained map image;
+- herbivores are shown as light-green triangle markers;
+- predator creatures are shown as red triangle markers;
+- the egg eater is shown as a dark-blue triangle marker;
 - a bright rectangular frame shows the current camera viewport and changes size with camera zoom;
 - left-clicking the minimap moves the observer camera to the selected world position;
-- terrain stays static during a session, while the camera frame updates only when camera position or zoom changes;
-- creatures, eggs, the player base, and world events are not shown yet.
+- terrain stays static during a session, while the camera frame updates on movement/zoom and creature markers refresh during play;
+- eggs, the player base, and world events are not shown yet.
 
 ## Terrain
 
