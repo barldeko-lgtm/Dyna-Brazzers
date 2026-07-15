@@ -1,7 +1,7 @@
 extends PanelContainer
 
 # Player side-panel UI:
-# - terrain minimap
+# - interactive terrain minimap
 # - entity counters
 # - time speed controls
 #
@@ -11,6 +11,7 @@ extends PanelContainer
 const TIME_SPEED_VALUES := [1.0, 2.0, 3.0, 5.0]
 const ENTITY_COUNTS_REFRESH_INTERVAL := 0.5
 const MINIMAP_WORLD_RETRY_FRAMES := 12
+const MINIMAP_CAMERA_MIN_PIXEL_SIZE := 2
 
 const TERRAIN_GROUND := 0
 const TERRAIN_WATER := 1
@@ -18,11 +19,12 @@ const TERRAIN_MOUNTAIN := 2
 const TERRAIN_TREE := 3
 
 const MINIMAP_EMPTY_COLOR := Color(0x04070cff)
-const MINIMAP_GROUND_COLOR := Color(0x577e3dff)
+const MINIMAP_GROUND_COLOR := Color(0xc7a978ff)
 const MINIMAP_WATER_COLOR := Color(0x306692ff)
-const MINIMAP_MOUNTAIN_COLOR := Color(0x74695bff)
+const MINIMAP_MOUNTAIN_COLOR := Color(0x41464eff)
 const MINIMAP_TREE_COLOR := Color(0x31572fff)
 const MINIMAP_BORDER_COLOR := Color(0x2e3b52ff)
+const MINIMAP_CAMERA_COLOR := Color(0xfff1a3ff)
 
 @onready var minimap_placeholder: PanelContainer = get_node_or_null("MarginContainer/VBoxContainer/MiniMapPlaceholder") as PanelContainer
 @onready var player_herbivore_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerHerbivoreCountLabel")
@@ -39,6 +41,13 @@ const MINIMAP_BORDER_COLOR := Color(0x2e3b52ff)
 var entity_counts_refresh_timer := 0.0
 var terrain_minimap_texture: ImageTexture = null
 var terrain_minimap_style_box: StyleBoxTexture = null
+var terrain_minimap_base_image: Image = null
+var minimap_map_min := Vector2i.ZERO
+var minimap_map_size := Vector2i.ZERO
+var minimap_world_bounds := Rect2()
+var last_minimap_camera_position := Vector2.ZERO
+var last_minimap_camera_zoom := Vector2.ZERO
+var has_minimap_camera_state := false
 
 
 func _ready() -> void:
@@ -55,6 +64,8 @@ func _process(delta: float) -> void:
 	if entity_counts_refresh_timer <= 0.0:
 		entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
 		update_entity_counts_text()
+
+	update_minimap_camera_view()
 
 
 func initialize_terrain_minimap() -> void:
@@ -77,22 +88,27 @@ func rebuild_terrain_minimap() -> bool:
 		return false
 
 	var used_rect := ground.get_used_rect()
-	var map_min := used_rect.position
-	var map_width := used_rect.size.x
-	var map_height := used_rect.size.y
+	minimap_map_min = used_rect.position
+	minimap_map_size = used_rect.size
 
-	if map_width <= 0 or map_height <= 0:
+	if minimap_map_size.x <= 0 or minimap_map_size.y <= 0:
 		return false
 
-	var minimap_image := Image.create_empty(map_width + 2, map_height + 2, false, Image.FORMAT_RGBA8)
+	minimap_world_bounds = get_minimap_world_bounds(ground)
+
+	if minimap_world_bounds.size.x <= 0.0 or minimap_world_bounds.size.y <= 0.0:
+		return false
+
+	var minimap_image := Image.create_empty(minimap_map_size.x + 2, minimap_map_size.y + 2, false, Image.FORMAT_RGBA8)
 	minimap_image.fill(MINIMAP_BORDER_COLOR)
 
-	for image_y in range(map_height):
-		for image_x in range(map_width):
-			var map_tile := map_min + Vector2i(image_x, image_y)
+	for image_y in range(minimap_map_size.y):
+		for image_x in range(minimap_map_size.x):
+			var map_tile := minimap_map_min + Vector2i(image_x, image_y)
 			var source_id := ground.get_cell_source_id(map_tile)
 			minimap_image.set_pixel(image_x + 1, image_y + 1, get_minimap_terrain_color(source_id))
 
+	terrain_minimap_base_image = minimap_image
 	terrain_minimap_texture = ImageTexture.create_from_image(minimap_image)
 
 	if terrain_minimap_texture == null:
@@ -102,7 +118,17 @@ func rebuild_terrain_minimap() -> bool:
 	terrain_minimap_style_box.texture = terrain_minimap_texture
 	minimap_placeholder.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	minimap_placeholder.add_theme_stylebox_override("panel", terrain_minimap_style_box)
-	minimap_placeholder.tooltip_text = "Миникарта мира"
+	minimap_placeholder.mouse_filter = Control.MOUSE_FILTER_STOP
+	minimap_placeholder.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	minimap_placeholder.tooltip_text = "Миникарта мира — ЛКМ: переместить камеру"
+
+	var minimap_input_callable := Callable(self, "_on_minimap_gui_input")
+
+	if not minimap_placeholder.gui_input.is_connected(minimap_input_callable):
+		minimap_placeholder.gui_input.connect(minimap_input_callable)
+
+	has_minimap_camera_state = false
+	update_minimap_camera_view(true)
 	return true
 
 
@@ -123,6 +149,28 @@ func find_ground_tile_map() -> TileMapLayer:
 	return current_scene.get_node_or_null("World/Ground") as TileMapLayer
 
 
+func get_minimap_world_bounds(ground: TileMapLayer) -> Rect2:
+	var world_grid := get_tree().get_first_node_in_group("world_grid")
+
+	if world_grid != null and world_grid.has_method("get_world_bounds_rect"):
+		var world_bounds: Rect2 = world_grid.get_world_bounds_rect()
+
+		if world_bounds.size.x > 0.0 and world_bounds.size.y > 0.0:
+			return world_bounds
+
+	var tile_size := Vector2(128.0, 128.0)
+
+	if ground.tile_set != null:
+		tile_size = Vector2(ground.tile_set.tile_size)
+
+	var max_tile := minimap_map_min + minimap_map_size - Vector2i.ONE
+	var min_center := ground.to_global(ground.map_to_local(minimap_map_min))
+	var max_center := ground.to_global(ground.map_to_local(max_tile))
+	var min_edge := min_center - tile_size * 0.5
+	var max_edge := max_center + tile_size * 0.5
+	return Rect2(min_edge, max_edge - min_edge)
+
+
 func get_minimap_terrain_color(source_id: int) -> Color:
 	match source_id:
 		TERRAIN_GROUND:
@@ -135,6 +183,140 @@ func get_minimap_terrain_color(source_id: int) -> Color:
 			return MINIMAP_TREE_COLOR
 		_:
 			return MINIMAP_EMPTY_COLOR
+
+
+func update_minimap_camera_view(force_update := false) -> void:
+	if terrain_minimap_base_image == null or terrain_minimap_texture == null:
+		return
+
+	var camera := find_active_camera()
+
+	if camera == null:
+		return
+
+	if not force_update and has_minimap_camera_state:
+		if camera.global_position.is_equal_approx(last_minimap_camera_position) and camera.zoom.is_equal_approx(last_minimap_camera_zoom):
+			return
+
+	last_minimap_camera_position = camera.global_position
+	last_minimap_camera_zoom = camera.zoom
+	has_minimap_camera_state = true
+
+	var minimap_image := terrain_minimap_base_image.duplicate() as Image
+
+	if minimap_image == null:
+		return
+
+	draw_camera_rect_on_minimap(minimap_image, get_camera_world_rect(camera))
+	terrain_minimap_texture.update(minimap_image)
+
+
+func find_active_camera() -> Camera2D:
+	var active_camera := get_viewport().get_camera_2d()
+
+	if active_camera != null:
+		return active_camera
+
+	var current_scene := get_tree().current_scene
+
+	if current_scene == null:
+		return null
+
+	return current_scene.get_node_or_null("Camera2D") as Camera2D
+
+
+func get_camera_world_rect(camera: Camera2D) -> Rect2:
+	var viewport_size := camera.get_viewport_rect().size
+	var safe_zoom := Vector2(maxf(camera.zoom.x, 0.001), maxf(camera.zoom.y, 0.001))
+	var visible_size := viewport_size / safe_zoom
+	return Rect2(camera.global_position - visible_size * 0.5, visible_size)
+
+
+func draw_camera_rect_on_minimap(minimap_image: Image, camera_world_rect: Rect2) -> void:
+	var clipped_rect := camera_world_rect.intersection(minimap_world_bounds)
+
+	if clipped_rect.size.x <= 0.0 or clipped_rect.size.y <= 0.0:
+		return
+
+	var normalized_left := clampf((clipped_rect.position.x - minimap_world_bounds.position.x) / minimap_world_bounds.size.x, 0.0, 1.0)
+	var normalized_top := clampf((clipped_rect.position.y - minimap_world_bounds.position.y) / minimap_world_bounds.size.y, 0.0, 1.0)
+	var normalized_right := clampf((clipped_rect.end.x - minimap_world_bounds.position.x) / minimap_world_bounds.size.x, 0.0, 1.0)
+	var normalized_bottom := clampf((clipped_rect.end.y - minimap_world_bounds.position.y) / minimap_world_bounds.size.y, 0.0, 1.0)
+
+	var left := 1 + clampi(int(floor(normalized_left * float(minimap_map_size.x))), 0, minimap_map_size.x - 1)
+	var top := 1 + clampi(int(floor(normalized_top * float(minimap_map_size.y))), 0, minimap_map_size.y - 1)
+	var right := 1 + clampi(int(ceil(normalized_right * float(minimap_map_size.x))) - 1, 0, minimap_map_size.x - 1)
+	var bottom := 1 + clampi(int(ceil(normalized_bottom * float(minimap_map_size.y))) - 1, 0, minimap_map_size.y - 1)
+
+	var horizontal_edges := ensure_minimap_pixel_span(left, right, 1, minimap_map_size.x)
+	var vertical_edges := ensure_minimap_pixel_span(top, bottom, 1, minimap_map_size.y)
+	left = horizontal_edges.x
+	right = horizontal_edges.y
+	top = vertical_edges.x
+	bottom = vertical_edges.y
+
+	var rect_width := right - left + 1
+	var rect_height := bottom - top + 1
+
+	minimap_image.fill_rect(Rect2i(left, top, rect_width, 1), MINIMAP_CAMERA_COLOR)
+	minimap_image.fill_rect(Rect2i(left, bottom, rect_width, 1), MINIMAP_CAMERA_COLOR)
+	minimap_image.fill_rect(Rect2i(left, top, 1, rect_height), MINIMAP_CAMERA_COLOR)
+	minimap_image.fill_rect(Rect2i(right, top, 1, rect_height), MINIMAP_CAMERA_COLOR)
+
+
+func ensure_minimap_pixel_span(start_pixel: int, end_pixel: int, minimum_pixel: int, maximum_pixel: int) -> Vector2i:
+	while end_pixel - start_pixel + 1 < MINIMAP_CAMERA_MIN_PIXEL_SIZE:
+		if end_pixel < maximum_pixel:
+			end_pixel += 1
+		elif start_pixel > minimum_pixel:
+			start_pixel -= 1
+		else:
+			break
+
+	return Vector2i(start_pixel, end_pixel)
+
+
+func _on_minimap_gui_input(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton):
+		return
+
+	var mouse_event := event as InputEventMouseButton
+
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT or not mouse_event.pressed:
+		return
+
+	move_camera_to_minimap_position(mouse_event.position)
+	minimap_placeholder.accept_event()
+
+
+func move_camera_to_minimap_position(local_position: Vector2) -> void:
+	if minimap_placeholder == null:
+		return
+
+	if minimap_placeholder.size.x <= 0.0 or minimap_placeholder.size.y <= 0.0:
+		return
+
+	if minimap_map_size.x <= 0 or minimap_map_size.y <= 0:
+		return
+
+	var camera := find_active_camera()
+
+	if camera == null:
+		return
+
+	var image_size := Vector2(minimap_map_size + Vector2i(2, 2))
+	var image_position := Vector2(
+		local_position.x / minimap_placeholder.size.x * image_size.x,
+		local_position.y / minimap_placeholder.size.y * image_size.y
+	)
+	var normalized_position := Vector2(
+		clampf((image_position.x - 1.0) / float(minimap_map_size.x), 0.0, 1.0),
+		clampf((image_position.y - 1.0) / float(minimap_map_size.y), 0.0, 1.0)
+	)
+
+	camera.global_position = minimap_world_bounds.position + normalized_position * minimap_world_bounds.size
+	has_minimap_camera_state = false
+	update_minimap_camera_view(true)
 
 
 func update_entity_counts_text() -> void:

@@ -21,7 +21,7 @@ Current prototype includes:
 - player nature powers;
 - a local four-frame rain VFX;
 - right-side HUD with live creature and egg counters;
-- a static right-side terrain minimap showing ground, water, mountains, and trees;
+- an interactive right-side terrain minimap showing ground, water, mountains, trees, and the current camera view;
 - separated player UI, creature info UI, debug status UI, and save system;
 - stone corner hover/selection frame over creatures;
 - compact always-visible FPS/Time/Mem line;
@@ -35,7 +35,7 @@ Current prototype includes:
 - return to Main Menu with full active-session reset;
 - Exit buttons in both the startup screen and the in-game menu.
 
-Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, retained predator/combat prototype code, and the fixed player-base foundation for future egg creation. Roadmap block `0.7 — Player expansion and atmosphere` has started with the terrain-only minimap pass.
+Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, retained predator/combat prototype code, and the fixed player-base foundation for future egg creation. Roadmap block `0.7 — Player expansion and atmosphere` has started with the interactive terrain-minimap pass.
 
 Automatic predator spawning is currently disabled.
 
@@ -96,7 +96,7 @@ Current UI ownership:
 
 - `scripts/ui/start_screen.gd` owns startup-screen flow and startup loading;
 - `scripts/ui/creature_stats_ui.gd` owns creature information, hover/selection, deselection, and the lightning click bridge;
-- `scripts/ui/player_ui.gd` owns the terrain minimap, creature/egg counters, and time-speed controls;
+- `scripts/ui/player_ui.gd` owns the interactive terrain minimap, camera-frame display and click navigation, creature/egg counters, and time-speed controls;
 - `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
 - `scripts/ui/player_nature_ui.gd` owns player energy and nature powers;
 - `scripts/save/save_system.gd` owns persistence and the save/load content shown through the existing `MENU` button;
@@ -111,10 +111,12 @@ Current minimap rules:
 - `scripts/ui/player_ui.gd` builds the minimap inside the existing `MiniMapPlaceholder` panel;
 - the minimap reads the current used bounds and terrain source ids from the active `Ground` TileMapLayer;
 - the entire authored map is compressed into the existing 280x280 right-side interface area;
-- ground, water, mountains, and trees use separate simple colours;
+- ground is light brown, water is blue, mountains are dark grey, and trees are dark green;
 - the minimap texture is generated at runtime and does not require a separate manually maintained map image;
-- the minimap is currently static because terrain does not change during a session;
-- camera position, creatures, eggs, the player base, and world events are not shown yet.
+- a bright rectangular frame shows the current camera viewport and changes size with camera zoom;
+- left-clicking the minimap moves the observer camera to the selected world position;
+- terrain stays static during a session, while the camera frame updates only when camera position or zoom changes;
+- creatures, eggs, the player base, and world events are not shown yet.
 
 ## Terrain
 
@@ -263,6 +265,7 @@ The stegosaurus currently has a dedicated death-pose asset. Death visuals and co
 - Mountain variants must remain in source id `2`.
 - Tree terrain must remain in source id `3`.
 - The terrain minimap reads those source ids and must never modify TileMap data.
+- Minimap clicks may move only the observer camera; they must not change terrain, entities, or simulation state.
 - Trees use normal 128x128 tiles assembled into 2x2 visuals.
 - The player base must stay a static 2x2 blocker and must not be serialized as a dynamic creature/resource entity.
 - Grass spreads only onto normal walkable terrain and must not spread onto the player-base footprint.
