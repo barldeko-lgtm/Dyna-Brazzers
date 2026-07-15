@@ -1,6 +1,5 @@
 [gd_scene format=4 uid="uid://dwlwta88eydnm"]
 
-[ext_resource type="PackedScene" uid="uid://e3j5do0l0f20" path="res://scenes/creatures/creature.tscn" id="1_creature"]
 [ext_resource type="Script" uid="uid://3md6pbvs3jlj" path="res://scripts/world/start_map_world_grid.gd" id="2_world_grid"]
 [ext_resource type="PackedScene" uid="uid://dqht3158gnffd" path="res://scenes/resources/grass.tscn" id="3_grass_scene"]
 [ext_resource type="Texture2D" uid="uid://b47yxxmaql4cc" path="res://assets/sprites/terrain/ground.png" id="4_ground"]
@@ -8,11 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://bxxnx7uha2n75" path="res://assets/sprites/terrain/mountain_tiles_independent.png" id="6_mountain"]
 [ext_resource type="Texture2D" uid="uid://tbxmubvynlmm" path="res://assets/sprites/terrain/tree_tiles_independent.png" id="7_trees"]
 [ext_resource type="Script" uid="uid://bbumbecqsltub" path="res://scripts/world/start_map_layout.gd" id="8_map_layout"]
-[ext_resource type="Resource" path="res://data/species/triceratops.tres" id="9_triceratops"]
-[ext_resource type="Resource" path="res://data/species/tyrannosaurus.tres" id="10_tyrannosaurus"]
-[ext_resource type="Resource" path="res://data/species/raptor.tres" id="11_raptor"]
-[ext_resource type="Resource" path="res://data/species/egg_eater.tres" id="12_egg_eater"]
-[ext_resource type="Resource" path="res://data/species/pterodactyl.tres" id="13_pterodactyl"]
+
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ground"]
 texture = ExtResource("4_ground")
@@ -85,50 +80,6 @@ script = ExtResource("8_map_layout")
 position = Vector2(2240, 8512)
 
 [node name="Creatures" type="Node2D" parent="." unique_id=1940305396]
-
-[node name="Creature" parent="Creatures" unique_id=663531536 instance=ExtResource("1_creature")]
-position = Vector2(1792, 7552)
-
-[node name="Creature2" parent="Creatures" unique_id=834845466 instance=ExtResource("1_creature")]
-position = Vector2(2048, 6784)
-
-[node name="Creature3" parent="Creatures" unique_id=78961656 instance=ExtResource("1_creature")]
-position = Vector2(2752, 6720)
-
-[node name="Creature_02" parent="Creatures" unique_id=1795849223 instance=ExtResource("1_creature")]
-position = Vector2(1792, 8320)
-
-[node name="Creature_03" parent="Creatures" unique_id=488994950 instance=ExtResource("1_creature")]
-position = Vector2(2688, 8960)
-species_data = ExtResource("9_triceratops")
-
-[node name="Creature_04" parent="Creatures" unique_id=1640071615 instance=ExtResource("1_creature")]
-position = Vector2(2240, 8192)
-species_data = ExtResource("9_triceratops")
-
-[node name="Creature_06" parent="Creatures" unique_id=890507756 instance=ExtResource("1_creature")]
-position = Vector2(1984, 9152)
-species_data = ExtResource("9_triceratops")
-
-[node name="Creature_05" parent="Creatures" unique_id=1954766644 instance=ExtResource("1_creature")]
-position = Vector2(1600, 7936)
-species_data = ExtResource("9_triceratops")
-
-[node name="Tyrannosaurus" parent="Creatures" unique_id=1373332998 instance=ExtResource("1_creature")]
-position = Vector2(3264, 8512)
-species_data = ExtResource("10_tyrannosaurus")
-
-[node name="Raptor" parent="Creatures" unique_id=276081424 instance=ExtResource("1_creature")]
-position = Vector2(3520, 8512)
-species_data = ExtResource("11_raptor")
-
-[node name="EggEater" parent="Creatures" unique_id=197016879 instance=ExtResource("1_creature")]
-position = Vector2(896, 7424)
-species_data = ExtResource("12_egg_eater")
-
-[node name="Pterodactyl" parent="Creatures" unique_id=1890256844 instance=ExtResource("1_creature")]
-position = Vector2(2752, 7616)
-species_data = ExtResource("13_pterodactyl")
 
 [node name="PredatorSpawn" type="Marker2D" parent="Creatures" unique_id=324360104]
 position = Vector2(3264, 8512)

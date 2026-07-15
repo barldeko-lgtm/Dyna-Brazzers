@@ -11,6 +11,7 @@ extends Label
 const TOGGLE_KEY := KEY_F4
 
 var details_visible := false
+var simulation_elapsed_seconds := 0.0
 
 
 func _ready() -> void:
@@ -18,7 +19,8 @@ func _ready() -> void:
 	text = build_debug_status_text()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	simulation_elapsed_seconds += delta
 	text = build_debug_status_text()
 
 
@@ -69,7 +71,7 @@ func build_debug_status_text() -> String:
 
 
 func build_compact_status_line() -> String:
-	var elapsed_text := format_elapsed_time(PerformanceStats.get_elapsed_seconds())
+	var elapsed_text := format_elapsed_time(simulation_elapsed_seconds)
 	var memory_mb := PerformanceStats.get_static_memory_mb()
 	return "FPS: %d | Time: %s | Mem: %.1f MB" % [Engine.get_frames_per_second(), elapsed_text, memory_mb]
 

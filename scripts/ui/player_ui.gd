@@ -47,6 +47,8 @@ const MINIMAP_EGG_EATER_COLOR := Color(0x2b63ffff)
 
 @onready var minimap_placeholder: PanelContainer = get_node_or_null("MarginContainer/VBoxContainer/MiniMapPlaceholder") as PanelContainer
 @onready var player_herbivore_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerHerbivoreCountLabel")
+@onready var player_predator_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerPredatorCountLabel")
+@onready var player_egg_eater_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerEggEaterCountLabel")
 @onready var player_egg_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerEggCountLabel")
 @onready var player_total_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerTotalCountLabel")
 
@@ -472,42 +474,53 @@ func move_camera_to_minimap_position(local_position: Vector2) -> void:
 
 
 func update_entity_counts_text() -> void:
-	var herbivore_count := count_herbivore_creatures()
+	var herbivore_count := count_creatures_by_category("herbivore")
+	var predator_count := count_creatures_by_category("predator")
+	var egg_eater_count := count_creatures_by_category("egg_eater")
 	var egg_count := count_eggs()
 
 	if player_herbivore_count_label != null:
 		player_herbivore_count_label.text = str(herbivore_count)
 
+	if player_predator_count_label != null:
+		player_predator_count_label.text = str(predator_count)
+
+	if player_egg_eater_count_label != null:
+		player_egg_eater_count_label.text = str(egg_eater_count)
+
 	if player_egg_count_label != null:
 		player_egg_count_label.text = str(egg_count)
 
 	if player_total_count_label != null:
-		player_total_count_label.text = str(herbivore_count + egg_count)
+		player_total_count_label.text = str(herbivore_count + predator_count + egg_eater_count)
 
 
-func count_herbivore_creatures() -> int:
+func count_creatures_by_category(category: StringName) -> int:
 	var count := 0
 
 	for creature in get_tree().get_nodes_in_group("creatures"):
-		if not is_instance_valid(creature):
+		if not is_instance_valid(creature) or creature.is_queued_for_deletion():
 			continue
 
-		if creature.is_queued_for_deletion():
-			continue
-
-		if is_herbivore_creature(creature):
+		if get_creature_category(creature) == category:
 			count += 1
 
 	return count
 
 
-func is_herbivore_creature(creature: Node) -> bool:
+func get_creature_category(creature: Node) -> StringName:
 	var species_data: Resource = creature.get("species_data")
 
 	if species_data == null:
-		return false
+		return &""
 
-	return not bool(species_data.get("is_predator"))
+	if species_data.resource_path.to_lower().contains("egg_eater"):
+		return &"egg_eater"
+
+	if bool(species_data.get("is_predator")):
+		return &"predator"
+
+	return &"herbivore"
 
 
 func count_eggs() -> int:

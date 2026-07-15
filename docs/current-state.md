@@ -7,8 +7,7 @@ Dyna is an early Godot 4.7 ecosystem simulation prototype.
 Current prototype includes:
 
 - an editable 85x85 tile-based 2D world;
-- autonomous stegosaurus and triceratops herbivores, plus one tyrannosaurus, one raptor, and one pterodactyl predator with egg reproduction;
-- one egg eater that uses predator-style navigation to consume only stage-2 eggs;
+- six player-creatable species: stegosaurus, triceratops, tyrannosaurus, raptor, pterodactyl, and egg eater; fresh games start without adult creatures;
 - a fixed 2x2 player nature base that creates player-bought eggs on nearby free tiles;
 - quality-aware grass targeting;
 - four-stage renewable grass;
@@ -222,7 +221,7 @@ Player egg-creation rules:
 
 - the existing egg button opens a six-species submenu;
 - temporary test prices are: stegosaurus 100, triceratops 120, egg eater 140, raptor 160, pterodactyl 180, and tyrannosaurus 250 energy;
-- fresh games start with at least 1000 energy for testing;
+- fresh games start with at least 2000 energy for testing;
 - the base creates the egg on the nearest valid free stage-1 footprint;
 - energy is spent only after the base successfully creates the egg;
 - failed placement does not consume energy;

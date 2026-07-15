@@ -3,7 +3,7 @@ extends Node
 # Player egg-purchase submenu. The UI spends nature energy only after the
 # player base successfully creates a real species egg near its footprint.
 
-const TEST_STARTING_ENERGY := 1000.0
+const TEST_STARTING_ENERGY := 2000.0
 
 const EGG_OPTIONS := [
 	{

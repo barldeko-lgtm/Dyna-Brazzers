@@ -231,35 +231,42 @@ theme_override_constants/margin_bottom = 5
 layout_mode = 2
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 4
-columns = 5
+columns = 6
 
 [node name="CornerLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
-custom_minimum_size = Vector2(34, 18)
+custom_minimum_size = Vector2(28, 18)
 layout_mode = 2
 
 [node name="HerbivoreIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
-custom_minimum_size = Vector2(48, 18)
+custom_minimum_size = Vector2(40, 18)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 1, 0.42, 1)
 text = "Тр"
 horizontal_alignment = 1
 
 [node name="PredatorIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
-custom_minimum_size = Vector2(48, 18)
+custom_minimum_size = Vector2(40, 18)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.42, 0.32, 1)
 text = "Хщ"
 horizontal_alignment = 1
 
+[node name="EggEaterIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(40, 18)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.17, 0.39, 1, 1)
+text = "Яц"
+horizontal_alignment = 1
+
 [node name="EggIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
-custom_minimum_size = Vector2(48, 18)
+custom_minimum_size = Vector2(40, 18)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.58, 1)
 text = "Яй"
 horizontal_alignment = 1
 
 [node name="TotalIconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
-custom_minimum_size = Vector2(48, 18)
+custom_minimum_size = Vector2(40, 18)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.84, 1, 1)
 text = "Вс"
@@ -280,6 +287,11 @@ text = "0"
 horizontal_alignment = 1
 
 [node name="PlayerPredatorCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="PlayerEggEaterCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
@@ -313,6 +325,11 @@ layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 
+[node name="EnemyEggEaterCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
 [node name="EnemyEggCountLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 layout_mode = 2
 text = "0"
@@ -327,7 +344,7 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(280, 300)
 layout_mode = 2
 script = ExtResource("5_player_nature_ui")
-starting_energy = 500.0
+starting_energy = 2000.0
 
 [node name="MarginContainer" type="MarginContainer" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel"]
 layout_mode = 2
