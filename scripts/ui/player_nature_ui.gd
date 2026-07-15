@@ -310,7 +310,7 @@ func _try_apply_rain_at_mouse() -> bool:
 
 	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
 
-	if not bool(world_grid.call("can_host_grass", center_tile)):
+	if not bool(world_grid.call("is_tile_inside_map", center_tile)):
 		return false
 
 	if not spend_energy(rain_energy_cost):
@@ -333,7 +333,7 @@ func _try_apply_sun_at_mouse() -> bool:
 
 	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
 
-	if not bool(world_grid.call("can_host_grass", center_tile)):
+	if not bool(world_grid.call("is_tile_inside_map", center_tile)):
 		return false
 
 	if not spend_energy(sun_energy_cost):
@@ -466,6 +466,7 @@ func _spawn_lightning_effect(target: Node) -> void:
 		return
 
 	var effect_parent := target.get_parent()
+
 	if effect_parent == null:
 		effect_parent = get_tree().current_scene
 
@@ -473,6 +474,7 @@ func _spawn_lightning_effect(target: Node) -> void:
 		return
 
 	var effect := LIGHTNING_EFFECT_SCENE.instantiate() as Node2D
+
 	if effect == null:
 		return
 
@@ -547,7 +549,7 @@ func _update_rain_target_preview() -> void:
 		return
 
 	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
-	var valid_target := bool(world_grid.call("can_host_grass", center_tile))
+	var valid_target := bool(world_grid.call("is_tile_inside_map", center_tile))
 
 	if rain_target_preview.has_method("set_center_tile"):
 		rain_target_preview.set_center_tile(center_tile, valid_target)
@@ -570,7 +572,7 @@ func _update_sun_target_preview() -> void:
 		return
 
 	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
-	var valid_target := bool(world_grid.call("can_host_grass", center_tile))
+	var valid_target := bool(world_grid.call("is_tile_inside_map", center_tile))
 
 	if sun_target_preview.has_method("set_center_tile"):
 		sun_target_preview.set_center_tile(center_tile, valid_target)

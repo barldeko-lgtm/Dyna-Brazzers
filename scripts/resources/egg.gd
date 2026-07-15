@@ -191,7 +191,19 @@ func try_enter_stage_2() -> void:
 	if world_grid == null:
 		return
 
-	if world_grid.register_blocker(self, anchor_tile, STAGE_2_FOOTPRINT):
+	# Stage 1 is one tile wide and stage 2 is two tiles wide. Try expanding
+	# to the right first; if that side is blocked, keep the original stage-1
+	# cells and expand to the left instead.
+	var candidate_anchors: Array[Vector2i] = [
+		anchor_tile,
+		anchor_tile + Vector2i.LEFT
+	]
+
+	for candidate_anchor in candidate_anchors:
+		if not world_grid.register_blocker(self, candidate_anchor, STAGE_2_FOOTPRINT):
+			continue
+
+		anchor_tile = candidate_anchor
 		is_registered_as_blocker = true
 		current_stage = Stage.STAGE_2
 		apply_current_stage_visual()

@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/player_base.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/world/player_base.png" id="2_texture"]
+
+[node name="PlayerBase" type="Node2D" groups=["player_base"]]
+z_index = 5
+script = ExtResource("1_script")
+
+[node name="ShadowSprite" type="Sprite2D" parent="."]
+z_index = -1
+modulate = Color(0, 0, 0, 0.22)
+texture = ExtResource("2_texture")
+
+[node name="BodySprite" type="Sprite2D" parent="."]
+texture = ExtResource("2_texture")

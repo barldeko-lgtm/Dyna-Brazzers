@@ -13,12 +13,13 @@
 - blocker occupancy;
 - counting and consuming edible grass under creature footprints.
 
-`res://scripts/world/start_map_world_grid.gd` extends the base grid for the authored start map and provides world bounds used by the camera. Grass-host checks remain based on normal walkable terrain.
+`res://scripts/world/start_map_world_grid.gd` extends the base grid for the authored start map, spawns the fixed player base, excludes its footprint from grass spreading, and provides world bounds used by the camera.
 
 The active world and map bootstrap are:
 
 - `res://scenes/world/world.tscn`;
 - `res://scripts/world/start_map_layout.gd`;
+- `res://scripts/world/start_map_world_grid.gd`;
 - `res://scripts/camera/camera_controller.gd`.
 
 Map flow:
@@ -28,7 +29,9 @@ Map flow:
 3. If the TileMap is empty, the initial 85x85 map is created.
 4. If the TileMap is non-empty, the script does nothing.
 5. Godot saves later manual TileMap edits in `world.tscn`.
-6. The camera reads authored bounds through the world grid.
+6. The world grid initializes terrain and occupancy.
+7. `start_map_world_grid.gd` places the fixed player base at `CameraStart` and reserves its 2x2 footprint.
+8. The camera reads authored bounds through the world grid.
 
 Rules:
 
@@ -36,9 +39,39 @@ Rules:
 - never hand-generate serialized `tile_map_data`;
 - preserve terrain source ids;
 - keep initial creatures, grass, eggs container, camera marker, and predator marker on valid terrain;
+- keep the player-base spawn point on a valid 2x2 ground footprint;
 - after major map edits, recreate saves or add migration/version handling.
 
-If a task touches movement, blocked tiles, map dimensions, camera bounds, grass placement, corpse passability, or pathing, inspect these files together.
+If a task touches movement, blocked tiles, map dimensions, camera bounds, grass placement, the player base, corpse passability, or pathing, inspect these files together.
+
+## Player base
+
+Main files:
+
+- `res://scenes/world/player_base.tscn`;
+- `res://scripts/world/player_base.gd`;
+- `res://scripts/world/start_map_world_grid.gd`;
+- `res://scripts/world/world_grid.gd`;
+- `res://assets/sprites/world/player_base.png`.
+
+Runtime flow:
+
+1. `start_map_world_grid.gd` instantiates one player base at the existing `CameraStart` marker.
+2. `player_base.gd` converts that world position into a 2x2 anchor.
+3. The base registers through `world_grid.register_blocker()`.
+4. Its 512x512 texture is scaled to a 256x256 world visual with linear mipmapped filtering.
+5. Pathfinding and creature placement automatically avoid the four reserved cells.
+6. `can_host_grass()` rejects cells occupied by the `player_base` group.
+7. The base is static setup and is not collected or reconstructed by `SaveSystem`.
+
+Rules:
+
+- only one node named `PlayerBase` should be spawned;
+- the base remains stationary and non-passable;
+- its logical footprint remains 2x2 even if the source texture resolution changes;
+- moving `CameraStart` also moves the fresh-game base spawn and camera start;
+- future egg-creation UI or logic should find the base through the `player_base` group rather than hard-coded node paths;
+- do not add the base to dynamic save groups such as `creatures`, `eggs`, or `grass`.
 
 ## UI ownership
 
@@ -114,7 +147,7 @@ In-game UI integration:
 
 Saved dynamic data includes creatures, grass, eggs, player energy, camera state, simulation speed, and save timestamp.
 
-Static terrain is loaded from `world.tscn` and is not serialized.
+Static terrain and the fixed player base are loaded from start-map setup and are not serialized.
 
 Loading flow:
 
@@ -125,14 +158,16 @@ Loading flow:
 5. Recreate grass and timer state.
 6. Recreate eggs and blocker state.
 7. Recreate creatures and mutable stats using saved species resource paths.
-8. Restore player energy and camera.
-9. Restore simulation speed.
+8. Preserve the already spawned static player base and its blocker registration.
+9. Restore player energy and camera.
+10. Restore simulation speed.
 
 Rules:
 
 - returning to Main Menu must produce a clean New Game session;
 - returning to Main Menu must not delete slot files;
 - temporary corpse nodes are not persisted;
+- the player base is not a dynamic save entity;
 - exact animation and short-lived behaviour micro-state do not need to resume;
 - changing map layout, saved schema, or species resource paths may require new saves or a version migration.
 
@@ -154,6 +189,8 @@ Blocked terrain sources:
 - tree.
 
 `start_map_layout.gd` chooses water and mountain atlas variants from neighbouring terrain when it creates an empty map. Later manual edits are saved by Godot and must not be regenerated at runtime.
+
+The player base is not another terrain source. It uses world-grid blocker occupancy so its sprite can remain a separate future-interactive structure.
 
 ## Trees
 
@@ -197,6 +234,7 @@ Dependencies:
 Rules:
 
 - grass may exist and spread only on normal walkable terrain;
+- grass must not spread onto the fixed player-base footprint;
 - initial grass nodes do not define an allowed-growth region;
 - spread checks cardinal neighbouring tiles;
 - prevent duplicate grass registration on the same tile;

@@ -1,7 +1,7 @@
 extends Camera2D
 
 # Free observer camera, constrained to the authored world.
-@export var move_speed := 500.0
+@export var move_speed := 1000.0
 @export var zoom_step := 0.1
 @export var min_zoom := 0.7
 @export var max_zoom := 7.0

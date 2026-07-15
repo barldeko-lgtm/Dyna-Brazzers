@@ -14,6 +14,7 @@
 - `scenes/ui/start_screen.tscn` — centered startup screen with New Game, three-slot Load, placeholder Menu, and Exit.
 - `scenes/main/main.tscn` — camera, HUD, world instance, debug overlay, and UI wiring.
 - `scenes/world/world.tscn` — only active gameplay world: 85x85 terrain TileMap, initial grass, two stegosauruses, four triceratops, one tyrannosaurus, one raptor, one pterodactyl, one egg eater, eggs container, camera marker, and world grid.
+- `scenes/world/player_base.tscn` — fixed 2x2 player nature base, spawned at the authored `CameraStart` marker and reserved for future egg creation.
 - `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures.
 - `scenes/resources/egg.tscn` — shared two-stage egg scene used by all reproducing species.
 - `scenes/creatures/creature.tscn` — shared base creature scene.
@@ -28,7 +29,8 @@
 ### World and camera
 
 - `scripts/world/world_grid.gd` — terrain lookup, walkability, occupancy, blockers, pathfinding, grass lookup, and footprint queries.
-- `scripts/world/start_map_world_grid.gd` — extends the base grid for the authored start map and exposes world bounds to the camera.
+- `scripts/world/start_map_world_grid.gd` — extends the base grid for the authored start map, spawns the player base at `CameraStart`, protects its footprint from grass spreading, and exposes world bounds to the camera.
+- `scripts/world/player_base.gd` — scales the high-resolution base sprite to a 256x256 world visual and registers a static 2x2 blocker footprint.
 - `scripts/world/start_map_layout.gd` — builds the initial 85x85 terrain only when the `Ground` TileMap is empty; chooses matching water and mountain edge variants.
 - `scripts/camera/camera_controller.gd` — camera movement, wheel zoom, new-game start marker, and map-bound clamping.
 
@@ -69,7 +71,7 @@ On Windows this normally resolves to:
 
 `%APPDATA%/Godot/app_userdata/Dyna/`
 
-Static terrain is not included in these files.
+Static terrain and the fixed player base are not included in these files.
 
 ## Terrain assets
 
@@ -92,6 +94,10 @@ Terrain source ids in `world.tscn`:
 - `assets/sprites/effects/rain/rain_cast_01.png` ... `rain_cast_04.png` — transparent rain animation frames.
 - `assets/ui/creature_selection_frame.png` — world-space creature hover/selection frame.
 
+## Player-base asset
+
+- `assets/sprites/world/player_base.png` — 512x512 transparent source sprite displayed at 256x256 in world space with mipmapped linear filtering.
+
 ## Creature and species assets
 
 - `data/species/stegosaurus.tres` — stegosaurus stats, visuals, animations, egg data, and death settings.
@@ -113,6 +119,7 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 ## Ownership summary
 
 - Authored terrain and initial world contents belong in `scenes/world/world.tscn`.
+- The player-base scene owns its visual scaling and blocker registration; `start_map_world_grid.gd` owns spawning it at the authored camera-start point.
 - Empty-map bootstrap and terrain edge selection belong in `scripts/world/start_map_layout.gd`.
 - Terrain, movement permissions, occupancy, blockers, pathfinding, and resource lookup belong in world-grid scripts.
 - Camera movement and visual boundary clamping belong in `scripts/camera/camera_controller.gd`.

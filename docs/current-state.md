@@ -9,6 +9,7 @@ Current prototype includes:
 - an editable 85x85 tile-based 2D world;
 - autonomous stegosaurus and triceratops herbivores, plus one tyrannosaurus, one raptor, and one pterodactyl predator with egg reproduction;
 - one egg eater that uses predator-style navigation to consume only stage-2 eggs;
+- a fixed 2x2 player nature base reserved for future player-created eggs;
 - quality-aware grass targeting;
 - four-stage renewable grass;
 - eggs, hatching, and population growth;
@@ -33,7 +34,7 @@ Current prototype includes:
 - return to Main Menu with full active-session reset;
 - Exit buttons in both the startup screen and the in-game menu.
 
-Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` has started with triceratops, tyrannosaurus, raptor, pterodactyl, and retained predator/combat prototype code.
+Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, retained predator/combat prototype code, and the fixed player-base foundation for future egg creation.
 
 Automatic predator spawning is currently disabled.
 
@@ -84,7 +85,7 @@ Saved dynamic state includes:
 - simulation speed;
 - save timestamp.
 
-Static terrain is not serialized. It comes from `scenes/world/world.tscn`.
+Static terrain and the fixed player base are not serialized. They come from the active start-map setup.
 
 `Main Menu` unloads the active game scene and clears temporary `SaveSystem` references without deleting save files. Starting `New Game` afterwards creates a clean session.
 
@@ -126,6 +127,19 @@ The observer camera:
 - supports WASD movement and mouse-wheel zoom;
 - is clamped to the authored world bounds.
 
+## Player base
+
+Current player-base rules:
+
+- `scripts/world/start_map_world_grid.gd` instantiates `scenes/world/player_base.tscn` at the authored `CameraStart` marker;
+- the base is stationary and belongs to the `player_base` group;
+- it occupies and blocks a 2x2 grid footprint, equivalent to 256x256 world pixels;
+- creatures and pathfinding treat those four cells as unavailable, like blocked terrain;
+- grass cannot spread onto the player-base footprint;
+- `assets/sprites/world/player_base.png` remains a 512x512 source texture and is displayed at 256x256 with linear mipmapped filtering;
+- the base is static world setup and is not included in save-slot entity data;
+- it currently has no active ability; roadmap block 0.7 will use it as the player-created egg origin.
+
 ## Trees
 
 Current tree rules:
@@ -154,7 +168,7 @@ Rules:
 - edible grass returns to the first stage when consumed;
 - only mature grass attempts natural spreading;
 - natural spreading checks cardinal neighbouring tiles;
-- grass may spread across any normal walkable ground tile;
+- grass may spread across any normal walkable ground tile except the fixed player-base footprint;
 - initial grass placements are only starting seeds, not an allowed-growth mask;
 - rain advances grass growth and can trigger mature spreading;
 - sun reduces or removes grass through the existing nature-power rules.
@@ -236,7 +250,8 @@ The stegosaurus currently has a dedicated death-pose asset. Death visuals and co
 - Mountain variants must remain in source id `2`.
 - Tree terrain must remain in source id `3`.
 - Trees use normal 128x128 tiles assembled into 2x2 visuals.
-- Grass spreads only onto normal walkable terrain.
+- The player base must stay a static 2x2 blocker and must not be serialized as a dynamic creature/resource entity.
+- Grass spreads only onto normal walkable terrain and must not spread onto the player-base footprint.
 - Initial grass nodes are starting seeds, not a growth whitelist.
 - New grass must be positioned before `add_child()`.
 - Species-specific egg textures belong in the species `.tres`, not in duplicated egg scenes.
