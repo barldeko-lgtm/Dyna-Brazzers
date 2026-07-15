@@ -4,6 +4,7 @@ extends PanelContainer
 # - interactive terrain minimap
 # - entity counters
 # - time speed controls
+# - player egg-creation UI bootstrap
 #
 # Keep this separate from creature_stats_ui.gd so the creature info window does
 # not own unrelated player HUD logic.
@@ -17,6 +18,8 @@ class MinimapOverlay:
 		if owner_ui != null and owner_ui.has_method("draw_minimap_overlay"):
 			owner_ui.draw_minimap_overlay(self)
 
+
+const PLAYER_EGG_CREATION_UI_SCRIPT := preload("res://scripts/ui/player_egg_creation_ui.gd")
 
 const TIME_SPEED_VALUES := [1.0, 2.0, 3.0, 5.0]
 const ENTITY_COUNTS_REFRESH_INTERVAL := 0.5
@@ -71,6 +74,7 @@ var minimap_entity_refresh_timer := 0.0
 func _ready() -> void:
 	add_to_group("player_ui")
 	setup_time_speed_controls()
+	setup_player_egg_creation_ui()
 	update_entity_counts_text()
 	entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
 	minimap_entity_refresh_timer = 0.0
@@ -519,6 +523,15 @@ func count_eggs() -> int:
 		count += 1
 
 	return count
+
+
+func setup_player_egg_creation_ui() -> void:
+	if get_node_or_null("PlayerEggCreationUI") != null:
+		return
+
+	var egg_creation_ui := PLAYER_EGG_CREATION_UI_SCRIPT.new() as Node
+	egg_creation_ui.name = "PlayerEggCreationUI"
+	add_child(egg_creation_ui)
 
 
 func setup_time_speed_controls() -> void:

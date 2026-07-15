@@ -14,7 +14,7 @@
 - `scenes/ui/start_screen.tscn` — centered semi-transparent startup menu over a full-screen illustrated Dyna Brazzers background, with New Game, three-slot Load, placeholder Menu, and Exit.
 - `scenes/main/main.tscn` — camera, right-side HUD with terrain minimap and creature markers, world instance, debug overlay, and UI wiring.
 - `scenes/world/world.tscn` — only active gameplay world: 85x85 terrain TileMap, initial grass, two stegosauruses, four triceratops, one tyrannosaurus, one raptor, one pterodactyl, one egg eater, eggs container, camera marker, and world grid.
-- `scenes/world/player_base.tscn` — fixed 2x2 player nature base, spawned at the authored `CameraStart` marker and reserved for future egg creation.
+- `scenes/world/player_base.tscn` — fixed 2x2 player nature base, spawned at the authored `CameraStart` marker and used as the origin for player-created eggs.
 - `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures.
 - `scenes/resources/egg.tscn` — shared two-stage egg scene used by all reproducing species.
 - `scenes/creatures/creature.tscn` — shared base creature scene.
@@ -30,7 +30,7 @@
 
 - `scripts/world/world_grid.gd` — terrain lookup, walkability, occupancy, blockers, pathfinding, grass lookup, and footprint queries.
 - `scripts/world/start_map_world_grid.gd` — extends the base grid for the authored start map, spawns the player base at `CameraStart`, protects its footprint from grass spreading, and exposes world bounds to the camera.
-- `scripts/world/player_base.gd` — scales the high-resolution base sprite to a 256x256 world visual and registers a static 2x2 blocker footprint.
+- `scripts/world/player_base.gd` — scales the base sprite, registers its static 2x2 blocker footprint, finds nearby valid egg positions, and creates configured species eggs.
 - `scripts/world/start_map_layout.gd` — builds the initial 85x85 terrain only when the `Ground` TileMap is empty; chooses matching water and mountain edge variants.
 - `scripts/camera/camera_controller.gd` — camera movement, wheel zoom, new-game start marker, and map-bound clamping.
 
@@ -51,7 +51,8 @@
 
 - `scripts/ui/start_screen.gd` — startup menu and slot loading.
 - `scripts/ui/creature_stats_ui.gd` — creature information, hover, selection, and lightning click bridge.
-- `scripts/ui/player_ui.gd` — interactive terrain minimap generation, creature-marker overlay layer, camera viewport display and click navigation, creature/egg counters, and time-speed controls.
+- `scripts/ui/player_ui.gd` — interactive terrain minimap generation, creature-marker overlay layer, camera viewport display and click navigation, creature/egg counters, time-speed controls, and egg-controller bootstrap.
+- `scripts/ui/player_egg_creation_ui.gd` — runtime egg submenu, temporary species energy prices, test starting energy, button availability, and base purchase requests.
 - `scripts/ui/player_nature_ui.gd` — player energy and nature powers.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug.
 - `scripts/save/save_system.gd` — three-slot JSON persistence, in-game menu integration, and runtime reconstruction.
@@ -125,7 +126,7 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 ## Ownership summary
 
 - Authored terrain and initial world contents belong in `scenes/world/world.tscn`.
-- The player-base scene owns its visual scaling and blocker registration; `start_map_world_grid.gd` owns spawning it at the authored camera-start point.
+- The player-base scene owns its visual scaling, blocker registration, nearby egg-placement search, and species egg creation; `start_map_world_grid.gd` owns spawning it at the authored camera-start point.
 - Empty-map bootstrap and terrain edge selection belong in `scripts/world/start_map_layout.gd`.
 - Terrain, movement permissions, occupancy, blockers, pathfinding, and resource lookup belong in world-grid scripts.
 - Camera movement and visual boundary clamping belong in `scripts/camera/camera_controller.gd`.
@@ -136,8 +137,9 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Startup flow belongs in `start_screen.gd`; startup layout, background presentation, and menu transparency belong in `start_screen.tscn`.
 - Save collection, reconstruction, slot files, and in-game save menu belong in `save_system.gd`.
 - Creature observation and selection belong in `creature_stats_ui.gd`.
-- Terrain minimap generation, creature-marker overlay updates, camera-frame updates, minimap click navigation, counters, and speed controls belong in `player_ui.gd`.
-- Nature energy and powers belong in `player_nature_ui.gd`.
+- Terrain minimap generation, creature-marker overlay updates, camera-frame updates, minimap click navigation, counters, speed controls, and egg-controller startup belong in `player_ui.gd`.
+- Egg submenu presentation, temporary egg prices, purchase validation, and base requests belong in `player_egg_creation_ui.gd`.
+- Nature energy and powers belong in `player_nature_ui.gd`; egg purchases use its public energy methods.
 - Text and grid diagnostics belong in their dedicated debug scripts.
 
 ## Removed / not used

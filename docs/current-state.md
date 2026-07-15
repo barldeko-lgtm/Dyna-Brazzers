@@ -9,7 +9,7 @@ Current prototype includes:
 - an editable 85x85 tile-based 2D world;
 - autonomous stegosaurus and triceratops herbivores, plus one tyrannosaurus, one raptor, and one pterodactyl predator with egg reproduction;
 - one egg eater that uses predator-style navigation to consume only stage-2 eggs;
-- a fixed 2x2 player nature base reserved for future player-created eggs;
+- a fixed 2x2 player nature base that creates player-bought eggs on nearby free tiles;
 - quality-aware grass targeting;
 - four-stage renewable grass;
 - eggs, hatching, and population growth;
@@ -19,6 +19,7 @@ Current prototype includes:
 - creature death with a short corpse/death-pose visual before removal;
 - static flattened contour shadows beneath creatures;
 - player nature powers;
+- player-created species eggs bought for nature energy through the egg submenu;
 - a local four-frame rain VFX;
 - right-side HUD with live creature and egg counters;
 - an interactive right-side terrain minimap showing ground, water, mountains, trees, creature markers, and the current camera view;
@@ -35,7 +36,7 @@ Current prototype includes:
 - return to Main Menu with full active-session reset;
 - Exit buttons in both the startup screen and the in-game menu.
 
-Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, retained predator/combat prototype code, and the fixed player-base foundation for future egg creation. Roadmap block `0.7 — Player expansion and atmosphere` has started with the interactive terrain-minimap pass.
+Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, retained predator/combat prototype code, and the fixed player-base foundation for future egg creation. Roadmap block `0.7 — Player expansion and atmosphere` now includes the interactive terrain minimap and the first player egg-creation pass.
 
 Automatic predator spawning is currently disabled.
 
@@ -98,7 +99,8 @@ Current UI ownership:
 
 - `scripts/ui/start_screen.gd` owns startup-screen flow and startup loading;
 - `scripts/ui/creature_stats_ui.gd` owns creature information, hover/selection, deselection, and the lightning click bridge;
-- `scripts/ui/player_ui.gd` owns the interactive terrain minimap, creature markers, camera-frame display and click navigation, creature/egg counters, and time-speed controls;
+- `scripts/ui/player_ui.gd` owns the interactive terrain minimap, creature markers, camera-frame display and click navigation, creature/egg counters, time-speed controls, and bootstraps the egg-creation controller;
+- `scripts/ui/player_egg_creation_ui.gd` owns the egg submenu, temporary species prices, test starting energy, purchase validation, and requests to the player base;
 - `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
 - `scripts/ui/player_nature_ui.gd` owns player energy and nature powers;
 - `scripts/save/save_system.gd` owns persistence and the save/load content shown through the existing `MENU` button;
@@ -158,7 +160,8 @@ Current player-base rules:
 - grass cannot spread onto the player-base footprint;
 - `assets/sprites/world/player_base.png` remains a 512x512 source texture and is displayed at 256x256 with linear mipmapped filtering;
 - the base is static world setup and is not included in save-slot entity data;
-- it currently has no active ability; roadmap block 0.7 will use it as the player-created egg origin.
+- `scripts/world/player_base.gd` searches for a free stage-1 egg footprint near the base and creates the selected species egg there;
+- player-created eggs use the same shared egg lifecycle and save system as naturally laid eggs.
 
 ## Trees
 
@@ -214,6 +217,16 @@ The texture references live in each species `.tres` through:
 - `egg_stage_2_texture`.
 
 The shared egg scene remains the fallback for a future species that does not yet provide custom egg textures.
+
+Player egg-creation rules:
+
+- the existing egg button opens a six-species submenu;
+- temporary test prices are: stegosaurus 100, triceratops 120, egg eater 140, raptor 160, pterodactyl 180, and tyrannosaurus 250 energy;
+- fresh games start with at least 1000 energy for testing;
+- the base creates the egg on the nearest valid free stage-1 footprint;
+- energy is spent only after the base successfully creates the egg;
+- failed placement does not consume energy;
+- created eggs grow, expand, hatch, and save through the existing shared egg system.
 
 ## Grazing target scoring
 
@@ -273,6 +286,7 @@ The stegosaurus currently has a dedicated death-pose asset. Death visuals and co
 - Minimap clicks may move only the observer camera; they must not change terrain, entities, or simulation state.
 - Trees use normal 128x128 tiles assembled into 2x2 visuals.
 - The player base must stay a static 2x2 blocker and must not be serialized as a dynamic creature/resource entity.
+- Player-created eggs must originate near the base, use normal species egg data, and spend energy only after successful creation.
 - Grass spreads only onto normal walkable terrain and must not spread onto the player-base footprint.
 - Initial grass nodes are starting seeds, not a growth whitelist.
 - New grass must be positioned before `add_child()`.
