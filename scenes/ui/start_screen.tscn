@@ -1,12 +1,10 @@
 [gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/start_screen.gd" id="1_script"]
-
-[sub_resource type="StyleBoxFlat" id="Background"]
-bg_color = Color(0.025, 0.055, 0.075, 1)
+[ext_resource type="Texture2D" path="res://assets/ui/start_screen_background.png" id="2_background"]
 
 [sub_resource type="StyleBoxFlat" id="Panel"]
-bg_color = Color(0.04, 0.075, 0.09, 0.96)
+bg_color = Color(0.04, 0.075, 0.09, 0.8)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
@@ -76,7 +74,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Background" type="Panel" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -84,7 +82,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("Background")
+texture = ExtResource("2_background")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -148,7 +148,6 @@ theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
 text = "Меню"
-
 
 [node name="ExitButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(290, 58)

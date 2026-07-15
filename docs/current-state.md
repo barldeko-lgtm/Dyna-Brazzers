@@ -29,7 +29,7 @@ Current prototype includes:
 - F3 grid/debug overlay;
 - water, mountain, and tree terrain;
 - free observer camera constrained to the map;
-- centered startup screen;
+- centered startup screen with a 1920x1080 illustrated Dyna Brazzers background and a lightly transparent menu panel;
 - three save slots with date/time labels;
 - loading from both the startup screen and the in-game right-side Menu;
 - return to Main Menu with full active-session reset;
@@ -55,6 +55,8 @@ Keep:
 Current startup flow:
 
 - `project.godot` starts `scenes/ui/start_screen.tscn`;
+- the startup scene displays `assets/ui/start_screen_background.png` as a full-screen aspect-covered background;
+- the centered menu panel uses approximately 80% opacity so the background remains visible without reducing button readability;
 - `New Game` opens a fresh `scenes/main/main.tscn` session;
 - `Load` shows three slots;
 - occupied slots show save date and time;

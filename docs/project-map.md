@@ -11,7 +11,7 @@
 
 ## Key scenes
 
-- `scenes/ui/start_screen.tscn` — centered startup screen with New Game, three-slot Load, placeholder Menu, and Exit.
+- `scenes/ui/start_screen.tscn` — centered semi-transparent startup menu over a full-screen illustrated Dyna Brazzers background, with New Game, three-slot Load, placeholder Menu, and Exit.
 - `scenes/main/main.tscn` — camera, right-side HUD with terrain minimap and creature markers, world instance, debug overlay, and UI wiring.
 - `scenes/world/world.tscn` — only active gameplay world: 85x85 terrain TileMap, initial grass, two stegosauruses, four triceratops, one tyrannosaurus, one raptor, one pterodactyl, one egg eater, eggs container, camera marker, and world grid.
 - `scenes/world/player_base.tscn` — fixed 2x2 player nature base, spawned at the authored `CameraStart` marker and reserved for future egg creation.
@@ -91,6 +91,10 @@ Terrain source ids in `world.tscn`:
 
 The terrain minimap reads these source ids directly from the active `Ground` TileMapLayer, generates its display texture at runtime, overlays the active camera viewport, draws 6x6 creature-category triangle markers on a separate overlay layer (light green herbivores, red predators, blue egg eater), and translates minimap clicks into observer-camera world positions.
 
+## UI assets
+
+- `assets/ui/start_screen_background.png` — 1920x1080 illustrated background used by the startup scene.
+
 ## Effect assets
 
 - `assets/sprites/effects/rain/rain_cast_01.png` ... `rain_cast_04.png` — transparent rain animation frames.
@@ -129,7 +133,7 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Creature runtime coordination belongs in `scripts/creatures/creature.gd`.
 - Specialized creature behaviour belongs in `scripts/creatures/behaviors/`.
 - Grass and egg lifecycles belong in their own resource scripts.
-- Startup flow belongs in `start_screen.gd` and `start_screen.tscn`.
+- Startup flow belongs in `start_screen.gd`; startup layout, background presentation, and menu transparency belong in `start_screen.tscn`.
 - Save collection, reconstruction, slot files, and in-game save menu belong in `save_system.gd`.
 - Creature observation and selection belong in `creature_stats_ui.gd`.
 - Terrain minimap generation, creature-marker overlay updates, camera-frame updates, minimap click navigation, counters, and speed controls belong in `player_ui.gd`.
