@@ -8,11 +8,23 @@ extends PanelContainer
 # Keep this separate from creature_stats_ui.gd so the creature info window does
 # not own unrelated player HUD logic.
 
+class MinimapOverlay:
+	extends Control
+
+	var owner_ui: Node = null
+
+	func _draw() -> void:
+		if owner_ui != null and owner_ui.has_method("draw_minimap_overlay"):
+			owner_ui.draw_minimap_overlay(self)
+
+
 const TIME_SPEED_VALUES := [1.0, 2.0, 3.0, 5.0]
 const ENTITY_COUNTS_REFRESH_INTERVAL := 0.5
 const MINIMAP_WORLD_RETRY_FRAMES := 12
 const MINIMAP_CAMERA_MIN_PIXEL_SIZE := 2
-const MINIMAP_ENTITY_REFRESH_INTERVAL := 0.15
+const MINIMAP_ENTITY_REFRESH_INTERVAL := 0.10
+const MINIMAP_CREATURE_MARKER_SIZE := 6
+const MINIMAP_CREATURE_MARKER_HALF_SIZE := 3.0
 
 const TERRAIN_GROUND := 0
 const TERRAIN_WATER := 1
@@ -21,14 +33,14 @@ const TERRAIN_TREE := 3
 
 const MINIMAP_EMPTY_COLOR := Color(0x04070cff)
 const MINIMAP_GROUND_COLOR := Color(0xc7a978ff)
-const MINIMAP_WATER_COLOR := Color(0x306692ff)
+const MINIMAP_WATER_COLOR := Color(0x67cfeeff)
 const MINIMAP_MOUNTAIN_COLOR := Color(0x41464eff)
 const MINIMAP_TREE_COLOR := Color(0x31572fff)
 const MINIMAP_BORDER_COLOR := Color(0x2e3b52ff)
 const MINIMAP_CAMERA_COLOR := Color(0xfff1a3ff)
 const MINIMAP_HERBIVORE_COLOR := Color(0x9be26aff)
 const MINIMAP_PREDATOR_COLOR := Color(0xe25757ff)
-const MINIMAP_EGG_EATER_COLOR := Color(0x1f3d74ff)
+const MINIMAP_EGG_EATER_COLOR := Color(0x2b63ffff)
 
 @onready var minimap_placeholder: PanelContainer = get_node_or_null("MarginContainer/VBoxContainer/MiniMapPlaceholder") as PanelContainer
 @onready var player_herbivore_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerHerbivoreCountLabel")
@@ -45,6 +57,7 @@ const MINIMAP_EGG_EATER_COLOR := Color(0x1f3d74ff)
 var entity_counts_refresh_timer := 0.0
 var terrain_minimap_texture: ImageTexture = null
 var terrain_minimap_style_box: StyleBoxTexture = null
+var minimap_overlay: MinimapOverlay = null
 var terrain_minimap_base_image: Image = null
 var minimap_map_min := Vector2i.ZERO
 var minimap_map_size := Vector2i.ZERO
@@ -134,6 +147,7 @@ func rebuild_terrain_minimap() -> bool:
 	minimap_placeholder.mouse_filter = Control.MOUSE_FILTER_STOP
 	minimap_placeholder.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	minimap_placeholder.tooltip_text = "Миникарта мира — ЛКМ: переместить камеру"
+	ensure_minimap_overlay()
 
 	var minimap_input_callable := Callable(self, "_on_minimap_gui_input")
 
@@ -216,14 +230,8 @@ func update_minimap_camera_view(force_update := false) -> void:
 	last_minimap_camera_zoom = camera.zoom
 	has_minimap_camera_state = true
 
-	var minimap_image := terrain_minimap_base_image.duplicate() as Image
-
-	if minimap_image == null:
-		return
-
-	draw_creature_markers_on_minimap(minimap_image)
-	draw_camera_rect_on_minimap(minimap_image, get_camera_world_rect(camera))
-	terrain_minimap_texture.update(minimap_image)
+	if minimap_overlay != null and is_instance_valid(minimap_overlay):
+		minimap_overlay.queue_redraw()
 
 
 func find_active_camera() -> Camera2D:
@@ -240,7 +248,38 @@ func find_active_camera() -> Camera2D:
 	return current_scene.get_node_or_null("Camera2D") as Camera2D
 
 
-func draw_creature_markers_on_minimap(minimap_image: Image) -> void:
+func ensure_minimap_overlay() -> void:
+	if minimap_placeholder == null:
+		return
+
+	if minimap_overlay != null and is_instance_valid(minimap_overlay):
+		return
+
+	minimap_overlay = MinimapOverlay.new()
+	minimap_overlay.name = "MinimapOverlay"
+	minimap_overlay.owner_ui = self
+	minimap_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	minimap_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	minimap_overlay.offset_left = 0.0
+	minimap_overlay.offset_top = 0.0
+	minimap_overlay.offset_right = 0.0
+	minimap_overlay.offset_bottom = 0.0
+	minimap_placeholder.add_child(minimap_overlay)
+
+
+func draw_minimap_overlay(overlay: Control) -> void:
+	if overlay == null:
+		return
+
+	draw_creature_markers_on_overlay(overlay)
+
+	var camera := find_active_camera()
+
+	if camera != null:
+		draw_camera_rect_on_overlay(overlay, get_camera_world_rect(camera))
+
+
+func draw_creature_markers_on_overlay(overlay: Control) -> void:
 	for creature in get_tree().get_nodes_in_group("creatures"):
 		if not is_instance_valid(creature):
 			continue
@@ -249,12 +288,12 @@ func draw_creature_markers_on_minimap(minimap_image: Image) -> void:
 			continue
 
 		var creature_node := creature as Node2D
-		var minimap_pixel := world_to_minimap_pixel(creature_node.global_position)
+		var overlay_position := world_to_minimap_overlay_position(creature_node.global_position, overlay.size)
 
-		if minimap_pixel.x < 0 or minimap_pixel.y < 0:
+		if overlay_position.x < 0.0 or overlay_position.y < 0.0:
 			continue
 
-		draw_triangle_marker_on_minimap(minimap_image, minimap_pixel, get_minimap_creature_color(creature))
+		draw_triangle_marker_on_overlay(overlay, overlay_position, get_minimap_creature_color(creature))
 
 
 func get_minimap_creature_color(creature: Node) -> Color:
@@ -272,35 +311,54 @@ func get_minimap_creature_color(creature: Node) -> Color:
 	return MINIMAP_HERBIVORE_COLOR
 
 
-func world_to_minimap_pixel(world_position: Vector2) -> Vector2i:
+func get_minimap_content_rect(draw_size: Vector2) -> Rect2:
+	var image_size := Vector2(minimap_map_size + Vector2i(2, 2))
+
+	if image_size.x <= 0.0 or image_size.y <= 0.0:
+		return Rect2()
+
+	var border_size := Vector2(
+		draw_size.x / image_size.x,
+		draw_size.y / image_size.y
+	)
+	return Rect2(border_size, draw_size - border_size * 2.0)
+
+
+func world_to_minimap_overlay_position(world_position: Vector2, draw_size: Vector2) -> Vector2:
 	if minimap_map_size.x <= 0 or minimap_map_size.y <= 0:
-		return Vector2i(-1, -1)
+		return Vector2(-1.0, -1.0)
 
 	if minimap_world_bounds.size.x <= 0.0 or minimap_world_bounds.size.y <= 0.0:
-		return Vector2i(-1, -1)
+		return Vector2(-1.0, -1.0)
+
+	var content_rect := get_minimap_content_rect(draw_size)
+
+	if content_rect.size.x <= 0.0 or content_rect.size.y <= 0.0:
+		return Vector2(-1.0, -1.0)
 
 	var normalized_x := clampf((world_position.x - minimap_world_bounds.position.x) / minimap_world_bounds.size.x, 0.0, 1.0)
 	var normalized_y := clampf((world_position.y - minimap_world_bounds.position.y) / minimap_world_bounds.size.y, 0.0, 1.0)
-	var pixel_x := 1 + clampi(int(round(normalized_x * float(minimap_map_size.x - 1))), 0, minimap_map_size.x - 1)
-	var pixel_y := 1 + clampi(int(round(normalized_y * float(minimap_map_size.y - 1))), 0, minimap_map_size.y - 1)
-	return Vector2i(pixel_x, pixel_y)
+	return content_rect.position + Vector2(normalized_x * content_rect.size.x, normalized_y * content_rect.size.y)
 
 
-func draw_triangle_marker_on_minimap(minimap_image: Image, center_pixel: Vector2i, marker_color: Color) -> void:
-	set_minimap_map_pixel(minimap_image, center_pixel.x, center_pixel.y - 1, marker_color)
-	set_minimap_map_pixel(minimap_image, center_pixel.x - 1, center_pixel.y, marker_color)
-	set_minimap_map_pixel(minimap_image, center_pixel.x, center_pixel.y, marker_color)
-	set_minimap_map_pixel(minimap_image, center_pixel.x + 1, center_pixel.y, marker_color)
+func draw_triangle_marker_on_overlay(overlay: Control, center_position: Vector2, marker_color: Color) -> void:
+	var top_left := Vector2(
+		floor(center_position.x - MINIMAP_CREATURE_MARKER_HALF_SIZE),
+		floor(center_position.y - MINIMAP_CREATURE_MARKER_HALF_SIZE)
+	)
+
+	for pixel_offset in get_triangle_marker_pixels():
+		overlay.draw_rect(Rect2(top_left + pixel_offset, Vector2.ONE), marker_color, true)
 
 
-func set_minimap_map_pixel(minimap_image: Image, pixel_x: int, pixel_y: int, pixel_color: Color) -> void:
-	if pixel_x < 1 or pixel_x > minimap_map_size.x:
-		return
-
-	if pixel_y < 1 or pixel_y > minimap_map_size.y:
-		return
-
-	minimap_image.set_pixel(pixel_x, pixel_y, pixel_color)
+func get_triangle_marker_pixels() -> Array[Vector2]:
+	return [
+		Vector2(2, 0), Vector2(3, 0),
+		Vector2(1, 1), Vector2(2, 1), Vector2(3, 1), Vector2(4, 1),
+		Vector2(1, 2), Vector2(2, 2), Vector2(3, 2), Vector2(4, 2),
+		Vector2(0, 3), Vector2(1, 3), Vector2(2, 3), Vector2(3, 3), Vector2(4, 3), Vector2(5, 3),
+		Vector2(0, 4), Vector2(1, 4), Vector2(2, 4), Vector2(3, 4), Vector2(4, 4), Vector2(5, 4)
+	]
 
 
 func get_camera_world_rect(camera: Camera2D) -> Rect2:
@@ -310,10 +368,15 @@ func get_camera_world_rect(camera: Camera2D) -> Rect2:
 	return Rect2(camera.global_position - visible_size * 0.5, visible_size)
 
 
-func draw_camera_rect_on_minimap(minimap_image: Image, camera_world_rect: Rect2) -> void:
+func draw_camera_rect_on_overlay(overlay: Control, camera_world_rect: Rect2) -> void:
 	var clipped_rect := camera_world_rect.intersection(minimap_world_bounds)
 
 	if clipped_rect.size.x <= 0.0 or clipped_rect.size.y <= 0.0:
+		return
+
+	var content_rect := get_minimap_content_rect(overlay.size)
+
+	if content_rect.size.x <= 0.0 or content_rect.size.y <= 0.0:
 		return
 
 	var normalized_left := clampf((clipped_rect.position.x - minimap_world_bounds.position.x) / minimap_world_bounds.size.x, 0.0, 1.0)
@@ -321,25 +384,31 @@ func draw_camera_rect_on_minimap(minimap_image: Image, camera_world_rect: Rect2)
 	var normalized_right := clampf((clipped_rect.end.x - minimap_world_bounds.position.x) / minimap_world_bounds.size.x, 0.0, 1.0)
 	var normalized_bottom := clampf((clipped_rect.end.y - minimap_world_bounds.position.y) / minimap_world_bounds.size.y, 0.0, 1.0)
 
-	var left := 1 + clampi(int(floor(normalized_left * float(minimap_map_size.x))), 0, minimap_map_size.x - 1)
-	var top := 1 + clampi(int(floor(normalized_top * float(minimap_map_size.y))), 0, minimap_map_size.y - 1)
-	var right := 1 + clampi(int(ceil(normalized_right * float(minimap_map_size.x))) - 1, 0, minimap_map_size.x - 1)
-	var bottom := 1 + clampi(int(ceil(normalized_bottom * float(minimap_map_size.y))) - 1, 0, minimap_map_size.y - 1)
+	var left := int(floor(content_rect.position.x + normalized_left * content_rect.size.x))
+	var top := int(floor(content_rect.position.y + normalized_top * content_rect.size.y))
+	var right := int(ceil(content_rect.position.x + normalized_right * content_rect.size.x)) - 1
+	var bottom := int(ceil(content_rect.position.y + normalized_bottom * content_rect.size.y)) - 1
 
-	var horizontal_edges := ensure_minimap_pixel_span(left, right, 1, minimap_map_size.x)
-	var vertical_edges := ensure_minimap_pixel_span(top, bottom, 1, minimap_map_size.y)
+	var min_x := int(floor(content_rect.position.x))
+	var min_y := int(floor(content_rect.position.y))
+	var max_x := int(ceil(content_rect.end.x)) - 1
+	var max_y := int(ceil(content_rect.end.y)) - 1
+
+	left = clampi(left, min_x, max_x)
+	top = clampi(top, min_y, max_y)
+	right = clampi(right, min_x, max_x)
+	bottom = clampi(bottom, min_y, max_y)
+
+	var horizontal_edges := ensure_minimap_pixel_span(left, right, min_x, max_x)
+	var vertical_edges := ensure_minimap_pixel_span(top, bottom, min_y, max_y)
 	left = horizontal_edges.x
 	right = horizontal_edges.y
 	top = vertical_edges.x
 	bottom = vertical_edges.y
 
-	var rect_width := right - left + 1
-	var rect_height := bottom - top + 1
-
-	minimap_image.fill_rect(Rect2i(left, top, rect_width, 1), MINIMAP_CAMERA_COLOR)
-	minimap_image.fill_rect(Rect2i(left, bottom, rect_width, 1), MINIMAP_CAMERA_COLOR)
-	minimap_image.fill_rect(Rect2i(left, top, 1, rect_height), MINIMAP_CAMERA_COLOR)
-	minimap_image.fill_rect(Rect2i(right, top, 1, rect_height), MINIMAP_CAMERA_COLOR)
+	var rect_position := Vector2(left, top)
+	var rect_size := Vector2(right - left + 1, bottom - top + 1)
+	overlay.draw_rect(Rect2(rect_position, rect_size), MINIMAP_CAMERA_COLOR, false, 1.0)
 
 
 func ensure_minimap_pixel_span(start_pixel: int, end_pixel: int, minimum_pixel: int, maximum_pixel: int) -> Vector2i:
@@ -382,14 +451,14 @@ func move_camera_to_minimap_position(local_position: Vector2) -> void:
 	if camera == null:
 		return
 
-	var image_size := Vector2(minimap_map_size + Vector2i(2, 2))
-	var image_position := Vector2(
-		local_position.x / minimap_placeholder.size.x * image_size.x,
-		local_position.y / minimap_placeholder.size.y * image_size.y
-	)
+	var content_rect := get_minimap_content_rect(minimap_placeholder.size)
+
+	if content_rect.size.x <= 0.0 or content_rect.size.y <= 0.0:
+		return
+
 	var normalized_position := Vector2(
-		clampf((image_position.x - 1.0) / float(minimap_map_size.x), 0.0, 1.0),
-		clampf((image_position.y - 1.0) / float(minimap_map_size.y), 0.0, 1.0)
+		clampf((local_position.x - content_rect.position.x) / content_rect.size.x, 0.0, 1.0),
+		clampf((local_position.y - content_rect.position.y) / content_rect.size.y, 0.0, 1.0)
 	)
 
 	camera.global_position = minimap_world_bounds.position + normalized_position * minimap_world_bounds.size

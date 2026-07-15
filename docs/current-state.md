@@ -111,14 +111,14 @@ Current minimap rules:
 - `scripts/ui/player_ui.gd` builds the minimap inside the existing `MiniMapPlaceholder` panel;
 - the minimap reads the current used bounds and terrain source ids from the active `Ground` TileMapLayer;
 - the entire authored map is compressed into the existing 280x280 right-side interface area;
-- ground is light brown, water is blue, mountains are dark grey, and trees are dark green;
+- ground is light brown, water is light blue, mountains are dark grey, and trees are dark green;
 - the minimap texture is generated at runtime and does not require a separate manually maintained map image;
 - herbivores are shown as light-green triangle markers;
 - predator creatures are shown as red triangle markers;
-- the egg eater is shown as a dark-blue triangle marker;
+- the egg eater is shown as a blue triangle marker;
 - a bright rectangular frame shows the current camera viewport and changes size with camera zoom;
 - left-clicking the minimap moves the observer camera to the selected world position;
-- terrain stays static during a session, while the camera frame updates on movement/zoom and creature markers refresh during play;
+- terrain stays static during a session, while a separate overlay redraws the camera frame and 6x6 creature triangle markers during play;
 - eggs, the player base, and world events are not shown yet.
 
 ## Terrain

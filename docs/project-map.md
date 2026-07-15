@@ -51,7 +51,7 @@
 
 - `scripts/ui/start_screen.gd` — startup menu and slot loading.
 - `scripts/ui/creature_stats_ui.gd` — creature information, hover, selection, and lightning click bridge.
-- `scripts/ui/player_ui.gd` — interactive terrain minimap generation, creature-marker overlay, camera viewport display and click navigation, creature/egg counters, and time-speed controls.
+- `scripts/ui/player_ui.gd` — interactive terrain minimap generation, creature-marker overlay layer, camera viewport display and click navigation, creature/egg counters, and time-speed controls.
 - `scripts/ui/player_nature_ui.gd` — player energy and nature powers.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug.
 - `scripts/save/save_system.gd` — three-slot JSON persistence, in-game menu integration, and runtime reconstruction.
@@ -89,7 +89,7 @@ Terrain source ids in `world.tscn`:
 - `2` — mountain;
 - `3` — tree.
 
-The terrain minimap reads these source ids directly from the active `Ground` TileMapLayer, generates its display texture at runtime, overlays the active camera viewport, draws creature-category triangle markers (light green herbivores, red predators, dark blue egg eater), and translates minimap clicks into observer-camera world positions.
+The terrain minimap reads these source ids directly from the active `Ground` TileMapLayer, generates its display texture at runtime, overlays the active camera viewport, draws 6x6 creature-category triangle markers on a separate overlay layer (light green herbivores, red predators, blue egg eater), and translates minimap clicks into observer-camera world positions.
 
 ## Effect assets
 
@@ -132,7 +132,7 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Startup flow belongs in `start_screen.gd` and `start_screen.tscn`.
 - Save collection, reconstruction, slot files, and in-game save menu belong in `save_system.gd`.
 - Creature observation and selection belong in `creature_stats_ui.gd`.
-- Terrain minimap generation, creature-marker updates, camera-frame updates, minimap click navigation, counters, and speed controls belong in `player_ui.gd`.
+- Terrain minimap generation, creature-marker overlay updates, camera-frame updates, minimap click navigation, counters, and speed controls belong in `player_ui.gd`.
 - Nature energy and powers belong in `player_nature_ui.gd`.
 - Text and grid diagnostics belong in their dedicated debug scripts.
 
