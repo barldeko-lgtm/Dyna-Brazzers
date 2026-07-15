@@ -242,11 +242,19 @@ func spawn_hatched_creature() -> void:
 	if new_creature == null:
 		return
 
+	var spawn_health: float = hatch_health
+	var spawn_hunger: float = hatch_hunger
+
 	if hatch_species_data != null:
 		new_creature.set("species_data", hatch_species_data)
+		spawn_health = hatch_species_data.max_health
+		spawn_hunger = hatch_species_data.max_hunger
 
-	new_creature.set("health", hatch_health)
-	new_creature.set("hunger", hatch_hunger)
+	# Every creature born from an egg starts fully healthy and fully fed.
+	# The exported fallback values remain available for an incomplete future egg
+	# that has no species data assigned yet.
+	new_creature.set("health", spawn_health)
+	new_creature.set("hunger", spawn_hunger)
 	new_creature.set("age", 0.0)
 
 	var spawn_world_position: Vector2 = world_grid.anchor_to_world_position(anchor_tile, STAGE_2_FOOTPRINT)

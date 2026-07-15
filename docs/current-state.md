@@ -227,6 +227,7 @@ Player egg-creation rules:
 - energy is spent only after the base successfully creates the egg;
 - failed placement does not consume energy;
 - created eggs grow, expand, hatch, and save through the existing shared egg system.
+- every creature hatched from either a natural or player-created egg starts with its species maximum health and maximum hunger.
 
 ## Grazing target scoring
 
