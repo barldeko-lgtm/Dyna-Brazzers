@@ -85,7 +85,8 @@ Current UI scripts:
 - `res://scripts/flags/player_flag_system.gd` — `PlayerFlags` autoload for the species-flag submenu, map targeting, saved flag state, and soft creature attraction;
 - `res://scripts/flags/player_flag_visual.gd` — non-blocking world-space flag and influence-area rendering;
 - `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text;
-- `res://scripts/ui/player_nature_ui.gd` — energy, spell buttons, targeting, and previews;
+- `res://scripts/ui/player_nature_ui.gd` — spell buttons, targeting, and previews;
+- `res://scripts/player/player_energy.gd` — session energy reserve, spending API, and living-dinosaur income;
 - `res://scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, grass effects, and spell VFX application;
 - `res://scripts/debug/grid_debug_overlay.gd` — F3 grid/debug overlay.
 
@@ -95,6 +96,7 @@ Expected gameplay scene wiring:
 - `UI/FpsLabel` uses `debug_status_ui.gd`;
 - `UI/PlayerSidePanel` uses `player_ui.gd`;
 - the nature panel uses `player_nature_ui.gd`.
+- the active world owns `PlayerEnergy`; UI, egg purchases, and `SaveSystem` query it through the `player_energy` group.
 
 Rules:
 

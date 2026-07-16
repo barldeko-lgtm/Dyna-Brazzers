@@ -4,9 +4,6 @@ const RAIN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/rain_target_previe
 const SUN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/sun_target_preview.tscn"
 
 # Player-facing nature powers HUD.
-@export var max_energy := 9999.0
-@export var starting_energy := 0.0
-@export var energy_regen_per_second := 1.0
 @export var lightning_energy_cost := 50.0
 @export var rain_energy_cost := 30.0
 @export var sun_energy_cost := 100.0
@@ -16,7 +13,7 @@ const SUN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/sun_target_preview.
 @onready var rain_button: Button = get_node_or_null("MarginContainer/VBoxContainer/RainButton")
 @onready var sun_button: Button = get_node_or_null("MarginContainer/VBoxContainer/SunButton")
 
-var current_energy := 0.0
+var player_energy: Node = null
 var lightning_targeting_enabled := false
 var rain_targeting_enabled := false
 var sun_targeting_enabled := false
@@ -27,7 +24,7 @@ var sun_target_preview: Node2D = null
 func _ready() -> void:
 	add_to_group("player_nature_ui")
 	set_process(true)
-	current_energy = clamp(starting_energy, 0.0, max_energy)
+	_bind_player_energy()
 
 	setup_lightning_button()
 	setup_rain_button()
@@ -35,9 +32,8 @@ func _ready() -> void:
 	_update_energy_ui()
 
 
-func _process(delta: float) -> void:
-	current_energy = clamp(current_energy + energy_regen_per_second * delta, 0.0, max_energy)
-	_update_energy_ui()
+func _process(_delta: float) -> void:
+	_bind_player_energy()
 
 	if rain_targeting_enabled:
 		_update_rain_target_preview()
@@ -228,40 +224,35 @@ func cancel_all_targeting() -> void:
 
 
 func can_spend_energy(amount: float) -> bool:
-	return current_energy >= amount
+	return player_energy != null and bool(player_energy.call("can_spend", amount))
 
 
 func spend_energy(amount: float) -> bool:
-	if amount <= 0.0:
-		return true
-
-	if not can_spend_energy(amount):
-		return false
-
-	current_energy = clamp(current_energy - amount, 0.0, max_energy)
-	_update_energy_ui()
-	return true
+	return player_energy != null and bool(player_energy.call("spend", amount))
 
 
 func add_energy(amount: float) -> void:
-	if amount <= 0.0:
-		return
-
-	current_energy = clamp(current_energy + amount, 0.0, max_energy)
-	_update_energy_ui()
+	if player_energy != null:
+		player_energy.call("add_energy", amount)
 
 
 func get_energy() -> float:
-	return current_energy
+	if player_energy == null:
+		return 0.0
+
+	return float(player_energy.call("get_energy"))
 
 
 func get_max_energy() -> float:
-	return max_energy
+	if player_energy == null:
+		return 0.0
+
+	return float(player_energy.call("get_max_energy"))
 
 
 func _update_energy_ui() -> void:
 	if energy_value_label != null:
-		energy_value_label.text = "%d" % floori(current_energy)
+		energy_value_label.text = "%d" % floori(get_energy())
 
 	_update_spell_buttons()
 
@@ -470,6 +461,35 @@ func _hide_sun_target_preview() -> void:
 		sun_target_preview.hide_preview()
 	else:
 		sun_target_preview.visible = false
+
+
+func _bind_player_energy() -> void:
+	var resolved_energy := _get_player_energy()
+
+	if resolved_energy == player_energy:
+		return
+
+	player_energy = resolved_energy
+
+	if player_energy == null:
+		return
+
+	var changed_callable := Callable(self, "_on_energy_changed")
+
+	if player_energy.has_signal("energy_changed") and not player_energy.is_connected(
+		"energy_changed", changed_callable
+	):
+		player_energy.connect("energy_changed", changed_callable)
+
+	_update_energy_ui()
+
+
+func _on_energy_changed(_current_energy: float, _max_energy: float) -> void:
+	_update_energy_ui()
+
+
+func _get_player_energy() -> Node:
+	return get_tree().get_first_node_in_group("player_energy")
 
 
 func _get_nature_effects_system() -> Node:

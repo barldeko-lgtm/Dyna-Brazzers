@@ -502,12 +502,12 @@ func _collect_camera_data() -> Dictionary:
 
 
 func _collect_player_energy() -> float:
-	var nature_ui: Node = get_tree().get_first_node_in_group("player_nature_ui")
+	var player_energy: Node = get_tree().get_first_node_in_group("player_energy")
 
-	if nature_ui == null:
+	if player_energy == null or not player_energy.has_method("get_energy"):
 		return 0.0
 
-	return float(nature_ui.get("current_energy"))
+	return float(player_energy.call("get_energy"))
 
 
 func _collect_creature_data() -> Array[Dictionary]:
@@ -934,16 +934,12 @@ func _restore_creatures(
 
 
 func _restore_player_energy(saved_energy: float) -> void:
-	var nature_ui: Node = get_tree().get_first_node_in_group("player_nature_ui")
+	var player_energy: Node = get_tree().get_first_node_in_group("player_energy")
 
-	if nature_ui == null:
+	if player_energy == null or not player_energy.has_method("restore_energy"):
 		return
 
-	var max_energy: float = float(nature_ui.get("max_energy"))
-	nature_ui.set("current_energy", clampf(saved_energy, 0.0, max_energy))
-
-	if nature_ui.has_method("_update_energy_ui"):
-		nature_ui.call("_update_energy_ui")
+	player_energy.call("restore_energy", saved_energy)
 
 
 func _restore_camera(camera_data: Dictionary) -> void:

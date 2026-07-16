@@ -1,9 +1,7 @@
 extends Node
 
-# Player egg-purchase submenu. The UI spends nature energy only after the
+# Player egg-purchase submenu. The UI spends player energy only after the
 # player base successfully creates a real species egg near its footprint.
-
-const TEST_STARTING_ENERGY := 2000.0
 
 const EGG_OPTIONS := [
 	{
@@ -39,6 +37,7 @@ const EGG_MENU_BUTTON_PATH := MAIN_MENU_GRID_PATH + "/MainPlaceholder1"
 
 var player_side_panel: Control = null
 var nature_ui: Node = null
+var player_energy: Node = null
 var nature_content: Control = null
 var main_menu_grid: GridContainer = null
 var egg_menu_button: Button = null
@@ -55,15 +54,20 @@ func _ready() -> void:
 		return
 
 	nature_ui = player_side_panel.get_node_or_null(NATURE_PANEL_PATH)
+	player_energy = get_tree().get_first_node_in_group("player_energy")
 	nature_content = player_side_panel.get_node_or_null(NATURE_CONTENT_PATH) as Control
 	main_menu_grid = player_side_panel.get_node_or_null(MAIN_MENU_GRID_PATH) as GridContainer
 	egg_menu_button = player_side_panel.get_node_or_null(EGG_MENU_BUTTON_PATH) as Button
 
-	if nature_ui == null or nature_content == null or main_menu_grid == null or egg_menu_button == null:
+	if (
+		nature_ui == null
+		or nature_content == null
+		or main_menu_grid == null
+		or egg_menu_button == null
+	):
 		push_error("PlayerEggCreationUI: required player UI nodes were not found.")
 		return
 
-	_apply_test_starting_energy()
 	_build_egg_menu()
 	egg_menu_button.tooltip_text = "Создание яиц"
 
@@ -75,18 +79,10 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	if player_energy == null:
+		player_energy = get_tree().get_first_node_in_group("player_energy")
+
 	_update_species_buttons()
-
-
-func _apply_test_starting_energy() -> void:
-	if not nature_ui.has_method("get_energy") or not nature_ui.has_method("add_energy"):
-		return
-
-	nature_ui.set("starting_energy", TEST_STARTING_ENERGY)
-	var current_energy := float(nature_ui.call("get_energy"))
-
-	if current_energy < TEST_STARTING_ENERGY:
-		nature_ui.call("add_energy", TEST_STARTING_ENERGY - current_energy)
 
 
 func _build_egg_menu() -> void:
@@ -188,7 +184,7 @@ func _on_species_button_pressed(species_data: CreatureSpeciesData, energy_cost: 
 		_set_status("Нет места у базы")
 		return
 
-	if not bool(nature_ui.call("spend_energy", energy_cost)):
+	if player_energy == null or not bool(player_energy.call("spend", energy_cost)):
 		created_egg.queue_free()
 		_set_status("Не хватает энки")
 		return
@@ -198,10 +194,7 @@ func _on_species_button_pressed(species_data: CreatureSpeciesData, energy_cost: 
 
 
 func _can_spend_energy(energy_cost: float) -> bool:
-	if nature_ui == null or not nature_ui.has_method("can_spend_energy"):
-		return false
-
-	return bool(nature_ui.call("can_spend_energy", energy_cost))
+	return player_energy != null and bool(player_energy.call("can_spend", energy_cost))
 
 
 func _update_species_buttons() -> void:
