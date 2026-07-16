@@ -242,15 +242,14 @@ The `⚑` menu supports one independent 11x11 flag for each current player speci
 Rules:
 
 - a flag is placed or moved on a walkable tile; all flags are visual only and never block the world;
-- fed creatures in normal idle/walk states receive a soft movement preference toward their own area;
+- the `⚑` menu places or moves a selected flag with left-click; right-click cancels and flags cost no energy;
+- eligible idle/walk creatures without an active higher-priority task receive a soft movement preference toward their own area;
 - hunger, eating, reproduction, combat, death, and other survival behaviour remain higher priority than the flag;
 - stegosaurus and triceratops prefer mature grass anchors inside their area; other current species prefer free valid anchors;
 - destinations are distributed across valid anchors instead of stacking creatures on a flag tile;
 - after arrival, creatures resume normal autonomous behaviour and can later be attracted back after leaving;
-- right-click cancels placement; removal mode deletes the flag clicked at its center;
+- removal mode deletes the flag clicked at its center;
 - flag state is stored in normal save slots through `save_system_with_flags.gd`; old saves without flag data load with no active flags.
-
-Detailed ownership and extension rules are documented in `docs/player-flags.md`.
 
 ## Grazing target scoring
 

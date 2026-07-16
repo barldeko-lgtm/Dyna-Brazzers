@@ -7,7 +7,6 @@
 - `docs/project-map.md` — project structure and file ownership.
 - `docs/current-state.md` — current implemented systems and prototype status.
 - `docs/dependencies.md` — practical dependency and fragile-flow map.
-- `docs/player-flags.md` — species-flag architecture, behaviour priority, UI flow, and extension rules.
 - `docs/design_roadmap.md` — broader design roadmap; do not edit unless explicitly requested.
 
 ## Key scenes
