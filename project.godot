@@ -18,7 +18,8 @@ config/icon="res://app_icon.svg"
 [autoload]
 
 PerformanceStats="*res://scripts/debug/performance_stats.gd"
-SaveSystem="*res://scripts/save/save_system.gd"
+PlayerFlags="*res://scripts/flags/player_flag_system.gd"
+SaveSystem="*res://scripts/save/save_system_with_flags.gd"
 
 [display]
 

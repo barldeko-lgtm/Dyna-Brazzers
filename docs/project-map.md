@@ -2,11 +2,12 @@
 
 ## Project root
 
-- `project.godot` — Godot project config. Startup scene is `scenes/ui/start_screen.tscn`; `PerformanceStats` and `SaveSystem` are autoloads.
+- `project.godot` — Godot project config. Startup scene is `scenes/ui/start_screen.tscn`; `PerformanceStats`, `PlayerFlags`, and the flag-aware `SaveSystem` extension are autoloads.
 - `AGENTS.md` — working rules and architecture briefing for agents.
 - `docs/project-map.md` — project structure and file ownership.
 - `docs/current-state.md` — current implemented systems and prototype status.
 - `docs/dependencies.md` — practical dependency and fragile-flow map.
+- `docs/player-flags.md` — species-flag architecture, behaviour priority, UI flow, and extension rules.
 - `docs/design_roadmap.md` — broader design roadmap; do not edit unless explicitly requested.
 
 ## Key scenes
@@ -53,9 +54,12 @@
 - `scripts/ui/creature_stats_ui.gd` — creature information, hover, selection, and lightning click bridge.
 - `scripts/ui/player_ui.gd` — interactive terrain minimap generation, creature-marker overlay layer, camera viewport display and click navigation, creature/egg counters, time-speed controls, and egg-controller bootstrap.
 - `scripts/ui/player_egg_creation_ui.gd` — runtime egg submenu, temporary species energy prices, test starting energy, button availability, and base purchase requests.
+- `scripts/flags/player_flag_system.gd` — `PlayerFlags` autoload; owns species-flag submenu, map placement, saved state, target distribution, and soft stegosaurus attraction.
+- `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag, 10x10 area, and placement-preview drawing.
 - `scripts/ui/player_nature_ui.gd` — player energy and nature powers.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug.
-- `scripts/save/save_system.gd` — three-slot JSON persistence, in-game menu integration, and runtime reconstruction.
+- `scripts/save/save_system.gd` — base three-slot JSON persistence, in-game menu integration, and runtime reconstruction.
+- `scripts/save/save_system_with_flags.gd` — small `SaveSystem` extension that adds player species flags without duplicating the base save logic.
 - `scripts/debug/performance_stats.gd` — runtime counters and CSV logging.
 - `scripts/debug/grid_debug_overlay.gd` — F3 visualization of terrain, occupancy, footprints, and paths.
 - `scripts/effects/` — effect playback and target-preview scripts.
@@ -72,7 +76,7 @@ On Windows this normally resolves to:
 
 `%APPDATA%/Godot/app_userdata/Dyna/`
 
-Static terrain and the fixed player base are not included in these files.
+Static terrain and the fixed player base are not included in these files. Active species flags are stored as lightweight tile records inside the selected save slot.
 
 ## Terrain assets
 
@@ -139,6 +143,8 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Creature observation and selection belong in `creature_stats_ui.gd`.
 - Terrain minimap generation, creature-marker overlay updates, camera-frame updates, minimap click navigation, counters, speed controls, and egg-controller startup belong in `player_ui.gd`.
 - Egg submenu presentation, temporary egg prices, purchase validation, and base requests belong in `player_egg_creation_ui.gd`.
+- Species-flag UI, targeting, world visuals, target distribution, and soft order behaviour belong to the `PlayerFlags` autoload and `scripts/flags/`.
+- The base save system stays in `save_system.gd`; flag serialization is layered through `save_system_with_flags.gd`.
 - Nature energy and powers belong in `player_nature_ui.gd`; egg purchases use its public energy methods.
 - Text and grid diagnostics belong in their dedicated debug scripts.
 
