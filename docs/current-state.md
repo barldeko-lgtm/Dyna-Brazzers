@@ -19,7 +19,7 @@ Current prototype includes:
 - static flattened contour shadows beneath creatures;
 - player nature powers;
 - player-created species eggs bought for nature energy through the egg submenu;
-- the first species-order flag: a stegosaurus pasture flag with an 11x11 influence area;
+- species-order flags for all six player species, each with an 11x11 influence area;
 - a local four-frame rain VFX;
 - right-side HUD with live creature and egg counters;
 - an interactive right-side terrain minimap showing ground, water, mountains, trees, creature markers, and the current camera view;
@@ -36,7 +36,7 @@ Current prototype includes:
 - return to Main Menu with full active-session reset;
 - Exit buttons in both the startup screen and the in-game menu.
 
-Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, retained predator/combat prototype code, and the fixed player-base foundation for future egg creation. Roadmap block `0.7 — Player expansion and atmosphere` now includes the interactive terrain minimap, player egg creation, and the first species-order flag pass.
+Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, retained predator/combat prototype code, and the fixed player-base foundation for future egg creation. Roadmap block `0.7 — Player expansion and atmosphere` now includes the interactive terrain minimap, player egg creation, and the first all-species flag pass.
 
 Automatic predator spawning is currently disabled.
 
@@ -102,7 +102,7 @@ Current UI ownership:
 - `scripts/ui/creature_stats_ui.gd` owns creature information, hover/selection, deselection, and the lightning click bridge;
 - `scripts/ui/player_ui.gd` owns the interactive terrain minimap, creature markers, camera-frame display and click navigation, creature/egg counters, time-speed controls, and bootstraps the egg-creation controller;
 - `scripts/ui/player_egg_creation_ui.gd` owns the egg submenu, temporary species prices, test starting energy, purchase validation, and requests to the player base;
-- the `PlayerFlags` autoload from `scripts/flags/player_flag_system.gd` owns species-flag UI, placement, saved flag state, and soft creature attraction;
+- the `PlayerFlags` autoload from `scripts/flags/player_flag_system.gd` owns all-species flag UI, placement, saved flag state, and soft creature attraction;
 - `scripts/flags/player_flag_visual.gd` draws the world flag, its 11x11 area, and placement preview without blocking terrain;
 - `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
 - `scripts/ui/player_nature_ui.gd` owns player energy and nature powers;
@@ -234,19 +234,17 @@ Player egg-creation rules:
 
 ## Species-order flags
 
-The first flag pass supports a stegosaurus pasture flag through the existing `⚑` button.
+The `⚑` menu supports one independent 11x11 flag for each current player species: stegosaurus, triceratops, tyrannosaurus, raptor, pterodactyl, and egg eater.
 
 Rules:
 
-- there is one active flag per supported species; placing another stegosaurus flag moves the existing one;
-- the flag is placed on a walkable map tile and is exactly centered in an 11x11 tile area (five tiles in every direction);
-- the flag itself is visual only and does not block creatures, eggs, grass, or pathfinding;
-- fed stegosauruses in normal idle/walk states receive a soft movement preference toward the flag area;
-- hunger, eating, reproduction, combat, death, and other survival behaviour remain higher priority than the flag; crossing the hunger-search threshold immediately drops the queued flag route and starts normal grass seeking;
-- stegosauruses receive different valid destination anchors inside the area instead of stacking on the flag tile;
-- mature grass inside the area is preferred when selecting destinations; a free walkable anchor is used as fallback;
-- once a stegosaurus reaches the area it resumes normal autonomous wandering and feeding; if it later leaves while fed, the flag attracts it back;
-- right-click cancels placement, and the flag submenu can remove the active flag;
+- a flag is placed or moved on a walkable tile; all flags are visual only and never block the world;
+- fed creatures in normal idle/walk states receive a soft movement preference toward their own area;
+- hunger, eating, reproduction, combat, death, and other survival behaviour remain higher priority than the flag;
+- stegosaurus and triceratops prefer mature grass anchors inside their area; other current species prefer free valid anchors;
+- destinations are distributed across valid anchors instead of stacking creatures on a flag tile;
+- after arrival, creatures resume normal autonomous behaviour and can later be attracted back after leaving;
+- right-click cancels placement; removal mode deletes the flag clicked at its center;
 - flag state is stored in normal save slots through `save_system_with_flags.gd`; old saves without flag data load with no active flags.
 
 Detailed ownership and extension rules are documented in `docs/player-flags.md`.

@@ -1,14 +1,26 @@
 extends Node
 
-# Species-specific indirect orders. The first pass supports one stegosaurus
-# pasture flag. Fed, otherwise-idle stegosauruses are softly attracted to a
-# centered 11x11 area around it; survival, feeding, reproduction and combat stay above
-# the flag in the behaviour priority order.
+# Species-specific indirect orders. Flags softly attract otherwise-idle
+# creatures into their own centered 11x11 area; survival, feeding,
+# reproduction and combat stay above the flag in the behaviour priority order.
 
 const GAME_SCENE_PATH := "res://scenes/main/main.tscn"
 const FLAG_VISUAL_SCRIPT := preload("res://scripts/flags/player_flag_visual.gd")
 
 const STEGOSAURUS_ID := &"stegosaurus"
+const TRICERATOPS_ID := &"triceratops"
+const TYRANNOSAURUS_ID := &"tyrannosaurus"
+const RAPTOR_ID := &"raptor"
+const PTERODACTYL_ID := &"pterodactyl"
+const EGG_EATER_ID := &"egg_eater"
+const SUPPORTED_SPECIES_IDS: Array[StringName] = [
+	STEGOSAURUS_ID,
+	TRICERATOPS_ID,
+	TYRANNOSAURUS_ID,
+	RAPTOR_ID,
+	PTERODACTYL_ID,
+	EGG_EATER_ID,
+]
 const FLAG_AREA_SIZE := Vector2i(11, 11)
 const INVALID_ANCHOR := Vector2i(2147483647, 2147483647)
 
@@ -47,6 +59,7 @@ var flag_menu_grid: GridContainer = null
 var status_label: Label = null
 
 var targeting_species_id := StringName()
+var removal_targeting_enabled := false
 var behaviour_update_timer := 0.0
 
 
@@ -189,42 +202,43 @@ func _build_flag_menu() -> void:
 	flag_menu_grid.name = "SpeciesFlagMenu"
 	flag_menu_grid.position = Vector2(0.0, 66.0)
 	flag_menu_grid.size = Vector2(260.0, 218.0)
-	flag_menu_grid.columns = 2
-	flag_menu_grid.add_theme_constant_override("h_separation", 8)
-	flag_menu_grid.add_theme_constant_override("v_separation", 8)
+	flag_menu_grid.columns = 3
+	flag_menu_grid.add_theme_constant_override("h_separation", 6)
+	flag_menu_grid.add_theme_constant_override("v_separation", 6)
 	flag_menu_grid.visible = false
 	nature_content.add_child(flag_menu_grid)
 
-	var stegosaurus_button := _duplicate_menu_button()
-	stegosaurus_button.name = "StegosaurusFlagButton"
-	stegosaurus_button.custom_minimum_size = Vector2(126.0, 58.0)
-	stegosaurus_button.text = "Стегозавр\nпоставить"
-	stegosaurus_button.tooltip_text = "Поставить или перенести пастбищный флаг стегозавров"
-	stegosaurus_button.add_theme_font_size_override("font_size", 14)
-	stegosaurus_button.pressed.connect(_on_stegosaurus_flag_pressed)
-	flag_menu_grid.add_child(stegosaurus_button)
+	for species_id in SUPPORTED_SPECIES_IDS:
+		var species_button := _duplicate_menu_button()
+		species_button.name = "%sFlagButton" % String(species_id).capitalize()
+		species_button.custom_minimum_size = Vector2(80.0, 52.0)
+		species_button.text = _get_species_button_text(species_id)
+		species_button.tooltip_text = _get_species_flag_tooltip(species_id)
+		species_button.add_theme_font_size_override("font_size", 11)
+		species_button.pressed.connect(_on_species_flag_pressed.bind(species_id))
+		flag_menu_grid.add_child(species_button)
 
 	var remove_button := _duplicate_menu_button()
-	remove_button.name = "RemoveStegosaurusFlagButton"
-	remove_button.custom_minimum_size = Vector2(126.0, 58.0)
+	remove_button.name = "RemoveSpeciesFlagButton"
+	remove_button.custom_minimum_size = Vector2(80.0, 52.0)
 	remove_button.text = "Удалить\nфлаг"
-	remove_button.tooltip_text = "Убрать флаг стегозавров"
-	remove_button.add_theme_font_size_override("font_size", 14)
+	remove_button.tooltip_text = "Выбрать флаг на карте для удаления"
+	remove_button.add_theme_font_size_override("font_size", 12)
 	remove_button.pressed.connect(_on_remove_flag_pressed)
 	flag_menu_grid.add_child(remove_button)
 
 	var back_button := _duplicate_menu_button()
 	back_button.name = "FlagMenuBackButton"
-	back_button.custom_minimum_size = Vector2(126.0, 52.0)
+	back_button.custom_minimum_size = Vector2(80.0, 52.0)
 	back_button.text = "← Назад"
 	back_button.tooltip_text = "Вернуться в основное меню"
-	back_button.add_theme_font_size_override("font_size", 18)
+	back_button.add_theme_font_size_override("font_size", 14)
 	back_button.pressed.connect(_on_back_button_pressed)
 	flag_menu_grid.add_child(back_button)
 
 	status_label = Label.new()
 	status_label.name = "FlagStatusLabel"
-	status_label.custom_minimum_size = Vector2(126.0, 52.0)
+	status_label.custom_minimum_size = Vector2(80.0, 52.0)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -259,7 +273,7 @@ func _on_flag_menu_button_pressed() -> void:
 	_update_status_for_current_flag()
 
 
-func _on_stegosaurus_flag_pressed() -> void:
+func _on_species_flag_pressed(species_id: StringName) -> void:
 	if world_grid == null or not is_instance_valid(world_grid):
 		_set_status("Мир не найден")
 		return
@@ -267,15 +281,16 @@ func _on_stegosaurus_flag_pressed() -> void:
 	if nature_ui != null and nature_ui.has_method("cancel_all_targeting"):
 		nature_ui.call("cancel_all_targeting")
 
-	targeting_species_id = STEGOSAURUS_ID
+	removal_targeting_enabled = false
+	targeting_species_id = species_id
 	_set_status("ЛКМ по карте\nПКМ — отмена")
 	_update_targeting_preview()
 
 
 func _on_remove_flag_pressed() -> void:
 	cancel_targeting()
-	remove_flag(STEGOSAURUS_ID)
-	_set_status("Флаг удалён")
+	removal_targeting_enabled = true
+	_set_status("ЛКМ по флагу\nПКМ — отмена")
 
 
 func _on_back_button_pressed() -> void:
@@ -314,6 +329,19 @@ func _handle_targeting_mouse(mouse_event: InputEventMouseButton) -> void:
 	var mouse_world_position := _get_world_mouse_position()
 	var target_tile: Vector2i = world_grid.call("world_to_map_tile", mouse_world_position)
 
+	if removal_targeting_enabled:
+		var species_id := _get_species_flag_at_tile(target_tile)
+
+		if species_id == StringName():
+			_set_status("Нужен центр\nфлага")
+			return
+
+		remove_flag(species_id)
+		cancel_targeting()
+		_set_status("Флаг удалён")
+		get_viewport().set_input_as_handled()
+		return
+
 	if not _is_valid_flag_tile(target_tile):
 		_set_status("Нужен свободный\nтайл земли")
 		return
@@ -326,6 +354,7 @@ func _handle_targeting_mouse(mouse_event: InputEventMouseButton) -> void:
 
 func cancel_targeting() -> void:
 	targeting_species_id = StringName()
+	removal_targeting_enabled = false
 
 	if flag_visual == null or not is_instance_valid(flag_visual):
 		return
@@ -335,7 +364,7 @@ func cancel_targeting() -> void:
 
 
 func is_targeting() -> bool:
-	return targeting_species_id != StringName()
+	return targeting_species_id != StringName() or removal_targeting_enabled
 
 
 func _update_targeting_preview() -> void:
@@ -343,6 +372,11 @@ func _update_targeting_preview() -> void:
 		return
 
 	if world_grid == null or not is_instance_valid(world_grid):
+		return
+
+	if removal_targeting_enabled:
+		if flag_visual != null and is_instance_valid(flag_visual):
+			flag_visual.call("hide_preview")
 		return
 
 	_ensure_flag_visual()
@@ -376,7 +410,54 @@ func _is_valid_flag_tile(tile: Vector2i) -> bool:
 	return bool(world_grid.call("is_tile_walkable", tile))
 
 
+func _get_species_flag_at_tile(tile: Vector2i) -> StringName:
+	for species_id in SUPPORTED_SPECIES_IDS:
+		if flags.get(species_id, INVALID_ANCHOR) == tile:
+			return species_id
+
+	return StringName()
+
+
+func _get_species_button_text(species_id: StringName) -> String:
+	match species_id:
+		STEGOSAURUS_ID:
+			return "Стего\nпастбище"
+		TRICERATOPS_ID:
+			return "Трицер\nпастбище"
+		TYRANNOSAURUS_ID:
+			return "Ти-рекс\nохота"
+		RAPTOR_ID:
+			return "Раптор\nзащита"
+		PTERODACTYL_ID:
+			return "Птеро\nпатруль"
+		EGG_EATER_ID:
+			return "Яйцеед\nпоиск"
+		_:
+			return "Флаг\nвида"
+
+
+func _get_species_flag_tooltip(species_id: StringName) -> String:
+	match species_id:
+		STEGOSAURUS_ID:
+			return "Поставить или перенести пастбищный флаг стегозавров"
+		TRICERATOPS_ID:
+			return "Поставить или перенести пастбищный флаг трицератопсов"
+		TYRANNOSAURUS_ID:
+			return "Поставить или перенести флаг охоты ти-рексов"
+		RAPTOR_ID:
+			return "Поставить или перенести защитный флаг рапторов"
+		PTERODACTYL_ID:
+			return "Поставить или перенести патрульный флаг птеродактилей"
+		EGG_EATER_ID:
+			return "Поставить или перенести флаг поиска яйцеедов"
+		_:
+			return "Поставить или перенести флаг вида"
+
+
 func set_flag(species_id: StringName, tile: Vector2i) -> void:
+	if not SUPPORTED_SPECIES_IDS.has(species_id):
+		return
+
 	_cancel_assigned_flag_routes()
 	flags[species_id] = tile
 	assigned_targets.clear()
@@ -437,7 +518,7 @@ func restore_save_data(save_data: Dictionary) -> void:
 			var record := record_variant as Dictionary
 			var species_id := StringName(String(record.get("species_id", "")))
 
-			if species_id == StringName():
+			if species_id == StringName() or not SUPPORTED_SPECIES_IDS.has(species_id):
 				continue
 
 			flags[species_id] = Vector2i(int(record.get("tile_x", 0)), int(record.get("tile_y", 0)))
@@ -454,10 +535,11 @@ func _sync_flag_visual() -> void:
 
 
 func _update_status_for_current_flag() -> void:
-	if has_flag(STEGOSAURUS_ID):
-		_set_status("Флаг активен")
-	else:
-		_set_status("Флаг не поставлен")
+	if flags.is_empty():
+		_set_status("Флагов нет")
+		return
+
+	_set_status("Флагов: %d" % flags.size())
 
 
 func _set_status(message: String) -> void:
@@ -468,18 +550,20 @@ func _set_status(message: String) -> void:
 func _update_creature_flag_behaviour() -> void:
 	_cleanup_creature_runtime_data()
 
-	if not has_flag(STEGOSAURUS_ID):
+	if flags.is_empty():
 		return
 
 	for creature: Node in get_tree().get_nodes_in_group("creatures"):
-		if not _is_matching_stegosaurus(creature):
+		var species_id := _get_creature_species_id(creature)
+
+		if species_id == StringName() or not has_flag(species_id):
 			_release_creature_target(creature)
 			continue
 
 		# Hunger immediately cancels the flag-owned route. If the creature is in
 		# the middle of one grid step, let that step finish but switch its state to
 		# SEEK_FOOD now so it cannot start another flag/wander step afterwards.
-		if _is_creature_hungry(creature):
+		if _hunger_overrides_flag(creature):
 			_drop_flag_route_for_hunger(creature)
 			continue
 
@@ -503,7 +587,7 @@ func _update_creature_flag_behaviour() -> void:
 			if navigation_variant is Vector2i:
 				navigation_anchor = navigation_variant
 
-		if _is_footprint_inside_flag_area(STEGOSAURUS_ID, navigation_anchor, footprint):
+		if _is_footprint_inside_flag_area(species_id, navigation_anchor, footprint):
 			_release_creature_target(creature, true)
 			continue
 
@@ -514,7 +598,7 @@ func _update_creature_flag_behaviour() -> void:
 
 		var previous_target_variant: Variant = assigned_targets.get(creature, INVALID_ANCHOR)
 		var already_assigned := previous_target_variant is Vector2i
-		var target_anchor := _get_or_assign_target(creature, footprint)
+		var target_anchor := _get_or_assign_target(creature, species_id, footprint)
 
 		if target_anchor == INVALID_ANCHOR:
 			_set_failed_path_retry(creature)
@@ -550,12 +634,21 @@ func _update_creature_flag_behaviour() -> void:
 		_apply_flag_path(creature, path_variant as Array)
 
 
-func _is_matching_stegosaurus(creature: Node) -> bool:
+func _get_creature_species_id(creature: Node) -> StringName:
 	if creature == null or not is_instance_valid(creature) or creature.is_queued_for_deletion():
-		return false
+		return StringName()
 
 	var species_data := creature.get("species_data") as CreatureSpeciesData
-	return species_data != null and StringName(species_data.species_id) == STEGOSAURUS_ID
+
+	if species_data == null:
+		return StringName()
+
+	var species_id := StringName(species_data.species_id)
+	return species_id if SUPPORTED_SPECIES_IDS.has(species_id) else StringName()
+
+
+func _species_prefers_pasture(species_id: StringName) -> bool:
+	return species_id == STEGOSAURUS_ID or species_id == TRICERATOPS_ID
 
 
 func _is_creature_hungry(creature: Node) -> bool:
@@ -567,8 +660,17 @@ func _is_creature_hungry(creature: Node) -> bool:
 	return float(creature.get("hunger")) <= species_data.hunger_search_threshold
 
 
+func _hunger_overrides_flag(creature: Node) -> bool:
+	var species_data := creature.get("species_data") as CreatureSpeciesData
+
+	if species_data == null or species_data.is_egg_eater():
+		return false
+
+	return _is_creature_hungry(creature)
+
+
 func _can_follow_flag(creature: Node) -> bool:
-	if not _is_matching_stegosaurus(creature) or _is_creature_hungry(creature):
+	if _get_creature_species_id(creature) == StringName() or _hunger_overrides_flag(creature):
 		return false
 
 	var state := int(creature.get("state"))
@@ -639,19 +741,26 @@ func _clear_queued_path(creature: Node) -> void:
 		creature.set("current_path", current_path)
 
 
-func _get_or_assign_target(creature: Node, footprint: Vector2i) -> Vector2i:
+func _get_or_assign_target(
+	creature: Node, species_id: StringName, footprint: Vector2i
+) -> Vector2i:
 	var existing_variant: Variant = assigned_targets.get(creature, INVALID_ANCHOR)
 
 	if existing_variant is Vector2i:
 		var existing: Vector2i = existing_variant
 
-		if existing != INVALID_ANCHOR and _is_valid_assigned_target(creature, existing, footprint):
+		if existing != INVALID_ANCHOR and _is_valid_assigned_target(
+			creature, species_id, existing, footprint
+		):
 			return existing
 
-	var new_target := _find_grass_target(creature, footprint)
+	var new_target := INVALID_ANCHOR
+
+	if _species_prefers_pasture(species_id):
+		new_target = _find_grass_target(creature, species_id, footprint)
 
 	if new_target == INVALID_ANCHOR:
-		new_target = _find_free_target(creature, footprint)
+		new_target = _find_free_target(creature, species_id, footprint)
 
 	if new_target != INVALID_ANCHOR:
 		assigned_targets[creature] = new_target
@@ -659,8 +768,10 @@ func _get_or_assign_target(creature: Node, footprint: Vector2i) -> Vector2i:
 	return new_target
 
 
-func _find_grass_target(creature: Node, footprint: Vector2i) -> Vector2i:
-	var flag_tile_variant: Variant = flags.get(STEGOSAURUS_ID, INVALID_ANCHOR)
+func _find_grass_target(
+	creature: Node, species_id: StringName, footprint: Vector2i
+) -> Vector2i:
+	var flag_tile_variant: Variant = flags.get(species_id, INVALID_ANCHOR)
 
 	if not (flag_tile_variant is Vector2i):
 		return INVALID_ANCHOR
@@ -688,7 +799,7 @@ func _find_grass_target(creature: Node, footprint: Vector2i) -> Vector2i:
 
 		var candidate: Vector2i = candidate_variant
 
-		if not _anchor_fits_flag_area(STEGOSAURUS_ID, candidate, footprint):
+		if not _anchor_fits_flag_area(species_id, candidate, footprint):
 			continue
 
 		if not bool(world_grid.call("can_place_footprint", candidate, footprint, creature)):
@@ -699,11 +810,13 @@ func _find_grass_target(creature: Node, footprint: Vector2i) -> Vector2i:
 
 		candidates.append(candidate)
 
-	return _choose_spread_candidate(creature, candidates)
+	return _choose_spread_candidate(creature, species_id, candidates)
 
 
-func _find_free_target(creature: Node, footprint: Vector2i) -> Vector2i:
-	var bounds := _get_flag_area_bounds(STEGOSAURUS_ID)
+func _find_free_target(
+	creature: Node, species_id: StringName, footprint: Vector2i
+) -> Vector2i:
+	var bounds := _get_flag_area_bounds(species_id)
 
 	if bounds.is_empty():
 		return INVALID_ANCHOR
@@ -724,21 +837,25 @@ func _find_free_target(creature: Node, footprint: Vector2i) -> Vector2i:
 
 			candidates.append(candidate)
 
-	return _choose_spread_candidate(creature, candidates)
+	return _choose_spread_candidate(creature, species_id, candidates)
 
 
-func _choose_spread_candidate(creature: Node, candidates: Array[Vector2i]) -> Vector2i:
+func _choose_spread_candidate(
+	creature: Node, species_id: StringName, candidates: Array[Vector2i]
+) -> Vector2i:
 	if candidates.is_empty():
 		return INVALID_ANCHOR
 
 	var seed_value := int(creature.get_instance_id())
-	var flag_tile: Vector2i = flags.get(STEGOSAURUS_ID, Vector2i.ZERO)
+	var flag_tile: Vector2i = flags.get(species_id, Vector2i.ZERO)
 	var start_index := posmod(seed_value + flag_tile.x * 31 + flag_tile.y * 17, candidates.size())
 	return candidates[start_index]
 
 
-func _is_valid_assigned_target(creature: Node, target: Vector2i, footprint: Vector2i) -> bool:
-	if not _anchor_fits_flag_area(STEGOSAURUS_ID, target, footprint):
+func _is_valid_assigned_target(
+	creature: Node, species_id: StringName, target: Vector2i, footprint: Vector2i
+) -> bool:
+	if not _anchor_fits_flag_area(species_id, target, footprint):
 		return false
 
 	if not bool(world_grid.call("can_place_footprint", target, footprint, creature)):

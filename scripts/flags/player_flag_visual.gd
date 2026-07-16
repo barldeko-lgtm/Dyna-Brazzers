@@ -52,16 +52,18 @@ func _draw() -> void:
 			continue
 
 		var flag_tile: Vector2i = tile_variant
-		_draw_flag_area(flag_tile, _get_species_color(species_id), false)
+		_draw_flag_area(flag_tile, species_id, _get_species_color(species_id), false)
 
 	if preview_active:
 		var preview_color := (
 			Color(0.5, 1.0, 0.45, 1.0) if preview_valid else Color(1.0, 0.3, 0.25, 1.0)
 		)
-		_draw_flag_area(preview_tile, preview_color, true)
+		_draw_flag_area(preview_tile, StringName(), preview_color, true)
 
 
-func _draw_flag_area(flag_tile: Vector2i, base_color: Color, is_preview: bool) -> void:
+func _draw_flag_area(
+	flag_tile: Vector2i, species_id: StringName, base_color: Color, is_preview: bool
+) -> void:
 	var tile_size := _get_tile_size()
 	var area_min := flag_tile - Vector2i(FLAG_AREA_SIZE.x / 2, FLAG_AREA_SIZE.y / 2)
 	var area_min_world: Vector2 = world_grid.call("map_to_world_center", area_min)
@@ -77,10 +79,12 @@ func _draw_flag_area(flag_tile: Vector2i, base_color: Color, is_preview: bool) -
 	draw_rect(area_rect, Color(base_color.r, base_color.g, base_color.b, border_alpha), false, 3.0)
 
 	var flag_center_world: Vector2 = world_grid.call("map_to_world_center", flag_tile)
-	_draw_flag(to_local(flag_center_world), tile_size, base_color, is_preview)
+	_draw_flag(to_local(flag_center_world), tile_size, species_id, base_color, is_preview)
 
 
-func _draw_flag(center: Vector2, tile_size: Vector2i, base_color: Color, is_preview: bool) -> void:
+func _draw_flag(
+	center: Vector2, tile_size: Vector2i, species_id: StringName, base_color: Color, is_preview: bool
+) -> void:
 	var alpha := 0.55 if is_preview else 1.0
 	var pole_bottom := center + Vector2(0.0, float(tile_size.y) * 0.36)
 	var pole_top := center - Vector2(0.0, float(tile_size.y) * 0.48)
@@ -109,8 +113,10 @@ func _draw_flag(center: Vector2, tile_size: Vector2i, base_color: Color, is_prev
 		true
 	)
 
-	# Three orange plates make the first flag readable as the stegosaurus flag
-	# without relying on text or a font asset.
+	if species_id != &"stegosaurus":
+		return
+
+	# Three orange plates identify the stegosaurus flag without a font asset.
 	var plate_color := Color(0.95, 0.48, 0.12, alpha)
 	for plate_index in range(3):
 		var plate_x := 22.0 + float(plate_index) * 20.0
@@ -140,5 +146,15 @@ func _get_species_color(species_id: StringName) -> Color:
 	match species_id:
 		&"stegosaurus":
 			return Color(0.29, 0.78, 0.32, 1.0)
+		&"triceratops":
+			return Color(0.35, 0.75, 0.9, 1.0)
+		&"tyrannosaurus":
+			return Color(0.94, 0.32, 0.22, 1.0)
+		&"raptor":
+			return Color(0.96, 0.7, 0.18, 1.0)
+		&"pterodactyl":
+			return Color(0.64, 0.48, 0.9, 1.0)
+		&"egg_eater":
+			return Color(0.24, 0.78, 0.72, 1.0)
 		_:
 			return Color(0.72, 0.82, 0.76, 1.0)

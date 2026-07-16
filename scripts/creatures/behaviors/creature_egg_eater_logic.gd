@@ -17,7 +17,9 @@ func update_egg_eater_behavior() -> void:
 		return
 
 	if creature.hunger > creature.species_data.hunger_search_threshold:
-		clear_target()
+		# A satiated egg eater has no food task. Keep any independent route,
+		# including a species-flag route, and only forget a stale egg target.
+		target_egg = null
 		search_cooldown_remaining = 0.0
 		return
 
