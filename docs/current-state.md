@@ -105,7 +105,8 @@ Current UI ownership:
 - the `PlayerFlags` autoload from `scripts/flags/player_flag_system.gd` owns all-species flag UI, placement, saved flag state, and soft creature attraction;
 - `scripts/flags/player_flag_visual.gd` draws the world flag, its 11x11 area, and placement preview without blocking terrain;
 - `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
-- `scripts/ui/player_nature_ui.gd` owns player energy and nature powers;
+- `scripts/ui/player_nature_ui.gd` owns player energy, spell buttons, targeting, and previews;
+- `scripts/world/nature_effects_system.gd` owns world-side lightning, rain, sun, and spell VFX application;
 - `scripts/save/save_system.gd` remains the base persistence/menu implementation, while `scripts/save/save_system_with_flags.gd` adds species-flag save data;
 - `scripts/debug/grid_debug_overlay.gd` owns the F3 grid/debug overlay.
 

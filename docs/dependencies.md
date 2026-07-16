@@ -85,7 +85,8 @@ Current UI scripts:
 - `res://scripts/flags/player_flag_system.gd` — `PlayerFlags` autoload for the species-flag submenu, map targeting, saved flag state, and soft creature attraction;
 - `res://scripts/flags/player_flag_visual.gd` — non-blocking world-space flag and influence-area rendering;
 - `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text;
-- `res://scripts/ui/player_nature_ui.gd` — energy and nature powers;
+- `res://scripts/ui/player_nature_ui.gd` — energy, spell buttons, targeting, and previews;
+- `res://scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, grass effects, and spell VFX application;
 - `res://scripts/debug/grid_debug_overlay.gd` — F3 grid/debug overlay.
 
 Expected gameplay scene wiring:
@@ -292,6 +293,7 @@ Rules:
 Main files:
 
 - `res://scripts/ui/player_nature_ui.gd`;
+- `res://scripts/world/nature_effects_system.gd`;
 - `res://scripts/effects/rain_target_preview.gd`;
 - `res://scripts/effects/rain_cast_effect.gd`;
 - `res://scenes/effects/rain_target_preview.tscn`;
@@ -300,7 +302,7 @@ Main files:
 
 Rules:
 
-- rain gameplay and rain visuals remain separate;
+- `player_nature_ui.gd` owns rain targeting and preview, while `nature_effects_system.gd` owns successful rain gameplay and cast VFX;
 - the visual effect must not apply grass changes itself;
 - playback remains independent of `Engine.time_scale`;
 - preserve real alpha transparency;

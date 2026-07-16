@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://bxxnx7uha2n75" path="res://assets/sprites/terrain/mountain_tiles_independent.png" id="6_mountain"]
 [ext_resource type="Texture2D" uid="uid://tbxmubvynlmm" path="res://assets/sprites/terrain/tree_tiles_independent.png" id="7_trees"]
 [ext_resource type="Script" uid="uid://bbumbecqsltub" path="res://scripts/world/start_map_layout.gd" id="8_map_layout"]
+[ext_resource type="Script" path="res://scripts/world/nature_effects_system.gd" id="9_nature_effects"]
 
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ground"]
@@ -69,6 +70,9 @@ sources/3 = SubResource("TileSetAtlasSource_trees")
 
 [node name="World" type="Node2D" unique_id=1904886606]
 script = ExtResource("2_world_grid")
+
+[node name="NatureEffectsSystem" type="Node" parent="."]
+script = ExtResource("9_nature_effects")
 
 [node name="Ground" type="TileMapLayer" parent="." unique_id=1599238269]
 z_index = -1

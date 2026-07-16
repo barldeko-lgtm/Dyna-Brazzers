@@ -91,10 +91,11 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 - `scripts/ui/creature_stats_ui.gd` — creature information and selection.
 - `scripts/ui/player_ui.gd` — counters and time-speed controls.
 - `scripts/ui/player_egg_creation_ui.gd` — egg submenu, temporary species prices, test starting energy, and base purchase requests.
-- `scripts/flags/player_flag_system.gd` — `PlayerFlags` autoload for species-flag UI, placement, save state, and soft stegosaurus attraction.
+- `scripts/flags/player_flag_system.gd` — `PlayerFlags` autoload for all-species flag UI, placement, save state, and soft attraction.
 - `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag and 11x11 area visual.
 - `scripts/save/save_system_with_flags.gd` — flag-aware extension of the base save system.
-- `scripts/ui/player_nature_ui.gd` — energy and nature powers.
+- `scripts/ui/player_nature_ui.gd` — energy, spell buttons, targeting, and previews.
+- `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, and spell VFX application.
 - `scripts/ui/debug_status_ui.gd` — compact and detailed text debug.
 - `scripts/save/save_system.gd` — save/load persistence and in-game menu integration.
 - `scripts/debug/performance_stats.gd` and `grid_debug_overlay.gd` — diagnostics.

@@ -54,9 +54,10 @@
 - `scripts/ui/creature_stats_ui.gd` — creature information, hover, selection, and lightning click bridge.
 - `scripts/ui/player_ui.gd` — interactive terrain minimap generation, creature-marker overlay layer, camera viewport display and click navigation, creature/egg counters, time-speed controls, and egg-controller bootstrap.
 - `scripts/ui/player_egg_creation_ui.gd` — runtime egg submenu, temporary species energy prices, test starting energy, button availability, and base purchase requests.
-- `scripts/flags/player_flag_system.gd` — `PlayerFlags` autoload; owns species-flag submenu, map placement, saved state, target distribution, and soft stegosaurus attraction.
+- `scripts/flags/player_flag_system.gd` — `PlayerFlags` autoload; owns all-species flag submenu, map placement, saved state, target distribution, and soft attraction.
 - `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag, 11x11 area, and placement-preview drawing.
-- `scripts/ui/player_nature_ui.gd` — player energy and nature powers.
+- `scripts/ui/player_nature_ui.gd` — player energy, spell buttons, targeting, and previews.
+- `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, grass effects, and spell VFX application.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug.
 - `scripts/save/save_system.gd` — base three-slot JSON persistence, in-game menu integration, and runtime reconstruction.
 - `scripts/save/save_system_with_flags.gd` — small `SaveSystem` extension that adds player species flags without duplicating the base save logic.
@@ -145,7 +146,7 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Egg submenu presentation, temporary egg prices, purchase validation, and base requests belong in `player_egg_creation_ui.gd`.
 - Species-flag UI, targeting, world visuals, target distribution, and soft order behaviour belong to the `PlayerFlags` autoload and `scripts/flags/`.
 - The base save system stays in `save_system.gd`; flag serialization is layered through `save_system_with_flags.gd`.
-- Nature energy and powers belong in `player_nature_ui.gd`; egg purchases use its public energy methods.
+- Nature energy, spell controls, targeting, and previews belong in `player_nature_ui.gd`; egg purchases use its public energy methods. World-side spell results belong in `nature_effects_system.gd`.
 - Text and grid diagnostics belong in their dedicated debug scripts.
 
 ## Removed / not used

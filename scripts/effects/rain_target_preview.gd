@@ -1,6 +1,5 @@
 extends Node2D
 
-const RAIN_CAST_EFFECT_SCENE := preload("res://scenes/effects/rain_cast_effect.tscn")
 
 @export var radius := 1
 @export var valid_fill_color := Color(0.2, 0.55, 1.0, 0.22)
@@ -35,27 +34,6 @@ func hide_preview() -> void:
 	visible = false
 	queue_redraw()
 
-
-func play_cast_effect(tile: Vector2i) -> void:
-	_spawn_rain_effect(tile)
-
-
-func _spawn_rain_effect(tile: Vector2i) -> void:
-	if world_grid == null or not is_instance_valid(world_grid):
-		return
-
-	if not world_grid.has_method("map_to_world_center"):
-		return
-
-	var effect := RAIN_CAST_EFFECT_SCENE.instantiate() as Node2D
-
-	if effect == null:
-		return
-
-	world_grid.add_child(effect)
-	effect.global_position = world_grid.call("map_to_world_center", tile)
-
-	PerformanceStats.add_counter("rain_visual_effect_spawned")
 
 
 func _update_tile_size() -> void:

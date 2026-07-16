@@ -1,6 +1,5 @@
 extends PanelContainer
 
-const LIGHTNING_EFFECT_SCENE := preload("res://scenes/effects/lightning_strike_effect.tscn")
 const RAIN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/rain_target_preview.tscn"
 const SUN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/sun_target_preview.tscn"
 
@@ -8,14 +7,9 @@ const SUN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/sun_target_preview.
 @export var max_energy := 9999.0
 @export var starting_energy := 0.0
 @export var energy_regen_per_second := 1.0
-@export var lightning_damage := 50.0
 @export var lightning_energy_cost := 50.0
 @export var rain_energy_cost := 30.0
-@export var rain_radius_tiles := 2
 @export var sun_energy_cost := 100.0
-@export var sun_radius_tiles := 3
-@export var sun_spread_reset_radius_tiles := 4
-@export var sun_remove_grass_count := 20
 
 @onready var energy_value_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EnergyValueLabel")
 @onready var lightning_button: Button = get_node_or_null("MarginContainer/VBoxContainer/LightningButton")
@@ -170,22 +164,32 @@ func try_apply_lightning_to_creature(creature: Node) -> bool:
 	if creature == null or not is_instance_valid(creature):
 		return false
 
+	var nature_effects := _get_nature_effects_system()
+
+	if (
+		nature_effects == null
+		or not nature_effects.has_method("can_apply_lightning")
+		or not nature_effects.has_method("apply_lightning")
+	):
+		return false
+
+	if not bool(nature_effects.call("can_apply_lightning", creature)):
+		return false
+
 	if not can_spend_energy(lightning_energy_cost):
 		cancel_lightning_targeting()
 		return false
 
-	if creature.has_method("take_direct_damage"):
-		if not spend_energy(lightning_energy_cost):
-			cancel_lightning_targeting()
-			return false
+	if not spend_energy(lightning_energy_cost):
+		cancel_lightning_targeting()
+		return false
 
-		_spawn_lightning_effect(creature)
-		creature.take_direct_damage(lightning_damage)
-		if not can_spend_energy(lightning_energy_cost):
-			cancel_lightning_targeting()
-		return true
+	if not bool(nature_effects.call("apply_lightning", creature)):
+		return false
 
-	return false
+	if not can_spend_energy(lightning_energy_cost):
+		cancel_lightning_targeting()
+	return true
 
 
 func cancel_lightning_targeting() -> void:
@@ -305,21 +309,23 @@ func _try_apply_rain_at_mouse() -> bool:
 		return false
 
 	var world_grid := _get_world_grid()
+	var nature_effects := _get_nature_effects_system()
 
-	if world_grid == null:
+	if world_grid == null or nature_effects == null:
 		return false
 
 	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
 
-	if not bool(world_grid.call("is_tile_inside_map", center_tile)):
+	if not bool(nature_effects.call("can_apply_at_tile", center_tile)):
 		return false
 
 	if not spend_energy(rain_energy_cost):
 		cancel_rain_targeting()
 		return false
 
-	_apply_rain_at_tile(world_grid, center_tile)
-	_play_rain_cast_effect(center_tile)
+	if not bool(nature_effects.call("apply_rain", center_tile)):
+		return false
+
 	if not can_spend_energy(rain_energy_cost):
 		cancel_rain_targeting()
 	return true
@@ -330,170 +336,26 @@ func _try_apply_sun_at_mouse() -> bool:
 		return false
 
 	var world_grid := _get_world_grid()
+	var nature_effects := _get_nature_effects_system()
 
-	if world_grid == null:
+	if world_grid == null or nature_effects == null:
 		return false
 
 	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
 
-	if not bool(world_grid.call("is_tile_inside_map", center_tile)):
+	if not bool(nature_effects.call("can_apply_at_tile", center_tile)):
 		return false
 
 	if not spend_energy(sun_energy_cost):
 		cancel_sun_targeting()
 		return false
 
-	_apply_sun_at_tile(world_grid, center_tile)
+	if not bool(nature_effects.call("apply_sun", center_tile)):
+		return false
+
 	if not can_spend_energy(sun_energy_cost):
 		cancel_sun_targeting()
 	return true
-
-
-func _apply_rain_at_tile(world_grid: Node, center_tile: Vector2i) -> int:
-	var checked_tiles := 0
-	var affected_grass := 0
-
-	for y in range(center_tile.y - rain_radius_tiles, center_tile.y + rain_radius_tiles + 1):
-		for x in range(center_tile.x - rain_radius_tiles, center_tile.x + rain_radius_tiles + 1):
-			checked_tiles += 1
-			var tile := Vector2i(x, y)
-
-			if not bool(world_grid.call("can_host_grass", tile)):
-				continue
-
-			var grass: Node = world_grid.call("get_grass_at_tile", tile)
-
-			if not is_instance_valid(grass):
-				continue
-
-			if not grass.has_method("apply_rain"):
-				continue
-
-			if grass.apply_rain():
-				affected_grass += 1
-
-	PerformanceStats.add_counter("rain_tiles_checked", checked_tiles)
-	PerformanceStats.add_counter("rain_grass_affected", affected_grass)
-	return affected_grass
-
-
-func _play_rain_cast_effect(center_tile: Vector2i) -> void:
-	_ensure_rain_target_preview()
-
-	if rain_target_preview != null and is_instance_valid(rain_target_preview):
-		if rain_target_preview.has_method("play_cast_effect"):
-			rain_target_preview.call("play_cast_effect", center_tile)
-
-
-func _apply_sun_at_tile(world_grid: Node, center_tile: Vector2i) -> Dictionary:
-	var checked_tiles := 0
-	var reverted_grass := 0
-	var grass_nodes: Array[Node] = []
-
-	for y in range(center_tile.y - sun_radius_tiles, center_tile.y + sun_radius_tiles + 1):
-		for x in range(center_tile.x - sun_radius_tiles, center_tile.x + sun_radius_tiles + 1):
-			checked_tiles += 1
-			var tile := Vector2i(x, y)
-
-			if not bool(world_grid.call("can_host_grass", tile)):
-				continue
-
-			var grass: Node = world_grid.call("get_grass_at_tile", tile)
-
-			if not is_instance_valid(grass):
-				continue
-
-			grass_nodes.append(grass)
-
-			if grass.has_method("apply_sun") and grass.apply_sun():
-				reverted_grass += 1
-
-	var removable_grass: Array[Node] = []
-
-	for grass in grass_nodes:
-		if is_instance_valid(grass):
-			removable_grass.append(grass)
-
-	removable_grass.shuffle()
-
-	var removed_grass := 0
-	var target_remove_count: int = min(sun_remove_grass_count, removable_grass.size())
-
-	for index in range(target_remove_count):
-		var grass_to_remove := removable_grass[index]
-
-		if not is_instance_valid(grass_to_remove):
-			continue
-
-		grass_to_remove.queue_free()
-		removed_grass += 1
-
-	var reset_spread_grass := _reset_spread_attempts_in_area(world_grid, center_tile, sun_spread_reset_radius_tiles)
-
-	PerformanceStats.add_counter("sun_tiles_checked", checked_tiles)
-	PerformanceStats.add_counter("sun_grass_reverted", reverted_grass)
-	PerformanceStats.add_counter("sun_grass_removed", removed_grass)
-	PerformanceStats.add_counter("sun_grass_spread_reset", reset_spread_grass)
-
-	return {
-		"checked_tiles": checked_tiles,
-		"reverted_grass": reverted_grass,
-		"removed_grass": removed_grass,
-		"reset_spread_grass": reset_spread_grass
-	}
-
-
-func _reset_spread_attempts_in_area(world_grid: Node, center_tile: Vector2i, radius: int) -> int:
-	var reset_count := 0
-
-	for y in range(center_tile.y - radius, center_tile.y + radius + 1):
-		for x in range(center_tile.x - radius, center_tile.x + radius + 1):
-			var tile := Vector2i(x, y)
-
-			if not bool(world_grid.call("can_host_grass", tile)):
-				continue
-
-			var grass: Node = world_grid.call("get_grass_at_tile", tile)
-
-			if not is_instance_valid(grass):
-				continue
-
-			if grass.is_queued_for_deletion():
-				continue
-
-			if not grass.has_method("reset_spread_attempt"):
-				continue
-
-			if grass.reset_spread_attempt():
-				reset_count += 1
-
-	return reset_count
-
-
-func _spawn_lightning_effect(target: Node) -> void:
-	if target == null or not is_instance_valid(target):
-		return
-
-	if not (target is Node2D):
-		return
-
-	var effect_parent := target.get_parent()
-
-	if effect_parent == null:
-		effect_parent = get_tree().current_scene
-
-	if effect_parent == null:
-		return
-
-	var effect := LIGHTNING_EFFECT_SCENE.instantiate() as Node2D
-
-	if effect == null:
-		return
-
-	effect_parent.add_child(effect)
-	effect.global_position = (target as Node2D).global_position
-
-
 func _ensure_rain_target_preview() -> void:
 	if rain_target_preview != null and is_instance_valid(rain_target_preview):
 		return
@@ -516,7 +378,7 @@ func _ensure_rain_target_preview() -> void:
 	world_grid.add_child(rain_target_preview)
 
 	if rain_target_preview.has_method("configure"):
-		rain_target_preview.configure(world_grid, rain_radius_tiles)
+		rain_target_preview.configure(world_grid, _get_rain_preview_radius())
 
 
 func _ensure_sun_target_preview() -> void:
@@ -541,7 +403,7 @@ func _ensure_sun_target_preview() -> void:
 	world_grid.add_child(sun_target_preview)
 
 	if sun_target_preview.has_method("configure"):
-		sun_target_preview.configure(world_grid, sun_radius_tiles)
+		sun_target_preview.configure(world_grid, _get_sun_preview_radius())
 
 
 func _update_rain_target_preview() -> void:
@@ -608,6 +470,28 @@ func _hide_sun_target_preview() -> void:
 		sun_target_preview.hide_preview()
 	else:
 		sun_target_preview.visible = false
+
+
+func _get_nature_effects_system() -> Node:
+	return get_tree().get_first_node_in_group("nature_effects_system")
+
+
+func _get_rain_preview_radius() -> int:
+	var nature_effects := _get_nature_effects_system()
+
+	if nature_effects != null and nature_effects.has_method("get_rain_radius_tiles"):
+		return int(nature_effects.call("get_rain_radius_tiles"))
+
+	return 0
+
+
+func _get_sun_preview_radius() -> int:
+	var nature_effects := _get_nature_effects_system()
+
+	if nature_effects != null and nature_effects.has_method("get_sun_radius_tiles"):
+		return int(nature_effects.call("get_sun_radius_tiles"))
+
+	return 0
 
 
 func _get_world_grid() -> Node:
