@@ -55,7 +55,7 @@
 - `scripts/ui/player_ui.gd` — interactive terrain minimap generation, creature-marker overlay layer, camera viewport display and click navigation, creature/egg counters, time-speed controls, and egg-controller bootstrap.
 - `scripts/ui/player_egg_creation_ui.gd` — runtime egg submenu, temporary species energy prices, test starting energy, button availability, and base purchase requests.
 - `scripts/flags/player_flag_system.gd` — `PlayerFlags` autoload; owns species-flag submenu, map placement, saved state, target distribution, and soft stegosaurus attraction.
-- `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag, 10x10 area, and placement-preview drawing.
+- `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag, 11x11 area, and placement-preview drawing.
 - `scripts/ui/player_nature_ui.gd` — player energy and nature powers.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug.
 - `scripts/save/save_system.gd` — base three-slot JSON persistence, in-game menu integration, and runtime reconstruction.

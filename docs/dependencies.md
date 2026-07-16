@@ -82,6 +82,8 @@ Current UI scripts:
 - `res://scripts/ui/start_screen.gd` — startup menu and three-slot startup loading;
 - `res://scripts/ui/creature_stats_ui.gd` — creature information, selection, and highlight coordination;
 - `res://scripts/ui/player_ui.gd` — side-panel counters and time-speed controls;
+- `res://scripts/flags/player_flag_system.gd` — `PlayerFlags` autoload for the species-flag submenu, map targeting, saved flag state, and soft creature attraction;
+- `res://scripts/flags/player_flag_visual.gd` — non-blocking world-space flag and influence-area rendering;
 - `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text;
 - `res://scripts/ui/player_nature_ui.gd` — energy and nature powers;
 - `res://scripts/debug/grid_debug_overlay.gd` — F3 grid/debug overlay.
@@ -145,7 +147,7 @@ In-game UI integration:
 - closing it restores the previous simulation speed;
 - actions are Save, Load, Main Menu, Close Game, and Back.
 
-Saved dynamic data includes creatures, grass, eggs, player energy, camera state, simulation speed, and save timestamp.
+Saved dynamic data includes creatures, grass, eggs, player energy, active species flags, camera state, simulation speed, and save timestamp. `save_system_with_flags.gd` layers the optional `player_flags` field over the base `SaveSystem`, so older saves without it load with no active flags.
 
 Static terrain and the fixed player base are loaded from start-map setup and are not serialized.
 

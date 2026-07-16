@@ -13,61 +13,11 @@ var world_grid: Node = null
 var center_tile := Vector2i.ZERO
 var is_valid_target := true
 
-var was_rain_targeting_enabled := false
-var tracked_cast_tile := Vector2i.ZERO
-var tracked_energy_before_cast := 0.0
-var has_tracked_rain_target := false
-
-
 func configure(grid: Node, target_radius: int) -> void:
 	world_grid = grid
 	radius = target_radius
 	_update_tile_size()
-	set_process(true)
 	hide_preview()
-
-
-func _process(_delta: float) -> void:
-	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
-
-	if nature_ui == null:
-		return
-
-	if not nature_ui.has_method("is_rain_targeting_enabled"):
-		return
-
-	if not nature_ui.has_method("get_energy"):
-		return
-
-	var rain_targeting_enabled := bool(nature_ui.call("is_rain_targeting_enabled"))
-	var current_energy := float(nature_ui.call("get_energy"))
-
-	if rain_targeting_enabled:
-		was_rain_targeting_enabled = true
-		has_tracked_rain_target = true
-		tracked_cast_tile = center_tile
-		tracked_energy_before_cast = current_energy
-		return
-
-	if not was_rain_targeting_enabled:
-		return
-
-	was_rain_targeting_enabled = false
-
-	if not has_tracked_rain_target:
-		return
-
-	has_tracked_rain_target = false
-
-	var rain_energy_cost := float(nature_ui.get("rain_energy_cost"))
-	var energy_spent := tracked_energy_before_cast - current_energy
-
-	# Right-click cancel and spell switching do not spend rain energy.
-	# Only a successful rain cast should pass this check.
-	if energy_spent < max(rain_energy_cost * 0.5, 0.01):
-		return
-
-	_spawn_rain_effect(tracked_cast_tile)
 
 
 func set_center_tile(tile: Vector2i, valid_target: bool = true) -> void:
@@ -84,6 +34,10 @@ func set_center_tile(tile: Vector2i, valid_target: bool = true) -> void:
 func hide_preview() -> void:
 	visible = false
 	queue_redraw()
+
+
+func play_cast_effect(tile: Vector2i) -> void:
+	_spawn_rain_effect(tile)
 
 
 func _spawn_rain_effect(tile: Vector2i) -> void:

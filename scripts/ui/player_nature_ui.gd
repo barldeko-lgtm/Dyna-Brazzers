@@ -181,7 +181,8 @@ func try_apply_lightning_to_creature(creature: Node) -> bool:
 
 		_spawn_lightning_effect(creature)
 		creature.take_direct_damage(lightning_damage)
-		cancel_lightning_targeting()
+		if not can_spend_energy(lightning_energy_cost):
+			cancel_lightning_targeting()
 		return true
 
 	return false
@@ -318,7 +319,9 @@ func _try_apply_rain_at_mouse() -> bool:
 		return false
 
 	_apply_rain_at_tile(world_grid, center_tile)
-	cancel_rain_targeting()
+	_play_rain_cast_effect(center_tile)
+	if not can_spend_energy(rain_energy_cost):
+		cancel_rain_targeting()
 	return true
 
 
@@ -341,7 +344,8 @@ func _try_apply_sun_at_mouse() -> bool:
 		return false
 
 	_apply_sun_at_tile(world_grid, center_tile)
-	cancel_sun_targeting()
+	if not can_spend_energy(sun_energy_cost):
+		cancel_sun_targeting()
 	return true
 
 
@@ -371,6 +375,14 @@ func _apply_rain_at_tile(world_grid: Node, center_tile: Vector2i) -> int:
 	PerformanceStats.add_counter("rain_tiles_checked", checked_tiles)
 	PerformanceStats.add_counter("rain_grass_affected", affected_grass)
 	return affected_grass
+
+
+func _play_rain_cast_effect(center_tile: Vector2i) -> void:
+	_ensure_rain_target_preview()
+
+	if rain_target_preview != null and is_instance_valid(rain_target_preview):
+		if rain_target_preview.has_method("play_cast_effect"):
+			rain_target_preview.call("play_cast_effect", center_tile)
 
 
 func _apply_sun_at_tile(world_grid: Node, center_tile: Vector2i) -> Dictionary:

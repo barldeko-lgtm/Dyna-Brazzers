@@ -7,13 +7,13 @@ Dyna is an early Godot 4.7 prototype of an autonomous dinosaur ecosystem inspire
 The current prototype includes:
 
 - an editable 85x85 tile-based world on `TileMapLayer`;
-- autonomous stegosaurus and triceratops herbivores;
-- one tyrannosaurus, one raptor, and one pterodactyl predator, plus one egg eater that targets stage-2 eggs;
+- six species available through player-created eggs: stegosaurus, triceratops, tyrannosaurus, raptor, pterodactyl, and egg eater; fresh games start without adult creatures;
 - grass as the first renewable resource;
 - egg laying, egg stages, and hatching;
 - terrain blocking with ground, water, mountains, and trees;
 - creature death with a short non-blocking corpse/death-pose visual;
 - player nature powers: lightning, rain, and sun;
+- a first species-order flag pass: a non-blocking stegosaurus pasture flag with an 11x11 influence area;
 - a local four-frame rain cast VFX;
 - hover/click observation UI and creature highlighting;
 - separated player UI, creature info UI, debug status UI, and save system;
@@ -90,6 +90,10 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 - `scenes/resources/egg.tscn` and `scripts/resources/egg.gd` — egg scene and lifecycle.
 - `scripts/ui/creature_stats_ui.gd` — creature information and selection.
 - `scripts/ui/player_ui.gd` — counters and time-speed controls.
+- `scripts/ui/player_egg_creation_ui.gd` — egg submenu, temporary species prices, test starting energy, and base purchase requests.
+- `scripts/flags/player_flag_system.gd` — `PlayerFlags` autoload for species-flag UI, placement, save state, and soft stegosaurus attraction.
+- `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag and 11x11 area visual.
+- `scripts/save/save_system_with_flags.gd` — flag-aware extension of the base save system.
 - `scripts/ui/player_nature_ui.gd` — energy and nature powers.
 - `scripts/ui/debug_status_ui.gd` — compact and detailed text debug.
 - `scripts/save/save_system.gd` — save/load persistence and in-game menu integration.
