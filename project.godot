@@ -17,6 +17,7 @@ config/icon="res://app_icon.svg"
 
 [autoload]
 
+AudioManager="*res://scripts/audio/audio_manager.gd"
 PerformanceStats="*res://scripts/debug/performance_stats.gd"
 PlayerFlags="*res://scripts/flags/player_flag_system.gd"
 SaveSystem="*res://scripts/save/save_system_with_flags.gd"

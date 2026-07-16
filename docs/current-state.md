@@ -22,6 +22,7 @@ Current prototype includes:
 - player-created species eggs bought for nature energy through the egg submenu;
 - species-order flags for all six player species, each with an 11x11 influence area;
 - a local four-frame rain VFX;
+- a global gameplay-music system with separate Music, Ambient, SFX, and UI audio buses;
 - right-side HUD with live creature and egg counters;
 - an interactive right-side terrain minimap showing ground, water, mountains, trees, creature markers, and the current camera view;
 - separated player UI, creature info UI, debug status UI, and save system;
@@ -37,7 +38,7 @@ Current prototype includes:
 - return to Main Menu with full active-session reset;
 - Exit buttons in both the startup screen and the in-game menu.
 
-Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, retained predator/combat prototype code, and the fixed player-base foundation for future egg creation. Roadmap block `0.7 — Player expansion and atmosphere` now includes the interactive terrain minimap, player egg creation, and the first all-species flag pass.
+Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, retained predator/combat prototype code, and the fixed player-base foundation for future egg creation. Roadmap block `0.7 — Player expansion and atmosphere` now includes the interactive terrain minimap, player egg creation, the first all-species flag pass, and the first gameplay-audio foundation.
 
 Automatic predator spawning is currently disabled.
 
@@ -113,6 +114,21 @@ Current UI ownership:
 - `scripts/debug/grid_debug_overlay.gd` owns the F3 grid/debug overlay.
 
 `scenes/main/main.tscn` wires these scripts directly to their normal UI nodes.
+
+## Audio system
+
+Current audio rules:
+
+- `AudioManager` is a global autoload from `scripts/audio/audio_manager.gd`;
+- `default_bus_layout.tres` defines `Master`, `Music`, `Ambient`, `SFX`, and `UI` buses;
+- the first gameplay track is `assets/audio/music/gameplay_theme.mp3`;
+- gameplay music starts automatically when `scenes/main/main.tscn` becomes the active scene;
+- gameplay music fades out when returning to the startup screen;
+- opening the in-game save/menu overlay does not interrupt the music;
+- the MP3 stream loops continuously through the shared music player;
+- the Music bus starts at `-7 dB` so gameplay effects can remain readable later;
+- `AudioManager` exposes separate linear-volume setters for future settings controls;
+- audio playback state is session presentation and is not stored in save slots.
 
 ## Terrain minimap
 
@@ -318,6 +334,7 @@ The stegosaurus currently has a dedicated death-pose asset. Death visuals and co
 - Species-specific egg textures belong in the species `.tres`, not in duplicated egg scenes.
 - When custom egg textures are absent, preserve the shared egg scene defaults rather than assigning `null`.
 - Dead creatures must unregister occupancy before their corpse visual disappears.
+- Gameplay music belongs to the global `AudioManager`; do not add duplicate scene-local music players.
 - Do not put counters, speed controls, or debug status back into `creature_stats_ui.gd`.
 - Do not duplicate the in-game menu outside the existing `MENU` button.
 - Returning to Main Menu resets the active session but does not delete saves.

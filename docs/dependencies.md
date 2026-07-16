@@ -126,6 +126,39 @@ Runtime flow:
 
 The startup-screen `Menu` button remains a placeholder for future settings/options.
 
+## Audio system
+
+Main files:
+
+- `res://project.godot`;
+- `res://default_bus_layout.tres`;
+- `res://scripts/audio/audio_manager.gd`;
+- `res://assets/audio/music/gameplay_theme.mp3`.
+
+Registration:
+
+- `AudioManager` is an autoload in `project.godot`;
+- the autoload uses `PROCESS_MODE_ALWAYS` so menu pauses do not stop music fades or playback;
+- the default bus layout defines `Master`, `Music`, `Ambient`, `SFX`, and `UI`.
+
+Runtime flow:
+
+1. `AudioManager` ensures the required buses exist and creates one global `AudioStreamPlayer`.
+2. It loads the gameplay MP3 once and enables its native loop flag.
+3. It watches `SceneTree.current_scene` for scene-path changes.
+4. Entering `res://scenes/main/main.tscn` starts or fades in the gameplay track.
+5. Returning to the startup screen fades the track out and stops it.
+6. Opening the in-game save/menu overlay leaves the active scene unchanged, so the track continues.
+
+Rules:
+
+- do not add another gameplay-music player to `main.tscn`, `world.tscn`, or UI scenes;
+- route background music through `Music`, ambient loops through `Ambient`, world/gameplay effects through `SFX`, and menu feedback through `UI`;
+- keep music playback independent from simulation speed and save reconstruction;
+- audio playback position and volume are presentation state and are not part of save slots;
+- replace the gameplay track at the documented path or update `GAMEPLAY_MUSIC_PATH` in `audio_manager.gd`;
+- future settings UI should call the public bus-volume methods instead of manipulating scene players directly.
+
 ## Save system
 
 Main file:

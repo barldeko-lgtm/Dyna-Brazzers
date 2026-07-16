@@ -2,7 +2,8 @@
 
 ## Project root
 
-- `project.godot` — Godot project config. Startup scene is `scenes/ui/start_screen.tscn`; `PerformanceStats`, `PlayerFlags`, and the flag-aware `SaveSystem` extension are autoloads.
+- `project.godot` — Godot project config. Startup scene is `scenes/ui/start_screen.tscn`; `AudioManager`, `PerformanceStats`, `PlayerFlags`, and the flag-aware `SaveSystem` extension are autoloads.
+- `default_bus_layout.tres` — shared `Master`, `Music`, `Ambient`, `SFX`, and `UI` audio-bus layout.
 - `AGENTS.md` — working rules and architecture briefing for agents.
 - `docs/project-map.md` — project structure and file ownership.
 - `docs/current-state.md` — current implemented systems and prototype status.
@@ -46,6 +47,10 @@
 - `scripts/combat/duel.gd` — temporary one-on-one combat loop.
 - `scripts/resources/grass.gd` — grass growth, consumption, spread, and nature-power reactions.
 - `scripts/resources/egg.gd` — egg stages, species texture application, blocker handling, and hatching.
+
+### Audio
+
+- `scripts/audio/audio_manager.gd` — global gameplay-music playback, scene-based start/stop, fade handling, audio-bus bootstrap, and public volume controls.
 
 ### UI, effects, saving, and debug
 
@@ -101,6 +106,10 @@ The terrain minimap reads these source ids directly from the active `Ground` Til
 
 - `assets/ui/start_screen_background.png` — 1920x1080 illustrated background used by the startup scene.
 
+## Audio assets
+
+- `assets/audio/music/gameplay_theme.mp3` — first looping gameplay background track, played globally through the `Music` bus.
+
 ## Effect assets
 
 - `assets/sprites/effects/rain/rain_cast_01.png` ... `rain_cast_04.png` — transparent rain animation frames.
@@ -139,6 +148,7 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Creature runtime coordination belongs in `scripts/creatures/creature.gd`.
 - Specialized creature behaviour belongs in `scripts/creatures/behaviors/`.
 - Grass and egg lifecycles belong in their own resource scripts.
+- Global music routing, audio buses, fades, and future volume controls belong to the `AudioManager` autoload and `scripts/audio/`.
 - Startup flow belongs in `start_screen.gd`; startup layout, background presentation, and menu transparency belong in `start_screen.tscn`.
 - Save collection, reconstruction, slot files, and in-game save menu belong in `save_system.gd`.
 - Creature observation and selection belong in `creature_stats_ui.gd`.
