@@ -139,7 +139,8 @@ Main files:
 - `res://assets/audio/music/gameplay_theme.mp3`;
 - `res://assets/audio/sfx/lightning_strike.wav`;
 - `res://assets/audio/sfx/rain_cast.wav`;
-- `res://assets/audio/sfx/sun_cast.wav`.
+- `res://assets/audio/sfx/sun_cast.wav`;
+- `res://assets/audio/ui/button_click.wav`.
 
 Registration and storage:
 
@@ -159,6 +160,7 @@ Runtime flow:
 6. Startup and in-game Settings pages call the same `AudioManager` getters and setters.
 7. Successful lightning, rain, and sun casts ask `AudioManager` to create temporary `SFX` one-shot players.
 8. Each one-shot player frees itself when its sound ends.
+9. `AudioManager` watches scene-tree additions, connects every existing or runtime-created `BaseButton`, and plays the shared click on `button_down` through the `UI` bus.
 
 Rules:
 
@@ -167,6 +169,7 @@ Rules:
 - trigger cast sounds only after gameplay validation and successful energy spending;
 - keep audio playback independent from simulation speed and save reconstruction;
 - use `AudioManager.play_sfx()` or `play_ui_sfx()` for short shared sounds instead of permanent players;
+- keep the shared button click global; do not attach duplicate click players or click callbacks to individual button scenes;
 - replace audio files at their documented paths or update the corresponding preload/path constants;
 - settings UI must call `AudioManager` rather than manipulating `AudioServer` or scene players directly.
 

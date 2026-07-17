@@ -50,7 +50,7 @@
 
 ### Audio
 
-- `scripts/audio/audio_manager.gd` — global gameplay-music playback, one-shot sound playback, scene-based fades, audio-bus bootstrap, persistent audio settings, and public Music/Sounds controls.
+- `scripts/audio/audio_manager.gd` — global gameplay-music playback, one-shot sound playback, automatic existing/runtime button-click wiring, scene-based fades, audio-bus bootstrap, persistent audio settings, and public Music/Sounds controls.
 
 ### UI, effects, saving, and debug
 
@@ -114,6 +114,7 @@ The terrain minimap reads these source ids directly from the active `Ground` Til
 - `assets/audio/sfx/lightning_strike.wav` — lightning cast sound, played as a one-shot through the `SFX` bus.
 - `assets/audio/sfx/rain_cast.wav` — successful rain-cast sound, played as a one-shot through the `SFX` bus.
 - `assets/audio/sfx/sun_cast.wav` — successful sun-cast sound, played as a one-shot through the `SFX` bus.
+- `assets/audio/ui/button_click.wav` — short generated menu click, played automatically through the `UI` bus for every enabled button.
 
 ## Effect assets
 
@@ -153,7 +154,7 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Creature runtime coordination belongs in `scripts/creatures/creature.gd`.
 - Specialized creature behaviour belongs in `scripts/creatures/behaviors/`.
 - Grass and egg lifecycles belong in their own resource scripts.
-- Global music routing, one-shot playback, audio buses, fades, and persistent Music/Sounds settings belong to the `AudioManager` autoload and `scripts/audio/`.
+- Global music routing, one-shot playback, automatic button-click feedback, audio buses, fades, and persistent Music/Sounds settings belong to the `AudioManager` autoload and `scripts/audio/`.
 - Startup flow, loading, and startup audio-settings controls belong in `start_screen.gd`; startup layout, background presentation, and menu transparency belong in `start_screen.tscn`.
 - Save collection, reconstruction, slot files, and in-game save menu belong in `save_system.gd`.
 - Creature observation and selection belong in `creature_stats_ui.gd`.

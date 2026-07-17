@@ -22,7 +22,7 @@ Current prototype includes:
 - player-created species eggs bought for nature energy through the egg submenu;
 - species-order flags for all six player species, each with an 11x11 influence area;
 - a local four-frame rain VFX;
-- a global audio system with looping gameplay music, lightning, rain, and sun sound effects, separate audio buses, and persistent Music/Sounds volume controls;
+- a global audio system with looping gameplay music, lightning, rain, and sun sound effects, automatic button-click feedback, separate audio buses, and persistent Music/Sounds volume controls;
 - right-side HUD with live creature and egg counters;
 - an interactive right-side terrain minimap showing ground, water, mountains, trees, creature markers, and the current camera view;
 - separated player UI, creature info UI, debug status UI, and save system;
@@ -128,6 +128,7 @@ Current audio rules:
 - opening the in-game menu does not interrupt music or audio fades;
 - the MP3 stream loops continuously through the shared music player;
 - lightning, rain, and sun use `assets/audio/sfx/lightning_strike.wav`, `rain_cast.wav`, and `sun_cast.wav`; each plays only after its cast succeeds;
+- `assets/audio/ui/button_click.wav` is played through the `UI` bus whenever any enabled `BaseButton` is pressed; existing scene buttons and runtime-created menu buttons are connected automatically by `AudioManager`;
 - both the startup `Settings` page and the in-game `Settings` page expose `Music` and `Sounds` sliders;
 - slider values are stored in `user://audio_settings.cfg`, independently from the three gameplay save slots;
 - zero volume mutes the corresponding bus, while non-zero values use Godot's linear-to-decibel conversion;
@@ -337,7 +338,7 @@ The stegosaurus currently has a dedicated death-pose asset. Death visuals and co
 - Species-specific egg textures belong in the species `.tres`, not in duplicated egg scenes.
 - When custom egg textures are absent, preserve the shared egg scene defaults rather than assigning `null`.
 - Dead creatures must unregister occupancy before their corpse visual disappears.
-- Gameplay music and shared one-shot effects belong to the global `AudioManager`; do not add duplicate scene-local audio managers or permanent music players.
+- Gameplay music, shared one-shot effects, and global button-click feedback belong to the global `AudioManager`; do not add duplicate scene-local audio managers, permanent music players, or per-button click players.
 - Do not put counters, speed controls, or debug status back into `creature_stats_ui.gd`.
 - Do not duplicate the in-game menu outside the existing `MENU` button.
 - Returning to Main Menu resets the active session but does not delete saves.
