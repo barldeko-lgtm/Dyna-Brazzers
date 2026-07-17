@@ -124,7 +124,7 @@ Runtime flow:
 6. Selecting a slot delegates loading to `SaveSystem`.
 7. Exit closes the application.
 
-The startup-screen `Menu` button remains a placeholder for future settings/options.
+The startup-screen `Settings` button opens Music and Sounds sliders backed by `AudioManager`.
 
 ## Audio system
 
@@ -133,31 +133,42 @@ Main files:
 - `res://project.godot`;
 - `res://default_bus_layout.tres`;
 - `res://scripts/audio/audio_manager.gd`;
-- `res://assets/audio/music/gameplay_theme.mp3`.
+- `res://scripts/ui/start_screen.gd`;
+- `res://scripts/save/save_system_with_flags.gd`;
+- `res://scripts/world/nature_effects_system.gd`;
+- `res://assets/audio/music/gameplay_theme.mp3`;
+- `res://assets/audio/sfx/lightning_strike.wav`;
+- `res://assets/audio/sfx/rain_cast.wav`;
+- `res://assets/audio/sfx/sun_cast.wav`.
 
-Registration:
+Registration and storage:
 
 - `AudioManager` is an autoload in `project.godot`;
-- the autoload uses `PROCESS_MODE_ALWAYS` so menu pauses do not stop music fades or playback;
-- the default bus layout defines `Master`, `Music`, `Ambient`, `SFX`, and `UI`.
+- the autoload uses `PROCESS_MODE_ALWAYS` so menu pauses do not stop music fades or one-shot playback;
+- the default bus layout defines `Master`, `Music`, `Sounds`, `Ambient`, `SFX`, and `UI`;
+- `Ambient`, `SFX`, and `UI` send into `Sounds`;
+- user-selected Music and Sounds values are stored in `user://audio_settings.cfg`, not in gameplay save slots.
 
 Runtime flow:
 
-1. `AudioManager` ensures the required buses exist and creates one global `AudioStreamPlayer`.
-2. It loads the gameplay MP3 once and enables its native loop flag.
-3. It watches `SceneTree.current_scene` for scene-path changes.
+1. `AudioManager` ensures the required buses and routing exist.
+2. It loads saved Music and Sounds values and applies them before playback.
+3. It creates one global music player, loads the gameplay MP3 once, and enables its native loop flag.
 4. Entering `res://scenes/main/main.tscn` starts or fades in the gameplay track.
 5. Returning to the startup screen fades the track out and stops it.
-6. Opening the in-game save/menu overlay leaves the active scene unchanged, so the track continues.
+6. Startup and in-game Settings pages call the same `AudioManager` getters and setters.
+7. Successful lightning, rain, and sun casts ask `AudioManager` to create temporary `SFX` one-shot players.
+8. Each one-shot player frees itself when its sound ends.
 
 Rules:
 
-- do not add another gameplay-music player to `main.tscn`, `world.tscn`, or UI scenes;
-- route background music through `Music`, ambient loops through `Ambient`, world/gameplay effects through `SFX`, and menu feedback through `UI`;
-- keep music playback independent from simulation speed and save reconstruction;
-- audio playback position and volume are presentation state and are not part of save slots;
-- replace the gameplay track at the documented path or update `GAMEPLAY_MUSIC_PATH` in `audio_manager.gd`;
-- future settings UI should call the public bus-volume methods instead of manipulating scene players directly.
+- do not add another gameplay-music player or audio manager to gameplay/UI scenes;
+- route background music through `Music`, all player-facing non-music volume through `Sounds`, ambient loops through `Ambient`, world effects through `SFX`, and menu feedback through `UI`;
+- trigger cast sounds only after gameplay validation and successful energy spending;
+- keep audio playback independent from simulation speed and save reconstruction;
+- use `AudioManager.play_sfx()` or `play_ui_sfx()` for short shared sounds instead of permanent players;
+- replace audio files at their documented paths or update the corresponding preload/path constants;
+- settings UI must call `AudioManager` rather than manipulating `AudioServer` or scene players directly.
 
 ## Save system
 
@@ -178,6 +189,7 @@ Slot files:
 In-game UI integration:
 
 - the existing right-side `MENU` button opens SaveSystem content;
+- the action menu includes a `Settings` page with Music and Sounds sliders;
 - do not add a second duplicate in-game menu button;
 - opening the menu pauses simulation;
 - closing it restores the previous simulation speed;

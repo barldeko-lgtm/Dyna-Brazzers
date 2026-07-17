@@ -22,7 +22,7 @@ Current prototype includes:
 - player-created species eggs bought for nature energy through the egg submenu;
 - species-order flags for all six player species, each with an 11x11 influence area;
 - a local four-frame rain VFX;
-- a global gameplay-music system with separate Music, Ambient, SFX, and UI audio buses;
+- a global audio system with looping gameplay music, lightning, rain, and sun sound effects, separate audio buses, and persistent Music/Sounds volume controls;
 - right-side HUD with live creature and egg counters;
 - an interactive right-side terrain minimap showing ground, water, mountains, trees, creature markers, and the current camera view;
 - separated player UI, creature info UI, debug status UI, and save system;
@@ -64,7 +64,7 @@ Current startup flow:
 - `Load` shows three slots;
 - occupied slots show save date and time;
 - empty slots are visible but disabled;
-- `Menu` remains a placeholder for future settings/options;
+- `Settings` opens persistent sliders for gameplay music and all non-music sounds;
 - `Exit` closes the application.
 
 ## In-game Menu and saving
@@ -77,6 +77,7 @@ Available actions:
 
 - `Save`;
 - `Load`;
+- `Settings`;
 - `Main Menu`;
 - `Close Game`;
 - `Back`.
@@ -100,7 +101,7 @@ Static terrain and the fixed player base are not serialized. They come from the 
 
 Current UI ownership:
 
-- `scripts/ui/start_screen.gd` owns startup-screen flow and startup loading;
+- `scripts/ui/start_screen.gd` owns startup-screen flow, startup loading, and the startup audio-settings panel;
 - `scripts/ui/creature_stats_ui.gd` owns creature information, hover/selection, deselection, and the lightning click bridge;
 - `scripts/ui/player_ui.gd` owns the interactive terrain minimap, creature markers, camera-frame display and click navigation, creature/egg counters, time-speed controls, and bootstraps the egg-creation controller;
 - `scripts/ui/player_egg_creation_ui.gd` owns the egg submenu, temporary species prices, purchase validation, and requests to the player base;
@@ -109,8 +110,8 @@ Current UI ownership:
 - `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
 - `scripts/ui/player_nature_ui.gd` owns spell buttons, targeting, and previews;
 - `scripts/player/player_energy.gd` owns the session energy reserve, spending API, save value, and living-dinosaur income;
-- `scripts/world/nature_effects_system.gd` owns world-side lightning, rain, sun, and spell VFX application;
-- `scripts/save/save_system.gd` remains the base persistence/menu implementation, while `scripts/save/save_system_with_flags.gd` adds species-flag save data;
+- `scripts/world/nature_effects_system.gd` owns world-side lightning, rain, sun, spell VFX application, and successful-cast sound triggers;
+- `scripts/save/save_system.gd` remains the base persistence/menu implementation, while `scripts/save/save_system_with_flags.gd` adds species-flag save data and the in-game audio-settings page;
 - `scripts/debug/grid_debug_overlay.gd` owns the F3 grid/debug overlay.
 
 `scenes/main/main.tscn` wires these scripts directly to their normal UI nodes.
@@ -120,15 +121,17 @@ Current UI ownership:
 Current audio rules:
 
 - `AudioManager` is a global autoload from `scripts/audio/audio_manager.gd`;
-- `default_bus_layout.tres` defines `Master`, `Music`, `Ambient`, `SFX`, and `UI` buses;
+- `default_bus_layout.tres` defines `Master`, `Music`, `Sounds`, `Ambient`, `SFX`, and `UI` buses;
+- `Ambient`, `SFX`, and `UI` route through the shared `Sounds` bus, so one player slider controls all non-music audio while preserving their relative trims;
 - the first gameplay track is `assets/audio/music/gameplay_theme.mp3`;
-- gameplay music starts automatically when `scenes/main/main.tscn` becomes the active scene;
-- gameplay music fades out when returning to the startup screen;
-- opening the in-game save/menu overlay does not interrupt the music;
+- gameplay music starts automatically when `scenes/main/main.tscn` becomes the active scene and fades out on the startup screen;
+- opening the in-game menu does not interrupt music or audio fades;
 - the MP3 stream loops continuously through the shared music player;
-- the Music bus starts at `-7 dB` so gameplay effects can remain readable later;
-- `AudioManager` exposes separate linear-volume setters for future settings controls;
-- audio playback state is session presentation and is not stored in save slots.
+- lightning, rain, and sun use `assets/audio/sfx/lightning_strike.wav`, `rain_cast.wav`, and `sun_cast.wav`; each plays only after its cast succeeds;
+- both the startup `Settings` page and the in-game `Settings` page expose `Music` and `Sounds` sliders;
+- slider values are stored in `user://audio_settings.cfg`, independently from the three gameplay save slots;
+- zero volume mutes the corresponding bus, while non-zero values use Godot's linear-to-decibel conversion;
+- one-shot effects are created and cleaned up by `AudioManager`, not by permanent scene-local players.
 
 ## Terrain minimap
 
@@ -334,7 +337,7 @@ The stegosaurus currently has a dedicated death-pose asset. Death visuals and co
 - Species-specific egg textures belong in the species `.tres`, not in duplicated egg scenes.
 - When custom egg textures are absent, preserve the shared egg scene defaults rather than assigning `null`.
 - Dead creatures must unregister occupancy before their corpse visual disappears.
-- Gameplay music belongs to the global `AudioManager`; do not add duplicate scene-local music players.
+- Gameplay music and shared one-shot effects belong to the global `AudioManager`; do not add duplicate scene-local audio managers or permanent music players.
 - Do not put counters, speed controls, or debug status back into `creature_stats_ui.gd`.
 - Do not duplicate the in-game menu outside the existing `MENU` button.
 - Returning to Main Menu resets the active session but does not delete saves.

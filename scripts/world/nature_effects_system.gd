@@ -3,6 +3,9 @@ extends Node
 # World-side application of player nature powers.
 const LIGHTNING_EFFECT_SCENE := preload("res://scenes/effects/lightning_strike_effect.tscn")
 const RAIN_CAST_EFFECT_SCENE := preload("res://scenes/effects/rain_cast_effect.tscn")
+const LIGHTNING_SOUND := preload("res://assets/audio/sfx/lightning_strike.wav")
+const RAIN_SOUND := preload("res://assets/audio/sfx/rain_cast.wav")
+const SUN_SOUND := preload("res://assets/audio/sfx/sun_cast.wav")
 
 @export var lightning_damage := 50.0
 @export var rain_radius_tiles := 2
@@ -48,6 +51,7 @@ func apply_lightning(creature: Node) -> bool:
 		return false
 
 	_spawn_lightning_effect(creature)
+	AudioManager.play_sfx(LIGHTNING_SOUND)
 	creature.call("take_direct_damage", lightning_damage)
 	return true
 
@@ -78,6 +82,7 @@ func apply_rain(center_tile: Vector2i) -> bool:
 	PerformanceStats.add_counter("rain_tiles_checked", checked_tiles)
 	PerformanceStats.add_counter("rain_grass_affected", affected_grass)
 	_spawn_rain_cast_effect(center_tile)
+	AudioManager.play_sfx(RAIN_SOUND)
 	return true
 
 
@@ -127,6 +132,7 @@ func apply_sun(center_tile: Vector2i) -> bool:
 	PerformanceStats.add_counter("sun_grass_reverted", reverted_grass)
 	PerformanceStats.add_counter("sun_grass_removed", removed_grass)
 	PerformanceStats.add_counter("sun_grass_spread_reset", reset_spread_grass)
+	AudioManager.play_sfx(SUN_SOUND)
 	return true
 
 

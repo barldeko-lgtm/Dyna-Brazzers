@@ -3,7 +3,7 @@
 ## Project root
 
 - `project.godot` — Godot project config. Startup scene is `scenes/ui/start_screen.tscn`; `AudioManager`, `PerformanceStats`, `PlayerFlags`, and the flag-aware `SaveSystem` extension are autoloads.
-- `default_bus_layout.tres` — shared `Master`, `Music`, `Ambient`, `SFX`, and `UI` audio-bus layout.
+- `default_bus_layout.tres` — shared `Master`, `Music`, `Sounds`, `Ambient`, `SFX`, and `UI` audio-bus layout.
 - `AGENTS.md` — working rules and architecture briefing for agents.
 - `docs/project-map.md` — project structure and file ownership.
 - `docs/current-state.md` — current implemented systems and prototype status.
@@ -12,7 +12,7 @@
 
 ## Key scenes
 
-- `scenes/ui/start_screen.tscn` — centered semi-transparent startup menu over a full-screen illustrated Dyna Brazzers background, with New Game, three-slot Load, placeholder Menu, and Exit.
+- `scenes/ui/start_screen.tscn` — centered semi-transparent startup menu over a full-screen illustrated Dyna Brazzers background, with New Game, three-slot Load, audio Settings, and Exit.
 - `scenes/main/main.tscn` — camera, right-side HUD with terrain minimap and creature markers, world instance, debug overlay, and UI wiring.
 - `scenes/world/world.tscn` — only active gameplay world: 85x85 terrain TileMap, initial grass, an empty creature container, eggs container, camera marker, and world grid.
 - `scenes/world/player_base.tscn` — fixed 2x2 player nature base, spawned at the authored `CameraStart` marker and used as the origin for player-created eggs.
@@ -50,11 +50,11 @@
 
 ### Audio
 
-- `scripts/audio/audio_manager.gd` — global gameplay-music playback, scene-based start/stop, fade handling, audio-bus bootstrap, and public volume controls.
+- `scripts/audio/audio_manager.gd` — global gameplay-music playback, one-shot sound playback, scene-based fades, audio-bus bootstrap, persistent audio settings, and public Music/Sounds controls.
 
 ### UI, effects, saving, and debug
 
-- `scripts/ui/start_screen.gd` — startup menu and slot loading.
+- `scripts/ui/start_screen.gd` — startup menu, slot loading, and runtime-built Music/Sounds settings controls.
 - `scripts/ui/creature_stats_ui.gd` — creature information, hover, selection, and lightning click bridge.
 - `scripts/ui/player_ui.gd` — interactive terrain minimap generation, creature-marker overlay layer, camera viewport display and click navigation, creature/egg counters, time-speed controls, and egg-controller bootstrap.
 - `scripts/ui/player_egg_creation_ui.gd` — runtime egg submenu, temporary species energy prices, button availability, and base purchase requests.
@@ -62,10 +62,10 @@
 - `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag, 11x11 area, and placement-preview drawing.
 - `scripts/ui/player_nature_ui.gd` — spell buttons, targeting, and previews.
 - `scripts/player/player_energy.gd` — session energy reserve, spending API, and living-dinosaur income.
-- `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, grass effects, and spell VFX application.
+- `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, grass effects, spell VFX application, and successful-cast sound triggers.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug.
 - `scripts/save/save_system.gd` — base three-slot JSON persistence, in-game menu integration, and runtime reconstruction.
-- `scripts/save/save_system_with_flags.gd` — small `SaveSystem` extension that adds player species flags without duplicating the base save logic.
+- `scripts/save/save_system_with_flags.gd` — small `SaveSystem` extension that adds player species flags and the in-game audio-settings page without duplicating the base save logic.
 - `scripts/debug/performance_stats.gd` — runtime counters and CSV logging.
 - `scripts/debug/grid_debug_overlay.gd` — F3 visualization of terrain, occupancy, footprints, and paths.
 - `scripts/effects/` — effect playback and target-preview scripts.
@@ -77,6 +77,8 @@ Save slots are stored outside the project in Godot's `user://` directory:
 - `user://dyna_save_slot_1.json`
 - `user://dyna_save_slot_2.json`
 - `user://dyna_save_slot_3.json`
+
+Audio settings are stored separately in `user://audio_settings.cfg`.
 
 On Windows this normally resolves to:
 
@@ -109,6 +111,9 @@ The terrain minimap reads these source ids directly from the active `Ground` Til
 ## Audio assets
 
 - `assets/audio/music/gameplay_theme.mp3` — first looping gameplay background track, played globally through the `Music` bus.
+- `assets/audio/sfx/lightning_strike.wav` — lightning cast sound, played as a one-shot through the `SFX` bus.
+- `assets/audio/sfx/rain_cast.wav` — successful rain-cast sound, played as a one-shot through the `SFX` bus.
+- `assets/audio/sfx/sun_cast.wav` — successful sun-cast sound, played as a one-shot through the `SFX` bus.
 
 ## Effect assets
 
@@ -148,14 +153,14 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Creature runtime coordination belongs in `scripts/creatures/creature.gd`.
 - Specialized creature behaviour belongs in `scripts/creatures/behaviors/`.
 - Grass and egg lifecycles belong in their own resource scripts.
-- Global music routing, audio buses, fades, and future volume controls belong to the `AudioManager` autoload and `scripts/audio/`.
-- Startup flow belongs in `start_screen.gd`; startup layout, background presentation, and menu transparency belong in `start_screen.tscn`.
+- Global music routing, one-shot playback, audio buses, fades, and persistent Music/Sounds settings belong to the `AudioManager` autoload and `scripts/audio/`.
+- Startup flow, loading, and startup audio-settings controls belong in `start_screen.gd`; startup layout, background presentation, and menu transparency belong in `start_screen.tscn`.
 - Save collection, reconstruction, slot files, and in-game save menu belong in `save_system.gd`.
 - Creature observation and selection belong in `creature_stats_ui.gd`.
 - Terrain minimap generation, creature-marker overlay updates, camera-frame updates, minimap click navigation, counters, speed controls, and egg-controller startup belong in `player_ui.gd`.
 - Egg submenu presentation, temporary egg prices, purchase validation, and base requests belong in `player_egg_creation_ui.gd`.
 - Species-flag UI, targeting, world visuals, target distribution, and soft order behaviour belong to the `PlayerFlags` autoload and `scripts/flags/`.
-- The base save system stays in `save_system.gd`; flag serialization is layered through `save_system_with_flags.gd`.
+- The base save system stays in `save_system.gd`; flag serialization and the in-game audio-settings page are layered through `save_system_with_flags.gd`.
 - Spell controls, targeting, and previews belong in `player_nature_ui.gd`. Player energy belongs in `player_energy.gd`; egg purchases and spell UI use its public API. World-side spell results belong in `nature_effects_system.gd`.
 - Text and grid diagnostics belong in their dedicated debug scripts.
 
