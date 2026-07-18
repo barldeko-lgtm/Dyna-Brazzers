@@ -553,7 +553,11 @@ func _update_creature_flag_behaviour() -> void:
 	if flags.is_empty():
 		return
 
+	PerformanceStats.add_counter("flag_updates")
+	var scanned_creatures := 0
+
 	for creature: Node in get_tree().get_nodes_in_group("creatures"):
+		scanned_creatures += 1
 		var species_id := _get_creature_species_id(creature)
 
 		if species_id == StringName() or not has_flag(species_id):
@@ -622,16 +626,20 @@ func _update_creature_flag_behaviour() -> void:
 		if creature_cap_variant is int:
 			max_path_tiles = max(PATH_SEARCH_TILE_CAP, int(creature_cap_variant))
 
+		PerformanceStats.add_counter("flag_path_requests")
 		var path_variant: Variant = world_grid.call(
 			"find_path", navigation_anchor, target_anchor, footprint, creature, max_path_tiles
 		)
 
 		if not (path_variant is Array) or (path_variant as Array).is_empty():
+			PerformanceStats.add_counter("flag_path_failures")
 			_release_creature_target(creature, true)
 			_set_failed_path_retry(creature)
 			continue
 
 		_apply_flag_path(creature, path_variant as Array)
+
+	PerformanceStats.add_counter("flag_creatures_scanned", scanned_creatures)
 
 
 func _get_creature_species_id(creature: Node) -> StringName:

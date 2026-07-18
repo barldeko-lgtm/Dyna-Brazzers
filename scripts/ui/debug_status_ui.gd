@@ -66,6 +66,7 @@ func build_debug_status_text() -> String:
 	lines.append("Graze/s: searches %d | candidate tiles %d | footprint checks %d" % [PerformanceStats.get_rate("grazing_searches"), PerformanceStats.get_rate("grazing_candidate_checks"), PerformanceStats.get_rate("grazing_footprint_queries")])
 	lines.append("Creature/s: physics %d | predator searches %d | candidates %d" % [PerformanceStats.get_rate("creature_physics_ticks"), PerformanceStats.get_rate("predator_prey_searches"), PerformanceStats.get_rate("predator_prey_candidates")])
 	lines.append("Path/s: calls %d | expanded %d | success %d | failed %d" % [PerformanceStats.get_rate("path_calls"), PerformanceStats.get_rate("path_expanded_tiles"), PerformanceStats.get_rate("path_success"), PerformanceStats.get_rate("path_failed")])
+	lines.append("Flags/s: updates %d | scanned %d | paths %d | failed %d" % [PerformanceStats.get_rate("flag_updates"), PerformanceStats.get_rate("flag_creatures_scanned"), PerformanceStats.get_rate("flag_path_requests"), PerformanceStats.get_rate("flag_path_failures")])
 	lines.append(PerformanceStats.get_csv_status_text())
 	return "\n".join(lines)
 

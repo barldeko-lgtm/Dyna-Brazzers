@@ -92,14 +92,12 @@ func _process(delta: float) -> void:
 		entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
 		update_entity_counts_text()
 
-	var force_minimap_update := false
 	minimap_entity_refresh_timer -= delta
 
+	# Keep minimap marker redraws bounded while the camera is panning.
 	if minimap_entity_refresh_timer <= 0.0:
 		minimap_entity_refresh_timer = MINIMAP_ENTITY_REFRESH_INTERVAL
-		force_minimap_update = true
-
-	update_minimap_camera_view(force_minimap_update)
+		update_minimap_camera_view(true)
 
 
 func initialize_terrain_minimap() -> void:
