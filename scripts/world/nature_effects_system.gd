@@ -6,6 +6,7 @@ const RAIN_CAST_EFFECT_SCENE := preload("res://scenes/effects/rain_cast_effect.t
 const LIGHTNING_SOUND := preload("res://assets/audio/sfx/lightning_strike.wav")
 const RAIN_SOUND := preload("res://assets/audio/sfx/rain_cast.wav")
 const SUN_SOUND := preload("res://assets/audio/sfx/sun_cast.wav")
+const EARTHQUAKE_SOUND := preload("res://assets/audio/sfx/earthquake_cast.wav")
 
 @export var lightning_damage := 50.0
 @export var rain_radius_tiles := 2
@@ -61,9 +62,37 @@ func apply_lightning(creature: Node) -> bool:
 	return true
 
 
-func apply_rain(center_tile: Vector2i) -> bool:
+func can_apply_rain(center_tile: Vector2i) -> bool:
 	if not can_apply_at_tile(center_tile):
 		return false
+
+	for y in range(center_tile.y - rain_radius_tiles, center_tile.y + rain_radius_tiles + 1):
+		for x in range(center_tile.x - rain_radius_tiles, center_tile.x + rain_radius_tiles + 1):
+			var tile := Vector2i(x, y)
+
+			if world_grid.has_method("has_dry_ground_at_tile") and bool(
+				world_grid.call("has_dry_ground_at_tile", tile)
+			):
+				return true
+
+			var grass: Node = world_grid.call("get_grass_at_tile", tile)
+
+			if is_instance_valid(grass) and grass.has_method("apply_rain"):
+				return true
+
+	return false
+
+
+func apply_rain(center_tile: Vector2i) -> bool:
+	if not can_apply_rain(center_tile):
+		return false
+
+	var dry_ground_result: Dictionary = {}
+
+	if world_grid.has_method("apply_rain_to_dry_ground_in_area"):
+		dry_ground_result = world_grid.call(
+			"apply_rain_to_dry_ground_in_area", center_tile, rain_radius_tiles
+		) as Dictionary
 
 	var checked_tiles := 0
 	var affected_grass := 0
@@ -86,6 +115,8 @@ func apply_rain(center_tile: Vector2i) -> bool:
 
 	PerformanceStats.add_counter("rain_tiles_checked", checked_tiles)
 	PerformanceStats.add_counter("rain_grass_affected", affected_grass)
+	PerformanceStats.add_counter("rain_dry_ground_hit", int(dry_ground_result.get("hit_tiles", 0)))
+	PerformanceStats.add_counter("rain_dry_ground_cleared", int(dry_ground_result.get("cleared_tiles", 0)))
 	_spawn_rain_cast_effect(center_tile)
 	AudioManager.play_sfx(RAIN_SOUND)
 	return true
@@ -164,7 +195,12 @@ func apply_earthquake(center_tile: Vector2i) -> bool:
 		"earthquake_tiles_checked", (earthquake_radius_tiles * 2 + 1) * (earthquake_radius_tiles * 2 + 1)
 	)
 	PerformanceStats.add_counter("earthquake_eggs_destroyed", destroyed_eggs)
-	return destroyed_eggs > 0
+
+	if destroyed_eggs <= 0:
+		return false
+
+	AudioManager.play_sfx(EARTHQUAKE_SOUND)
+	return true
 
 
 func _get_earthquake_targets(center_tile: Vector2i) -> Array[Node]:

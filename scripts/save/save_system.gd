@@ -481,7 +481,9 @@ func _collect_save_data() -> Dictionary:
 		"player_energy": _collect_player_energy(),
 		"creatures": _collect_creature_data(),
 		"grass": _collect_grass_data(),
-		"eggs": _collect_egg_data()
+		"eggs": _collect_egg_data(),
+		"cleared_dry_ground_tiles": _collect_cleared_dry_ground_tiles(),
+		"dry_ground_rain_hits": _collect_dry_ground_rain_hits()
 	}
 
 	return save_data
@@ -508,6 +510,24 @@ func _collect_player_energy() -> float:
 		return 0.0
 
 	return float(player_energy.call("get_energy"))
+
+
+func _collect_cleared_dry_ground_tiles() -> Array:
+	var world_grid: Node = get_tree().get_first_node_in_group("world_grid")
+
+	if world_grid == null or not world_grid.has_method("get_cleared_dry_ground_tiles"):
+		return []
+
+	return world_grid.call("get_cleared_dry_ground_tiles") as Array
+
+
+func _collect_dry_ground_rain_hits() -> Array:
+	var world_grid: Node = get_tree().get_first_node_in_group("world_grid")
+
+	if world_grid == null or not world_grid.has_method("get_dry_ground_rain_hit_data"):
+		return []
+
+	return world_grid.call("get_dry_ground_rain_hit_data") as Array
 
 
 func _collect_creature_data() -> Array[Dictionary]:
@@ -654,6 +674,14 @@ func _apply_save_data(save_data: Dictionary) -> bool:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
+	_restore_cleared_dry_ground_tiles(
+		save_data.get("cleared_dry_ground_tiles", []) as Array,
+		world_grid
+	)
+	_restore_dry_ground_rain_hits(
+		save_data.get("dry_ground_rain_hits", []) as Array,
+		world_grid
+	)
 	_restore_grass(
 		save_data.get("grass", []) as Array,
 		world_grid,
@@ -691,6 +719,16 @@ func _clear_dynamic_simulation_nodes() -> void:
 		for simulation_node: Node in get_tree().get_nodes_in_group(group_name):
 			if is_instance_valid(simulation_node):
 				simulation_node.queue_free()
+
+
+func _restore_cleared_dry_ground_tiles(saved_tiles: Array, world_grid: Node) -> void:
+	if world_grid.has_method("restore_cleared_dry_ground_tiles"):
+		world_grid.call("restore_cleared_dry_ground_tiles", saved_tiles)
+
+
+func _restore_dry_ground_rain_hits(saved_hits: Array, world_grid: Node) -> void:
+	if world_grid.has_method("restore_dry_ground_rain_hit_data"):
+		world_grid.call("restore_dry_ground_rain_hit_data", saved_hits)
 
 
 func _restore_grass(

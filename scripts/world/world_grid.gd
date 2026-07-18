@@ -1,5 +1,7 @@
 extends Node2D
 
+signal dry_ground_changed
+
 # Grid authority for tiles, occupancy and grazing.
 const CREATURE_SCENE := preload("res://scenes/creatures/creature.tscn")
 const PREDATOR_SPECIES_DATA := preload("res://data/species/predator.tres")
@@ -17,8 +19,13 @@ const BLOCKED_TERRAIN_SOURCES := {TERRAIN_WATER: true, TERRAIN_MOUNTAIN: true, T
 # thousands of tiles) before it fails. The cap bounds the worst-case cost of a
 # single call to a constant, regardless of map size or population.
 const DEFAULT_MAX_PATH_EXPANDED_TILES := 300
+const DRY_GROUND_RAIN_HITS_TO_CLEAR := 3
+const DRY_GROUND_VARIANT_COUNT := 3
 
 var ground: TileMapLayer = null
+var dry_ground: TileMapLayer = null
+var authored_dry_ground_tiles: Dictionary = {}
+var dry_ground_rain_hits: Dictionary = {}
 
 var tile_size := Vector2i(128, 128)
 
@@ -100,6 +107,9 @@ func ensure_initialized() -> void:
 	if ground == null:
 		ground = get_node_or_null("Ground") as TileMapLayer
 
+	if dry_ground == null:
+		dry_ground = get_node_or_null("DryGround") as TileMapLayer
+
 	if ground == null:
 		return
 
@@ -110,6 +120,7 @@ func ensure_initialized() -> void:
 		tile_size = ground.tile_set.tile_size
 
 	_cache_map_bounds()
+	_cache_authored_dry_ground_tiles()
 	is_initialized = true
 
 
@@ -134,6 +145,21 @@ func _cache_map_bounds() -> void:
 
 	map_min = Vector2i(min_x, min_y)
 	map_max = Vector2i(max_x, max_y)
+
+
+func _cache_authored_dry_ground_tiles() -> void:
+	authored_dry_ground_tiles.clear()
+
+	if dry_ground == null or dry_ground.tile_set == null:
+		return
+
+	for tile in dry_ground.get_used_cells():
+		authored_dry_ground_tiles[tile] = true
+		dry_ground.set_cell(tile, _get_dry_ground_variant_for_tile(tile), Vector2i.ZERO)
+
+
+func _get_dry_ground_variant_for_tile(tile: Vector2i) -> int:
+	return posmod(tile.x * 17 + tile.y * 31, DRY_GROUND_VARIANT_COUNT)
 
 
 # World <-> grid helpers.
@@ -195,7 +221,7 @@ func get_tile_source_id(tile: Vector2i) -> int:
 
 func is_tile_blocked_terrain(tile: Vector2i) -> bool:
 	var source_id := get_tile_source_id(tile)
-	return BLOCKED_TERRAIN_SOURCES.has(source_id)
+	return BLOCKED_TERRAIN_SOURCES.has(source_id) or has_dry_ground_at_tile(tile)
 
 
 func is_tile_walkable(tile: Vector2i) -> bool:
@@ -204,7 +230,119 @@ func is_tile_walkable(tile: Vector2i) -> bool:
 	if source_id == -1:
 		return false
 
-	return not BLOCKED_TERRAIN_SOURCES.has(source_id)
+	return not BLOCKED_TERRAIN_SOURCES.has(source_id) and not has_dry_ground_at_tile(tile)
+
+
+func has_dry_ground_at_tile(tile: Vector2i) -> bool:
+	ensure_initialized()
+	return dry_ground != null and dry_ground.tile_set != null and dry_ground.get_cell_source_id(tile) != -1
+
+
+func apply_rain_to_dry_ground_in_area(center_tile: Vector2i, radius: int) -> Dictionary:
+	ensure_initialized()
+
+	if dry_ground == null or dry_ground.tile_set == null:
+		return {"hit_tiles": 0, "cleared_tiles": 0}
+
+	var hit_tiles := 0
+	var cleared_tiles := 0
+
+	for y in range(center_tile.y - radius, center_tile.y + radius + 1):
+		for x in range(center_tile.x - radius, center_tile.x + radius + 1):
+			var tile := Vector2i(x, y)
+
+			if not has_dry_ground_at_tile(tile):
+				continue
+
+			hit_tiles += 1
+			var rain_hits := int(dry_ground_rain_hits.get(tile, 0)) + 1
+
+			if rain_hits < DRY_GROUND_RAIN_HITS_TO_CLEAR:
+				dry_ground_rain_hits[tile] = rain_hits
+				continue
+
+			dry_ground.erase_cell(tile)
+			dry_ground_rain_hits.erase(tile)
+			cleared_tiles += 1
+
+	if cleared_tiles > 0:
+		dry_ground_changed.emit()
+
+	return {"hit_tiles": hit_tiles, "cleared_tiles": cleared_tiles}
+
+
+func get_dry_ground_rain_hit_data() -> Array[Dictionary]:
+	ensure_initialized()
+	var hit_data: Array[Dictionary] = []
+
+	for tile_variant in dry_ground_rain_hits.keys():
+		if not (tile_variant is Vector2i):
+			continue
+
+		var tile: Vector2i = tile_variant
+		var hits := int(dry_ground_rain_hits.get(tile, 0))
+
+		if hits > 0 and has_dry_ground_at_tile(tile):
+			hit_data.append({"x": tile.x, "y": tile.y, "hits": hits})
+
+	return hit_data
+
+
+func restore_dry_ground_rain_hit_data(saved_hits: Array) -> void:
+	ensure_initialized()
+	dry_ground_rain_hits.clear()
+
+	for hit_variant in saved_hits:
+		if not (hit_variant is Dictionary):
+			continue
+
+		var hit_record: Dictionary = hit_variant as Dictionary
+		var tile := Vector2i(int(hit_record.get("x", 0)), int(hit_record.get("y", 0)))
+		var hits := clampi(int(hit_record.get("hits", 0)), 0, DRY_GROUND_RAIN_HITS_TO_CLEAR - 1)
+
+		if hits > 0 and has_dry_ground_at_tile(tile):
+			dry_ground_rain_hits[tile] = hits
+
+
+func get_cleared_dry_ground_tiles() -> Array[Dictionary]:
+	ensure_initialized()
+	var cleared_tiles: Array[Dictionary] = []
+
+	for tile_variant in authored_dry_ground_tiles.keys():
+		if not (tile_variant is Vector2i):
+			continue
+
+		var tile: Vector2i = tile_variant
+
+		if not has_dry_ground_at_tile(tile):
+			cleared_tiles.append({"x": tile.x, "y": tile.y})
+
+	return cleared_tiles
+
+
+func restore_cleared_dry_ground_tiles(saved_tiles: Array) -> void:
+	ensure_initialized()
+
+	if dry_ground == null or dry_ground.tile_set == null:
+		return
+
+	var changed := false
+
+	for tile_variant in saved_tiles:
+		if not (tile_variant is Dictionary):
+			continue
+
+		var tile_data: Dictionary = tile_variant as Dictionary
+		var tile := Vector2i(int(tile_data.get("x", 0)), int(tile_data.get("y", 0)))
+
+		if not authored_dry_ground_tiles.has(tile) or not has_dry_ground_at_tile(tile):
+			continue
+
+		dry_ground.erase_cell(tile)
+		changed = true
+
+	if changed:
+		dry_ground_changed.emit()
 
 
 func can_host_grass(tile: Vector2i) -> bool:

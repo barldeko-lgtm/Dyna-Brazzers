@@ -85,7 +85,7 @@ On Windows this normally resolves to:
 
 `%APPDATA%/Godot/app_userdata/Dyna/`
 
-Static terrain and the fixed player base are not included in these files. Active species flags are stored as lightweight tile records inside the selected save slot.
+Static base terrain and the fixed player base are not included in these files. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored in the selected save slot with active species flags.
 
 ## Terrain assets
 
@@ -95,6 +95,7 @@ Static terrain and the fixed player base are not included in these files. Active
 - `assets/sprites/terrain/mountain_tiles_independent.png` — mountain interior, edge, and corner variants.
 - `assets/sprites/terrain/tree_tiles_independent.png` — four trees split into normal 128x128 TileMap pieces.
 - `assets/sprites/terrain/grass_stage_1.png` ... `grass_stage_4.png` — grass growth-stage sprites.
+- `assets/sprites/terrain/dry_ground/dry_ground_01.png` ... `dry_ground_03.png` — 128x128 DryGround overlay variants.
 
 Terrain source ids in `world.tscn`:
 
@@ -103,7 +104,7 @@ Terrain source ids in `world.tscn`:
 - `2` — mountain;
 - `3` — tree.
 
-The terrain minimap reads these source ids directly from the active `Ground` TileMapLayer, generates its display texture at runtime, overlays the active camera viewport, draws 6x6 creature-category triangle markers on a separate overlay layer (light green herbivores, red predators, blue egg eater), and translates minimap clicks into observer-camera world positions.
+`world.tscn` has the source-id base `Ground` layer plus a `DryGround` overlay with three texture sources. The minimap reads the base source ids, displays DryGround in a separate colour, regenerates when a cell is cleared after its third rain hit, overlays the active camera viewport, draws 6x6 creature-category triangle markers on a separate overlay layer (light green herbivores, red predators, blue egg eater), and translates minimap clicks into observer-camera world positions.
 
 ## UI assets
 
@@ -115,6 +116,7 @@ The terrain minimap reads these source ids directly from the active `Ground` Til
 - `assets/audio/sfx/lightning_strike.wav` — lightning cast sound, played as a one-shot through the `SFX` bus.
 - `assets/audio/sfx/rain_cast.wav` — successful rain-cast sound, played as a one-shot through the `SFX` bus.
 - `assets/audio/sfx/sun_cast.wav` — successful sun-cast sound, played as a one-shot through the `SFX` bus.
+- `assets/audio/sfx/earthquake_cast.wav` — successful earthquake sound, played once after at least one egg is destroyed.
 - `assets/audio/ui/button_click.wav` — short generated menu click, played automatically through the `UI` bus for every enabled button.
 
 ## Effect assets

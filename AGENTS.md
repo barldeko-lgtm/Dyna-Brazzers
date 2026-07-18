@@ -51,7 +51,7 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 ## Current architecture canon
 
 - `scenes/world/world.tscn` is the only active gameplay world.
-- The `Ground` TileMap is the authored terrain source of truth once saved in Godot.
+- The `Ground` TileMap is the authored base terrain source of truth once saved in Godot; the optional `DryGround` overlay marks dynamic non-walkable, non-growable cells, uses three deterministic visual variants, and needs three rain hits per cell to clear.
 - `start_map_layout.gd` may populate only a completely empty TileMap and must never overwrite an existing edited map.
 - The world grid is the source of truth for terrain, walkability, occupancy, blockers, pathfinding, map bounds, and resource lookup.
 - Creatures make decisions in grid/anchor space but move smoothly in world space.

@@ -39,6 +39,7 @@ const MINIMAP_GROUND_COLOR := Color(0xc7a978ff)
 const MINIMAP_WATER_COLOR := Color(0x67cfeeff)
 const MINIMAP_MOUNTAIN_COLOR := Color(0x41464eff)
 const MINIMAP_TREE_COLOR := Color(0x31572fff)
+const MINIMAP_DRY_GROUND_COLOR := Color(0x9a6642ff)
 const MINIMAP_BORDER_COLOR := Color(0x2e3b52ff)
 const MINIMAP_CAMERA_COLOR := Color(0xfff1a3ff)
 const MINIMAP_HERBIVORE_COLOR := Color(0x9be26aff)
@@ -71,6 +72,7 @@ var last_minimap_camera_position := Vector2.ZERO
 var last_minimap_camera_zoom := Vector2.ZERO
 var has_minimap_camera_state := false
 var minimap_entity_refresh_timer := 0.0
+var dry_ground_signal_source: Node = null
 
 
 func _ready() -> void:
@@ -115,6 +117,7 @@ func rebuild_terrain_minimap() -> bool:
 		return false
 
 	var ground := find_ground_tile_map()
+	var dry_ground := find_dry_ground_tile_map()
 
 	if ground == null:
 		return false
@@ -138,7 +141,12 @@ func rebuild_terrain_minimap() -> bool:
 		for image_x in range(minimap_map_size.x):
 			var map_tile := minimap_map_min + Vector2i(image_x, image_y)
 			var source_id := ground.get_cell_source_id(map_tile)
-			minimap_image.set_pixel(image_x + 1, image_y + 1, get_minimap_terrain_color(source_id))
+			var terrain_color := get_minimap_terrain_color(source_id)
+
+			if dry_ground != null and dry_ground.tile_set != null and dry_ground.get_cell_source_id(map_tile) != -1:
+				terrain_color = MINIMAP_DRY_GROUND_COLOR
+
+			minimap_image.set_pixel(image_x + 1, image_y + 1, terrain_color)
 
 	terrain_minimap_base_image = minimap_image
 	terrain_minimap_texture = ImageTexture.create_from_image(minimap_image)
@@ -162,6 +170,7 @@ func rebuild_terrain_minimap() -> bool:
 
 	has_minimap_camera_state = false
 	minimap_entity_refresh_timer = 0.0
+	_bind_dry_ground_changes()
 	update_minimap_camera_view(true)
 	return true
 
@@ -181,6 +190,39 @@ func find_ground_tile_map() -> TileMapLayer:
 		return null
 
 	return current_scene.get_node_or_null("World/Ground") as TileMapLayer
+
+
+func find_dry_ground_tile_map() -> TileMapLayer:
+	var world_grid := get_tree().get_first_node_in_group("world_grid")
+
+	if world_grid != null:
+		return world_grid.get_node_or_null("DryGround") as TileMapLayer
+
+	var current_scene := get_tree().current_scene
+
+	if current_scene == null:
+		return null
+
+	return current_scene.get_node_or_null("World/DryGround") as TileMapLayer
+
+
+func _bind_dry_ground_changes() -> void:
+	var world_grid := get_tree().get_first_node_in_group("world_grid")
+
+	if world_grid == null or world_grid == dry_ground_signal_source:
+		return
+
+	dry_ground_signal_source = world_grid
+	var changed_callable := Callable(self, "_on_dry_ground_changed")
+
+	if world_grid.has_signal("dry_ground_changed") and not world_grid.is_connected(
+		"dry_ground_changed", changed_callable
+	):
+		world_grid.connect("dry_ground_changed", changed_callable)
+
+
+func _on_dry_ground_changed() -> void:
+	rebuild_terrain_minimap()
 
 
 func get_minimap_world_bounds(ground: TileMapLayer) -> Rect2:

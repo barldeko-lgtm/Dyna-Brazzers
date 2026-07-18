@@ -381,7 +381,9 @@ func _try_apply_rain_at_mouse() -> bool:
 
 	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
 
-	if not bool(nature_effects.call("can_apply_at_tile", center_tile)):
+	if not nature_effects.has_method("can_apply_rain") or not bool(
+		nature_effects.call("can_apply_rain", center_tile)
+	):
 		return false
 
 	if not spend_energy(rain_energy_cost):
@@ -544,7 +546,10 @@ func _update_rain_target_preview() -> void:
 		return
 
 	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
-	var valid_target := bool(world_grid.call("is_tile_inside_map", center_tile))
+	var nature_effects := _get_nature_effects_system()
+	var valid_target := nature_effects != null and nature_effects.has_method("can_apply_rain") and bool(
+		nature_effects.call("can_apply_rain", center_tile)
+	)
 
 	if rain_target_preview.has_method("set_center_tile"):
 		rain_target_preview.set_center_tile(center_tile, valid_target)

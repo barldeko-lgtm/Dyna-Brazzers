@@ -5,6 +5,7 @@
 `res://scripts/world/world_grid.gd` owns:
 
 - terrain lookup;
+- DryGround overlay state, deterministic visual variants, and rain-hit tracking;
 - walkability;
 - footprint placement;
 - pathfinding;
@@ -24,7 +25,7 @@ The active world and map bootstrap are:
 
 Map flow:
 
-1. `world.tscn` creates the `Ground` TileMap and its terrain sources.
+1. `world.tscn` creates the base `Ground` TileMap, its terrain sources, and the empty `DryGround` overlay with three visual sources.
 2. `start_map_layout.gd` checks whether the TileMap already has cells.
 3. If the TileMap is empty, the initial 85x85 map is created.
 4. If the TileMap is non-empty, the script does nothing.
@@ -140,6 +141,7 @@ Main files:
 - `res://assets/audio/sfx/lightning_strike.wav`;
 - `res://assets/audio/sfx/rain_cast.wav`;
 - `res://assets/audio/sfx/sun_cast.wav`;
+- `res://assets/audio/sfx/earthquake_cast.wav`;
 - `res://assets/audio/ui/button_click.wav`.
 
 Registration and storage:
@@ -158,7 +160,7 @@ Runtime flow:
 4. Entering `res://scenes/main/main.tscn` starts or fades in the gameplay track.
 5. Returning to the startup screen fades the track out and stops it.
 6. Startup and in-game Settings pages call the same `AudioManager` getters and setters.
-7. Successful lightning, rain, and sun casts ask `AudioManager` to create temporary `SFX` one-shot players.
+7. Successful lightning, rain, sun, and earthquake casts ask `AudioManager` to create temporary `SFX` one-shot players.
 8. Each one-shot player frees itself when its sound ends.
 9. `AudioManager` watches scene-tree additions, connects every existing or runtime-created `BaseButton`, and plays the shared click on `button_down` through the `UI` bus.
 
@@ -167,6 +169,7 @@ Rules:
 - do not add another gameplay-music player or audio manager to gameplay/UI scenes;
 - route background music through `Music`, all player-facing non-music volume through `Sounds`, ambient loops through `Ambient`, world effects through `SFX`, and menu feedback through `UI`;
 - trigger cast sounds only after gameplay validation and successful energy spending;
+- earthquake audio must play only when `apply_earthquake()` actually destroys at least one egg;
 - keep audio playback independent from simulation speed and save reconstruction;
 - use `AudioManager.play_sfx()` or `play_ui_sfx()` for short shared sounds instead of permanent players;
 - keep the shared button click global; do not attach duplicate click players or click callbacks to individual button scenes;
@@ -198,9 +201,9 @@ In-game UI integration:
 - closing it restores the previous simulation speed;
 - actions are Save, Load, Main Menu, Close Game, and Back.
 
-Saved dynamic data includes creatures, grass, eggs, player energy, active species flags, camera state, simulation speed, and save timestamp. `save_system_with_flags.gd` layers the optional `player_flags` field over the base `SaveSystem`, so older saves without it load with no active flags.
+Saved dynamic data includes creatures, grass, eggs, player energy, rain-cleared DryGround tiles, partial DryGround rain-hit counts, active species flags, camera state, simulation speed, and save timestamp. `save_system_with_flags.gd` layers the optional `player_flags` field over the base `SaveSystem`, so older saves without it load with no active flags.
 
-Static terrain and the fixed player base are loaded from start-map setup and are not serialized.
+Static base terrain and the fixed player base are loaded from start-map setup and are not serialized. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts restore from save deltas.
 
 Loading flow:
 

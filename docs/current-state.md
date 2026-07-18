@@ -22,7 +22,7 @@ Current prototype includes:
 - player-created species eggs bought for nature energy through the egg submenu;
 - species-order flags for all six player species, each with an 11x11 influence area;
 - a local four-frame rain VFX;
-- a global audio system with looping gameplay music, lightning, rain, and sun sound effects, automatic button-click feedback, separate audio buses, and persistent Music/Sounds volume controls;
+- a global audio system with looping gameplay music, lightning, rain, sun, and earthquake sound effects, automatic button-click feedback, separate audio buses, and persistent Music/Sounds volume controls;
 - right-side HUD with live creature and egg counters;
 - an interactive right-side terrain minimap showing ground, water, mountains, trees, creature markers, and the current camera view;
 - separated player UI, creature info UI, debug status UI, and save system;
@@ -88,12 +88,13 @@ Saved dynamic state includes:
 - grass stages and timers;
 - eggs and their stage/timer state;
 - player energy;
+- rain-cleared DryGround tiles and partial rain-hit counts;
 - active player species flags;
 - camera position and zoom;
 - simulation speed;
 - save timestamp.
 
-Static terrain and the fixed player base are not serialized. They come from the active start-map setup.
+Static base terrain and the fixed player base are not serialized. The authored DryGround overlay loads with the map; rain-cleared cells and partial rain-hit counts are stored as lightweight deltas.
 
 `Main Menu` unloads the active game scene and clears temporary `SaveSystem` references without deleting save files. Starting `New Game` afterwards creates a clean session.
 
@@ -110,7 +111,7 @@ Current UI ownership:
 - `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
 - `scripts/ui/player_nature_ui.gd` owns spell buttons, targeting, and previews;
 - `scripts/player/player_energy.gd` owns the session energy reserve, spending API, save value, and living-dinosaur income;
-- `scripts/world/nature_effects_system.gd` owns world-side lightning, rain, sun, spell VFX application, and successful-cast sound triggers;
+- `scripts/world/nature_effects_system.gd` owns world-side lightning, rain, sun, earthquake, spell VFX application, and successful-cast sound triggers;
 - `scripts/save/save_system.gd` remains the base persistence/menu implementation, while `scripts/save/save_system_with_flags.gd` adds species-flag save data and the in-game audio-settings page;
 - `scripts/debug/grid_debug_overlay.gd` owns the F3 grid/debug overlay.
 
@@ -127,7 +128,7 @@ Current audio rules:
 - gameplay music starts automatically when `scenes/main/main.tscn` becomes the active scene and fades out on the startup screen;
 - opening the in-game menu does not interrupt music or audio fades;
 - the MP3 stream loops continuously through the shared music player;
-- lightning, rain, and sun use `assets/audio/sfx/lightning_strike.wav`, `rain_cast.wav`, and `sun_cast.wav`; each plays only after its cast succeeds;
+- lightning, rain, sun, and earthquake use `assets/audio/sfx/lightning_strike.wav`, `rain_cast.wav`, `sun_cast.wav`, and `earthquake_cast.wav`; each plays only after its cast succeeds;
 - `assets/audio/ui/button_click.wav` is played through the `UI` bus whenever any enabled `BaseButton` is pressed; existing scene buttons and runtime-created menu buttons are connected automatically by `AudioManager`;
 - both the startup `Settings` page and the in-game `Settings` page expose `Music` and `Sounds` sliders;
 - slider values are stored in `user://audio_settings.cfg`, independently from the three gameplay save slots;
@@ -148,7 +149,7 @@ Current minimap rules:
 - the egg eater is shown as a blue triangle marker;
 - a bright rectangular frame shows the current camera viewport and changes size with camera zoom;
 - left-clicking the minimap moves the observer camera to the selected world position;
-- terrain stays static during a session, while a separate overlay redraws the camera frame and 6x6 creature triangle markers during play;
+- base terrain stays static during a session; a DryGround overlay may be cleared by its third rain hit, then the minimap rebuilds; a separate overlay redraws the camera frame and 6x6 creature triangle markers during play;
 - eggs, the player base, and world events are not shown yet.
 
 ## Terrain
@@ -162,7 +163,7 @@ The map is 85x85 tiles with a 128x128 tile size. The world contains ground, wate
 - source id `2` — mountain;
 - source id `3` — tree.
 
-Water, mountains, and trees are blocked terrain.
+Water, mountains, trees, and occupied DryGround overlay cells are blocked terrain. DryGround has three 128x128 visual variants and reveals the original ground only after three rain hits.
 
 `start_map_layout.gd` contains the initial map description and matching water/mountain edge selection. It builds terrain only when the `Ground` TileMap is completely empty. Once the TileMap contains cells, the script returns without clearing or rebuilding it.
 
@@ -217,9 +218,9 @@ Rules:
 - edible grass returns to the first stage when consumed;
 - only mature grass attempts natural spreading;
 - natural spreading checks cardinal neighbouring tiles;
-- grass may spread across any normal walkable ground tile except the fixed player-base footprint;
+- grass may spread across any normal walkable ground tile except the fixed player-base footprint and DryGround overlay;
 - initial grass placements are only starting seeds, not an allowed-growth mask;
-- rain advances grass growth and can trigger mature spreading;
+- rain advances grass growth, can trigger mature spreading, and removes DryGround only on its third hit;
 - sun reduces or removes grass through the existing nature-power rules.
 
 Dynamically created grass is positioned before it is added to the scene tree. This prevents `_ready()` from registering it on an incorrect temporary tile.
@@ -303,11 +304,13 @@ Current rain visual rules:
 - the effect removes itself after playback;
 - the rain overlay remains below the creature selection frame.
 
+
 ## Earthquake
 
 - the spell targets a centered 11x11 tile area and is available only when it intersects at least one egg;
 - a successful cast destroys every stage-1 and stage-2 egg in that area;
-- it does not damage creatures or alter grass.
+- it does not damage creatures or alter grass;
+- `assets/audio/sfx/earthquake_cast.wav` plays once only after at least one egg is successfully destroyed.
 
 ## Creature death / corpse visual
 
