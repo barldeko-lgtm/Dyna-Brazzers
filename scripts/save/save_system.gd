@@ -360,11 +360,20 @@ func get_slot_path(slot_index: int) -> String:
 	return "user://dyna_save_slot_%d.json" % slot_index
 
 
+func get_slot_temp_path(slot_index: int) -> String:
+	return "%s.tmp" % get_slot_path(slot_index)
+
+
+func get_slot_backup_path(slot_index: int) -> String:
+	return "%s.bak" % get_slot_path(slot_index)
+
+
 func has_save(slot_index: int) -> bool:
 	if slot_index < 1 or slot_index > SLOT_COUNT:
 		return false
 
-	return FileAccess.file_exists(get_slot_path(slot_index))
+	_recover_slot_backup(slot_index)
+	return _is_valid_save_data(_read_save_dictionary_at_path(get_slot_path(slot_index)))
 
 
 func get_slot_button_text(slot_index: int) -> String:
@@ -372,12 +381,18 @@ func get_slot_button_text(slot_index: int) -> String:
 
 
 func _get_slot_button_text(slot_index: int) -> String:
-	if not has_save(slot_index):
+	if slot_index < 1 or slot_index > SLOT_COUNT:
+		return "Слот недоступен"
+
+	_recover_slot_backup(slot_index)
+	var slot_path := get_slot_path(slot_index)
+
+	if not FileAccess.file_exists(slot_path):
 		return "Слот %d — пусто" % slot_index
 
-	var metadata: Dictionary = _read_save_dictionary(slot_index)
+	var metadata := _read_save_dictionary_at_path(slot_path)
 
-	if metadata.is_empty():
+	if not _is_valid_save_data(metadata):
 		return "Слот %d — повреждён" % slot_index
 
 	var saved_at: int = int(metadata.get("saved_at", 0))
@@ -404,23 +419,89 @@ func save_game(slot_index: int) -> bool:
 	if slot_index < 1 or slot_index > SLOT_COUNT:
 		return false
 
-	var save_data: Dictionary = _collect_save_data()
-	var save_file: FileAccess = FileAccess.open(get_slot_path(slot_index), FileAccess.WRITE)
+	_recover_slot_backup(slot_index)
+	var save_data := _collect_save_data()
 
-	if save_file == null:
-		push_error("SaveSystem: failed to open slot %d for writing." % slot_index)
+	if not _is_valid_save_data(save_data):
+		push_error("SaveSystem: refused to write incomplete save data.")
 		return false
 
-	save_file.store_string(JSON.stringify(save_data, "\t"))
-	save_file.close()
+	var slot_path := get_slot_path(slot_index)
+	var temp_path := get_slot_temp_path(slot_index)
+	var backup_path := get_slot_backup_path(slot_index)
+	var saves_directory := DirAccess.open("user://")
+
+	if saves_directory == null:
+		push_error("SaveSystem: failed to open the save directory.")
+		return false
+
+	if FileAccess.file_exists(temp_path):
+		saves_directory.remove(temp_path.get_file())
+
+	var temp_file: FileAccess = FileAccess.open(temp_path, FileAccess.WRITE)
+
+	if temp_file == null:
+		push_error("SaveSystem: failed to open temporary slot %d for writing." % slot_index)
+		return false
+
+	temp_file.store_string(JSON.stringify(save_data, "	"))
+	temp_file.flush()
+	var write_error := temp_file.get_error()
+	temp_file.close()
+
+	if write_error != OK or not _is_valid_save_data(_read_save_dictionary_at_path(temp_path)):
+		saves_directory.remove(temp_path.get_file())
+		push_error("SaveSystem: temporary slot %d could not be verified." % slot_index)
+		return false
+
+	if FileAccess.file_exists(backup_path) and saves_directory.remove(backup_path.get_file()) != OK:
+		saves_directory.remove(temp_path.get_file())
+		push_error("SaveSystem: failed to clear the previous backup for slot %d." % slot_index)
+		return false
+
+	if FileAccess.file_exists(slot_path) and saves_directory.rename(slot_path.get_file(), backup_path.get_file()) != OK:
+		saves_directory.remove(temp_path.get_file())
+		push_error("SaveSystem: failed to protect the previous slot %d." % slot_index)
+		return false
+
+	if saves_directory.rename(temp_path.get_file(), slot_path.get_file()) != OK:
+		if FileAccess.file_exists(backup_path):
+			saves_directory.rename(backup_path.get_file(), slot_path.get_file())
+		push_error("SaveSystem: failed to replace slot %d." % slot_index)
+		return false
+
+	if FileAccess.file_exists(backup_path):
+		saves_directory.remove(backup_path.get_file())
+
 	return true
 
 
+func _recover_slot_backup(slot_index: int) -> void:
+	var slot_path := get_slot_path(slot_index)
+	var backup_path := get_slot_backup_path(slot_index)
+
+	if FileAccess.file_exists(slot_path) or not FileAccess.file_exists(backup_path):
+		return
+
+	var saves_directory := DirAccess.open("user://")
+
+	if saves_directory != null:
+		saves_directory.rename(backup_path.get_file(), slot_path.get_file())
+
+
 func _read_save_dictionary(slot_index: int) -> Dictionary:
-	if not has_save(slot_index):
+	if slot_index < 1 or slot_index > SLOT_COUNT:
 		return {}
 
-	var save_file: FileAccess = FileAccess.open(get_slot_path(slot_index), FileAccess.READ)
+	_recover_slot_backup(slot_index)
+	return _read_save_dictionary_at_path(get_slot_path(slot_index))
+
+
+func _read_save_dictionary_at_path(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+
+	var save_file: FileAccess = FileAccess.open(path, FileAccess.READ)
 
 	if save_file == null:
 		return {}
@@ -436,17 +517,35 @@ func _read_save_dictionary(slot_index: int) -> Dictionary:
 	return {}
 
 
+func _is_valid_save_data(save_data: Dictionary) -> bool:
+	if save_data.is_empty() or int(save_data.get("version", 0)) != SAVE_VERSION:
+		return false
+
+	var creatures: Variant = save_data.get("creatures", null)
+	var grass: Variant = save_data.get("grass", null)
+	var eggs: Variant = save_data.get("eggs", null)
+	var camera: Variant = save_data.get("camera", null)
+	var player_energy: Variant = save_data.get("player_energy", null)
+	var time_scale: Variant = save_data.get("time_scale", null)
+
+	return (
+		creatures is Array
+		and grass is Array
+		and eggs is Array
+		and camera is Dictionary
+		and (player_energy is int or player_energy is float)
+		and (time_scale is int or time_scale is float)
+	)
+
+
 func load_game(slot_index: int) -> bool:
 	if slot_index < 1 or slot_index > SLOT_COUNT:
 		return false
 
-	var save_data: Dictionary = _read_save_dictionary(slot_index)
+	var save_data := _read_save_dictionary(slot_index)
 
-	if save_data.is_empty():
-		return false
-
-	if int(save_data.get("version", 0)) != SAVE_VERSION:
-		push_error("SaveSystem: unsupported save version.")
+	if not _is_valid_save_data(save_data):
+		push_error("SaveSystem: slot %d is missing or invalid." % slot_index)
 		return false
 
 	var current_scene: Node = get_tree().current_scene
@@ -625,6 +724,12 @@ func _collect_egg_data() -> Array[Dictionary]:
 		if hatch_species != null:
 			hatch_species_path = hatch_species.resource_path
 
+		var hatch_creature_scene: PackedScene = egg_node.get("hatch_creature_scene") as PackedScene
+		var hatch_creature_scene_path := DEFAULT_CREATURE_SCENE_PATH
+
+		if hatch_creature_scene != null and not hatch_creature_scene.resource_path.is_empty():
+			hatch_creature_scene_path = hatch_creature_scene.resource_path
+
 		var scene_path: String = egg_node.scene_file_path
 
 		if scene_path.is_empty():
@@ -634,6 +739,7 @@ func _collect_egg_data() -> Array[Dictionary]:
 			"scene_path": scene_path,
 			"species_id": String(egg_node.get("species_id")),
 			"hatch_species_path": hatch_species_path,
+			"hatch_creature_scene_path": hatch_creature_scene_path,
 			"anchor_x": anchor.x,
 			"anchor_y": anchor.y,
 			"stage": int(egg_node.get("current_stage")),
@@ -652,8 +758,6 @@ func _collect_egg_data() -> Array[Dictionary]:
 # ---------------------------------------------------------------------------
 
 func _apply_save_data(save_data: Dictionary) -> bool:
-	Engine.time_scale = 0.0
-
 	var world_grid: Node = get_tree().get_first_node_in_group("world_grid")
 
 	if world_grid == null:
@@ -670,6 +774,7 @@ func _apply_save_data(save_data: Dictionary) -> bool:
 	if creatures_container == null or grasses_container == null or eggs_container == null:
 		return false
 
+	Engine.time_scale = 0.0
 	_clear_dynamic_simulation_nodes()
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -837,16 +942,38 @@ func _restore_eggs(
 		var hatch_species_path: String = String(
 			egg_record.get("hatch_species_path", "")
 		)
+		var hatch_creature_scene_path: String = String(
+			egg_record.get("hatch_creature_scene_path", DEFAULT_CREATURE_SCENE_PATH)
+		)
+		var hatch_creature_scene: PackedScene = load(hatch_creature_scene_path) as PackedScene
+
+		if hatch_creature_scene == null:
+			hatch_creature_scene = load(DEFAULT_CREATURE_SCENE_PATH) as PackedScene
+
+		if hatch_creature_scene == null:
+			egg_node.queue_free()
+			continue
 
 		egg_node.set("species_id", String(egg_record.get("species_id", "stegosaurus")))
 		egg_node.set("hatch_health", float(egg_record.get("hatch_health", 100.0)))
 		egg_node.set("hatch_hunger", float(egg_record.get("hatch_hunger", 50.0)))
+		egg_node.set("hatch_creature_scene", hatch_creature_scene)
 
 		if not hatch_species_path.is_empty():
-			var hatch_species: Resource = load(hatch_species_path) as Resource
+			var hatch_species: CreatureSpeciesData = load(hatch_species_path) as CreatureSpeciesData
 
 			if hatch_species != null:
 				egg_node.set("hatch_species_data", hatch_species)
+				egg_node.set("species_id", hatch_species.species_id)
+				egg_node.set("stage_1_duration", hatch_species.egg_stage_1_duration)
+				egg_node.set("expand_retry_interval", hatch_species.egg_expand_retry_interval)
+				egg_node.set("stage_2_duration", hatch_species.egg_stage_2_duration)
+
+				if hatch_species.egg_stage_1_texture != null:
+					egg_node.set("stage_1_texture", hatch_species.egg_stage_1_texture)
+
+				if hatch_species.egg_stage_2_texture != null:
+					egg_node.set("stage_2_texture", hatch_species.egg_stage_2_texture)
 
 		var stage_1_world_position: Vector2 = world_grid.call(
 			"anchor_to_world_position",

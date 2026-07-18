@@ -99,9 +99,14 @@ func _on_load_slot_pressed(slot_index: int) -> void:
 	status_label.text = "Загрузка слота %d..." % slot_index
 	_set_load_slot_buttons_disabled(true)
 
-	# SaveSystem is an autoload and owns the asynchronous scene switch.
-	# The start screen does not need to wait for a return value.
-	SaveSystem.load_game(slot_index)
+	var load_succeeded: bool = await SaveSystem.load_game(slot_index)
+
+	if load_succeeded:
+		return
+
+	status_label.text = "Не удалось загрузить слот %d." % slot_index
+	_set_load_slot_buttons_disabled(false)
+	load_back_button.grab_focus()
 
 
 func _show_main_buttons() -> void:

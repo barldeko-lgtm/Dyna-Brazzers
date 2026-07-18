@@ -31,9 +31,11 @@ Current prototype includes:
 - F4 detailed text debug status;
 - F3 grid/debug overlay;
 - water, mountain, and tree terrain;
+- a reversible DryGround overlay with three visual variants: it blocks movement/grass, clears after three rain hits, and naturally reopens through adjacent mature-grass spread timers;
 - free observer camera constrained to the map;
 - centered startup screen with a 1920x1080 illustrated Dyna Brazzers background and a lightly transparent menu panel;
-- three save slots with date/time labels;
+- three save slots with date/time labels; invalid slots are marked damaged and cannot be loaded;
+- each save is written and validated as a temporary JSON file before replacing its slot, with backup recovery if replacement is interrupted;
 - loading from both the startup screen and the in-game right-side Menu;
 - return to Main Menu with full active-session reset;
 - Exit buttons in both the startup screen and the in-game menu.
@@ -86,7 +88,7 @@ Saved dynamic state includes:
 
 - creatures and their mutable state;
 - grass stages and timers;
-- eggs and their stage/timer state;
+- eggs, their stage/timer state, species visuals, and hatch-scene configuration;
 - player energy;
 - rain-cleared DryGround tiles and partial rain-hit counts;
 - active player species flags;
@@ -111,7 +113,7 @@ Current UI ownership:
 - `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
 - `scripts/ui/player_nature_ui.gd` owns spell buttons, targeting, and previews;
 - `scripts/player/player_energy.gd` owns the session energy reserve, spending API, save value, and living-dinosaur income;
-- `scripts/world/nature_effects_system.gd` owns world-side lightning, rain, sun, earthquake, spell VFX application, and successful-cast sound triggers;
+- `scripts/world/nature_effects_system.gd` owns world-side lightning, rain, sun, earthquake, DryGround clearing, adjacent mature-grass timer restarts, spell VFX application, and successful-cast sound triggers;
 - `scripts/save/save_system.gd` remains the base persistence/menu implementation, while `scripts/save/save_system_with_flags.gd` adds species-flag save data and the in-game audio-settings page;
 - `scripts/debug/grid_debug_overlay.gd` owns the F3 grid/debug overlay.
 
@@ -220,7 +222,7 @@ Rules:
 - natural spreading checks cardinal neighbouring tiles;
 - grass may spread across any normal walkable ground tile except the fixed player-base footprint and DryGround overlay;
 - initial grass placements are only starting seeds, not an allowed-growth mask;
-- rain advances grass growth, can trigger mature spreading, and removes DryGround only on its third hit;
+- rain advances grass growth, can trigger mature spreading, and removes DryGround only on its third hit; when a cell clears, each mature grass patch on its four cardinal neighbours restarts its normal spread timer;
 - sun reduces or removes grass through the existing nature-power rules.
 
 Dynamically created grass is positioned before it is added to the scene tree. This prevents `_ready()` from registering it on an incorrect temporary tile.
@@ -248,7 +250,7 @@ The shared egg scene remains the fallback for a future species that does not yet
 Player egg-creation rules:
 
 - the existing egg button opens a six-species submenu;
-- temporary test prices are: stegosaurus 100, triceratops 120, egg eater 140, raptor 160, pterodactyl 180, and tyrannosaurus 250 energy;
+- temporary test prices are: stegosaurus 350, triceratops 450, egg eater 1200, raptor 1000, pterodactyl 1000, and tyrannosaurus 1300 energy;
 - fresh games start with an initial energy reserve before the first eggs hatch;
 - the base creates the egg on the nearest valid free stage-1 footprint;
 - energy is spent only after the base successfully creates the egg;

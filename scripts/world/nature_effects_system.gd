@@ -87,16 +87,10 @@ func apply_rain(center_tile: Vector2i) -> bool:
 	if not can_apply_rain(center_tile):
 		return false
 
-	var dry_ground_result: Dictionary = {}
-
-	if world_grid.has_method("apply_rain_to_dry_ground_in_area"):
-		dry_ground_result = world_grid.call(
-			"apply_rain_to_dry_ground_in_area", center_tile, rain_radius_tiles
-		) as Dictionary
-
 	var checked_tiles := 0
 	var affected_grass := 0
 
+	# Let mature grass attempt to spread while DryGround is still blocking its cells.
 	for y in range(center_tile.y - rain_radius_tiles, center_tile.y + rain_radius_tiles + 1):
 		for x in range(center_tile.x - rain_radius_tiles, center_tile.x + rain_radius_tiles + 1):
 			checked_tiles += 1
@@ -113,17 +107,44 @@ func apply_rain(center_tile: Vector2i) -> bool:
 			if grass.call("apply_rain"):
 				affected_grass += 1
 
+	var dry_ground_result: Dictionary = {}
+
+	if world_grid.has_method("apply_rain_to_dry_ground_in_area"):
+		dry_ground_result = world_grid.call(
+			"apply_rain_to_dry_ground_in_area", center_tile, rain_radius_tiles
+		) as Dictionary
+
+	var cleared_dry_ground_tiles: Array = dry_ground_result.get(
+		"cleared_tile_positions", []
+	) as Array
+	var reset_spread_grass := _reset_spread_attempts_adjacent_to_tiles(cleared_dry_ground_tiles)
+
 	PerformanceStats.add_counter("rain_tiles_checked", checked_tiles)
 	PerformanceStats.add_counter("rain_grass_affected", affected_grass)
 	PerformanceStats.add_counter("rain_dry_ground_hit", int(dry_ground_result.get("hit_tiles", 0)))
 	PerformanceStats.add_counter("rain_dry_ground_cleared", int(dry_ground_result.get("cleared_tiles", 0)))
+	PerformanceStats.add_counter("rain_dry_ground_spread_reset", reset_spread_grass)
 	_spawn_rain_cast_effect(center_tile)
 	AudioManager.play_sfx(RAIN_SOUND)
 	return true
 
 
-func apply_sun(center_tile: Vector2i) -> bool:
+func can_apply_sun(center_tile: Vector2i) -> bool:
 	if not can_apply_at_tile(center_tile):
+		return false
+
+	for y in range(center_tile.y - sun_radius_tiles, center_tile.y + sun_radius_tiles + 1):
+		for x in range(center_tile.x - sun_radius_tiles, center_tile.x + sun_radius_tiles + 1):
+			var grass: Node = world_grid.call("get_grass_at_tile", Vector2i(x, y))
+
+			if is_instance_valid(grass):
+				return true
+
+	return false
+
+
+func apply_sun(center_tile: Vector2i) -> bool:
+	if not can_apply_sun(center_tile):
 		return false
 
 	var checked_tiles := 0
@@ -243,6 +264,36 @@ func _is_egg_inside_earthquake_area(egg: Node, center_tile: Vector2i) -> bool:
 		and egg_anchor.y <= area_max.y
 		and egg_max.y >= area_min.y
 	)
+
+
+func _reset_spread_attempts_adjacent_to_tiles(cleared_tiles: Array) -> int:
+	var neighboring_tiles: Dictionary = {}
+	var cardinal_offsets := [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN]
+
+	for tile_variant in cleared_tiles:
+		if not (tile_variant is Vector2i):
+			continue
+
+		var cleared_tile: Vector2i = tile_variant
+
+		for offset in cardinal_offsets:
+			neighboring_tiles[cleared_tile + offset] = true
+
+	var reset_count := 0
+
+	for tile_variant in neighboring_tiles.keys():
+		if not (tile_variant is Vector2i):
+			continue
+
+		var grass: Node = world_grid.call("get_grass_at_tile", tile_variant)
+
+		if not is_instance_valid(grass) or grass.is_queued_for_deletion():
+			continue
+
+		if grass.has_method("reset_spread_attempt") and grass.call("reset_spread_attempt"):
+			reset_count += 1
+
+	return reset_count
 
 
 func _reset_spread_attempts_in_area(center_tile: Vector2i, radius: int) -> int:

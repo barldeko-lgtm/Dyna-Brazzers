@@ -14,7 +14,7 @@
 
 - `scenes/ui/start_screen.tscn` — centered semi-transparent startup menu over a full-screen illustrated Dyna Brazzers background, with New Game, three-slot Load, audio Settings, and Exit.
 - `scenes/main/main.tscn` — camera, right-side HUD with terrain minimap and creature markers, world instance, debug overlay, and UI wiring.
-- `scenes/world/world.tscn` — only active gameplay world: 85x85 terrain TileMap, initial grass, an empty creature container, eggs container, camera marker, and world grid.
+- `scenes/world/world.tscn` — only active gameplay world: 85x85 base terrain TileMap, a DryGround overlay with three variants, initial grass, an empty creature container, eggs container, camera marker, and world grid.
 - `scenes/world/player_base.tscn` — fixed 2x2 player nature base, spawned at the authored `CameraStart` marker and used as the origin for player-created eggs.
 - `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures.
 - `scenes/resources/egg.tscn` — shared two-stage egg scene used by all reproducing species.
@@ -30,7 +30,7 @@
 
 ### World and camera
 
-- `scripts/world/world_grid.gd` — terrain lookup, walkability, occupancy, blockers, pathfinding, grass lookup, and footprint queries.
+- `scripts/world/world_grid.gd` — terrain lookup, DryGround overlay/rain-hit state, walkability, occupancy, blockers, pathfinding, grass lookup, and footprint queries.
 - `scripts/world/start_map_world_grid.gd` — extends the base grid for the authored start map, spawns the player base at `CameraStart`, protects its footprint from grass spreading, and exposes world bounds to the camera.
 - `scripts/world/player_base.gd` — scales the base sprite, registers its static 2x2 blocker footprint, finds nearby valid egg positions, and creates configured species eggs.
 - `scripts/world/start_map_layout.gd` — builds the initial 85x85 terrain only when the `Ground` TileMap is empty; chooses matching water and mountain edge variants.
@@ -63,9 +63,9 @@
 - `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag, 11x11 area, and placement-preview drawing.
 - `scripts/ui/player_nature_ui.gd` — spell buttons, targeting, and previews.
 - `scripts/player/player_energy.gd` — session energy reserve, spending API, and living-dinosaur income.
-- `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, spell VFX application, and successful-cast sound triggers.
+- `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, DryGround clearing, adjacent mature-grass spread restarts, spell VFX application, and successful-cast sound triggers.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug.
-- `scripts/save/save_system.gd` — base three-slot JSON persistence, in-game menu integration, and runtime reconstruction.
+- `scripts/save/save_system.gd` — base three-slot JSON persistence with temporary-write verification, backup recovery, in-game menu integration, and runtime reconstruction including species-configured eggs.
 - `scripts/save/save_system_with_flags.gd` — small `SaveSystem` extension that adds player species flags and the in-game audio-settings page without duplicating the base save logic.
 - `scripts/debug/performance_stats.gd` — runtime counters and CSV logging.
 - `scripts/debug/grid_debug_overlay.gd` — F3 visualization of terrain, occupancy, footprints, and paths.

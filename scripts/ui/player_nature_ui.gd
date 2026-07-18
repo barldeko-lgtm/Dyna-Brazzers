@@ -410,7 +410,9 @@ func _try_apply_sun_at_mouse() -> bool:
 
 	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
 
-	if not bool(nature_effects.call("can_apply_at_tile", center_tile)):
+	if not nature_effects.has_method("can_apply_sun") or not bool(
+		nature_effects.call("can_apply_sun", center_tile)
+	):
 		return false
 
 	if not spend_energy(sun_energy_cost):
@@ -561,8 +563,9 @@ func _update_sun_target_preview() -> void:
 		return
 
 	var world_grid := _get_world_grid()
+	var nature_effects := _get_nature_effects_system()
 
-	if world_grid == null:
+	if world_grid == null or nature_effects == null:
 		_hide_sun_target_preview()
 		return
 
@@ -572,7 +575,9 @@ func _update_sun_target_preview() -> void:
 		return
 
 	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
-	var valid_target := bool(world_grid.call("is_tile_inside_map", center_tile))
+	var valid_target: bool = nature_effects.has_method("can_apply_sun") and bool(
+		nature_effects.call("can_apply_sun", center_tile)
+	)
 
 	if sun_target_preview.has_method("set_center_tile"):
 		sun_target_preview.set_center_tile(center_tile, valid_target)

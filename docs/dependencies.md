@@ -5,7 +5,7 @@
 `res://scripts/world/world_grid.gd` owns:
 
 - terrain lookup;
-- DryGround overlay state, deterministic visual variants, and rain-hit tracking;
+- DryGround overlay state, deterministic visual variants, rain-hit tracking, and cleared-cell reporting for recovery;
 - walkability;
 - footprint placement;
 - pathfinding;
@@ -207,16 +207,17 @@ Static base terrain and the fixed player base are loaded from start-map setup an
 
 Loading flow:
 
-1. Read and validate JSON save version.
+1. Read and validate the JSON schema and save version before changing the active scene.
 2. Ensure `main.tscn` is active.
 3. Pause time during reconstruction.
 4. Clear current creature, egg, and grass nodes.
-5. Recreate grass and timer state.
-6. Recreate eggs and blocker state.
-7. Recreate creatures and mutable stats using saved species resource paths.
-8. Preserve the already spawned static player base and its blocker registration.
-9. Restore player energy and camera.
-10. Restore simulation speed.
+5. Restore rain-cleared DryGround cells and partial hit state.
+6. Recreate grass and timer state.
+7. Recreate eggs and blocker state.
+8. Recreate creatures and mutable stats using saved species resource paths.
+9. Preserve the already spawned static player base and its blocker registration.
+10. Restore player energy and camera.
+11. Restore simulation speed.
 
 Rules:
 
@@ -225,6 +226,8 @@ Rules:
 - temporary corpse nodes are not persisted;
 - the player base is not a dynamic save entity;
 - exact animation and short-lived behaviour micro-state do not need to resume;
+- save writes must verify a temporary JSON file before replacing the live slot; retain a recoverable backup during replacement;
+- invalid slots must stay visible as damaged but cannot be loaded; startup loading must restore its controls after a failed load;
 - changing map layout, saved schema, or species resource paths may require new saves or a version migration.
 
 ## Terrain source ids
@@ -338,7 +341,7 @@ Rules:
 - do not duplicate `egg.tscn` per species;
 - when a species provides custom textures, assign both stages;
 - when custom textures are absent, preserve the defaults from `egg.tscn` rather than assigning `null`;
-- stage changes, blocking, hatching, saving, egg-eater targeting, and earthquake destruction must remain independent of the selected visuals;
+- stage changes, blocking, hatching, saving/restoration of the hatch scene and species visuals, egg-eater targeting, and earthquake destruction must remain independent of the selected visuals;
 - earthquake destroys both egg stages through the egg lifecycle so a stage-2 blocker is released normally;
 - renaming or moving species egg assets requires updating their `.tres` references.
 

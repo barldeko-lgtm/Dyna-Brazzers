@@ -237,7 +237,10 @@ func try_spawn_grass(target_tile: Vector2i) -> void:
 	if world_grid == null:
 		return
 
-	if not world_grid.is_tile_walkable(target_tile):
+	if world_grid.has_method("can_host_grass"):
+		if not world_grid.can_host_grass(target_tile):
+			return
+	elif not world_grid.is_tile_walkable(target_tile):
 		return
 
 	if world_grid.has_grass_at_tile(target_tile):

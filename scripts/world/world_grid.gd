@@ -245,7 +245,7 @@ func apply_rain_to_dry_ground_in_area(center_tile: Vector2i, radius: int) -> Dic
 		return {"hit_tiles": 0, "cleared_tiles": 0}
 
 	var hit_tiles := 0
-	var cleared_tiles := 0
+	var cleared_tiles: Array[Vector2i] = []
 
 	for y in range(center_tile.y - radius, center_tile.y + radius + 1):
 		for x in range(center_tile.x - radius, center_tile.x + radius + 1):
@@ -263,12 +263,16 @@ func apply_rain_to_dry_ground_in_area(center_tile: Vector2i, radius: int) -> Dic
 
 			dry_ground.erase_cell(tile)
 			dry_ground_rain_hits.erase(tile)
-			cleared_tiles += 1
+			cleared_tiles.append(tile)
 
-	if cleared_tiles > 0:
+	if not cleared_tiles.is_empty():
 		dry_ground_changed.emit()
 
-	return {"hit_tiles": hit_tiles, "cleared_tiles": cleared_tiles}
+	return {
+		"hit_tiles": hit_tiles,
+		"cleared_tiles": cleared_tiles.size(),
+		"cleared_tile_positions": cleared_tiles
+	}
 
 
 func get_dry_ground_rain_hit_data() -> Array[Dictionary]:
