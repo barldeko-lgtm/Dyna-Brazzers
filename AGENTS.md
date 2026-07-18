@@ -12,7 +12,7 @@ The current prototype includes:
 - egg laying, egg stages, and hatching;
 - terrain blocking with ground, water, mountains, and trees;
 - creature death with a short non-blocking corpse/death-pose visual;
-- player nature powers: lightning, rain, and sun;
+- player nature powers: lightning, rain, sun, and earthquake;
 - a first all-species flag pass: non-blocking 11x11 influence areas;
 - a local four-frame rain cast VFX;
 - hover/click observation UI and creature highlighting;

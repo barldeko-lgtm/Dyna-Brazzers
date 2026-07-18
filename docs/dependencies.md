@@ -87,7 +87,7 @@ Current UI scripts:
 - `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text;
 - `res://scripts/ui/player_nature_ui.gd` — spell buttons, targeting, and previews;
 - `res://scripts/player/player_energy.gd` — session energy reserve, spending API, and living-dinosaur income;
-- `res://scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, grass effects, and spell VFX application;
+- `res://scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, and spell VFX application;
 - `res://scripts/debug/grid_debug_overlay.gd` — F3 grid/debug overlay.
 
 Expected gameplay scene wiring:
@@ -335,7 +335,8 @@ Rules:
 - do not duplicate `egg.tscn` per species;
 - when a species provides custom textures, assign both stages;
 - when custom textures are absent, preserve the defaults from `egg.tscn` rather than assigning `null`;
-- stage changes, blocking, hatching, saving, and egg-eater targeting must remain independent of the selected visuals;
+- stage changes, blocking, hatching, saving, egg-eater targeting, and earthquake destruction must remain independent of the selected visuals;
+- earthquake destroys both egg stages through the egg lifecycle so a stage-2 blocker is released normally;
 - renaming or moving species egg assets requires updating their `.tres` references.
 
 ## Rain cast visual

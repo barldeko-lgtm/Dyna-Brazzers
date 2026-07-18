@@ -95,6 +95,14 @@ func consume() -> bool:
 	return true
 
 
+func destroy_by_earthquake() -> bool:
+	if is_queued_for_deletion():
+		return false
+
+	queue_free()
+	return true
+
+
 # Visuals and footprint scale.
 func apply_current_stage_visual() -> void:
 	var target_texture: Texture2D = null

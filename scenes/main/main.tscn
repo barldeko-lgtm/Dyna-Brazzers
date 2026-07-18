@@ -460,7 +460,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
 text = "✦"
 script = ExtResource("6_spell_menu_toggle")
-spell_button_paths = Array[NodePath]([NodePath("../../LightningButton"), NodePath("../../RainButton"), NodePath("../../SunButton")])
+spell_button_paths = Array[NodePath]([NodePath("../../LightningButton"), NodePath("../../RainButton"), NodePath("../../SunButton"), NodePath("../../EarthquakeButton")])
 back_button_path = NodePath("../../SpellBackButton")
 menu_to_hide_paths = Array[NodePath]([NodePath("..")])
 
@@ -592,6 +592,38 @@ anchor_bottom = 1.0
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_font_sizes/font_size = 26
 text = "☀"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="EarthquakeButton" type="Button" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(78, 44)
+layout_mode = 0
+offset_left = 91.0
+offset_top = 120.0
+offset_right = 169.0
+offset_bottom = 164.0
+tooltip_text = "Землетрясение"
+theme_override_colors/font_color = Color(0, 0, 0, 0)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
+theme_override_font_sizes/font_size = 1
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "Землетрясение"
+clip_text = true
+
+[node name="IconLabel" type="Label" parent="UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/EarthquakeButton"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 26
+text = "≋"
 horizontal_alignment = 1
 vertical_alignment = 1
 

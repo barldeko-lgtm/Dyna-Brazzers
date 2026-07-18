@@ -12,6 +12,7 @@ const SUN_SOUND := preload("res://assets/audio/sfx/sun_cast.wav")
 @export var sun_radius_tiles := 3
 @export var sun_spread_reset_radius_tiles := 4
 @export var sun_remove_grass_count := 20
+@export var earthquake_radius_tiles := 5
 
 var world_grid: Node = null
 
@@ -36,6 +37,10 @@ func get_rain_radius_tiles() -> int:
 
 func get_sun_radius_tiles() -> int:
 	return sun_radius_tiles
+
+
+func get_earthquake_radius_tiles() -> int:
+	return earthquake_radius_tiles
 
 
 func can_apply_lightning(creature: Node) -> bool:
@@ -134,6 +139,74 @@ func apply_sun(center_tile: Vector2i) -> bool:
 	PerformanceStats.add_counter("sun_grass_spread_reset", reset_spread_grass)
 	AudioManager.play_sfx(SUN_SOUND)
 	return true
+
+
+func can_apply_earthquake(center_tile: Vector2i) -> bool:
+	return not _get_earthquake_targets(center_tile).is_empty()
+
+
+func apply_earthquake(center_tile: Vector2i) -> bool:
+	var targets := _get_earthquake_targets(center_tile)
+
+	if targets.is_empty():
+		return false
+
+	var destroyed_eggs := 0
+
+	for egg in targets:
+		if not is_instance_valid(egg):
+			continue
+
+		if egg.has_method("destroy_by_earthquake") and bool(egg.call("destroy_by_earthquake")):
+			destroyed_eggs += 1
+
+	PerformanceStats.add_counter(
+		"earthquake_tiles_checked", (earthquake_radius_tiles * 2 + 1) * (earthquake_radius_tiles * 2 + 1)
+	)
+	PerformanceStats.add_counter("earthquake_eggs_destroyed", destroyed_eggs)
+	return destroyed_eggs > 0
+
+
+func _get_earthquake_targets(center_tile: Vector2i) -> Array[Node]:
+	var targets: Array[Node] = []
+
+	if not can_apply_at_tile(center_tile):
+		return targets
+
+	for egg: Node in get_tree().get_nodes_in_group("eggs"):
+		if _is_egg_inside_earthquake_area(egg, center_tile):
+			targets.append(egg)
+
+	return targets
+
+
+func _is_egg_inside_earthquake_area(egg: Node, center_tile: Vector2i) -> bool:
+	if egg == null or not is_instance_valid(egg) or egg.is_queued_for_deletion():
+		return false
+
+	var raw_anchor = egg.get("anchor_tile")
+
+	if not (raw_anchor is Vector2i):
+		return false
+
+	var footprint := Vector2i.ONE
+
+	if egg.has_method("get_current_footprint"):
+		var raw_footprint = egg.call("get_current_footprint")
+
+		if raw_footprint is Vector2i:
+			footprint = raw_footprint
+
+	var area_min := center_tile - Vector2i.ONE * earthquake_radius_tiles
+	var area_max := center_tile + Vector2i.ONE * earthquake_radius_tiles
+	var egg_anchor: Vector2i = raw_anchor
+	var egg_max := egg_anchor + footprint - Vector2i.ONE
+	return (
+		egg_anchor.x <= area_max.x
+		and egg_max.x >= area_min.x
+		and egg_anchor.y <= area_max.y
+		and egg_max.y >= area_min.y
+	)
 
 
 func _reset_spread_attempts_in_area(center_tile: Vector2i, radius: int) -> int:

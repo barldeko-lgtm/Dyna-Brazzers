@@ -24,6 +24,7 @@
 - `scenes/effects/rain_target_preview.tscn` — rain targeting preview.
 - `scenes/effects/rain_cast_effect.tscn` — four-frame rain cast animation.
 - `scenes/effects/sun_target_preview.tscn` — sun targeting preview.
+- `scenes/effects/earthquake_target_preview.tscn` — earthquake targeting preview.
 
 ## Key scripts
 
@@ -62,7 +63,7 @@
 - `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag, 11x11 area, and placement-preview drawing.
 - `scripts/ui/player_nature_ui.gd` — spell buttons, targeting, and previews.
 - `scripts/player/player_energy.gd` — session energy reserve, spending API, and living-dinosaur income.
-- `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, grass effects, spell VFX application, and successful-cast sound triggers.
+- `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, spell VFX application, and successful-cast sound triggers.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug.
 - `scripts/save/save_system.gd` — base three-slot JSON persistence, in-game menu integration, and runtime reconstruction.
 - `scripts/save/save_system_with_flags.gd` — small `SaveSystem` extension that adds player species flags and the in-game audio-settings page without duplicating the base save logic.

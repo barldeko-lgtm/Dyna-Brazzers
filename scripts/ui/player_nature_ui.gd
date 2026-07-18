@@ -2,23 +2,28 @@ extends PanelContainer
 
 const RAIN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/rain_target_preview.tscn"
 const SUN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/sun_target_preview.tscn"
+const EARTHQUAKE_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/earthquake_target_preview.tscn"
 
 # Player-facing nature powers HUD.
-@export var lightning_energy_cost := 50.0
-@export var rain_energy_cost := 30.0
-@export var sun_energy_cost := 100.0
+@export var lightning_energy_cost := 1000.0
+@export var rain_energy_cost := 50.0
+@export var sun_energy_cost := 500.0
+@export var earthquake_energy_cost := 2000.0
 
 @onready var energy_value_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EnergyValueLabel")
 @onready var lightning_button: Button = get_node_or_null("MarginContainer/VBoxContainer/LightningButton")
 @onready var rain_button: Button = get_node_or_null("MarginContainer/VBoxContainer/RainButton")
 @onready var sun_button: Button = get_node_or_null("MarginContainer/VBoxContainer/SunButton")
+@onready var earthquake_button: Button = get_node_or_null("MarginContainer/VBoxContainer/EarthquakeButton")
 
 var player_energy: Node = null
 var lightning_targeting_enabled := false
 var rain_targeting_enabled := false
 var sun_targeting_enabled := false
+var earthquake_targeting_enabled := false
 var rain_target_preview: Node2D = null
 var sun_target_preview: Node2D = null
+var earthquake_target_preview: Node2D = null
 
 
 func _ready() -> void:
@@ -29,6 +34,7 @@ func _ready() -> void:
 	setup_lightning_button()
 	setup_rain_button()
 	setup_sun_button()
+	setup_earthquake_button()
 	_update_energy_ui()
 
 
@@ -40,6 +46,9 @@ func _process(_delta: float) -> void:
 
 	if sun_targeting_enabled:
 		_update_sun_target_preview()
+
+	if earthquake_targeting_enabled:
+		_update_earthquake_target_preview()
 
 
 func setup_lightning_button() -> void:
@@ -78,6 +87,18 @@ func setup_sun_button() -> void:
 		sun_button.toggled.connect(_on_sun_button_toggled)
 
 
+func setup_earthquake_button() -> void:
+	if earthquake_button == null:
+		return
+
+	earthquake_button.toggle_mode = true
+	earthquake_button.text = _get_earthquake_button_text()
+	earthquake_button.button_pressed = false
+
+	if not earthquake_button.toggled.is_connected(_on_earthquake_button_toggled):
+		earthquake_button.toggled.connect(_on_earthquake_button_toggled)
+
+
 func _on_lightning_button_toggled(toggled_on: bool) -> void:
 	if toggled_on and not can_spend_energy(lightning_energy_cost):
 		if lightning_button != null:
@@ -88,6 +109,7 @@ func _on_lightning_button_toggled(toggled_on: bool) -> void:
 	if toggled_on:
 		cancel_rain_targeting()
 		cancel_sun_targeting()
+		cancel_earthquake_targeting()
 
 	lightning_targeting_enabled = toggled_on
 	_update_spell_buttons()
@@ -103,6 +125,7 @@ func _on_rain_button_toggled(toggled_on: bool) -> void:
 	if toggled_on:
 		cancel_lightning_targeting()
 		cancel_sun_targeting()
+		cancel_earthquake_targeting()
 
 	rain_targeting_enabled = toggled_on
 
@@ -125,6 +148,7 @@ func _on_sun_button_toggled(toggled_on: bool) -> void:
 	if toggled_on:
 		cancel_lightning_targeting()
 		cancel_rain_targeting()
+		cancel_earthquake_targeting()
 
 	sun_targeting_enabled = toggled_on
 
@@ -133,6 +157,29 @@ func _on_sun_button_toggled(toggled_on: bool) -> void:
 		_update_sun_target_preview()
 	else:
 		_hide_sun_target_preview()
+
+	_update_spell_buttons()
+
+
+func _on_earthquake_button_toggled(toggled_on: bool) -> void:
+	if toggled_on and not can_spend_energy(earthquake_energy_cost):
+		if earthquake_button != null:
+			earthquake_button.set_pressed_no_signal(false)
+		earthquake_targeting_enabled = false
+		return
+
+	if toggled_on:
+		cancel_lightning_targeting()
+		cancel_rain_targeting()
+		cancel_sun_targeting()
+
+	earthquake_targeting_enabled = toggled_on
+
+	if earthquake_targeting_enabled:
+		_ensure_earthquake_target_preview()
+		_update_earthquake_target_preview()
+	else:
+		_hide_earthquake_target_preview()
 
 	_update_spell_buttons()
 
@@ -149,8 +196,12 @@ func is_sun_targeting_enabled() -> bool:
 	return sun_targeting_enabled
 
 
+func is_earthquake_targeting_enabled() -> bool:
+	return earthquake_targeting_enabled
+
+
 func is_targeting_enabled() -> bool:
-	return lightning_targeting_enabled or rain_targeting_enabled or sun_targeting_enabled
+	return lightning_targeting_enabled or rain_targeting_enabled or sun_targeting_enabled or earthquake_targeting_enabled
 
 
 func try_apply_lightning_to_creature(creature: Node) -> bool:
@@ -217,10 +268,21 @@ func cancel_sun_targeting() -> void:
 	_update_spell_buttons()
 
 
+func cancel_earthquake_targeting() -> void:
+	earthquake_targeting_enabled = false
+
+	if earthquake_button != null and earthquake_button.button_pressed:
+		earthquake_button.set_pressed_no_signal(false)
+
+	_hide_earthquake_target_preview()
+	_update_spell_buttons()
+
+
 func cancel_all_targeting() -> void:
 	cancel_lightning_targeting()
 	cancel_rain_targeting()
 	cancel_sun_targeting()
+	cancel_earthquake_targeting()
 
 
 func can_spend_energy(amount: float) -> bool:
@@ -282,6 +344,14 @@ func _update_spell_buttons() -> void:
 		else:
 			sun_button.disabled = not can_spend_energy(sun_energy_cost)
 
+	if earthquake_button != null:
+		earthquake_button.text = _get_earthquake_button_text()
+
+		if earthquake_targeting_enabled:
+			earthquake_button.disabled = false
+		else:
+			earthquake_button.disabled = not can_spend_energy(earthquake_energy_cost)
+
 
 func _get_lightning_button_text() -> String:
 	return "Молния (%d)" % floori(lightning_energy_cost)
@@ -293,6 +363,10 @@ func _get_rain_button_text() -> String:
 
 func _get_sun_button_text() -> String:
 	return "Солнце (%d)" % floori(sun_energy_cost)
+
+
+func _get_earthquake_button_text() -> String:
+	return "Землетрясение (%d)" % floori(earthquake_energy_cost)
 
 
 func _try_apply_rain_at_mouse() -> bool:
@@ -347,6 +421,37 @@ func _try_apply_sun_at_mouse() -> bool:
 	if not can_spend_energy(sun_energy_cost):
 		cancel_sun_targeting()
 	return true
+
+
+func _try_apply_earthquake_at_mouse() -> bool:
+	if not earthquake_targeting_enabled:
+		return false
+
+	var world_grid := _get_world_grid()
+	var nature_effects := _get_nature_effects_system()
+
+	if world_grid == null or nature_effects == null:
+		return false
+
+	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
+
+	if not nature_effects.has_method("can_apply_earthquake") or not bool(
+		nature_effects.call("can_apply_earthquake", center_tile)
+	):
+		return false
+
+	if not spend_energy(earthquake_energy_cost):
+		cancel_earthquake_targeting()
+		return false
+
+	if not bool(nature_effects.call("apply_earthquake", center_tile)):
+		return false
+
+	if not can_spend_energy(earthquake_energy_cost):
+		cancel_earthquake_targeting()
+	return true
+
+
 func _ensure_rain_target_preview() -> void:
 	if rain_target_preview != null and is_instance_valid(rain_target_preview):
 		return
@@ -397,6 +502,31 @@ func _ensure_sun_target_preview() -> void:
 		sun_target_preview.configure(world_grid, _get_sun_preview_radius())
 
 
+func _ensure_earthquake_target_preview() -> void:
+	if earthquake_target_preview != null and is_instance_valid(earthquake_target_preview):
+		return
+
+	var world_grid := _get_world_grid()
+
+	if world_grid == null:
+		return
+
+	var preview_scene := load(EARTHQUAKE_TARGET_PREVIEW_SCENE_PATH) as PackedScene
+
+	if preview_scene == null:
+		return
+
+	earthquake_target_preview = preview_scene.instantiate() as Node2D
+
+	if earthquake_target_preview == null:
+		return
+
+	world_grid.add_child(earthquake_target_preview)
+
+	if earthquake_target_preview.has_method("configure"):
+		earthquake_target_preview.configure(world_grid, _get_earthquake_preview_radius())
+
+
 func _update_rain_target_preview() -> void:
 	if not rain_targeting_enabled:
 		_hide_rain_target_preview()
@@ -443,6 +573,32 @@ func _update_sun_target_preview() -> void:
 		sun_target_preview.set_center_tile(center_tile, valid_target)
 
 
+func _update_earthquake_target_preview() -> void:
+	if not earthquake_targeting_enabled:
+		_hide_earthquake_target_preview()
+		return
+
+	var world_grid := _get_world_grid()
+	var nature_effects := _get_nature_effects_system()
+
+	if world_grid == null or nature_effects == null:
+		_hide_earthquake_target_preview()
+		return
+
+	_ensure_earthquake_target_preview()
+
+	if earthquake_target_preview == null or not is_instance_valid(earthquake_target_preview):
+		return
+
+	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
+	var valid_target := nature_effects.has_method("can_apply_earthquake") and bool(
+		nature_effects.call("can_apply_earthquake", center_tile)
+	)
+
+	if earthquake_target_preview.has_method("set_center_tile"):
+		earthquake_target_preview.set_center_tile(center_tile, valid_target)
+
+
 func _hide_rain_target_preview() -> void:
 	if rain_target_preview == null or not is_instance_valid(rain_target_preview):
 		return
@@ -461,6 +617,16 @@ func _hide_sun_target_preview() -> void:
 		sun_target_preview.hide_preview()
 	else:
 		sun_target_preview.visible = false
+
+
+func _hide_earthquake_target_preview() -> void:
+	if earthquake_target_preview == null or not is_instance_valid(earthquake_target_preview):
+		return
+
+	if earthquake_target_preview.has_method("hide_preview"):
+		earthquake_target_preview.hide_preview()
+	else:
+		earthquake_target_preview.visible = false
 
 
 func _bind_player_energy() -> void:
@@ -514,6 +680,15 @@ func _get_sun_preview_radius() -> int:
 	return 0
 
 
+func _get_earthquake_preview_radius() -> int:
+	var nature_effects := _get_nature_effects_system()
+
+	if nature_effects != null and nature_effects.has_method("get_earthquake_radius_tiles"):
+		return int(nature_effects.call("get_earthquake_radius_tiles"))
+
+	return 0
+
+
 func _get_world_grid() -> Node:
 	return get_tree().get_first_node_in_group("world_grid")
 
@@ -546,4 +721,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if sun_targeting_enabled and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		if _try_apply_sun_at_mouse():
+			get_viewport().set_input_as_handled()
+		return
+
+	if earthquake_targeting_enabled and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		if _try_apply_earthquake_at_mouse():
 			get_viewport().set_input_as_handled()

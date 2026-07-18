@@ -6,27 +6,27 @@ extends Node
 const EGG_OPTIONS := [
 	{
 		"species": preload("res://data/species/stegosaurus.tres"),
-		"cost": 100.0
+		"cost": 350.0
 	},
 	{
 		"species": preload("res://data/species/triceratops.tres"),
-		"cost": 120.0
+		"cost": 450.0
 	},
 	{
 		"species": preload("res://data/species/egg_eater.tres"),
-		"cost": 140.0
+		"cost": 1200.0
 	},
 	{
 		"species": preload("res://data/species/raptor.tres"),
-		"cost": 160.0
+		"cost": 1000.0
 	},
 	{
 		"species": preload("res://data/species/pterodactyl.tres"),
-		"cost": 180.0
+		"cost": 1000.0
 	},
 	{
 		"species": preload("res://data/species/tyrannosaurus.tres"),
-		"cost": 250.0
+		"cost": 1300.0
 	}
 ]
 
