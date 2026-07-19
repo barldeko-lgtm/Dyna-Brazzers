@@ -1,4 +1,4 @@
-extends CanvasLayer
+extends PanelContainer
 
 # Creature info window + creature selection.
 # Keep this script focused on the selected/hovered creature panel only.
@@ -6,16 +6,16 @@ extends CanvasLayer
 const HEALTH_ICON_TEXTURE := preload("res://assets/ui/creature_health_icon.svg")
 const HUNGER_ICON_TEXTURE := preload("res://assets/ui/creature_hunger_icon.svg")
 
-@onready var panel: PanelContainer = $CreatureStatsPanel
-@onready var stats_vbox: VBoxContainer = $CreatureStatsPanel/MarginContainer/VBoxContainer
-@onready var title_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/TitleLabel
-@onready var age_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/AgeLabel
-@onready var health_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/HealthLabel
-@onready var hunger_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/HungerLabel
-@onready var legacy_health_bar: ProgressBar = $CreatureStatsPanel/MarginContainer/VBoxContainer/HealthBar
-@onready var legacy_health_value_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/HealthBar/HealthValueLabel
-@onready var legacy_hunger_bar: ProgressBar = $CreatureStatsPanel/MarginContainer/VBoxContainer/HungerBar
-@onready var legacy_hunger_value_label: Label = $CreatureStatsPanel/MarginContainer/VBoxContainer/HungerBar/HungerValueLabel
+@onready var panel: PanelContainer = self
+@onready var stats_vbox: VBoxContainer = $MarginContainer/VBoxContainer
+@onready var title_label: Label = $MarginContainer/VBoxContainer/TitleLabel
+@onready var age_label: Label = $MarginContainer/VBoxContainer/AgeLabel
+@onready var health_label: Label = $MarginContainer/VBoxContainer/HealthLabel
+@onready var hunger_label: Label = $MarginContainer/VBoxContainer/HungerLabel
+@onready var legacy_health_bar: ProgressBar = $MarginContainer/VBoxContainer/HealthBar
+@onready var legacy_health_value_label: Label = $MarginContainer/VBoxContainer/HealthBar/HealthValueLabel
+@onready var legacy_hunger_bar: ProgressBar = $MarginContainer/VBoxContainer/HungerBar
+@onready var legacy_hunger_value_label: Label = $MarginContainer/VBoxContainer/HungerBar/HungerValueLabel
 
 var health_bar: ProgressBar
 var health_percent_label: Label

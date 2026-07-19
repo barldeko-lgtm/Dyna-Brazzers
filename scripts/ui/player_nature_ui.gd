@@ -21,9 +21,9 @@ const MENU_SYSTEM := &"system"
 @onready var earthquake_button: Button = get_node_or_null("MarginContainer/VBoxContainer/EarthquakeButton")
 @onready var menu_content_root: Control = get_node_or_null("MarginContainer/VBoxContainer") as Control
 @onready var main_menu_grid: GridContainer = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid") as GridContainer
-@onready var egg_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/MainPlaceholder1") as Button
-@onready var flag_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/MainPlaceholder4") as Button
-@onready var system_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/MainPlaceholder5") as Button
+@onready var egg_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/EggMenuButton") as Button
+@onready var flag_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/FlagMenuButton") as Button
+@onready var system_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/SystemMenuButton") as Button
 @onready var time_speed_buttons: Array[Button] = [
 	get_node_or_null("MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed1Button"),
 	get_node_or_null("MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed2Button"),

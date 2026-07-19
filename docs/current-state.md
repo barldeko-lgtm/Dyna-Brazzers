@@ -111,21 +111,21 @@ Older saves without faction fields remain valid: restored creatures and eggs def
 Current UI ownership:
 
 - `scripts/ui/start_screen.gd` owns startup-screen flow, startup loading, and the startup audio-settings panel;
-- `scripts/ui/creature_stats_ui.gd` owns creature information, hover/selection, deselection, and the lightning click bridge;
-- `scripts/ui/player_ui.gd` owns the interactive terrain minimap, creature markers, camera-frame display and click navigation, creature/egg counters, time-speed controls, and bootstraps the egg-creation controller;
+- `scenes/ui/creature_info_panel.tscn` and `scripts/ui/creature_stats_ui.gd` own the self-contained creature information panel, hover/selection, deselection, and the lightning click bridge;
+- `scenes/ui/player_hud.tscn` and `scripts/ui/player_ui.gd` own the gameplay HUD composition, interactive terrain minimap, creature markers, camera-frame display and click navigation, creature/egg counters, time-speed controls, and egg-creation bootstrap;
 - `scripts/catalogs/player_species_catalog.gd` is the single ordered catalog for the six player species and owns player-only egg prices, energy income, flag button text, tooltips, and the current `PASTURE`/`GATHER` flag behaviour category;
 - `scripts/ui/player_egg_creation_ui.gd` owns egg-menu presentation, purchase validation, and requests to the player base; it reads species and prices from the player catalog and obtains its host controls through the nature-menu API rather than scene paths;
 - the `PlayerFlags` autoload from `scripts/flags/player_flag_system_with_catalog.gd` layers catalog data, player-faction filtering, one-shot arrival state, batched path requests, and cached target reservations over the mature placement/pathing helpers in `scripts/flags/player_flag_system.gd`;
 - `scripts/flags/player_flag_visual.gd` draws the world flag, its 11x11 area, and placement preview without blocking terrain;
 - `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
-- `scripts/ui/player_nature_ui.gd` owns spell buttons, targeting, previews, and the stable access API for the shared nature-menu content, main grid, dynamic-menu buttons, and time-speed controls;
+- `scenes/ui/nature_menu.tscn` and `scripts/ui/player_nature_ui.gd` own spell buttons, targeting, previews, named main-menu buttons, and the stable access API for shared dynamic-menu content and time-speed controls;
 - `scripts/player/player_energy.gd` owns the session energy reserve, spending API, save value, and income from living player-faction dinosaurs using the player catalog;
 - `scripts/world/nature_effects_system.gd` owns world-side lightning, rain, sun, earthquake, DryGround clearing, adjacent mature-grass timer restarts, spell VFX application, and successful-cast sound triggers;
 - `scripts/save/save_system.gd` remains the base persistence/menu implementation, while `scripts/save/save_system_with_flags.gd` adds entity faction fields, species-flag placement/completion revisions, backward-compatible player defaults, and the in-game audio-settings page;
 - `scripts/debug/performance_stats.gd` owns F8 CSV logging, including separate flag scan, flag path-request, and flag path-failure rates;
 - `scripts/debug/grid_debug_overlay.gd` owns the F3 grid/debug overlay.
 
-`scenes/main/main.tscn` still physically contains the current gameplay UI for the first refactor stage. Active SaveSystem, player flags, egg creation, and player time controls now resolve nested nature-menu controls through `player_nature_ui.gd` instead of repeating its deep container hierarchy.
+`scenes/main/main.tscn` is now a small gameplay compositor: it instances `scenes/ui/player_hud.tscn` beside the camera, world, simulation root, and debug overlay. `player_hud.tscn` owns the gameplay CanvasLayer and instances `creature_info_panel.tscn` and `nature_menu.tscn`; active SaveSystem, player flags, egg creation, and player time controls continue to resolve nested nature-menu controls through the `player_nature_ui` group API rather than scene paths.
 
 ## Audio system
 

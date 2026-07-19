@@ -1,0 +1,358 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/player_nature_ui.gd" id="1_player_nature_ui"]
+[ext_resource type="Script" path="res://scripts/ui/spell_menu_toggle.gd" id="2_spell_menu_toggle"]
+[ext_resource type="Texture2D" path="res://assets/ui/nature_energy_icon.png" id="3_nature_energy_icon"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spell_button_normal"]
+bg_color = Color(0.74, 0.76, 0.8, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.32, 0.34, 0.38, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spell_button_pressed"]
+bg_color = Color(0.56, 0.6, 0.68, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.18, 0.24, 0.34, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spell_button_hover"]
+bg_color = Color(0.88, 0.9, 0.94, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.48, 0.52, 0.6, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spell_button_disabled"]
+bg_color = Color(0.36, 0.38, 0.42, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.22, 0.23, 0.25, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="PlayerNaturePanel" type="PanelContainer"]
+custom_minimum_size = Vector2(280, 300)
+layout_mode = 2
+script = ExtResource("1_player_nature_ui")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="Control" parent="MarginContainer"]
+custom_minimum_size = Vector2(260, 284)
+layout_mode = 2
+
+[node name="EnergyIcon" type="TextureRect" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 0
+offset_right = 50.0
+offset_bottom = 50.0
+texture = ExtResource("3_nature_energy_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="EnergyValueLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(76, 50)
+layout_mode = 0
+offset_left = 52.0
+offset_right = 128.0
+offset_bottom = 50.0
+theme_override_font_sizes/font_size = 28
+text = "0"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="TimeControlsPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 0
+offset_left = 132.0
+offset_right = 260.0
+offset_bottom = 50.0
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/TimeControlsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 8
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="TimeSpeed1Button" type="Button" parent="MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "x1"
+
+[node name="TimeSpeed2Button" type="Button" parent="MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "x2"
+
+[node name="TimeSpeed3Button" type="Button" parent="MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "x3"
+
+[node name="TimeSpeed5Button" type="Button" parent="MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "x5"
+
+[node name="MainMenuGrid" type="GridContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 0
+offset_top = 66.0
+offset_right = 260.0
+offset_bottom = 284.0
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 2
+
+[node name="EggMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
+custom_minimum_size = Vector2(126, 66)
+layout_mode = 2
+tooltip_text = "Яйцо"
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "🥚"
+
+[node name="BaseMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
+custom_minimum_size = Vector2(126, 66)
+layout_mode = 2
+tooltip_text = "База"
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "BASE"
+
+[node name="SpellMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
+custom_minimum_size = Vector2(126, 66)
+layout_mode = 2
+tooltip_text = "Заклинания"
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "✦"
+script = ExtResource("2_spell_menu_toggle")
+spell_button_paths = Array[NodePath]([NodePath("../../LightningButton"), NodePath("../../RainButton"), NodePath("../../SunButton"), NodePath("../../EarthquakeButton")])
+back_button_path = NodePath("../../SpellBackButton")
+menu_to_hide_paths = Array[NodePath]([NodePath("..")])
+
+[node name="EnemyMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
+custom_minimum_size = Vector2(126, 66)
+layout_mode = 2
+tooltip_text = "Противник"
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "ENEMY"
+
+[node name="FlagMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
+custom_minimum_size = Vector2(126, 66)
+layout_mode = 2
+tooltip_text = "Флажок"
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "⚑"
+
+[node name="SystemMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
+custom_minimum_size = Vector2(126, 66)
+layout_mode = 2
+tooltip_text = "Меню"
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "MENU"
+
+[node name="LightningButton" type="Button" parent="MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(78, 44)
+layout_mode = 0
+offset_top = 66.0
+offset_right = 78.0
+offset_bottom = 110.0
+tooltip_text = "Молния"
+theme_override_colors/font_color = Color(0, 0, 0, 0)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
+theme_override_font_sizes/font_size = 1
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "Молния"
+clip_text = true
+
+[node name="IconLabel" type="Label" parent="MarginContainer/VBoxContainer/LightningButton"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 26
+text = "⚡"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RainButton" type="Button" parent="MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(78, 44)
+layout_mode = 0
+offset_left = 91.0
+offset_top = 66.0
+offset_right = 169.0
+offset_bottom = 110.0
+tooltip_text = "Дождь"
+theme_override_colors/font_color = Color(0, 0, 0, 0)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
+theme_override_font_sizes/font_size = 1
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "Дождь"
+clip_text = true
+
+[node name="IconLabel" type="Label" parent="MarginContainer/VBoxContainer/RainButton"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 26
+text = "☁"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SunButton" type="Button" parent="MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(78, 44)
+layout_mode = 0
+offset_left = 182.0
+offset_top = 66.0
+offset_right = 260.0
+offset_bottom = 110.0
+tooltip_text = "Солнце"
+theme_override_colors/font_color = Color(0, 0, 0, 0)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
+theme_override_font_sizes/font_size = 1
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "Солнце"
+clip_text = true
+
+[node name="IconLabel" type="Label" parent="MarginContainer/VBoxContainer/SunButton"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 26
+text = "☀"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="EarthquakeButton" type="Button" parent="MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(78, 44)
+layout_mode = 0
+offset_left = 91.0
+offset_top = 120.0
+offset_right = 169.0
+offset_bottom = 164.0
+tooltip_text = "Землетрясение"
+theme_override_colors/font_color = Color(0, 0, 0, 0)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
+theme_override_font_sizes/font_size = 1
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "Землетрясение"
+clip_text = true
+
+[node name="IconLabel" type="Label" parent="MarginContainer/VBoxContainer/EarthquakeButton"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 26
+text = "≋"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SpellBackButton" type="Button" parent="MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(78, 44)
+layout_mode = 0
+offset_top = 120.0
+offset_right = 78.0
+offset_bottom = 164.0
+tooltip_text = "Назад"
+theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+text = "←"

@@ -13,7 +13,10 @@
 ## Key scenes
 
 - `scenes/ui/start_screen.tscn` — centered semi-transparent startup menu over a full-screen illustrated Dyna Brazzers background, with New Game, three-slot Load, audio Settings, and Exit.
-- `scenes/main/main.tscn` — camera, right-side HUD with terrain minimap and creature markers, world instance, debug overlay, and UI wiring.
+- `scenes/main/main.tscn` — small gameplay compositor containing the camera, `player_hud.tscn` instance, simulation root, world instance, and grid debug overlay.
+- `scenes/ui/player_hud.tscn` — gameplay CanvasLayer with the creature-info instance, FPS/debug label, right-side minimap, entity counters, and nature-menu instance.
+- `scenes/ui/creature_info_panel.tscn` — self-contained selected/hovered creature information panel with health and hunger templates.
+- `scenes/ui/nature_menu.tscn` — self-contained player energy, time controls, named main-menu buttons, spell buttons, and host area used by runtime egg, flag, and save menus.
 - `scenes/world/world.tscn` — only active gameplay world: 85x85 base terrain TileMap, a DryGround overlay with three variants, initial grass, an empty creature container, eggs container, camera marker, and world grid.
 - `scenes/world/player_base.tscn` — fixed 2x2 player nature base, spawned at the authored `CameraStart` marker and used as the origin for player-created eggs.
 - `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures.
@@ -58,13 +61,13 @@
 ### UI, effects, saving, and debug
 
 - `scripts/ui/start_screen.gd` — startup menu, slot loading, and runtime-built Music/Sounds settings controls.
-- `scripts/ui/creature_stats_ui.gd` — creature information, hover, selection, and lightning click bridge.
-- `scripts/ui/player_ui.gd` — interactive terrain minimap generation, diet/faction-based creature markers, player-only creature/egg counters, camera viewport display and click navigation, time-speed controls, and egg-controller bootstrap.
+- `scripts/ui/creature_stats_ui.gd` — script owned by the root `PanelContainer` of `creature_info_panel.tscn`; handles creature information, hover, selection, and the lightning click bridge.
+- `scripts/ui/player_ui.gd` — script on `player_hud.tscn`'s right-side panel; handles interactive terrain minimap generation, diet/faction markers, player-only counters, camera viewport display/click navigation, time controls, and egg-controller bootstrap.
 - `scripts/ui/player_egg_creation_ui.gd` — runtime egg submenu presentation, button availability, and base purchase requests using the player species catalog; nested host controls come from the nature-menu API.
 - `scripts/flags/player_flag_system.gd` — mature species-flag placement, area/candidate helpers, route application, and soft-attraction foundations.
 - `scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload layer that builds the fixed player roster, filters non-player factions, batches at most five target/path attempts per update, caches reserved target tiles, and records one-shot arrival revisions until a species flag is moved.
 - `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag, 11x11 area, and placement-preview drawing.
-- `scripts/ui/player_nature_ui.gd` — spell buttons, targeting, previews, and the stable access API used by dynamic menus and time controls.
+- `scripts/ui/player_nature_ui.gd` — script on `nature_menu.tscn`; owns spell controls, targeting, previews, named menu-button lookup, and the stable access API used by dynamic menus and time controls.
 - `scripts/player/player_energy.gd` — session energy reserve, spending API, and catalog-defined income from living player-faction dinosaurs only.
 - `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, DryGround clearing, adjacent mature-grass timer restarts, spell VFX application, and successful-cast sound triggers.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug.
@@ -169,7 +172,7 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Egg submenu presentation, purchase validation, and base requests belong in `player_egg_creation_ui.gd`; prices and roster order come from `PlayerSpeciesCatalog`.
 - Species-flag targeting, world visuals, target distribution, batched route scheduling, cached target reservations, and one-shot arrival revisions belong to `scripts/flags/`; the active wrapper reads player catalog metadata and filters creatures by player faction.
 - The base save system stays in `save_system.gd`; faction fields, flag placement/completion revisions, and the in-game audio-settings page are layered through `save_system_with_flags.gd`.
-- Spell controls, targeting, previews, and access to nested nature-menu controls belong in `player_nature_ui.gd`. SaveSystem, player flags, egg creation, and player time controls must use that API instead of hard-coded paths through `main.tscn`. Player energy belongs in `player_energy.gd`; only player-faction catalog entries contribute income, while egg purchases and spell UI use its public API. World-side spell results belong in `nature_effects_system.gd`.
+- Gameplay HUD composition belongs in `scenes/ui/player_hud.tscn`; creature-info structure belongs in `creature_info_panel.tscn`; energy, time, main-menu, spell, and dynamic-menu host structure belongs in `nature_menu.tscn`. Spell controls, targeting, previews, and access to nested nature-menu controls belong in `player_nature_ui.gd`. SaveSystem, player flags, egg creation, and player time controls must use that API instead of hard-coded paths through `main.tscn`. Player energy belongs in `player_energy.gd`; only player-faction catalog entries contribute income, while egg purchases and spell UI use its public API. World-side spell results belong in `nature_effects_system.gd`.
 - Text and grid diagnostics belong in their dedicated debug scripts.
 
 ## Removed / not used

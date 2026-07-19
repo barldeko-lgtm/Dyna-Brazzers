@@ -76,7 +76,7 @@ Rules:
 
 ## UI ownership
 
-`res://scenes/main/main.tscn` owns active gameplay UI node wiring.
+`res://scenes/main/main.tscn` only instances the gameplay HUD. Physical gameplay UI ownership is split across `res://scenes/ui/player_hud.tscn`, `res://scenes/ui/creature_info_panel.tscn`, and `res://scenes/ui/nature_menu.tscn`.
 
 Current UI scripts:
 
@@ -95,10 +95,11 @@ Current UI scripts:
 
 Expected gameplay scene wiring:
 
-- `UI` uses `creature_stats_ui.gd`;
-- `UI/FpsLabel` uses `debug_status_ui.gd`;
-- `UI/PlayerSidePanel` uses `player_ui.gd`;
-- the nature panel uses `player_nature_ui.gd`.
+- `main.tscn/UI` is an instance of `player_hud.tscn`;
+- `player_hud.tscn/CreatureStatsPanel` is an instance of `creature_info_panel.tscn`, whose root uses `creature_stats_ui.gd`;
+- `player_hud.tscn/FpsLabel` uses `debug_status_ui.gd`;
+- `player_hud.tscn/PlayerSidePanel` uses `player_ui.gd`;
+- `player_hud.tscn/.../PlayerNaturePanel` is an instance of `nature_menu.tscn`, whose root uses `player_nature_ui.gd`;
 - the active world owns `PlayerEnergy`; UI, egg purchases, and `SaveSystem` query it through the `player_energy` group.
 
 Rules:
@@ -108,6 +109,8 @@ Rules:
 - F3 grid overlay and F4 text debug are separate systems;
 - creature selection must remain compatible with nature-power targeting;
 - SaveSystem, player flags, egg creation, and player time controls must resolve nested nature-menu controls through the `player_nature_ui` group API, not paths through `UI/PlayerSidePanel/MarginContainer/...`;
+- keep `main.tscn` as a compositor rather than moving HUD styles or deep UI node trees back into it;
+- preserve the root instance names `UI`, `CreatureStatsPanel`, and `PlayerNaturePanel` when rearranging the split scenes so old diagnostic paths remain readable;
 - dead/corpse creatures should not remain selectable.
 
 

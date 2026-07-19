@@ -1,0 +1,197 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ui/creature_info_panel.tscn" id="1_creature_info_panel"]
+[ext_resource type="PackedScene" path="res://scenes/ui/nature_menu.tscn" id="2_nature_menu"]
+[ext_resource type="Script" path="res://scripts/ui/debug_status_ui.gd" id="3_debug_status_ui"]
+[ext_resource type="Script" path="res://scripts/ui/player_ui.gd" id="4_player_ui"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_player_side_panel_bg"]
+bg_color = Color(0.015, 0.035, 0.09, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.12, 0.18, 0.28, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_minimap_placeholder_bg"]
+bg_color = Color(0, 0, 0, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.18, 0.23, 0.32, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_entity_counts_bg"]
+bg_color = Color(0.02, 0.025, 0.04, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.18, 0.23, 0.32, 1)
+
+[node name="PlayerHUD" type="CanvasLayer"]
+
+[node name="CreatureStatsPanel" parent="." instance=ExtResource("1_creature_info_panel")]
+
+[node name="FpsLabel" type="Label" parent="."]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -230.0
+offset_right = 760.0
+offset_bottom = -13.0
+text = "FPS: 0"
+script = ExtResource("3_debug_status_ui")
+
+[node name="PlayerSidePanel" type="PanelContainer" parent="."]
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -300.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_player_side_panel_bg")
+script = ExtResource("4_player_ui")
+
+[node name="MarginContainer" type="MarginContainer" parent="PlayerSidePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PlayerSidePanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MiniMapPlaceholder" type="PanelContainer" parent="PlayerSidePanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(280, 280)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_minimap_placeholder_bg")
+
+[node name="EntityCountsPanel" type="PanelContainer" parent="PlayerSidePanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(280, 88)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_entity_counts_bg")
+
+[node name="MarginContainer" type="MarginContainer" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 5
+
+[node name="GridContainer" type="GridContainer" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 4
+columns = 6
+
+[node name="CornerLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(28, 18)
+layout_mode = 2
+
+[node name="HerbivoreIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(40, 18)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 1, 0.42, 1)
+text = "Тр"
+horizontal_alignment = 1
+
+[node name="PredatorIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(40, 18)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.42, 0.32, 1)
+text = "Хщ"
+horizontal_alignment = 1
+
+[node name="EggEaterIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(40, 18)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.17, 0.39, 1, 1)
+text = "Яц"
+horizontal_alignment = 1
+
+[node name="EggIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(40, 18)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.58, 1)
+text = "Яй"
+horizontal_alignment = 1
+
+[node name="TotalIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(40, 18)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.84, 1, 1)
+text = "Вс"
+horizontal_alignment = 1
+
+[node name="PlayerSideIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(34, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 1, 0.35, 1)
+theme_override_font_sizes/font_size = 18
+text = "●"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PlayerHerbivoreCountLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="PlayerPredatorCountLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="PlayerEggEaterCountLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="PlayerEggCountLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="PlayerTotalCountLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="EnemySideIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(34, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.25, 0.25, 1)
+theme_override_font_sizes/font_size = 18
+text = "●"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="EnemyHerbivoreCountLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="EnemyPredatorCountLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="EnemyEggEaterCountLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="EnemyEggCountLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="EnemyTotalCountLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="PlayerNaturePanel" parent="PlayerSidePanel/MarginContainer/VBoxContainer" instance=ExtResource("2_nature_menu")]
