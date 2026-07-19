@@ -43,7 +43,7 @@
 - `scripts/creatures/creature_faction.gd` — runtime faction ownership helper (`player`, `enemy`, `alien`, `neutral`) kept separate from species identity and defaulting old/current untagged entities to player.
 - `scripts/catalogs/player_species_catalog.gd` — ordered fixed catalog of the six player species with player-only egg prices, energy income, flag text, and current flag behaviour category.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore food search and target ranking.
-- `scripts/creatures/behaviors/creature_predator_logic.gd` — temporary predator targeting and combat-entry logic.
+- `scripts/creatures/behaviors/creature_predator_logic.gd` — shared carnivore targeting and combat-entry logic.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — stage-2 egg targeting and consumption logic.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and egg spawning.
 - `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, animations, and death pose.
@@ -135,7 +135,6 @@ The world scene has source-id base terrain plus a DryGround overlay. The minimap
 
 - `data/species/stegosaurus.tres` — stegosaurus stats, visuals, animations, egg data, and death settings.
 - `data/species/triceratops.tres` — triceratops stats, directional visuals, and custom egg textures.
-- `data/species/predator.tres` — temporary predator species resource.
 - `data/species/tyrannosaurus.tres` — tyrannosaurus stats, visuals, and custom egg textures.
 - `data/species/raptor.tres` — raptor stats, visuals, and custom egg textures.
 - `data/species/pterodactyl.tres` — pterodactyl stats, visuals, and custom egg textures.
@@ -182,6 +181,7 @@ Do not use:
 - `scenes/resources/tree.tscn`;
 - `scripts/resources/tree.gd`;
 - `assets/sprites/terrain/trees/`;
-- `assets/sprites/terrain/tree_tiles_large.png`.
+- `assets/sprites/terrain/tree_tiles_large.png`;
+- `data/species/predator.tres` and `assets/sprites/creatures/predator/` — obsolete generic predator prototype removed after the dedicated carnivore species became active.
 
 Trees are TileMap terrain, and species should not require separate copies of the world or egg scenes.

@@ -16,7 +16,7 @@ Current prototype includes:
 - a fixed player-species catalog that centralizes the six player species, egg prices, energy income, and flag presentation without mixing those player-only values into biological species data;
 - runtime faction ownership (`player`, `enemy`, `alien`, or `neutral`) kept separate from species identity, with current entities defaulting to the player faction;
 - species-specific two-stage egg visuals for all current reproducing species;
-- temporary predator and simple duel-combat code;
+- shared carnivore targeting and simple duel-combat code;
 - creature death with a short corpse/death-pose visual before removal;
 - static flattened contour shadows beneath creatures;
 - player nature powers: lightning, rain, sun, and earthquake;
@@ -42,9 +42,9 @@ Current prototype includes:
 - return to Main Menu with full active-session reset;
 - Exit buttons in both the startup screen and the in-game menu.
 
-Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, retained predator/combat prototype code, and the fixed player-base foundation for future egg creation. Roadmap block `0.7 — Player expansion and atmosphere` now includes the interactive terrain minimap, player egg creation, the first all-species flag pass, and the first gameplay-audio foundation.
+Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, shared carnivore/combat prototype code, and the fixed player-base foundation for future egg creation. Roadmap block `0.7 — Player expansion and atmosphere` now includes the interactive terrain minimap, player egg creation, the first all-species flag pass, and the first gameplay-audio foundation.
 
-Automatic predator spawning is currently disabled.
+Automatic adult carnivore spawning is currently disabled.
 
 ## Design direction
 

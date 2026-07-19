@@ -39,7 +39,7 @@ Rules:
 - never clear or rebuild a non-empty map during scene startup;
 - never hand-generate serialized `tile_map_data`;
 - preserve terrain source ids;
-- keep initial creatures, grass, eggs container, camera marker, and predator marker on valid terrain;
+- keep authored grass, the eggs container, the camera marker, and the player-base spawn footprint on valid terrain;
 - keep the player-base spawn point on a valid 2x2 ground footprint;
 - after major map edits, recreate saves or add migration/version handling.
 
