@@ -39,7 +39,7 @@
 ### Creatures and resources
 
 - `scripts/creatures/creature.gd` — creature runtime coordinator, movement state, death cleanup, and world-space shadow/highlight overlays.
-- `scripts/creatures/creature_species_data.gd` — shared biological species resource schema, including per-species egg texture fields.
+- `scripts/creatures/creature_species_data.gd` — shared biological species resource schema; `diet_type` is the sole stored nutrition category and helper methods classify herbivores, predators, and egg eaters.
 - `scripts/creatures/creature_faction.gd` — runtime faction ownership helper (`player`, `enemy`, `alien`, `neutral`) kept separate from species identity and defaulting old/current untagged entities to player.
 - `scripts/catalogs/player_species_catalog.gd` — ordered fixed catalog of the six player species with player-only egg prices, energy income, flag text, and current flag behaviour category.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore food search and target ranking.

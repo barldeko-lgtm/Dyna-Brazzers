@@ -17,7 +17,6 @@ enum DietType {
 }
 
 @export var diet_type: DietType = DietType.HERBIVORE
-@export var is_predator := false
 @export var predator_target_radius := 8
 
 # Visuals.
@@ -71,6 +70,14 @@ enum DietType {
 @export var reproduction_min_age := 3.0
 @export var reproduction_cooldown := 20.0
 @export var reproduction_hunger_cost := 20.0
+
+
+func is_herbivore() -> bool:
+	return diet_type == DietType.HERBIVORE
+
+
+func is_predator() -> bool:
+	return diet_type == DietType.PREDATOR
 
 
 func is_egg_eater() -> bool:

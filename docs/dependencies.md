@@ -127,7 +127,7 @@ Main files:
 
 Ownership layers:
 
-1. `CreatureSpeciesData` describes the dinosaur itself: identity, diet, stats, visuals, survival, combat, and reproduction.
+1. `CreatureSpeciesData` describes the dinosaur itself: identity, diet, stats, visuals, survival, combat, and reproduction. `diet_type` is the single stored nutrition source; systems query it through `is_herbivore()`, `is_predator()`, and `is_egg_eater()`.
 2. `CreatureFaction` describes runtime ownership independently: `player`, `enemy`, `alien`, or `neutral`. Untagged current entities and old save records default to `player`.
 3. `PlayerSpeciesCatalog` is the single ordered fixed roster for player-only values: egg purchase cost, player energy income, flag text/tooltips, and current `PASTURE`/`GATHER` flag behaviour.
 4. A future six-species enemy roster should use its own enemy catalog and may reuse the same biological species resources without inheriting player economy or player orders.

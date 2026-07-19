@@ -16,7 +16,6 @@ script = ExtResource("1_species_script")
 species_id = "raptor"
 species_name = "Раптор"
 creature_name = "Раптор"
-is_predator = true
 diet_type = 1
 predator_target_radius = 10
 down_texture = ExtResource("2_down")

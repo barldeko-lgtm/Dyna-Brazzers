@@ -185,7 +185,7 @@ func _ready() -> void:
 		set_physics_process(false)
 		return
 
-	if not species_data.is_predator and not is_egg_eater():
+	if not species_data.is_predator() and not is_egg_eater():
 		grazing_logic = CreatureGrazingLogic.new(self)
 
 	if not eating_timer.timeout.is_connected(_on_eating_timer_timeout):
@@ -456,7 +456,7 @@ func enter_walk() -> void:
 
 
 func enter_seek_food() -> void:
-	if species_data != null and (species_data.is_predator or is_egg_eater()):
+	if species_data != null and (species_data.is_predator() or is_egg_eater()):
 		enter_walk()
 		return
 
@@ -467,7 +467,7 @@ func enter_seek_food() -> void:
 
 
 func enter_hungry_behavior() -> void:
-	if species_data != null and (species_data.is_predator or is_egg_eater()):
+	if species_data != null and (species_data.is_predator() or is_egg_eater()):
 		enter_walk()
 		return
 
@@ -837,7 +837,7 @@ func _on_duel_finished(duel: Duel, winner: Node, _loser: Node) -> void:
 	if duel != current_duel and current_duel != null:
 		return
 
-	if winner != self or not species_data.is_predator:
+	if winner != self or not species_data.is_predator():
 		return
 
 	hunger = clamp(hunger + species_data.hunger_restore_amount, 0.0, species_data.max_hunger)
@@ -857,7 +857,7 @@ func find_world_grid() -> Node:
 
 
 func configure_ground_shadow() -> void:
-	ground_shadow_offset_y = 90.0 if species_data != null and species_data.is_predator else 72.0
+	ground_shadow_offset_y = 90.0 if species_data != null and species_data.is_predator() else 72.0
 	# Diagonal poses rotate the shadow instead of squishing it straight down,
 	# so it follows the 3/4 diagonal art. A slightly gentler squish (bigger
 	# scale.y than the normal 0.36) keeps it from looking like a thin line
@@ -1026,7 +1026,7 @@ func get_creature_name() -> String:
 
 
 func get_is_predator() -> bool:
-	return species_data != null and species_data.is_predator
+	return species_data != null and species_data.is_predator()
 
 
 func is_egg_eater() -> bool:

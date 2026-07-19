@@ -11,10 +11,10 @@ func _init(owner_creature: Node) -> void:
 
 
 func update_predator_behavior() -> void:
-	if creature.species_data.is_predator:
+	if creature.species_data.is_predator():
 		PerformanceStats.add_counter("predator_behavior_ticks")
 
-	if not creature.species_data.is_predator or creature.world_grid == null:
+	if not creature.species_data.is_predator() or creature.world_grid == null:
 		return
 
 	if creature.hunger > creature.species_data.hunger_search_threshold:
@@ -85,13 +85,10 @@ func is_valid_prey(candidate: Node) -> bool:
 		return false
 
 	if candidate.has_method("get_is_predator"):
-		return not candidate.get_is_predator()
+		return not bool(candidate.call("get_is_predator"))
 
-	var candidate_species: Resource = candidate.get("species_data")
-	if candidate_species != null:
-		return not bool(candidate_species.get("is_predator"))
-
-	return not bool(candidate.get("is_predator"))
+	var candidate_species := candidate.get("species_data") as CreatureSpeciesData
+	return candidate_species != null and not candidate_species.is_predator()
 
 
 func is_prey_in_duel_range(prey: Node) -> bool:

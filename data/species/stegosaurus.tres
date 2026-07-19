@@ -20,6 +20,7 @@ script = ExtResource("1_species_script")
 species_id = "stegosaurus"
 species_name = "Стегозавр"
 creature_name = "Стегозавр"
+diet_type = 0
 down_texture = ExtResource("2_down")
 up_texture = ExtResource("3_up")
 right_texture = ExtResource("4_right")

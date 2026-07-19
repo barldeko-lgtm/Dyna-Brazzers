@@ -273,7 +273,7 @@ Player egg-creation rules:
 
 Species identity and faction ownership are intentionally separate:
 
-- `CreatureSpeciesData` and `data/species/*.tres` describe biology, visuals, survival, combat, and reproduction;
+- `CreatureSpeciesData` and `data/species/*.tres` describe biology, visuals, survival, combat, and reproduction; `diet_type` is the only stored nutrition category, exposed through `is_herbivore()`, `is_predator()`, and `is_egg_eater()`;
 - `scripts/catalogs/player_species_catalog.gd` describes how the player uses the fixed six-species roster: menu order, egg cost, energy income, and flag presentation/behaviour category;
 - `scripts/creatures/creature_faction.gd` stores runtime ownership independently as `player`, `enemy`, `alien`, or `neutral`;
 - current creatures and old saves without faction data default to `player`;

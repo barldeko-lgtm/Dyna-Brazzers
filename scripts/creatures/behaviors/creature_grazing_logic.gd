@@ -14,7 +14,7 @@ func _init(owner_creature: Node) -> void:
 func update_food_behavior() -> void:
 	PerformanceStats.add_counter("grazing_food_behavior_ticks")
 
-	if creature.species_data.is_predator:
+	if creature.species_data.is_predator():
 		return
 
 	if creature.world_grid == null:
