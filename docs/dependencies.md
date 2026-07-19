@@ -25,7 +25,7 @@ The active world and map bootstrap are:
 
 Map flow:
 
-1. `world.tscn` creates the base `Ground` TileMap, its terrain sources, and the empty `DryGround` overlay with three visual sources.
+1. `world.tscn` creates the `Ground` TileMap and its terrain sources.
 2. `start_map_layout.gd` checks whether the TileMap already has cells.
 3. If the TileMap is empty, the initial 85x85 map is created.
 4. If the TileMap is non-empty, the script does nothing.
@@ -82,13 +82,15 @@ Current UI scripts:
 
 - `res://scripts/ui/start_screen.gd` — startup menu and three-slot startup loading;
 - `res://scripts/ui/creature_stats_ui.gd` — creature information, selection, and highlight coordination;
-- `res://scripts/ui/player_ui.gd` — side-panel counters and time-speed controls;
-- `res://scripts/flags/player_flag_system.gd` — `PlayerFlags` autoload for the species-flag submenu, map targeting, saved flag state, and soft creature attraction;
+- `res://scripts/ui/player_ui.gd` — terrain minimap, diet/faction markers, player-only counters, and time-speed controls;
+- `res://scripts/flags/player_flag_system.gd` — mature species-flag placement, area/candidate, and route-application helpers;
+- `res://scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload that reads the fixed player catalog, filters non-player factions, batches route work, caches reserved targets, and tracks one-shot arrival revisions;
 - `res://scripts/flags/player_flag_visual.gd` — non-blocking world-space flag and influence-area rendering;
 - `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text;
 - `res://scripts/ui/player_nature_ui.gd` — spell buttons, targeting, and previews;
-- `res://scripts/player/player_energy.gd` — session energy reserve, spending API, and living-dinosaur income;
-- `res://scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, and spell VFX application;
+- `res://scripts/player/player_energy.gd` — session energy reserve, spending API, and catalog-defined income from living player-faction dinosaurs;
+- `res://scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, DryGround clearing, adjacent mature-grass timer restarts, and spell VFX application;
+- `res://scripts/debug/performance_stats.gd` — F8 CSV performance logging, including separate flag scan/path counters;
 - `res://scripts/debug/grid_debug_overlay.gd` — F3 grid/debug overlay.
 
 Expected gameplay scene wiring:
@@ -106,6 +108,46 @@ Rules:
 - F3 grid overlay and F4 text debug are separate systems;
 - creature selection must remain compatible with nature-power targeting;
 - dead/corpse creatures should not remain selectable.
+
+
+## Species catalog and faction ownership
+
+Main files:
+
+- `res://scripts/creatures/creature_species_data.gd`;
+- `res://data/species/*.tres`;
+- `res://scripts/creatures/creature_faction.gd`;
+- `res://scripts/catalogs/player_species_catalog.gd`;
+- `res://scripts/ui/player_egg_creation_ui.gd`;
+- `res://scripts/player/player_energy.gd`;
+- `res://scripts/flags/player_flag_system_with_catalog.gd`;
+- `res://scripts/ui/player_ui.gd`;
+- `res://scripts/save/save_system_with_flags.gd`;
+- `res://scripts/debug/performance_stats.gd`.
+
+Ownership layers:
+
+1. `CreatureSpeciesData` describes the dinosaur itself: identity, diet, stats, visuals, survival, combat, and reproduction.
+2. `CreatureFaction` describes runtime ownership independently: `player`, `enemy`, `alien`, or `neutral`. Untagged current entities and old save records default to `player`.
+3. `PlayerSpeciesCatalog` is the single ordered fixed roster for player-only values: egg purchase cost, player energy income, flag text/tooltips, and current `PASTURE`/`GATHER` flag behaviour.
+4. A future six-species enemy roster should use its own enemy catalog and may reuse the same biological species resources without inheriting player economy or player orders.
+
+Rules:
+
+- all current dinosaurs keep the shared 2x2 logical footprint; do not duplicate footprint size into catalogs;
+- bought eggs are assigned to the player faction; naturally laid eggs inherit their parent faction; hatchlings inherit the egg faction;
+- only living player-faction creatures whose species exists in `PlayerSpeciesCatalog` generate player energy;
+- player flags affect only player-faction creatures in the fixed player catalog;
+- changing one species flag cancels only that species routes and retry timers; other species flag work remains intact;
+- flag target/path work is processed in batches of at most five creatures per 0.5-second update, and a single flag path is capped at 500 expanded tiles;
+- target reservations use a tile-to-creature dictionary plus a creature-to-tiles cache instead of all-pairs target comparison;
+- entering the flag area completes the current flag revision for that creature; it resumes autonomous wandering and ignores that placement after leaving until the species flag is moved or replaced;
+- active flag revisions and per-creature completed revisions are optional save fields; older saves remain valid and creatures without completion data may answer an existing flag once;
+- minimap category comes from `diet_type`, never from resource path text; faction selects the marker palette;
+- current HUD counts only player creatures and player eggs;
+- creature and egg faction ids are optional save fields, so old version-1 saves remain valid and restore missing values as player;
+- `PerformanceStats` writes `flag_creatures_scanned_per_sec`, `flag_path_requests_per_sec`, and `flag_path_failures_per_sec` to new F8 CSV logs;
+- future enemy spawners must assign `enemy` before the entity enters active gameplay.
 
 ## Startup scene
 
@@ -201,9 +243,9 @@ In-game UI integration:
 - closing it restores the previous simulation speed;
 - actions are Save, Load, Main Menu, Close Game, and Back.
 
-Saved dynamic data includes creatures, grass, eggs, player energy, rain-cleared DryGround tiles, partial DryGround rain-hit counts, active species flags, camera state, simulation speed, and save timestamp. `save_system_with_flags.gd` layers the optional `player_flags` field over the base `SaveSystem`, so older saves without it load with no active flags.
+Saved dynamic data includes creatures, grass, eggs, optional creature/egg faction ids, optional per-creature completed-flag revisions, player energy, rain-cleared DryGround cells and partial hit counts, active species flags with placement revisions, camera state, simulation speed, and save timestamp. `save_system_with_flags.gd` layers these optional fields over the base `SaveSystem`; older saves without them load entities as player-owned, with no active flags, and without completed revisions.
 
-Static base terrain and the fixed player base are loaded from start-map setup and are not serialized. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts restore from save deltas.
+Static base terrain and the fixed player base are loaded from start-map setup and are not serialized. Authored DryGround loads with the map; only cleared-cell and partial-hit deltas are saved.
 
 Loading flow:
 
@@ -216,8 +258,8 @@ Loading flow:
 7. Recreate eggs and blocker state.
 8. Recreate creatures and mutable stats using saved species resource paths.
 9. Preserve the already spawned static player base and its blocker registration.
-10. Restore player energy and camera.
-11. Restore simulation speed.
+10. Restore player energy, camera, and simulation speed.
+11. The save extension reapplies creature/egg factions and completed-flag revisions, defaulting missing faction fields to player, before restoring player flags and their active revisions.
 
 Rules:
 
@@ -225,9 +267,10 @@ Rules:
 - returning to Main Menu must not delete slot files;
 - temporary corpse nodes are not persisted;
 - the player base is not a dynamic save entity;
-- exact animation and short-lived behaviour micro-state do not need to resume;
-- save writes must verify a temporary JSON file before replacing the live slot; retain a recoverable backup during replacement;
-- invalid slots must stay visible as damaged but cannot be loaded; startup loading must restore its controls after a failed load;
+- exact animation and short-lived behaviour micro-state do not need to resume, but completed flag revisions are persistent gameplay state and must resume;
+- save writes must verify a temporary JSON file before replacing the live slot and retain a recoverable backup during replacement;
+- invalid slots remain visible as damaged but cannot be loaded;
+- adding optional faction fields must not invalidate existing version-1 saves;
 - changing map layout, saved schema, or species resource paths may require new saves or a version migration.
 
 ## Terrain source ids
@@ -292,7 +335,7 @@ Dependencies:
 
 Rules:
 
-- grass may exist and spread only on normal walkable terrain;
+- grass may exist and spread only on normal walkable terrain and not on occupied DryGround;
 - grass must not spread onto the fixed player-base footprint;
 - initial grass nodes do not define an allowed-growth region;
 - spread checks cardinal neighbouring tiles;
@@ -341,7 +384,8 @@ Rules:
 - do not duplicate `egg.tscn` per species;
 - when a species provides custom textures, assign both stages;
 - when custom textures are absent, preserve the defaults from `egg.tscn` rather than assigning `null`;
-- stage changes, blocking, hatching, saving/restoration of the hatch scene and species visuals, egg-eater targeting, and earthquake destruction must remain independent of the selected visuals;
+- stage changes, blocking, hatching, saving/restoration of the hatch scene and species visuals, faction inheritance, egg-eater targeting, and earthquake destruction must remain independent of the selected visuals;
+- naturally laid eggs inherit the parent faction, player-base eggs are explicitly player-owned, and hatchlings inherit the egg faction;
 - earthquake destroys both egg stages through the egg lifecycle so a stage-2 blocker is released normally;
 - renaming or moving species egg assets requires updating their `.tres` references.
 

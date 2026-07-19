@@ -13,6 +13,8 @@ Current prototype includes:
 - four-stage renewable grass;
 - eggs, hatching, and population growth;
 - species-specific data resources;
+- a fixed player-species catalog that centralizes the six player species, egg prices, energy income, and flag presentation without mixing those player-only values into biological species data;
+- runtime faction ownership (`player`, `enemy`, `alien`, or `neutral`) kept separate from species identity, with current entities defaulting to the player faction;
 - species-specific two-stage egg visuals for all current reproducing species;
 - temporary predator and simple duel-combat code;
 - creature death with a short corpse/death-pose visual before removal;
@@ -31,7 +33,7 @@ Current prototype includes:
 - F4 detailed text debug status;
 - F3 grid/debug overlay;
 - water, mountain, and tree terrain;
-- a reversible DryGround overlay with three visual variants: it blocks movement/grass, clears after three rain hits, and naturally reopens through adjacent mature-grass spread timers;
+- a reversible DryGround overlay with three visual variants: it blocks movement and grass, clears after three rain hits, and reopens naturally through adjacent mature-grass spread timers;
 - free observer camera constrained to the map;
 - centered startup screen with a 1920x1080 illustrated Dyna Brazzers background and a lightly transparent menu panel;
 - three save slots with date/time labels; invalid slots are marked damaged and cannot be loaded;
@@ -88,15 +90,18 @@ Saved dynamic state includes:
 
 - creatures and their mutable state;
 - grass stages and timers;
-- eggs, their stage/timer state, species visuals, and hatch-scene configuration;
+- eggs, their stage/timer state, species configuration, and faction ownership;
 - player energy;
+- active player species flags, per-species placement revisions, and per-creature completed-flag revisions;
+- creature faction ownership;
 - rain-cleared DryGround tiles and partial rain-hit counts;
-- active player species flags;
 - camera position and zoom;
 - simulation speed;
 - save timestamp.
 
-Static base terrain and the fixed player base are not serialized. The authored DryGround overlay loads with the map; rain-cleared cells and partial rain-hit counts are stored as lightweight deltas.
+Static base terrain and the fixed player base are not serialized. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored as lightweight deltas.
+
+Older saves without faction fields remain valid: restored creatures and eggs default to the player faction.
 
 `Main Menu` unloads the active game scene and clears temporary `SaveSystem` references without deleting save files. Starting `New Game` afterwards creates a clean session.
 
@@ -107,14 +112,16 @@ Current UI ownership:
 - `scripts/ui/start_screen.gd` owns startup-screen flow, startup loading, and the startup audio-settings panel;
 - `scripts/ui/creature_stats_ui.gd` owns creature information, hover/selection, deselection, and the lightning click bridge;
 - `scripts/ui/player_ui.gd` owns the interactive terrain minimap, creature markers, camera-frame display and click navigation, creature/egg counters, time-speed controls, and bootstraps the egg-creation controller;
-- `scripts/ui/player_egg_creation_ui.gd` owns the egg submenu, temporary species prices, purchase validation, and requests to the player base;
-- the `PlayerFlags` autoload from `scripts/flags/player_flag_system.gd` owns all-species flag UI, placement, saved flag state, and soft creature attraction;
+- `scripts/catalogs/player_species_catalog.gd` is the single ordered catalog for the six player species and owns player-only egg prices, energy income, flag button text, tooltips, and the current `PASTURE`/`GATHER` flag behaviour category;
+- `scripts/ui/player_egg_creation_ui.gd` owns egg-menu presentation, purchase validation, and requests to the player base; it reads species and prices from the player catalog;
+- the `PlayerFlags` autoload from `scripts/flags/player_flag_system_with_catalog.gd` layers catalog data, player-faction filtering, one-shot arrival state, batched path requests, and cached target reservations over the mature placement/pathing helpers in `scripts/flags/player_flag_system.gd`;
 - `scripts/flags/player_flag_visual.gd` draws the world flag, its 11x11 area, and placement preview without blocking terrain;
 - `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
 - `scripts/ui/player_nature_ui.gd` owns spell buttons, targeting, and previews;
-- `scripts/player/player_energy.gd` owns the session energy reserve, spending API, save value, and living-dinosaur income;
+- `scripts/player/player_energy.gd` owns the session energy reserve, spending API, save value, and income from living player-faction dinosaurs using the player catalog;
 - `scripts/world/nature_effects_system.gd` owns world-side lightning, rain, sun, earthquake, DryGround clearing, adjacent mature-grass timer restarts, spell VFX application, and successful-cast sound triggers;
-- `scripts/save/save_system.gd` remains the base persistence/menu implementation, while `scripts/save/save_system_with_flags.gd` adds species-flag save data and the in-game audio-settings page;
+- `scripts/save/save_system.gd` remains the base persistence/menu implementation, while `scripts/save/save_system_with_flags.gd` adds entity faction fields, species-flag placement/completion revisions, backward-compatible player defaults, and the in-game audio-settings page;
+- `scripts/debug/performance_stats.gd` owns F8 CSV logging, including separate flag scan, flag path-request, and flag path-failure rates;
 - `scripts/debug/grid_debug_overlay.gd` owns the F3 grid/debug overlay.
 
 `scenes/main/main.tscn` wires these scripts directly to their normal UI nodes.
@@ -146,9 +153,11 @@ Current minimap rules:
 - the entire authored map is compressed into the existing 280x280 right-side interface area;
 - ground is light brown, water is light blue, mountains are dark grey, and trees are dark green;
 - the minimap texture is generated at runtime and does not require a separate manually maintained map image;
-- herbivores are shown as light-green triangle markers;
-- predator creatures are shown as red triangle markers;
-- the egg eater is shown as a blue triangle marker;
+- creature category comes from `CreatureSpeciesData.diet_type`, never from a resource filename;
+- player herbivores are shown as light-green triangle markers;
+- player predators are shown as red triangle markers;
+- the player egg eater is shown as a blue triangle marker;
+- enemy-faction marker colours are prepared separately for the future enemy roster, while the current right-side counters continue to count only player creatures and eggs;
 - a bright rectangular frame shows the current camera viewport and changes size with camera zoom;
 - left-clicking the minimap moves the observer camera to the selected world position;
 - base terrain stays static during a session; a DryGround overlay may be cleared by its third rain hit, then the minimap rebuilds; a separate overlay redraws the camera frame and 6x6 creature triangle markers during play;
@@ -250,13 +259,28 @@ The shared egg scene remains the fallback for a future species that does not yet
 Player egg-creation rules:
 
 - the existing egg button opens a six-species submenu;
-- temporary test prices are: stegosaurus 350, triceratops 450, egg eater 1200, raptor 1000, pterodactyl 1000, and tyrannosaurus 1300 energy;
+- the player catalog defines the current prices: stegosaurus 350, triceratops 450, egg eater 1200, raptor 1000, pterodactyl 1000, and tyrannosaurus 1300 energy;
 - fresh games start with an initial energy reserve before the first eggs hatch;
 - the base creates the egg on the nearest valid free stage-1 footprint;
 - energy is spent only after the base successfully creates the egg;
 - failed placement does not consume energy;
-- created eggs grow, expand, hatch, and save through the existing shared egg system.
+- created eggs grow, expand, hatch, and save through the existing shared egg system;
+- player-bought eggs are marked as player-owned, naturally laid eggs inherit their parent faction, and hatchlings inherit the egg faction.
 - every creature hatched from either a natural or player-created egg starts with its species maximum health and maximum hunger.
+
+
+## Species catalog and faction ownership
+
+Species identity and faction ownership are intentionally separate:
+
+- `CreatureSpeciesData` and `data/species/*.tres` describe biology, visuals, survival, combat, and reproduction;
+- `scripts/catalogs/player_species_catalog.gd` describes how the player uses the fixed six-species roster: menu order, egg cost, energy income, and flag presentation/behaviour category;
+- `scripts/creatures/creature_faction.gd` stores runtime ownership independently as `player`, `enemy`, `alien`, or `neutral`;
+- current creatures and old saves without faction data default to `player`;
+- all creatures remain a shared logical 2x2 footprint; footprint size is not duplicated in species or faction catalogs;
+- a future six-species enemy roster may reuse the same biological species resources through a separate enemy catalog without receiving player prices, player income, or player flags.
+
+Player systems must filter by faction: only player-owned living creatures generate player energy, only player-owned creatures respond to `PlayerFlags`, and the current HUD counters show only player creatures and eggs.
 
 ## Species-order flags
 
@@ -266,13 +290,16 @@ Rules:
 
 - a flag is placed or moved on a walkable tile; all flags are visual only and never block the world;
 - the `⚑` menu places or moves a selected flag with left-click; right-click cancels and flags cost no energy;
-- eligible idle/walk creatures without an active higher-priority task receive a soft movement preference toward their own area;
+- eligible player-faction idle/walk creatures without an active higher-priority task receive a soft movement preference toward their own area; enemy and other factions ignore player flags even when they use the same species resource;
 - hunger, eating, reproduction, combat, death, and other survival behaviour remain higher priority than the flag;
 - stegosaurus and triceratops prefer mature grass anchors inside their area; other current species prefer free valid anchors;
-- destinations are distributed across valid anchors instead of stacking creatures on a flag tile;
-- after arrival, creatures resume normal autonomous behaviour and can later be attracted back after leaving;
+- destinations are distributed through cached reserved footprint tiles instead of repeatedly comparing every creature target with every other target;
+- a placement or move resets routes, failed retries, and completion only for that flag's species; other species keep their current routes and retry timers;
+- at most five new flag target/path attempts are processed per 0.5-second behaviour update, and each flag path may expand at most 500 tiles;
+- after a creature physically enters the area, it records that flag placement revision, resumes normal autonomous wandering, and never follows that same placement again even after leaving the area; moving or replacing that species flag creates a new revision and makes the species eligible again;
+- arrival revisions are saved per creature and active flag revisions are saved with flag positions, so one-shot completion survives normal save/load;
 - removal mode deletes the flag clicked at its center;
-- flag state is stored in normal save slots through `save_system_with_flags.gd`; old saves without flag data load with no active flags.
+- old saves without flag revision data remain valid: existing flags start at revision 1 and creatures without completion data may respond once.
 
 ## Grazing target scoring
 
@@ -340,13 +367,13 @@ The stegosaurus currently has a dedicated death-pose asset. Death visuals and co
 - Minimap clicks may move only the observer camera; they must not change terrain, entities, or simulation state.
 - Trees use normal 128x128 tiles assembled into 2x2 visuals.
 - The player base must stay a static 2x2 blocker and must not be serialized as a dynamic creature/resource entity.
-- Player-created eggs must originate near the base, use normal species egg data, and spend energy only after successful creation.
-- Species flags are soft behaviour priorities, never direct unit control, teleportation, or forced movement that overrides survival states.
+- Player-created eggs must originate near the base, use normal species egg data, be marked as player-owned, and spend energy only after successful creation.
+- Species flags are soft player-faction behaviour priorities, never direct unit control, teleportation, or forced movement that overrides survival states.
 - Flag visuals never reserve or block terrain cells.
 - Grass spreads only onto normal walkable terrain and must not spread onto the player-base footprint.
 - Initial grass nodes are starting seeds, not a growth whitelist.
 - New grass must be positioned before `add_child()`.
-- Species-specific egg textures belong in the species `.tres`, not in duplicated egg scenes.
+- Species-specific egg textures belong in the species `.tres`, not in duplicated egg scenes. Egg and hatchling faction ownership must propagate independently of those visual resources.
 - When custom egg textures are absent, preserve the shared egg scene defaults rather than assigning `null`.
 - Dead creatures must unregister occupancy before their corpse visual disappears.
 - Gameplay music, shared one-shot effects, and global button-click feedback belong to the global `AudioManager`; do not add duplicate scene-local audio managers, permanent music players, or per-button click players.
@@ -354,3 +381,7 @@ The stegosaurus currently has a dedicated death-pose asset. Death visuals and co
 - Do not duplicate the in-game menu outside the existing `MENU` button.
 - Returning to Main Menu resets the active session but does not delete saves.
 - Major map edits can make old saved entity positions invalid; recreate saves or add an explicit migration.
+
+- Player-only economy and flag metadata belongs in `PlayerSpeciesCatalog`, not in UI scripts or biological species `.tres` files.
+- Species category checks use `diet_type`; do not infer gameplay identity from resource filenames.
+- Future enemy creatures must receive the `enemy` faction before entering active gameplay and must not generate player energy or follow player flags.

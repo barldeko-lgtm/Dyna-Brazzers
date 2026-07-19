@@ -10,6 +10,7 @@ extends Node2D
 @export var shadow_offset := Vector2(0.0, 18.0)
 @export var shadow_alpha := 0.22
 
+const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const EGG_STAGE_1_FOOTPRINT := Vector2i(1, 2)
 const EGG_SEARCH_RADIUS := 6
 const INVALID_ANCHOR := Vector2i(2147483647, 2147483647)
@@ -100,6 +101,7 @@ func create_player_egg(species_data: CreatureSpeciesData) -> Node2D:
 
 	new_egg.set("species_id", species_data.species_id)
 	new_egg.set("hatch_species_data", species_data)
+	CREATURE_FACTION.set_id(new_egg, CREATURE_FACTION.PLAYER)
 
 	if species_data.egg_stage_1_texture != null:
 		new_egg.set("stage_1_texture", species_data.egg_stage_1_texture)

@@ -33,7 +33,10 @@ const CSV_HEADER_COLUMNS := [
 	"path_success_per_sec",
 	"path_failed_per_sec",
 	"path_capped_per_sec",
-	"grazing_candidate_unreachable_per_sec"
+	"grazing_candidate_unreachable_per_sec",
+	"flag_creatures_scanned_per_sec",
+	"flag_path_requests_per_sec",
+	"flag_path_failures_per_sec"
 ]
 
 var start_ticks_msec := 0
@@ -222,6 +225,9 @@ func append_csv_sample() -> void:
 	row.append(str(get_rate("path_failed")))
 	row.append(str(get_rate("path_capped")))
 	row.append(str(get_rate("grazing_candidate_unreachable")))
+	row.append(str(get_rate("flag_creatures_scanned")))
+	row.append(str(get_rate("flag_path_requests")))
+	row.append(str(get_rate("flag_path_failures")))
 
 	csv_file.store_line(",".join(row))
 	csv_file.flush()

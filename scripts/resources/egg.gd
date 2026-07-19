@@ -1,5 +1,7 @@
 extends Node2D
 
+const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
+
 # Egg lifecycle and hatch spawn.
 @onready var body_sprite: Sprite2D = $BodySprite
 
@@ -296,6 +298,7 @@ func spawn_hatched_creature() -> bool:
 		spawn_footprint
 	)
 	new_creature.position = creatures_container.to_local(spawn_world_position)
+	CREATURE_FACTION.set_id(new_creature, CREATURE_FACTION.get_id(self))
 	creatures_container.add_child(new_creature)
 
 	var creature_registered := false

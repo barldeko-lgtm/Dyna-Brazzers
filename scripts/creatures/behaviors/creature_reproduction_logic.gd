@@ -1,5 +1,6 @@
 extends RefCounted
 
+const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const EGG_STAGE_1_FOOTPRINT := Vector2i(1, 2)
 const INVALID_ANCHOR := Vector2i(2147483647, 2147483647)
 
@@ -85,6 +86,7 @@ func spawn_egg_at_pending_anchor() -> bool:
 
 	new_egg.set("species_id", creature.species_data.species_id)
 	new_egg.set("hatch_species_data", creature.species_data)
+	CREATURE_FACTION.set_id(new_egg, CREATURE_FACTION.get_id(creature))
 
 	if creature.species_data.egg_stage_1_texture != null:
 		new_egg.set("stage_1_texture", creature.species_data.egg_stage_1_texture)

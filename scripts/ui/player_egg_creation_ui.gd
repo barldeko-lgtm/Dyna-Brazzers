@@ -2,33 +2,7 @@ extends Node
 
 # Player egg-purchase submenu. The UI spends player energy only after the
 # player base successfully creates a real species egg near its footprint.
-
-const EGG_OPTIONS := [
-	{
-		"species": preload("res://data/species/stegosaurus.tres"),
-		"cost": 350.0
-	},
-	{
-		"species": preload("res://data/species/triceratops.tres"),
-		"cost": 450.0
-	},
-	{
-		"species": preload("res://data/species/egg_eater.tres"),
-		"cost": 1200.0
-	},
-	{
-		"species": preload("res://data/species/raptor.tres"),
-		"cost": 1000.0
-	},
-	{
-		"species": preload("res://data/species/pterodactyl.tres"),
-		"cost": 1000.0
-	},
-	{
-		"species": preload("res://data/species/tyrannosaurus.tres"),
-		"cost": 1300.0
-	}
-]
+const PLAYER_SPECIES_CATALOG := preload("res://scripts/catalogs/player_species_catalog.gd")
 
 const NATURE_PANEL_PATH := "MarginContainer/VBoxContainer/PlayerNaturePanel"
 const NATURE_CONTENT_PATH := NATURE_PANEL_PATH + "/MarginContainer/VBoxContainer"
@@ -99,9 +73,9 @@ func _build_egg_menu() -> void:
 	egg_menu_grid.visible = false
 	nature_content.add_child(egg_menu_grid)
 
-	for option: Dictionary in EGG_OPTIONS:
-		var species_data := option.get("species") as CreatureSpeciesData
-		var energy_cost := float(option.get("cost", 0.0))
+	for option: Dictionary in PLAYER_SPECIES_CATALOG.get_egg_entries():
+		var species_data := option.get("species_data") as CreatureSpeciesData
+		var energy_cost := float(option.get("egg_purchase_cost", 0.0))
 
 		if species_data == null:
 			continue

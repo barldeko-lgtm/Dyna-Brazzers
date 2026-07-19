@@ -3,16 +3,10 @@ extends Node
 # Session-owned player energy and population income.
 signal energy_changed(current_energy: float, max_energy: float)
 
+const PLAYER_SPECIES_CATALOG := preload("res://scripts/catalogs/player_species_catalog.gd")
+const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const DEAD_CREATURE_STATE := 6
 const ENERGY_TICK_INTERVAL := 1.0
-const ENERGY_PER_SECOND_BY_SPECIES: Dictionary[StringName, float] = {
-	&"stegosaurus": 0.4,
-	&"triceratops": 0.3,
-	&"tyrannosaurus": 0.1,
-	&"raptor": 0.1,
-	&"pterodactyl": 0.1,
-	&"egg_eater": 0.1
-}
 
 @export var max_energy := 9999.0
 @export var starting_energy := 2000.0
@@ -100,13 +94,24 @@ func _refresh_income() -> void:
 		if not _is_living_creature(creature):
 			continue
 
-		var species_data: Resource = creature.get("species_data") as Resource
+		if CREATURE_FACTION.get_id(creature) != CREATURE_FACTION.PLAYER:
+			continue
+
+		var species_data := creature.get("species_data") as CreatureSpeciesData
 
 		if species_data == null:
 			continue
 
-		var species_id := StringName(species_data.get("species_id"))
-		total_income += float(ENERGY_PER_SECOND_BY_SPECIES.get(species_id, 0.1))
+		var species_id := StringName(species_data.species_id)
+		var catalog_entry := PLAYER_SPECIES_CATALOG.get_entry(species_id)
+
+		if catalog_entry.is_empty():
+			continue
+
+		total_income += maxf(
+			float(catalog_entry.get("energy_income_per_second", 0.0)),
+			0.0
+		)
 
 	current_income_per_second = total_income
 

@@ -20,6 +20,7 @@ class MinimapOverlay:
 
 
 const PLAYER_EGG_CREATION_UI_SCRIPT := preload("res://scripts/ui/player_egg_creation_ui.gd")
+const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 
 const TIME_SPEED_VALUES := [1.0, 2.0, 3.0, 5.0]
 const ENTITY_COUNTS_REFRESH_INTERVAL := 0.5
@@ -45,6 +46,10 @@ const MINIMAP_CAMERA_COLOR := Color(0xfff1a3ff)
 const MINIMAP_HERBIVORE_COLOR := Color(0x9be26aff)
 const MINIMAP_PREDATOR_COLOR := Color(0xe25757ff)
 const MINIMAP_EGG_EATER_COLOR := Color(0x2b63ffff)
+const MINIMAP_ENEMY_HERBIVORE_COLOR := Color(0xe6a85fff)
+const MINIMAP_ENEMY_PREDATOR_COLOR := Color(0xb83555ff)
+const MINIMAP_ENEMY_EGG_EATER_COLOR := Color(0x8c5de8ff)
+const MINIMAP_OTHER_FACTION_COLOR := Color(0xc88ce8ff)
 
 @onready var minimap_placeholder: PanelContainer = get_node_or_null("MarginContainer/VBoxContainer/MiniMapPlaceholder") as PanelContainer
 @onready var player_herbivore_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerHerbivoreCountLabel")
@@ -343,18 +348,32 @@ func draw_creature_markers_on_overlay(overlay: Control) -> void:
 
 
 func get_minimap_creature_color(creature: Node) -> Color:
-	var species_data: Resource = creature.get("species_data")
+	var faction_id := CREATURE_FACTION.get_id(creature)
+	var species_data := creature.get("species_data") as CreatureSpeciesData
+	var diet_type := CreatureSpeciesData.DietType.HERBIVORE
 
 	if species_data != null:
-		var resource_path := species_data.resource_path.to_lower()
+		diet_type = species_data.diet_type
 
-		if resource_path.contains("egg_eater"):
-			return MINIMAP_EGG_EATER_COLOR
+	if faction_id != CREATURE_FACTION.PLAYER and faction_id != CREATURE_FACTION.ENEMY:
+		return MINIMAP_OTHER_FACTION_COLOR
 
-		if bool(species_data.get("is_predator")):
-			return MINIMAP_PREDATOR_COLOR
+	var herbivore_color := MINIMAP_HERBIVORE_COLOR
+	var predator_color := MINIMAP_PREDATOR_COLOR
+	var egg_eater_color := MINIMAP_EGG_EATER_COLOR
 
-	return MINIMAP_HERBIVORE_COLOR
+	if faction_id == CREATURE_FACTION.ENEMY:
+		herbivore_color = MINIMAP_ENEMY_HERBIVORE_COLOR
+		predator_color = MINIMAP_ENEMY_PREDATOR_COLOR
+		egg_eater_color = MINIMAP_ENEMY_EGG_EATER_COLOR
+
+	match diet_type:
+		CreatureSpeciesData.DietType.PREDATOR:
+			return predator_color
+		CreatureSpeciesData.DietType.EGG_EATER:
+			return egg_eater_color
+		_:
+			return herbivore_color
 
 
 func get_minimap_content_rect(draw_size: Vector2) -> Rect2:
@@ -514,10 +533,33 @@ func move_camera_to_minimap_position(local_position: Vector2) -> void:
 
 
 func update_entity_counts_text() -> void:
-	var herbivore_count := count_creatures_by_category("herbivore")
-	var predator_count := count_creatures_by_category("predator")
-	var egg_eater_count := count_creatures_by_category("egg_eater")
-	var egg_count := count_eggs()
+	var herbivore_count := 0
+	var predator_count := 0
+	var egg_eater_count := 0
+
+	# Count all three player categories in one traversal. Previously the faction
+	# filter repeated the same creature-group scan three times every refresh.
+	for creature: Node in get_tree().get_nodes_in_group("creatures"):
+		if not is_instance_valid(creature) or creature.is_queued_for_deletion():
+			continue
+
+		if not CREATURE_FACTION.is_player(creature):
+			continue
+
+		var species_data := creature.get("species_data") as CreatureSpeciesData
+
+		if species_data == null:
+			continue
+
+		match species_data.diet_type:
+			CreatureSpeciesData.DietType.PREDATOR:
+				predator_count += 1
+			CreatureSpeciesData.DietType.EGG_EATER:
+				egg_eater_count += 1
+			_:
+				herbivore_count += 1
+
+	var egg_count := count_eggs(CREATURE_FACTION.PLAYER)
 
 	if player_herbivore_count_label != null:
 		player_herbivore_count_label.text = str(herbivore_count)
@@ -535,11 +577,14 @@ func update_entity_counts_text() -> void:
 		player_total_count_label.text = str(herbivore_count + predator_count + egg_eater_count)
 
 
-func count_creatures_by_category(category: StringName) -> int:
+func count_creatures_by_category(category: StringName, faction_id: StringName) -> int:
 	var count := 0
 
 	for creature in get_tree().get_nodes_in_group("creatures"):
 		if not is_instance_valid(creature) or creature.is_queued_for_deletion():
+			continue
+
+		if CREATURE_FACTION.get_id(creature) != faction_id:
 			continue
 
 		if get_creature_category(creature) == category:
@@ -549,21 +594,21 @@ func count_creatures_by_category(category: StringName) -> int:
 
 
 func get_creature_category(creature: Node) -> StringName:
-	var species_data: Resource = creature.get("species_data")
+	var species_data := creature.get("species_data") as CreatureSpeciesData
 
 	if species_data == null:
 		return &""
 
-	if species_data.resource_path.to_lower().contains("egg_eater"):
-		return &"egg_eater"
+	match species_data.diet_type:
+		CreatureSpeciesData.DietType.PREDATOR:
+			return &"predator"
+		CreatureSpeciesData.DietType.EGG_EATER:
+			return &"egg_eater"
+		_:
+			return &"herbivore"
 
-	if bool(species_data.get("is_predator")):
-		return &"predator"
 
-	return &"herbivore"
-
-
-func count_eggs() -> int:
+func count_eggs(faction_id: StringName) -> int:
 	var count := 0
 
 	for egg in get_tree().get_nodes_in_group("eggs"):
@@ -571,6 +616,9 @@ func count_eggs() -> int:
 			continue
 
 		if egg.is_queued_for_deletion():
+			continue
+
+		if CREATURE_FACTION.get_id(egg) != faction_id:
 			continue
 
 		count += 1
