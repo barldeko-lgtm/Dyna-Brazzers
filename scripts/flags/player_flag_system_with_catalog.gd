@@ -10,12 +10,51 @@ const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const FLAG_COMPLETION_REVISION_META := &"player_flag_completed_revision"
 const MAX_NEW_FLAG_PATHS_PER_UPDATE := 5
 const OPTIMIZED_FLAG_PATH_SEARCH_TILE_CAP := 500
+const NATURE_MENU_ATTACH_RETRY_FRAMES := 16
 
 var flag_revisions: Dictionary = {}
 var pending_route_requests: Array[Node] = []
 var pending_route_lookup: Dictionary = {}
 var reserved_target_tiles: Dictionary = {}
 var reserved_tiles_by_creature: Dictionary = {}
+
+
+func _attach_to_game_scene(scene: Node) -> void:
+	for _attempt in range(NATURE_MENU_ATTACH_RETRY_FRAMES):
+		if scene == null or not is_instance_valid(scene) or get_tree().current_scene != scene:
+			return
+
+		world_grid = get_tree().get_first_node_in_group("world_grid")
+		nature_ui = get_tree().get_first_node_in_group("player_nature_ui")
+		nature_content = null
+		main_menu_grid = null
+		flag_menu_button = null
+
+		if (
+			nature_ui != null
+			and nature_ui.has_method("get_menu_content_root")
+			and nature_ui.has_method("get_main_menu_grid")
+			and nature_ui.has_method("get_menu_button")
+		):
+			nature_content = nature_ui.call("get_menu_content_root") as Control
+			main_menu_grid = nature_ui.call("get_main_menu_grid") as GridContainer
+			flag_menu_button = nature_ui.call("get_menu_button", &"flags") as Button
+
+		if _has_required_runtime_nodes():
+			attached_to_game = true
+			_ensure_flag_visual()
+			_build_flag_menu()
+			flag_menu_button.tooltip_text = "Флаги видов"
+
+			if not flag_menu_button.pressed.is_connected(_on_flag_menu_button_pressed):
+				flag_menu_button.pressed.connect(_on_flag_menu_button_pressed)
+
+			_sync_flag_visual()
+			return
+
+		await get_tree().process_frame
+
+	push_warning("PlayerFlags: nature-menu API or world grid was not found.")
 
 
 func _build_flag_menu() -> void:

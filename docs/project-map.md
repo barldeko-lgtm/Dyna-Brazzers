@@ -60,11 +60,11 @@
 - `scripts/ui/start_screen.gd` — startup menu, slot loading, and runtime-built Music/Sounds settings controls.
 - `scripts/ui/creature_stats_ui.gd` — creature information, hover, selection, and lightning click bridge.
 - `scripts/ui/player_ui.gd` — interactive terrain minimap generation, diet/faction-based creature markers, player-only creature/egg counters, camera viewport display and click navigation, time-speed controls, and egg-controller bootstrap.
-- `scripts/ui/player_egg_creation_ui.gd` — runtime egg submenu presentation, button availability, and base purchase requests using the player species catalog.
+- `scripts/ui/player_egg_creation_ui.gd` — runtime egg submenu presentation, button availability, and base purchase requests using the player species catalog; nested host controls come from the nature-menu API.
 - `scripts/flags/player_flag_system.gd` — mature species-flag placement, area/candidate helpers, route application, and soft-attraction foundations.
 - `scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload layer that builds the fixed player roster, filters non-player factions, batches at most five target/path attempts per update, caches reserved target tiles, and records one-shot arrival revisions until a species flag is moved.
 - `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag, 11x11 area, and placement-preview drawing.
-- `scripts/ui/player_nature_ui.gd` — spell buttons, targeting, and previews.
+- `scripts/ui/player_nature_ui.gd` — spell buttons, targeting, previews, and the stable access API used by dynamic menus and time controls.
 - `scripts/player/player_energy.gd` — session energy reserve, spending API, and catalog-defined income from living player-faction dinosaurs only.
 - `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, DryGround clearing, adjacent mature-grass timer restarts, spell VFX application, and successful-cast sound triggers.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug.
@@ -169,7 +169,7 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Egg submenu presentation, purchase validation, and base requests belong in `player_egg_creation_ui.gd`; prices and roster order come from `PlayerSpeciesCatalog`.
 - Species-flag targeting, world visuals, target distribution, batched route scheduling, cached target reservations, and one-shot arrival revisions belong to `scripts/flags/`; the active wrapper reads player catalog metadata and filters creatures by player faction.
 - The base save system stays in `save_system.gd`; faction fields, flag placement/completion revisions, and the in-game audio-settings page are layered through `save_system_with_flags.gd`.
-- Spell controls, targeting, and previews belong in `player_nature_ui.gd`. Player energy belongs in `player_energy.gd`; only player-faction catalog entries contribute income, while egg purchases and spell UI use its public API. World-side spell results belong in `nature_effects_system.gd`.
+- Spell controls, targeting, previews, and access to nested nature-menu controls belong in `player_nature_ui.gd`. SaveSystem, player flags, egg creation, and player time controls must use that API instead of hard-coded paths through `main.tscn`. Player energy belongs in `player_energy.gd`; only player-faction catalog entries contribute income, while egg purchases and spell UI use its public API. World-side spell results belong in `nature_effects_system.gd`.
 - Text and grid diagnostics belong in their dedicated debug scripts.
 
 ## Removed / not used

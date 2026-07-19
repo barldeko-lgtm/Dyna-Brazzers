@@ -4,7 +4,11 @@ const RAIN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/rain_target_previe
 const SUN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/sun_target_preview.tscn"
 const EARTHQUAKE_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/earthquake_target_preview.tscn"
 
-# Player-facing nature powers HUD.
+const MENU_EGGS := &"eggs"
+const MENU_FLAGS := &"flags"
+const MENU_SYSTEM := &"system"
+
+# Player-facing nature powers HUD and stable access point for its nested menus.
 @export var lightning_energy_cost := 1000.0
 @export var rain_energy_cost := 50.0
 @export var sun_energy_cost := 500.0
@@ -15,6 +19,17 @@ const EARTHQUAKE_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/earthquake_t
 @onready var rain_button: Button = get_node_or_null("MarginContainer/VBoxContainer/RainButton")
 @onready var sun_button: Button = get_node_or_null("MarginContainer/VBoxContainer/SunButton")
 @onready var earthquake_button: Button = get_node_or_null("MarginContainer/VBoxContainer/EarthquakeButton")
+@onready var menu_content_root: Control = get_node_or_null("MarginContainer/VBoxContainer") as Control
+@onready var main_menu_grid: GridContainer = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid") as GridContainer
+@onready var egg_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/MainPlaceholder1") as Button
+@onready var flag_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/MainPlaceholder4") as Button
+@onready var system_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/MainPlaceholder5") as Button
+@onready var time_speed_buttons: Array[Button] = [
+	get_node_or_null("MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed1Button"),
+	get_node_or_null("MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed2Button"),
+	get_node_or_null("MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed3Button"),
+	get_node_or_null("MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed5Button"),
+]
 
 var player_energy: Node = null
 var lightning_targeting_enabled := false
@@ -49,6 +64,30 @@ func _process(_delta: float) -> void:
 
 	if earthquake_targeting_enabled:
 		_update_earthquake_target_preview()
+
+
+func get_menu_content_root() -> Control:
+	return menu_content_root
+
+
+func get_main_menu_grid() -> GridContainer:
+	return main_menu_grid
+
+
+func get_menu_button(menu_id: StringName) -> Button:
+	match menu_id:
+		MENU_EGGS:
+			return egg_menu_button
+		MENU_FLAGS:
+			return flag_menu_button
+		MENU_SYSTEM:
+			return system_menu_button
+
+	return null
+
+
+func get_time_speed_buttons() -> Array[Button]:
+	return time_speed_buttons
 
 
 func setup_lightning_button() -> void:

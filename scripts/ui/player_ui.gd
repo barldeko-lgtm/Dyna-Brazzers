@@ -58,13 +58,7 @@ const MINIMAP_OTHER_FACTION_COLOR := Color(0xc88ce8ff)
 @onready var player_egg_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerEggCountLabel")
 @onready var player_total_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerTotalCountLabel")
 
-@onready var time_speed_buttons: Array[Button] = [
-	get_node_or_null("MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed1Button"),
-	get_node_or_null("MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed2Button"),
-	get_node_or_null("MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed3Button"),
-	get_node_or_null("MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer/TimeSpeed5Button"),
-]
-
+var time_speed_buttons: Array[Button] = []
 var entity_counts_refresh_timer := 0.0
 var terrain_minimap_texture: ImageTexture = null
 var terrain_minimap_style_box: StyleBoxTexture = null
@@ -82,6 +76,7 @@ var dry_ground_signal_source: Node = null
 
 func _ready() -> void:
 	add_to_group("player_ui")
+	_bind_nature_menu_controls()
 	setup_time_speed_controls()
 	setup_player_egg_creation_ui()
 	update_entity_counts_text()
@@ -348,32 +343,28 @@ func draw_creature_markers_on_overlay(overlay: Control) -> void:
 
 
 func get_minimap_creature_color(creature: Node) -> Color:
+	var category := get_creature_category(creature)
 	var faction_id := CREATURE_FACTION.get_id(creature)
-	var species_data := creature.get("species_data") as CreatureSpeciesData
-	var diet_type := CreatureSpeciesData.DietType.HERBIVORE
-
-	if species_data != null:
-		diet_type = species_data.diet_type
-
-	if faction_id != CREATURE_FACTION.PLAYER and faction_id != CREATURE_FACTION.ENEMY:
-		return MINIMAP_OTHER_FACTION_COLOR
-
-	var herbivore_color := MINIMAP_HERBIVORE_COLOR
-	var predator_color := MINIMAP_PREDATOR_COLOR
-	var egg_eater_color := MINIMAP_EGG_EATER_COLOR
 
 	if faction_id == CREATURE_FACTION.ENEMY:
-		herbivore_color = MINIMAP_ENEMY_HERBIVORE_COLOR
-		predator_color = MINIMAP_ENEMY_PREDATOR_COLOR
-		egg_eater_color = MINIMAP_ENEMY_EGG_EATER_COLOR
+		match category:
+			&"predator":
+				return MINIMAP_ENEMY_PREDATOR_COLOR
+			&"egg_eater":
+				return MINIMAP_ENEMY_EGG_EATER_COLOR
+			_:
+				return MINIMAP_ENEMY_HERBIVORE_COLOR
 
-	match diet_type:
-		CreatureSpeciesData.DietType.PREDATOR:
-			return predator_color
-		CreatureSpeciesData.DietType.EGG_EATER:
-			return egg_eater_color
+	if faction_id != CREATURE_FACTION.PLAYER:
+		return MINIMAP_OTHER_FACTION_COLOR
+
+	match category:
+		&"predator":
+			return MINIMAP_PREDATOR_COLOR
+		&"egg_eater":
+			return MINIMAP_EGG_EATER_COLOR
 		_:
-			return herbivore_color
+			return MINIMAP_HERBIVORE_COLOR
 
 
 func get_minimap_content_rect(draw_size: Vector2) -> Rect2:
@@ -533,32 +524,9 @@ func move_camera_to_minimap_position(local_position: Vector2) -> void:
 
 
 func update_entity_counts_text() -> void:
-	var herbivore_count := 0
-	var predator_count := 0
-	var egg_eater_count := 0
-
-	# Count all three player categories in one traversal. Previously the faction
-	# filter repeated the same creature-group scan three times every refresh.
-	for creature: Node in get_tree().get_nodes_in_group("creatures"):
-		if not is_instance_valid(creature) or creature.is_queued_for_deletion():
-			continue
-
-		if not CREATURE_FACTION.is_player(creature):
-			continue
-
-		var species_data := creature.get("species_data") as CreatureSpeciesData
-
-		if species_data == null:
-			continue
-
-		match species_data.diet_type:
-			CreatureSpeciesData.DietType.PREDATOR:
-				predator_count += 1
-			CreatureSpeciesData.DietType.EGG_EATER:
-				egg_eater_count += 1
-			_:
-				herbivore_count += 1
-
+	var herbivore_count := count_creatures_by_category("herbivore", CREATURE_FACTION.PLAYER)
+	var predator_count := count_creatures_by_category("predator", CREATURE_FACTION.PLAYER)
+	var egg_eater_count := count_creatures_by_category("egg_eater", CREATURE_FACTION.PLAYER)
 	var egg_count := count_eggs(CREATURE_FACTION.PLAYER)
 
 	if player_herbivore_count_label != null:
@@ -626,6 +594,27 @@ func count_eggs(faction_id: StringName) -> int:
 	return count
 
 
+func _bind_nature_menu_controls() -> void:
+	time_speed_buttons.clear()
+	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
+
+	if nature_ui == null or not nature_ui.has_method("get_time_speed_buttons"):
+		push_error("PlayerUI: nature-menu API was not found.")
+		return
+
+	var buttons_variant: Variant = nature_ui.call("get_time_speed_buttons")
+
+	if not (buttons_variant is Array):
+		push_error("PlayerUI: nature-menu speed controls are invalid.")
+		return
+
+	for button_variant: Variant in buttons_variant:
+		var button := button_variant as Button
+
+		if button != null:
+			time_speed_buttons.append(button)
+
+
 func setup_player_egg_creation_ui() -> void:
 	if get_node_or_null("PlayerEggCreationUI") != null:
 		return
@@ -636,6 +625,10 @@ func setup_player_egg_creation_ui() -> void:
 
 
 func setup_time_speed_controls() -> void:
+	if time_speed_buttons.size() != TIME_SPEED_VALUES.size():
+		push_error("PlayerUI: not all time-speed buttons were resolved.")
+		return
+
 	var selected_index := 0
 
 	for index in range(TIME_SPEED_VALUES.size()):

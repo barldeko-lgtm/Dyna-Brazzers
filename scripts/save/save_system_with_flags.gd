@@ -2,9 +2,44 @@ extends "res://scripts/save/save_system.gd"
 
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const FLAG_COMPLETION_REVISION_META := &"player_flag_completed_revision"
+const NATURE_MENU_ATTACH_RETRY_FRAMES := 16
 
 # Small save-system extension for player species flags, entity factions and
 # in-game audio settings. Core entity reconstruction stays in save_system.gd.
+
+
+func _attach_to_game_scene(scene: Node) -> void:
+	for _attempt in range(NATURE_MENU_ATTACH_RETRY_FRAMES):
+		if scene == null or not is_instance_valid(scene) or get_tree().current_scene != scene:
+			return
+
+		var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
+
+		if (
+			nature_ui != null
+			and nature_ui.has_method("get_menu_content_root")
+			and nature_ui.has_method("get_main_menu_grid")
+			and nature_ui.has_method("get_menu_button")
+		):
+			var found_content_root := nature_ui.call("get_menu_content_root") as Control
+			var found_main_grid := nature_ui.call("get_main_menu_grid") as Control
+			var found_menu_button := nature_ui.call("get_menu_button", &"system") as Button
+
+			if found_content_root != null and found_main_grid != null and found_menu_button != null:
+				main_menu_grid = found_main_grid
+				menu_button = found_menu_button
+				button_template = found_menu_button
+
+				if not menu_button.pressed.is_connected(_on_menu_button_pressed):
+					menu_button.pressed.connect(_on_menu_button_pressed)
+
+				_create_menu_root(found_content_root)
+				_refresh_menu_tooltip()
+				return
+
+		await get_tree().process_frame
+
+	push_warning("SaveSystem: nature-menu API or system-menu controls were not found.")
 
 
 func _create_menu_root(content_root: Control) -> void:

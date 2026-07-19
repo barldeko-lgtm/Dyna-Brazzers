@@ -87,7 +87,7 @@ Current UI scripts:
 - `res://scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload that reads the fixed player catalog, filters non-player factions, batches route work, caches reserved targets, and tracks one-shot arrival revisions;
 - `res://scripts/flags/player_flag_visual.gd` — non-blocking world-space flag and influence-area rendering;
 - `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text;
-- `res://scripts/ui/player_nature_ui.gd` — spell buttons, targeting, and previews;
+- `res://scripts/ui/player_nature_ui.gd` — spell buttons, targeting, previews, and the stable access API for nested nature-menu controls;
 - `res://scripts/player/player_energy.gd` — session energy reserve, spending API, and catalog-defined income from living player-faction dinosaurs;
 - `res://scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, DryGround clearing, adjacent mature-grass timer restarts, and spell VFX application;
 - `res://scripts/debug/performance_stats.gd` — F8 CSV performance logging, including separate flag scan/path counters;
@@ -107,6 +107,7 @@ Rules:
 - do not put detailed debug text back into `creature_stats_ui.gd`;
 - F3 grid overlay and F4 text debug are separate systems;
 - creature selection must remain compatible with nature-power targeting;
+- SaveSystem, player flags, egg creation, and player time controls must resolve nested nature-menu controls through the `player_nature_ui` group API, not paths through `UI/PlayerSidePanel/MarginContainer/...`;
 - dead/corpse creatures should not remain selectable.
 
 

@@ -4,12 +4,6 @@ extends Node
 # player base successfully creates a real species egg near its footprint.
 const PLAYER_SPECIES_CATALOG := preload("res://scripts/catalogs/player_species_catalog.gd")
 
-const NATURE_PANEL_PATH := "MarginContainer/VBoxContainer/PlayerNaturePanel"
-const NATURE_CONTENT_PATH := NATURE_PANEL_PATH + "/MarginContainer/VBoxContainer"
-const MAIN_MENU_GRID_PATH := NATURE_CONTENT_PATH + "/MainMenuGrid"
-const EGG_MENU_BUTTON_PATH := MAIN_MENU_GRID_PATH + "/MainPlaceholder1"
-
-var player_side_panel: Control = null
 var nature_ui: Node = null
 var player_energy: Node = null
 var nature_content: Control = null
@@ -21,25 +15,24 @@ var egg_buttons: Dictionary = {}
 
 
 func _ready() -> void:
-	player_side_panel = get_parent() as Control
-
-	if player_side_panel == null:
-		push_error("PlayerEggCreationUI: player side panel was not found.")
-		return
-
-	nature_ui = player_side_panel.get_node_or_null(NATURE_PANEL_PATH)
+	nature_ui = get_tree().get_first_node_in_group("player_nature_ui")
 	player_energy = get_tree().get_first_node_in_group("player_energy")
-	nature_content = player_side_panel.get_node_or_null(NATURE_CONTENT_PATH) as Control
-	main_menu_grid = player_side_panel.get_node_or_null(MAIN_MENU_GRID_PATH) as GridContainer
-	egg_menu_button = player_side_panel.get_node_or_null(EGG_MENU_BUTTON_PATH) as Button
 
 	if (
 		nature_ui == null
-		or nature_content == null
-		or main_menu_grid == null
-		or egg_menu_button == null
+		or not nature_ui.has_method("get_menu_content_root")
+		or not nature_ui.has_method("get_main_menu_grid")
+		or not nature_ui.has_method("get_menu_button")
 	):
-		push_error("PlayerEggCreationUI: required player UI nodes were not found.")
+		push_error("PlayerEggCreationUI: nature-menu API was not found.")
+		return
+
+	nature_content = nature_ui.call("get_menu_content_root") as Control
+	main_menu_grid = nature_ui.call("get_main_menu_grid") as GridContainer
+	egg_menu_button = nature_ui.call("get_menu_button", &"eggs") as Button
+
+	if nature_content == null or main_menu_grid == null or egg_menu_button == null:
+		push_error("PlayerEggCreationUI: required nature-menu controls were not found.")
 		return
 
 	_build_egg_menu()
