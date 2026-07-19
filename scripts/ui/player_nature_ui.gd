@@ -232,6 +232,7 @@ func try_apply_lightning_to_creature(creature: Node) -> bool:
 		return false
 
 	if not bool(nature_effects.call("apply_lightning", creature)):
+		add_energy(lightning_energy_cost)
 		return false
 
 	if not can_spend_energy(lightning_energy_cost):
@@ -346,7 +347,6 @@ func _update_spell_buttons() -> void:
 
 	if earthquake_button != null:
 		earthquake_button.text = _get_earthquake_button_text()
-
 		if earthquake_targeting_enabled:
 			earthquake_button.disabled = false
 		else:
@@ -391,6 +391,7 @@ func _try_apply_rain_at_mouse() -> bool:
 		return false
 
 	if not bool(nature_effects.call("apply_rain", center_tile)):
+		add_energy(rain_energy_cost)
 		return false
 
 	if not can_spend_energy(rain_energy_cost):
@@ -420,6 +421,7 @@ func _try_apply_sun_at_mouse() -> bool:
 		return false
 
 	if not bool(nature_effects.call("apply_sun", center_tile)):
+		add_energy(sun_energy_cost)
 		return false
 
 	if not can_spend_energy(sun_energy_cost):
@@ -449,6 +451,7 @@ func _try_apply_earthquake_at_mouse() -> bool:
 		return false
 
 	if not bool(nature_effects.call("apply_earthquake", center_tile)):
+		add_energy(earthquake_energy_cost)
 		return false
 
 	if not can_spend_energy(earthquake_energy_cost):

@@ -407,7 +407,7 @@ Rules:
 - the visual effect must not apply grass changes itself;
 - playback remains independent of `Engine.time_scale`;
 - preserve real alpha transparency;
-- spend energy only for a valid successful cast.
+- spend energy only for a valid successful cast; if `apply_*()` still returns `false` after the pre-check, immediately refund the exact cost through the existing `add_energy()` API; do not add reservation state for spell casts.
 
 ## Creature highlight frame
 

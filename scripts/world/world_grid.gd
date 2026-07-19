@@ -3,10 +3,6 @@ extends Node2D
 signal dry_ground_changed
 
 # Grid authority for tiles, occupancy and grazing.
-const CREATURE_SCENE := preload("res://scenes/creatures/creature.tscn")
-const PREDATOR_SPECIES_DATA := preload("res://data/species/predator.tres")
-const PREDATOR_SPAWN_DELAY := 10.0
-const PREDATOR_SPAWN_ENABLED := false
 const TERRAIN_GROUND := 0
 const TERRAIN_WATER := 1
 const TERRAIN_MOUNTAIN := 2
@@ -47,7 +43,6 @@ var is_initialized := false
 var grass_render_offset := Vector2.ZERO
 
 var has_grass_render_offset := false
-var predator_spawn_done := false
 
 # 8-way movement.
 const DIRECTIONS_8 := [
@@ -66,41 +61,6 @@ const DIRECTIONS_8 := [
 func _ready() -> void:
 	add_to_group("world_grid")
 	ensure_initialized()
-	call_deferred("schedule_predator_spawn")
-
-
-func schedule_predator_spawn() -> void:
-	if predator_spawn_done or not PREDATOR_SPAWN_ENABLED:
-		return
-
-	await get_tree().create_timer(PREDATOR_SPAWN_DELAY).timeout
-	spawn_predator_if_needed()
-
-
-func spawn_predator_if_needed() -> void:
-	if predator_spawn_done or not PREDATOR_SPAWN_ENABLED:
-		return
-
-	var creatures_root := get_node_or_null("Creatures")
-	var spawn_marker := creatures_root.get_node_or_null("PredatorSpawn") if creatures_root != null else null
-
-	if creatures_root == null or spawn_marker == null:
-		return
-
-	for creature in creature_anchors.keys():
-		if is_instance_valid(creature) and creature.has_method("get_is_predator") and creature.get_is_predator():
-			predator_spawn_done = true
-			return
-
-	var predator: Node = CREATURE_SCENE.instantiate()
-	predator.species_data = PREDATOR_SPECIES_DATA
-	predator.health = -1.0
-	predator.hunger = -1.0
-	predator.global_position = spawn_marker.global_position
-	creatures_root.add_child(predator)
-	predator.health = PREDATOR_SPECIES_DATA.max_health
-	predator.hunger = PREDATOR_SPECIES_DATA.max_hunger
-	predator_spawn_done = true
 
 
 func ensure_initialized() -> void:
