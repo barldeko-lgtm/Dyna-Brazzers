@@ -405,11 +405,16 @@ func register_creature(creature: Node, anchor_tile: Vector2i, footprint_size: Ve
 	ensure_initialized()
 
 	if not can_place_footprint(anchor_tile, footprint_size, creature):
+		_reject_unregistered_creature(creature, anchor_tile)
 		return false
 
 	creature_anchors[creature] = anchor_tile
 	_reserve_tiles(anchor_tile, footprint_size, creature)
 	return true
+
+
+func is_creature_registered(creature: Node) -> bool:
+	return creature != null and is_instance_valid(creature) and creature_anchors.has(creature)
 
 
 func unregister_creature(creature: Node, footprint_size: Vector2i) -> void:
@@ -682,7 +687,6 @@ func consume_adult_grass_under_footprint(anchor_tile: Vector2i, footprint_size: 
 
 		if grass.consume():
 			consumed_count += 1
-
 			if grass.has_method("get_last_consumed_food_value"):
 				restored_satiety += int(grass.get_last_consumed_food_value())
 			else:
@@ -707,6 +711,28 @@ func _release_tiles(anchor_tile: Vector2i, footprint_size: Vector2i, creature: N
 	for tile in get_footprint_tiles(anchor_tile, footprint_size):
 		if occupied_by_tile.get(tile) == creature:
 			occupied_by_tile.erase(tile)
+
+
+func _reject_unregistered_creature(creature: Node, attempted_anchor: Vector2i) -> void:
+	PerformanceStats.add_counter("creature_registration_failed")
+
+	if creature == null or not is_instance_valid(creature):
+		return
+
+	push_warning(
+		"WorldGrid: creature registration failed at anchor (%d, %d); removing the unregistered node." % [
+			attempted_anchor.x,
+			attempted_anchor.y
+		]
+	)
+
+	if creature.is_in_group("creatures"):
+		creature.remove_from_group("creatures")
+
+	creature.set_physics_process(false)
+	creature.set_process(false)
+
+	creature.call_deferred("queue_free")
 
 
 func _pop_lowest_score(open_set: Array[Vector2i], score_map: Dictionary) -> Vector2i:

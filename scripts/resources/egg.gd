@@ -228,27 +228,28 @@ func _on_hatch_timer_timeout() -> void:
 		queue_free()
 		return
 
-	if is_registered_as_blocker:
-		world_grid.unregister_blocker(self, STAGE_2_FOOTPRINT)
-		is_registered_as_blocker = false
+	if spawn_hatched_creature():
+		queue_free()
+		return
 
-	spawn_hatched_creature()
-	queue_free()
+	# Keep the stage-2 egg and try again later if the world is completely full.
+	if not is_queued_for_deletion():
+		hatch_timer.start(max(expand_retry_interval, 0.1))
 
 
-func spawn_hatched_creature() -> void:
+func spawn_hatched_creature() -> bool:
 	var creatures_container := find_named_container("Creatures")
 
 	if creatures_container == null:
 		creatures_container = get_parent() as Node2D
 
 	if creatures_container == null:
-		return
+		return false
 
 	var new_creature := hatch_creature_scene.instantiate() as Node2D
 
 	if new_creature == null:
-		return
+		return false
 
 	var spawn_health: float = hatch_health
 	var spawn_hunger: float = hatch_hunger
@@ -265,9 +266,61 @@ func spawn_hatched_creature() -> void:
 	new_creature.set("hunger", spawn_hunger)
 	new_creature.set("age", 0.0)
 
-	var spawn_world_position: Vector2 = world_grid.anchor_to_world_position(anchor_tile, STAGE_2_FOOTPRINT)
+	var spawn_footprint := STAGE_2_FOOTPRINT
+	var raw_footprint: Variant = new_creature.get("footprint_size")
+
+	if raw_footprint is Vector2i:
+		spawn_footprint = raw_footprint
+
+	# The egg's own blocker is ignored during the preflight check. The blocker is
+	# released only after a valid creature footprint has been found.
+	var spawn_anchor: Vector2i = world_grid.find_nearest_valid_anchor(
+		anchor_tile,
+		spawn_footprint,
+		self,
+		12
+	)
+
+	if not world_grid.can_place_footprint(spawn_anchor, spawn_footprint, self):
+		new_creature.free()
+		return false
+
+	var blocker_was_registered := is_registered_as_blocker
+
+	if blocker_was_registered:
+		world_grid.unregister_blocker(self, STAGE_2_FOOTPRINT)
+		is_registered_as_blocker = false
+
+	var spawn_world_position: Vector2 = world_grid.anchor_to_world_position(
+		spawn_anchor,
+		spawn_footprint
+	)
 	new_creature.position = creatures_container.to_local(spawn_world_position)
 	creatures_container.add_child(new_creature)
+
+	var creature_registered := false
+
+	if world_grid.has_method("is_creature_registered"):
+		creature_registered = bool(world_grid.call("is_creature_registered", new_creature))
+
+	if creature_registered:
+		return true
+
+	if is_instance_valid(new_creature):
+		new_creature.queue_free()
+
+	if blocker_was_registered:
+		is_registered_as_blocker = world_grid.register_blocker(
+			self,
+			anchor_tile,
+			STAGE_2_FOOTPRINT
+		)
+
+		if not is_registered_as_blocker:
+			push_error("Egg: failed to restore its blocker after a hatch registration failure.")
+			queue_free()
+
+	return false
 
 
 # Lookup helpers.
