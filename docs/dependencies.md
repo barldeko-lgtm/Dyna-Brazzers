@@ -444,6 +444,9 @@ Current custom egg sets exist for:
 Rules:
 
 - use the shared egg scene and lifecycle for all species;
+- use the same 5-second stage 1, 1-second expansion retry, and 10-second stage 2 for every species and faction;
+- keep those three timing values only in `scripts/resources/egg.gd`; species resources may define egg textures and hatchling biology but never incubation speed;
+- until the base save system is refactored, `egg.gd` and `CreatureSpeciesData` expose hidden legacy property bridges for old restore calls; those bridges return the shared egg constants and ignore attempted timing overrides;
 - store stage-1 and stage-2 texture references in the species `.tres`;
 - do not duplicate `egg.tscn` per species;
 - when a species provides custom textures, assign both stages;

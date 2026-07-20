@@ -248,6 +248,8 @@ Dynamically created grass is positioned before it is added to the scene tree. Th
 
 Eggs use the shared lifecycle from `scenes/resources/egg.tscn` and `scripts/resources/egg.gd`.
 
+All player, enemy, alien, and neutral eggs use one shared timing from `scripts/resources/egg.gd`: stage 1 lasts 5 seconds, blocked expansion retries every 1 second, and stage 2 lasts 10 seconds. Species data controls visuals and hatchling biology, not incubation speed.
+
 Current reproducing species use their own two-stage egg textures:
 
 - stegosaurus;

@@ -94,9 +94,6 @@ func spawn_egg_at_pending_anchor() -> bool:
 	if creature.species_data.egg_stage_2_texture != null:
 		new_egg.set("stage_2_texture", creature.species_data.egg_stage_2_texture)
 
-	new_egg.set("stage_1_duration", creature.species_data.egg_stage_1_duration)
-	new_egg.set("expand_retry_interval", creature.species_data.egg_expand_retry_interval)
-	new_egg.set("stage_2_duration", creature.species_data.egg_stage_2_duration)
 	new_egg.set("hatch_health", creature.species_data.hatchling_health)
 	new_egg.set("hatch_hunger", creature.species_data.hatchling_hunger)
 	new_egg.set("hatch_creature_scene", load(creature.scene_file_path) as PackedScene)

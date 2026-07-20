@@ -54,7 +54,7 @@
 - `scripts/creatures/behaviors/creature_movement_controller.gd` — grid-step execution, route clearing, wandering-step selection, and the creature-owned API used by indirect external orders.
 - `scripts/combat/duel.gd` — temporary one-on-one combat loop.
 - `scripts/resources/grass.gd` — grass growth, consumption, spread, and nature-power reactions.
-- `scripts/resources/egg.gd` — egg stages, species texture application, blocker handling, and hatching.
+- `scripts/resources/egg.gd` — egg stages, species texture application, blocker handling, hatching, and the single shared 5/1/10-second incubation schedule used by every species and faction.
 
 ### Audio
 
@@ -164,6 +164,8 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Terrain, movement permissions, occupancy, blockers, pathfinding, and resource lookup belong in world-grid scripts.
 - Camera movement and visual boundary clamping belong in `scripts/camera/camera_controller.gd`.
 - Biological species stats, visuals, diet, and species-specific egg texture references belong in `data/species/*.tres`.
+- Universal egg incubation timing belongs in `scripts/resources/egg.gd`; species and faction data must not override it.
+- Legacy save restoration may query the old duration property names, but compatibility accessors resolve them back to `Egg` constants and do not restore per-species timing.
 - Runtime faction ownership belongs to `creature_faction.gd` metadata and must propagate creature → egg → hatchling and through save/load.
 - Player-only menu order, prices, income, and flag presentation belong in `player_species_catalog.gd`; future enemy-side usage belongs in a separate enemy catalog rather than player UI or species `.tres`.
 - Creature runtime coordination, FSM ownership, survival values, and the ordered death-cleanup sequence belong in `scripts/creatures/creature.gd`.

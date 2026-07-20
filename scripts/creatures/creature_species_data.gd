@@ -58,9 +58,6 @@ enum DietType {
 @export var egg_stage_1_texture: Texture2D
 @export var egg_stage_2_texture: Texture2D
 @export var egg_laying_duration := 5.0
-@export var egg_stage_1_duration := 5.0
-@export var egg_expand_retry_interval := 1.0
-@export var egg_stage_2_duration := 10.0
 @export var hatchling_health := 100.0
 @export var hatchling_hunger := 50.0
 
@@ -71,6 +68,27 @@ enum DietType {
 @export var reproduction_cooldown := 20.0
 @export var reproduction_hunger_cost := 20.0
 
+
+# Compatibility bridge for the current SaveSystem's legacy property names.
+# Incubation timing belongs to Egg and cannot vary by species.
+func _get(property: StringName) -> Variant:
+	match property:
+		&"egg_stage_1_duration":
+			return Egg.STAGE_1_DURATION
+		&"egg_expand_retry_interval":
+			return Egg.EXPAND_RETRY_INTERVAL
+		&"egg_stage_2_duration":
+			return Egg.STAGE_2_DURATION
+
+	return null
+
+
+func _set(property: StringName, _value: Variant) -> bool:
+	return property in [
+		&"egg_stage_1_duration",
+		&"egg_expand_retry_interval",
+		&"egg_stage_2_duration",
+	]
 
 func is_herbivore() -> bool:
 	return diet_type == DietType.HERBIVORE

@@ -1,4 +1,5 @@
 extends Node2D
+class_name Egg
 
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 
@@ -28,11 +29,10 @@ enum Stage {
 
 @export var hatch_creature_scene: PackedScene
 
-@export var stage_1_duration := 5.0
-
-@export var expand_retry_interval := 1.0
-
-@export var stage_2_duration := 5.0
+# Shared incubation timing for every egg, regardless of species or faction.
+const STAGE_1_DURATION := 5.0
+const EXPAND_RETRY_INTERVAL := 1.0
+const STAGE_2_DURATION := 10.0
 
 @export var hatch_health := 100.0
 
@@ -50,6 +50,27 @@ const STAGE_1_FOOTPRINT := Vector2i(1, 2)
 
 const STAGE_2_FOOTPRINT := Vector2i(2, 2)
 
+
+# Compatibility bridge for the current SaveSystem's legacy property names.
+# Values written through these names are ignored; lifecycle timing is global.
+func _get(property: StringName) -> Variant:
+	match property:
+		&"stage_1_duration":
+			return STAGE_1_DURATION
+		&"expand_retry_interval":
+			return EXPAND_RETRY_INTERVAL
+		&"stage_2_duration":
+			return STAGE_2_DURATION
+
+	return null
+
+
+func _set(property: StringName, _value: Variant) -> bool:
+	return property in [
+		&"stage_1_duration",
+		&"expand_retry_interval",
+		&"stage_2_duration",
+	]
 
 # Setup.
 func _ready() -> void:
@@ -76,7 +97,7 @@ func _ready() -> void:
 			call_deferred("queue_free")
 			return
 
-	stage_1_timer.start(stage_1_duration)
+	stage_1_timer.start(STAGE_1_DURATION)
 
 
 func _exit_tree() -> void:
@@ -217,11 +238,11 @@ func try_enter_stage_2() -> void:
 		is_registered_as_blocker = true
 		current_stage = Stage.STAGE_2
 		apply_current_stage_visual()
-		hatch_timer.start(stage_2_duration)
+		hatch_timer.start(STAGE_2_DURATION)
 		global_position = world_grid.anchor_to_world_position(anchor_tile, STAGE_2_FOOTPRINT)
 		return
 
-	expand_retry_timer.start(expand_retry_interval)
+	expand_retry_timer.start(EXPAND_RETRY_INTERVAL)
 
 
 # Hatch flow.
@@ -236,7 +257,7 @@ func _on_hatch_timer_timeout() -> void:
 
 	# Keep the stage-2 egg and try again later if the world is completely full.
 	if not is_queued_for_deletion():
-		hatch_timer.start(max(expand_retry_interval, 0.1))
+		hatch_timer.start(EXPAND_RETRY_INTERVAL)
 
 
 func spawn_hatched_creature() -> bool:

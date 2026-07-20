@@ -109,9 +109,6 @@ func create_player_egg(species_data: CreatureSpeciesData) -> Node2D:
 	if species_data.egg_stage_2_texture != null:
 		new_egg.set("stage_2_texture", species_data.egg_stage_2_texture)
 
-	new_egg.set("stage_1_duration", species_data.egg_stage_1_duration)
-	new_egg.set("expand_retry_interval", species_data.egg_expand_retry_interval)
-	new_egg.set("stage_2_duration", species_data.egg_stage_2_duration)
 	new_egg.set("hatch_health", species_data.hatchling_health)
 	new_egg.set("hatch_hunger", species_data.hatchling_hunger)
 	new_egg.set("hatch_creature_scene", CREATURE_SCENE)
