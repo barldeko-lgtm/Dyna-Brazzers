@@ -404,7 +404,7 @@ func _get_creature_species_id(creature: Node) -> StringName:
 func _hunger_overrides_flag(creature: Node) -> bool:
 	var species_data := creature.get("species_data") as CreatureSpeciesData
 
-	if species_data == null or species_data.is_egg_eater():
+	if species_data == null:
 		return false
 
 	return float(creature.get("hunger")) <= species_data.hunger_search_threshold

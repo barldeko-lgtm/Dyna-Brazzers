@@ -2,6 +2,7 @@ extends RefCounted
 
 const INVALID_ANCHOR := Vector2i(2147483647, 2147483647)
 const FOOD_SEARCH_INTERVAL := 0.5
+const RETARGET_DISTANCE_ADVANTAGE := 2.0
 
 var creature: Node
 var search_cooldown_remaining := 0.0
@@ -34,20 +35,17 @@ func update_egg_eater_behavior() -> void:
 	if target_egg != null and not is_valid_egg_target(target_egg):
 		clear_target()
 
+	if search_cooldown_remaining <= 0.0:
+		search_cooldown_remaining = FOOD_SEARCH_INTERVAL
+		var nearby_egg := find_nearest_edible_egg()
+
+		if should_retarget_to(nearby_egg):
+			target_egg = nearby_egg
+			# Keep an active tile step intact, but discard old queued steps.
+			creature.current_path.clear()
+
 	if target_egg != null:
 		update_current_target()
-		return
-
-	if search_cooldown_remaining > 0.0:
-		return
-
-	search_cooldown_remaining = FOOD_SEARCH_INTERVAL
-	target_egg = find_nearest_edible_egg()
-
-	if target_egg == null:
-		return
-
-	update_current_target()
 
 
 func update_current_target() -> void:
@@ -95,6 +93,27 @@ func find_nearest_edible_egg() -> Node:
 			best_target = candidate
 
 	return best_target
+
+
+func should_retarget_to(candidate: Node) -> bool:
+	if candidate == null or not is_valid_egg_target(candidate):
+		return false
+
+	if target_egg == null or not is_valid_egg_target(target_egg):
+		return true
+
+	if candidate == target_egg:
+		return false
+
+	return get_egg_distance(target_egg) - get_egg_distance(candidate) >= RETARGET_DISTANCE_ADVANTAGE
+
+
+func get_egg_distance(egg: Node) -> float:
+	var egg_anchor: Vector2i = egg.get("anchor_tile")
+	return float(max(
+		abs(egg_anchor.x - creature.anchor_tile.x),
+		abs(egg_anchor.y - creature.anchor_tile.y)
+	))
 
 
 func is_valid_egg_target(candidate: Node) -> bool:

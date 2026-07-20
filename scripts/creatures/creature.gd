@@ -888,4 +888,3 @@ func get_hunger_percent() -> float:
 		return 0.0
 
 	return clamp((hunger / species_data.max_hunger) * 100.0, 0.0, 100.0)
-

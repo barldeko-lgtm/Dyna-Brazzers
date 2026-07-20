@@ -965,9 +965,6 @@ func _restore_eggs(
 			if hatch_species != null:
 				egg_node.set("hatch_species_data", hatch_species)
 				egg_node.set("species_id", hatch_species.species_id)
-				egg_node.set("stage_1_duration", hatch_species.egg_stage_1_duration)
-				egg_node.set("expand_retry_interval", hatch_species.egg_expand_retry_interval)
-				egg_node.set("stage_2_duration", hatch_species.egg_stage_2_duration)
 
 				if hatch_species.egg_stage_1_texture != null:
 					egg_node.set("stage_1_texture", hatch_species.egg_stage_1_texture)
@@ -1013,7 +1010,7 @@ func _restore_eggs(
 				)
 
 				if stage_1_left <= 0.0:
-					stage_1_left = float(egg_node.get("stage_1_duration"))
+					stage_1_left = Egg.STAGE_1_DURATION
 
 				stage_1_timer.start(stage_1_left)
 		else:
@@ -1038,7 +1035,7 @@ func _restore_eggs(
 				)
 
 				if hatch_left <= 0.0:
-					hatch_left = float(egg_node.get("stage_2_duration"))
+					hatch_left = Egg.STAGE_2_DURATION
 
 				hatch_timer.start(hatch_left)
 

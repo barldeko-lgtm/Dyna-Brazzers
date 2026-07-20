@@ -269,6 +269,7 @@ Player egg-creation rules:
 - created eggs grow, expand, hatch, and save through the existing shared egg system;
 - player-bought eggs are marked as player-owned, naturally laid eggs inherit their parent faction, and hatchlings inherit the egg faction.
 - every creature hatched from either a natural or player-created egg starts with its species maximum health and maximum hunger.
+- hungry egg eaters recheck valid stage-2 egg targets every 0.5 seconds; they switch only to a candidate at least two tile steps closer, and hunger overrides their species flag.
 
 
 ## Species catalog and faction ownership

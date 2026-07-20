@@ -450,7 +450,6 @@ Rules:
 - use the shared egg scene and lifecycle for all species;
 - use the same 5-second stage 1, 1-second expansion retry, and 10-second stage 2 for every species and faction;
 - keep those three timing values only in `scripts/resources/egg.gd`; species resources may define egg textures and hatchling biology but never incubation speed;
-- until the base save system is refactored, `egg.gd` and `CreatureSpeciesData` expose hidden legacy property bridges for old restore calls; those bridges return the shared egg constants and ignore attempted timing overrides;
 - store stage-1 and stage-2 texture references in the species `.tres`;
 - do not duplicate `egg.tscn` per species;
 - when a species provides custom textures, assign both stages;
@@ -512,6 +511,8 @@ Rules:
 - they reuse predator-style pathing but never start duels;
 - only `STAGE_2` eggs are valid targets;
 - they consume an adjacent egg and restore hunger;
+- while hungry, they recheck valid egg targets every 0.5 seconds and switch only if another target is at least two tile steps closer; switching clears queued old-route steps but never interrupts the active grid step;
+- hunger overrides a player species flag, while a satiated egg eater keeps its independent flag route;
 - changing egg visuals must not change egg stage identity or targeting rules.
 
 ## Creature ground shadows

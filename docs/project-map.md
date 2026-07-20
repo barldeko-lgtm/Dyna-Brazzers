@@ -50,7 +50,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/catalogs/player_species_catalog.gd` — ordered fixed catalog of the six player species with player-only egg prices, energy income, flag text, and current flag behaviour category.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore food search and target ranking.
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — shared carnivore targeting and combat-entry logic.
-- `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — stage-2 egg targeting and consumption logic.
+- `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — stage-2 egg targeting, periodic retargeting, and consumption logic.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and egg spawning.
 - `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, animations, contour-ground-shadow creation/synchronization, and death pose.
 - `scripts/creatures/behaviors/creature_interaction_controller.gd` — world-space hover/selection frame, `HoverArea` mouse signals, and the creature-to-UI click bridge.

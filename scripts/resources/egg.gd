@@ -51,27 +51,6 @@ const STAGE_1_FOOTPRINT := Vector2i(1, 2)
 const STAGE_2_FOOTPRINT := Vector2i(2, 2)
 
 
-# Compatibility bridge for the current SaveSystem's legacy property names.
-# Values written through these names are ignored; lifecycle timing is global.
-func _get(property: StringName) -> Variant:
-	match property:
-		&"stage_1_duration":
-			return STAGE_1_DURATION
-		&"expand_retry_interval":
-			return EXPAND_RETRY_INTERVAL
-		&"stage_2_duration":
-			return STAGE_2_DURATION
-
-	return null
-
-
-func _set(property: StringName, _value: Variant) -> bool:
-	return property in [
-		&"stage_1_duration",
-		&"expand_retry_interval",
-		&"stage_2_duration",
-	]
-
 # Setup.
 func _ready() -> void:
 	add_to_group("eggs")

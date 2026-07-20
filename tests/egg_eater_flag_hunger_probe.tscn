@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/egg_eater_flag_hunger_probe.gd" id="1_probe"]
+
+[node name="EggEaterFlagHungerProbe" type="Node"]
+script = ExtResource("1_probe")
