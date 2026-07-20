@@ -1,7 +1,7 @@
 extends Camera2D
 
 # Free observer camera, constrained to the authored world.
-@export var move_speed := 1000.0
+@export var move_speed := 1500.0
 @export var zoom_step := 0.1
 @export var min_zoom := 0.7
 @export var max_zoom := 7.0
@@ -16,7 +16,8 @@ func _ready() -> void:
 	call_deferred("_initialize_camera")
 
 
-# WASD pan.
+# WASD pan. Camera movement uses unscaled time so simulation speed controls do
+# not make the observer camera faster or slower.
 func _process(delta: float) -> void:
 	_ensure_world_grid()
 
@@ -32,9 +33,18 @@ func _process(delta: float) -> void:
 		direction.y -= 1
 
 	if direction != Vector2.ZERO:
-		global_position += direction.normalized() * move_speed * delta
+		global_position += direction.normalized() * move_speed * _get_unscaled_delta(delta)
 
 	_clamp_camera_to_world()
+
+
+func _get_unscaled_delta(scaled_delta: float) -> float:
+	var current_time_scale := Engine.time_scale
+
+	if current_time_scale <= 0.0:
+		return 0.0
+
+	return scaled_delta / current_time_scale
 
 
 func _initialize_camera() -> void:
