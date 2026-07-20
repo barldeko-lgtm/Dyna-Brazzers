@@ -155,6 +155,24 @@ Rules:
 - survival, food, reproduction, and combat remain higher priority than indirect orders.
 
 
+## Creature visual and interaction boundaries
+
+Main files:
+
+- `res://scripts/creatures/creature.gd`;
+- `res://scripts/creatures/behaviors/creature_visual_controller.gd`;
+- `res://scripts/creatures/behaviors/creature_interaction_controller.gd`;
+- `res://scripts/ui/creature_stats_ui.gd`.
+
+Rules:
+
+- `creature.gd` remains the public facade and owns FSM state plus the ordered death-cleanup sequence;
+- `creature_visual_controller.gd` owns directional sprites, animation playback, contour-shadow nodes/frame synchronization, and applying the species death pose;
+- `creature_interaction_controller.gd` owns the highlight sprite and `HoverArea` signal handling, but forwards selection and lightning intent to `creature_stats_ui.gd` rather than owning UI state;
+- UI callers continue using `set_hover_highlighted()`, `set_selected_highlighted()`, and `clear_interaction_highlights()` on the creature facade;
+- neither controller may change survival, combat, reproduction, occupancy, or pathfinding rules.
+
+
 ## Species catalog and faction ownership
 
 Main files:
@@ -460,13 +478,15 @@ Rules:
 Main files:
 
 - `res://scripts/creatures/creature.gd`;
+- `res://scripts/creatures/behaviors/creature_interaction_controller.gd`;
 - `res://scripts/ui/creature_stats_ui.gd`;
 - `res://assets/ui/creature_selection_frame.png`.
 
 Rules:
 
 - UI owns selection intent;
-- the creature owns its world-space visual overlay;
+- `creature_interaction_controller.gd` owns the world-space overlay and mouse signal bridge;
+- `creature.gd` preserves the public highlight methods used by UI;
 - scale the authored frame to the intended footprint;
 - keep the overlay above normal world props;
 - clear hover/selection state when the creature dies or disappears.
@@ -491,7 +511,7 @@ Rules:
 
 Main file:
 
-- `res://scripts/creatures/creature.gd`.
+- `res://scripts/creatures/behaviors/creature_visual_controller.gd`.
 
 Rules:
 
@@ -516,6 +536,7 @@ Rules:
 - dead creatures must release world-grid occupancy immediately;
 - collision and picking are disabled for corpses;
 - death texture and corpse lifetime belong to species data;
+- `creature.gd` owns death sequencing and occupancy/collision cleanup, while `creature_visual_controller.gd` owns only the displayed death pose and its synchronized shadow;
 - do not delay occupancy release until `queue_free()`.
 
 Species dependencies:

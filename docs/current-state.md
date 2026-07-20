@@ -121,6 +121,8 @@ Current UI ownership:
 - `scripts/flags/player_flag_assignment_service.gd` owns player-faction filtering, the five-new-route batch, interruption-safe commitments, path retries, one-shot arrival, and F3 flag diagnostics;
 - `scripts/flags/player_flag_target_allocator.gd` owns 11x11 destination selection, pasture preference, target reservations, and rotation to another destination after a failed path;
 - `scripts/creatures/behaviors/creature_movement_controller.gd` owns grid-route mutation and the public indirect-order boundary; flag assignment requests route apply/pause/cancel operations through creature methods instead of writing movement or FSM fields directly;
+- `scripts/creatures/behaviors/creature_visual_controller.gd` owns directional sprites, animation playback, contour-ground-shadow creation/synchronization, and the species death pose;
+- `scripts/creatures/behaviors/creature_interaction_controller.gd` owns the world-space hover/selection frame, `HoverArea` mouse signals, and the bridge from creature clicks to the creature-info/lightning UI;
 - `scripts/flags/player_flag_visual.gd` draws the world flag, its 11x11 area, and placement preview without blocking terrain;
 - `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
 - `scenes/ui/nature_menu.tscn` and `scripts/ui/player_nature_ui.gd` own spell buttons, targeting, previews, named main-menu buttons, and the stable access API for shared dynamic-menu content and time-speed controls;
@@ -321,7 +323,7 @@ Current creature highlight rules:
 
 - hover and selection are coordinated by `scripts/ui/creature_stats_ui.gd`;
 - the frame asset is `assets/ui/creature_selection_frame.png`;
-- the frame is rendered as a world-space overlay from `scripts/creatures/creature.gd`;
+- the frame and `HoverArea` mouse bridge are owned by `scripts/creatures/behaviors/creature_interaction_controller.gd`, while `creature.gd` keeps stable highlight methods for UI callers;
 - selected highlight persists while the creature is selected;
 - hover highlight is suppressed when that creature is already selected;
 - the overlay renders above grass and normal world props;
@@ -355,7 +357,7 @@ Current death rules:
 - normal creature behaviour stops immediately;
 - world-grid creature occupancy is released immediately;
 - collision and hover/click picking are disabled for the corpse;
-- a species death texture may be shown for a short corpse lifetime;
+- `creature.gd` coordinates death cleanup, while `creature_visual_controller.gd` applies the species death texture and keeps its contour shadow synchronized for the short corpse lifetime;
 - the corpse is non-blocking;
 - the creature is removed after the corpse lifetime expires.
 

@@ -41,7 +41,7 @@
 
 ### Creatures and resources
 
-- `scripts/creatures/creature.gd` — creature runtime coordinator, movement state, death cleanup, and world-space shadow/highlight overlays.
+- `scripts/creatures/creature.gd` — creature runtime coordinator and public facade for FSM state, survival, movement, combat, reproduction, death cleanup, visuals, and interaction.
 - `scripts/creatures/creature_species_data.gd` — shared biological species resource schema; `diet_type` is the sole stored nutrition category and helper methods classify herbivores, predators, and egg eaters.
 - `scripts/creatures/creature_faction.gd` — runtime faction ownership helper (`player`, `enemy`, `alien`, `neutral`) kept separate from species identity and defaulting old/current untagged entities to player.
 - `scripts/catalogs/player_species_catalog.gd` — ordered fixed catalog of the six player species with player-only egg prices, energy income, flag text, and current flag behaviour category.
@@ -49,7 +49,8 @@
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — shared carnivore targeting and combat-entry logic.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — stage-2 egg targeting and consumption logic.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and egg spawning.
-- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, animations, and death pose.
+- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, animations, contour-ground-shadow creation/synchronization, and death pose.
+- `scripts/creatures/behaviors/creature_interaction_controller.gd` — world-space hover/selection frame, `HoverArea` mouse signals, and the creature-to-UI click bridge.
 - `scripts/creatures/behaviors/creature_movement_controller.gd` — grid-step execution, route clearing, wandering-step selection, and the creature-owned API used by indirect external orders.
 - `scripts/combat/duel.gd` — temporary one-on-one combat loop.
 - `scripts/resources/grass.gd` — grass growth, consumption, spread, and nature-power reactions.
@@ -165,7 +166,9 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Biological species stats, visuals, diet, and species-specific egg texture references belong in `data/species/*.tres`.
 - Runtime faction ownership belongs to `creature_faction.gd` metadata and must propagate creature → egg → hatchling and through save/load.
 - Player-only menu order, prices, income, and flag presentation belong in `player_species_catalog.gd`; future enemy-side usage belongs in a separate enemy catalog rather than player UI or species `.tres`.
-- Creature runtime coordination belongs in `scripts/creatures/creature.gd`.
+- Creature runtime coordination, FSM ownership, survival values, and the ordered death-cleanup sequence belong in `scripts/creatures/creature.gd`.
+- Directional sprites, animation playback, contour shadows, and the species death pose belong in `creature_visual_controller.gd`.
+- Hover/selection rendering and mouse-to-UI forwarding belong in `creature_interaction_controller.gd`; other systems continue to use the stable highlight methods on `creature.gd`.
 - Route/FSM field mutation for indirect external orders belongs behind `creature.gd` public methods and `creature_movement_controller.gd`; flag scripts must not set creature movement, food, or state fields directly.
 - Specialized creature behaviour belongs in `scripts/creatures/behaviors/`.
 - Grass and egg lifecycles belong in their own resource scripts.

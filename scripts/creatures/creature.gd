@@ -7,7 +7,7 @@ const CreatureReproductionLogic = preload("res://scripts/creatures/behaviors/cre
 const CreaturePredatorLogic = preload("res://scripts/creatures/behaviors/creature_predator_logic.gd")
 const CreatureEggEaterLogic = preload("res://scripts/creatures/behaviors/creature_egg_eater_logic.gd")
 const CreatureMovementController = preload("res://scripts/creatures/behaviors/creature_movement_controller.gd")
-const CREATURE_SELECTION_FRAME_TEXTURE := preload("res://assets/ui/creature_selection_frame.png")
+const CreatureInteractionController = preload("res://scripts/creatures/behaviors/creature_interaction_controller.gd")
 
 # Core creature FSM.
 @onready var sprite: Sprite2D = $BodySprite
@@ -135,16 +135,7 @@ var reproduction_logic: RefCounted
 var predator_logic: RefCounted
 var egg_eater_logic: RefCounted
 var movement_controller: RefCounted
-
-var is_hover_highlighted := false
-var is_selected_highlighted := false
-var ground_shadow_sprite: Sprite2D = null
-var ground_shadow_uses_upward_diagonal := false
-var ground_shadow_offset_y := 0.0
-var ground_shadow_base_scale_y := 0.36
-var ground_shadow_diagonal_rotation_degrees := 0.0
-var ground_shadow_diagonal_scale_y := 0.0
-var interaction_highlight_sprite: Sprite2D = null
+var interaction_controller: RefCounted
 
 
 
@@ -181,6 +172,7 @@ func _ready() -> void:
 		State.SEEK_FOOD
 	)
 	visual_controller = CreatureVisualController.new(self)
+	interaction_controller = CreatureInteractionController.new(self)
 	reproduction_logic = CreatureReproductionLogic.new(self)
 	predator_logic = CreaturePredatorLogic.new(self)
 	egg_eater_logic = CreatureEggEaterLogic.new(self)
@@ -203,14 +195,6 @@ func _ready() -> void:
 	if not egg_laying_timer.timeout.is_connected(_on_egg_laying_timer_timeout):
 		egg_laying_timer.timeout.connect(_on_egg_laying_timer_timeout)
 
-	if not hover_area.mouse_entered.is_connected(_on_hover_area_mouse_entered):
-		hover_area.mouse_entered.connect(_on_hover_area_mouse_entered)
-
-	if not hover_area.mouse_exited.is_connected(_on_hover_area_mouse_exited):
-		hover_area.mouse_exited.connect(_on_hover_area_mouse_exited)
-
-	if not hover_area.input_event.is_connected(_on_hover_area_input_event):
-		hover_area.input_event.connect(_on_hover_area_input_event)
 
 	health = clamp(health, 0.0, species_data.max_health)
 	age = 0.0
@@ -228,8 +212,8 @@ func _ready() -> void:
 		sprite.position = Vector2.ZERO
 
 	configure_walk_animation()
-	configure_ground_shadow()
-	configure_interaction_highlight()
+	visual_controller.configure_ground_shadow()
+	interaction_controller.configure(hover_area)
 	enter_walk()
 
 
@@ -488,7 +472,8 @@ func enter_dead() -> void:
 	egg_laying_timer.stop()
 	release_world_occupancy_for_corpse()
 	disable_corpse_collision()
-	show_death_visual()
+	if visual_controller != null:
+		visual_controller.show_death_visual()
 	clear_interaction_highlights()
 	remove_from_group("creatures")
 
@@ -525,24 +510,6 @@ func disable_collision_objects_recursive(node: Node) -> void:
 			child.monitorable = false
 
 		disable_collision_objects_recursive(child)
-
-
-func show_death_visual() -> void:
-	set_ground_shadow_upward_diagonal(false)
-	set_walk_right_animation_active(false)
-
-	if sprite == null:
-		return
-
-	sprite.visible = true
-	sprite.flip_h = false
-
-	if species_data != null and species_data.death_texture != null:
-		sprite.texture = species_data.death_texture
-	elif species_data != null and species_data.right_texture != null:
-		sprite.texture = species_data.right_texture
-
-	sync_ground_shadow_from_current_visual()
 
 
 func choose_random_wander_step() -> void:
@@ -732,7 +699,7 @@ func update_sprite_visual() -> void:
 		return
 
 	visual_controller.update_sprite_visual()
-	sync_ground_shadow_from_current_visual()
+	visual_controller.sync_ground_shadow_from_current_visual()
 
 
 func can_continue_duel(duel: Duel) -> bool:
@@ -837,152 +804,19 @@ func find_world_grid() -> Node:
 
 
 
-func configure_ground_shadow() -> void:
-	ground_shadow_offset_y = 90.0 if species_data != null and species_data.is_predator() else 72.0
-	# Diagonal poses rotate the shadow instead of squishing it straight down,
-	# so it follows the 3/4 diagonal art. A slightly gentler squish (bigger
-	# scale.y than the normal 0.36) keeps it from looking like a thin line
-	# once rotated. Starting guesses — tune both numbers in-game.
-	ground_shadow_diagonal_rotation_degrees = -30.0
-	ground_shadow_diagonal_scale_y = 0.48
-
-	ground_shadow_sprite = Sprite2D.new()
-	ground_shadow_sprite.name = "GroundShadow"
-	ground_shadow_sprite.position = Vector2(0.0, ground_shadow_offset_y)
-	ground_shadow_sprite.scale = Vector2(1.0, ground_shadow_base_scale_y)
-	ground_shadow_sprite.flip_v = true
-	ground_shadow_sprite.modulate = Color(0.08, 0.06, 0.04, 0.34)
-	ground_shadow_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	ground_shadow_sprite.z_as_relative = false
-	ground_shadow_sprite.z_index = 0
-	add_child(ground_shadow_sprite)
-	move_child(ground_shadow_sprite, 0)
-
-	if not walk_right_sprite.frame_changed.is_connected(sync_ground_shadow_from_current_visual):
-		walk_right_sprite.frame_changed.connect(sync_ground_shadow_from_current_visual)
-
-
-func set_ground_shadow_upward_diagonal(enabled: bool) -> void:
-	ground_shadow_uses_upward_diagonal = enabled
-
-
-func ground_shadow_is_diagonal() -> bool:
-	if ground_shadow_uses_upward_diagonal:
-		return true
-
-	if species_data != null:
-		if sprite.texture == species_data.up_right_texture and species_data.up_right_texture != null:
-			return true
-		if walk_right_sprite.visible and walk_right_sprite.sprite_frames == species_data.walk_up_right_frames and species_data.walk_up_right_frames != null:
-			return true
-
-	return false
-
-
-func get_ground_shadow_flip_h(source_flip_h: bool) -> bool:
-	# The shadow mirrors the same way as the body sprite, with no extra
-	# forced flip for diagonal poses. Diagonal poses get a rotation instead,
-	# see apply_ground_shadow_pose().
-	return source_flip_h
-
-
-func apply_ground_shadow_pose(flip_h: bool) -> void:
-	ground_shadow_sprite.position = Vector2(0.0, ground_shadow_offset_y)
-
-	if ground_shadow_is_diagonal():
-		var rotation_sign := -1.0 if flip_h else 1.0
-		ground_shadow_sprite.rotation = deg_to_rad(ground_shadow_diagonal_rotation_degrees) * rotation_sign
-		ground_shadow_sprite.scale = Vector2(1.0, ground_shadow_diagonal_scale_y)
-		return
-
-	ground_shadow_sprite.rotation = 0.0
-	ground_shadow_sprite.scale = Vector2(1.0, ground_shadow_base_scale_y)
-
-
-func sync_ground_shadow_from_current_visual() -> void:
-	if ground_shadow_sprite == null:
-		return
-
-	if walk_right_sprite != null and walk_right_sprite.visible and walk_right_sprite.sprite_frames != null:
-		var frames := walk_right_sprite.sprite_frames
-		var animation := walk_right_sprite.animation
-		if frames.has_animation(animation):
-			ground_shadow_sprite.texture = frames.get_frame_texture(animation, walk_right_sprite.frame)
-			ground_shadow_sprite.flip_h = get_ground_shadow_flip_h(walk_right_sprite.flip_h)
-			ground_shadow_sprite.visible = ground_shadow_sprite.texture != null
-			apply_ground_shadow_pose(ground_shadow_sprite.flip_h)
-			return
-
-	ground_shadow_sprite.texture = sprite.texture
-	ground_shadow_sprite.flip_h = get_ground_shadow_flip_h(sprite.flip_h)
-	ground_shadow_sprite.visible = sprite.visible and ground_shadow_sprite.texture != null
-	apply_ground_shadow_pose(ground_shadow_sprite.flip_h)
-
-
-func configure_interaction_highlight() -> void:
-	interaction_highlight_sprite = Sprite2D.new()
-	interaction_highlight_sprite.name = "InteractionHighlight"
-	interaction_highlight_sprite.texture = CREATURE_SELECTION_FRAME_TEXTURE
-	interaction_highlight_sprite.centered = true
-	interaction_highlight_sprite.position = Vector2.ZERO
-	interaction_highlight_sprite.visible = false
-	interaction_highlight_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	interaction_highlight_sprite.z_as_relative = false
-	interaction_highlight_sprite.z_index = 1000
-
-	var texture_size := CREATURE_SELECTION_FRAME_TEXTURE.get_size()
-	if texture_size.x > 0.0 and texture_size.y > 0.0:
-		interaction_highlight_sprite.scale = Vector2(
-			selection_highlight_target_size.x / texture_size.x,
-			selection_highlight_target_size.y / texture_size.y
-		)
-
-	add_child(interaction_highlight_sprite)
-	move_child(interaction_highlight_sprite, 0)
-	refresh_interaction_highlight()
-
-
 func set_hover_highlighted(enabled: bool) -> void:
-	if is_hover_highlighted == enabled:
-		return
-
-	is_hover_highlighted = enabled
-	refresh_interaction_highlight()
+	if interaction_controller != null:
+		interaction_controller.set_hover_highlighted(enabled)
 
 
 func set_selected_highlighted(enabled: bool) -> void:
-	if is_selected_highlighted == enabled:
-		return
-
-	is_selected_highlighted = enabled
-	refresh_interaction_highlight()
+	if interaction_controller != null:
+		interaction_controller.set_selected_highlighted(enabled)
 
 
 func clear_interaction_highlights() -> void:
-	is_hover_highlighted = false
-	is_selected_highlighted = false
-	refresh_interaction_highlight()
-
-
-func refresh_interaction_highlight() -> void:
-	if interaction_highlight_sprite == null:
-		return
-
-	if state == State.DEAD:
-		interaction_highlight_sprite.visible = false
-		return
-
-	if is_selected_highlighted:
-		interaction_highlight_sprite.modulate = selected_highlight_modulate
-		interaction_highlight_sprite.visible = true
-		return
-
-	if is_hover_highlighted:
-		interaction_highlight_sprite.modulate = hover_highlight_modulate
-		interaction_highlight_sprite.visible = true
-		return
-
-	interaction_highlight_sprite.visible = false
+	if interaction_controller != null:
+		interaction_controller.clear_interaction_highlights()
 
 
 # UI helpers.
@@ -1055,36 +889,3 @@ func get_hunger_percent() -> float:
 
 	return clamp((hunger / species_data.max_hunger) * 100.0, 0.0, 100.0)
 
-
-# Hover and selection hooks.
-func _on_hover_area_mouse_entered() -> void:
-	var stats_ui := get_tree().get_first_node_in_group("creature_stats_ui")
-
-	if stats_ui != null and stats_ui.has_method("show_creature_stats"):
-		stats_ui.show_creature_stats(self)
-
-
-func _on_hover_area_mouse_exited() -> void:
-	var stats_ui := get_tree().get_first_node_in_group("creature_stats_ui")
-
-	if stats_ui != null and stats_ui.has_method("hide_creature_stats"):
-		stats_ui.hide_creature_stats()
-
-
-func _on_hover_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
-	if not (event is InputEventMouseButton):
-		return
-
-	if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:
-		return
-
-	var stats_ui := get_tree().get_first_node_in_group("creature_stats_ui")
-
-	if stats_ui != null and stats_ui.has_method("try_apply_lightning_to_creature"):
-		if stats_ui.try_apply_lightning_to_creature(self):
-			get_viewport().set_input_as_handled()
-			return
-
-	if stats_ui != null and stats_ui.has_method("toggle_creature_selection"):
-		stats_ui.toggle_creature_selection(self)
-		get_viewport().set_input_as_handled()
