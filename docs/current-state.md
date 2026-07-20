@@ -115,7 +115,7 @@ Current UI ownership:
 - `scenes/ui/player_hud.tscn` and `scripts/ui/player_ui.gd` own the gameplay HUD composition, interactive terrain minimap, creature markers, camera-frame display and click navigation, creature/egg counters, time-speed controls, and egg-creation bootstrap;
 - `scripts/catalogs/player_species_catalog.gd` is the single ordered catalog for the six player species and owns player-only egg prices, energy income, flag button text, tooltips, and the current `PASTURE`/`GATHER` flag behaviour category;
 - `scripts/ui/player_egg_creation_ui.gd` owns egg-menu presentation, purchase validation, and requests to the player base; it reads species and prices from the player catalog and obtains its host controls through the nature-menu API rather than scene paths;
-- the `PlayerFlags` autoload from `scripts/flags/player_flag_system_with_catalog.gd` layers catalog data, player-faction filtering, one-shot arrival state, batched path requests, and cached target reservations over the mature placement/pathing helpers in `scripts/flags/player_flag_system.gd`;
+- the `PlayerFlags` autoload from `scripts/flags/player_flag_system_with_catalog.gd` layers catalog data, player-faction filtering, one-shot arrival state, batched first assignments, interruption-safe route commitments, and cached target reservations over the mature placement/pathing helpers in `scripts/flags/player_flag_system.gd`;
 - `scripts/flags/player_flag_visual.gd` draws the world flag, its 11x11 area, and placement preview without blocking terrain;
 - `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
 - `scenes/ui/nature_menu.tscn` and `scripts/ui/player_nature_ui.gd` own spell buttons, targeting, previews, named main-menu buttons, and the stable access API for shared dynamic-menu content and time-speed controls;
@@ -292,11 +292,11 @@ Rules:
 - a flag is placed or moved on a walkable tile; all flags are visual only and never block the world;
 - the `⚑` menu places or moves a selected flag with left-click; right-click cancels and flags cost no energy;
 - eligible player-faction idle/walk creatures without an active higher-priority task receive a soft movement preference toward their own area; enemy and other factions ignore player flags even when they use the same species resource;
-- hunger, eating, reproduction, combat, death, and other survival behaviour remain higher priority than the flag;
+- hunger, eating, reproduction, combat, death, and other survival behaviour remain higher priority than the flag; after a creature has received its first successful route for the current flag placement, temporary interruptions preserve that commitment and the route resumes at the next flag update instead of rejoining the new-creature queue;
 - stegosaurus and triceratops prefer mature grass anchors inside their area; other current species prefer free valid anchors;
 - destinations are distributed through cached reserved footprint tiles instead of repeatedly comparing every creature target with every other target;
 - a placement or move resets routes, failed retries, and completion only for that flag's species; other species keep their current routes and retry timers;
-- at most five new flag target/path attempts are processed per 0.5-second behaviour update, and each flag path may expand at most 500 tiles;
+- at most five creatures that have not yet received the current flag order get their first target/path attempt per 0.5-second behaviour update; already committed creatures resuming after food, reproduction, or combat bypass that initial-assignment limit, while each path remains capped at 500 expanded tiles;
 - after a creature physically enters the area, it records that flag placement revision, resumes normal autonomous wandering, and never follows that same placement again even after leaving the area; moving or replacing that species flag creates a new revision and makes the species eligible again;
 - arrival revisions are saved per creature and active flag revisions are saved with flag positions, so one-shot completion survives normal save/load;
 - removal mode deletes the flag clicked at its center;

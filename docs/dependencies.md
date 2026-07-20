@@ -84,7 +84,7 @@ Current UI scripts:
 - `res://scripts/ui/creature_stats_ui.gd` — creature information, selection, and highlight coordination;
 - `res://scripts/ui/player_ui.gd` — terrain minimap, diet/faction markers, player-only counters, and time-speed controls;
 - `res://scripts/flags/player_flag_system.gd` — mature species-flag placement, area/candidate, and route-application helpers;
-- `res://scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload that reads the fixed player catalog, filters non-player factions, batches route work, caches reserved targets, and tracks one-shot arrival revisions;
+- `res://scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload that reads the fixed player catalog, filters non-player factions, batches first route assignments, preserves current-placement commitments across temporary survival/reproduction/combat interruptions, caches reserved targets, and tracks one-shot arrival revisions;
 - `res://scripts/flags/player_flag_visual.gd` — non-blocking world-space flag and influence-area rendering;
 - `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text;
 - `res://scripts/ui/player_nature_ui.gd` — spell buttons, targeting, previews, and the stable access API for nested nature-menu controls;
@@ -143,9 +143,9 @@ Rules:
 - only living player-faction creatures whose species exists in `PlayerSpeciesCatalog` generate player energy;
 - player flags affect only player-faction creatures in the fixed player catalog;
 - changing one species flag cancels only that species routes and retry timers; other species flag work remains intact;
-- flag target/path work is processed in batches of at most five creatures per 0.5-second update, and a single flag path is capped at 500 expanded tiles;
+- first-time flag target/path work is processed in batches of at most five creatures per 0.5-second update, while creatures already committed to the current placement resume after food, reproduction, or combat outside that initial batch; a single flag path remains capped at 500 expanded tiles;
 - target reservations use a tile-to-creature dictionary plus a creature-to-tiles cache instead of all-pairs target comparison;
-- entering the flag area completes the current flag revision for that creature; it resumes autonomous wandering and ignores that placement after leaving until the species flag is moved or replaced;
+- the first successful route marks an in-session commitment to the current flag revision; temporary higher-priority behaviour pauses the route without discarding that commitment, and entering the flag area completes the revision so the creature resumes autonomous wandering and ignores that placement after leaving until the species flag is moved or replaced;
 - active flag revisions and per-creature completed revisions are optional save fields; older saves remain valid and creatures without completion data may answer an existing flag once;
 - minimap category comes from `diet_type`, never from resource path text; faction selects the marker palette;
 - current HUD counts only player creatures and player eggs;

@@ -8,6 +8,7 @@ const PLAYER_SPECIES_CATALOG := preload("res://scripts/catalogs/player_species_c
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 
 const FLAG_COMPLETION_REVISION_META := &"player_flag_completed_revision"
+const FLAG_COMMITMENT_REVISION_META := &"player_flag_committed_revision"
 const MAX_NEW_FLAG_PATHS_PER_UPDATE := 5
 const OPTIMIZED_FLAG_PATH_SEARCH_TILE_CAP := 500
 const NATURE_MENU_ATTACH_RETRY_FRAMES := 16
@@ -164,6 +165,7 @@ func clear_all_flags() -> void:
 	failed_path_retry_until.clear()
 	_clear_pending_route_requests()
 	_clear_reserved_target_tiles()
+	_clear_all_flag_commitments()
 	_sync_flag_visual()
 
 
@@ -196,6 +198,7 @@ func restore_save_data(save_data: Dictionary) -> void:
 	failed_path_retry_until.clear()
 	_clear_pending_route_requests()
 	_clear_reserved_target_tiles()
+	_clear_all_flag_commitments()
 
 	var saved_flags_variant: Variant = save_data.get("flags", [])
 
@@ -233,10 +236,12 @@ func _update_creature_flag_behaviour() -> void:
 		var species_id := _get_creature_species_id(creature)
 
 		if species_id == StringName() or not has_flag(species_id):
+			_clear_flag_commitment(creature)
 			_release_creature_target(creature)
 			continue
 
 		if _has_completed_current_flag(creature, species_id):
+			_clear_flag_commitment(creature)
 			_release_creature_target(creature)
 			continue
 
@@ -265,6 +270,8 @@ func _update_creature_flag_behaviour() -> void:
 		var state := int(creature.get("state"))
 
 		if state != CREATURE_STATE_IDLE and state != CREATURE_STATE_WALK:
+			# Survival, reproduction and combat pause the route but preserve the
+			# current flag commitment so it can resume without joining the new queue.
 			_release_creature_target(creature)
 			continue
 
@@ -273,10 +280,19 @@ func _update_creature_flag_behaviour() -> void:
 		if Time.get_ticks_msec() < retry_until:
 			continue
 
-		var previous_target_variant: Variant = assigned_targets.get(creature, INVALID_ANCHOR)
-		var already_assigned := previous_target_variant is Vector2i
+		# INVALID_ANCHOR is also a Vector2i, so only dictionary membership can
+		# distinguish a real flag assignment from the missing-value sentinel.
+		var already_assigned := assigned_targets.has(creature)
 
 		if already_assigned and _has_flag_route_in_progress(creature):
+			continue
+
+		if _has_current_flag_commitment(creature, species_id):
+			# This creature already received this flag order once. Rebuild its route
+			# immediately after eating/reproduction/combat instead of putting it behind
+			# creatures that have never received the order.
+			_remove_pending_route_request(creature)
+			_try_build_flag_route(creature, species_id, footprint, anchor, false)
 			continue
 
 		_enqueue_flag_route_request(creature)
@@ -304,10 +320,12 @@ func _process_pending_route_requests(max_requests: int) -> void:
 		var species_id := _get_creature_species_id(creature)
 
 		if species_id == StringName() or not has_flag(species_id):
+			_clear_flag_commitment(creature)
 			_release_creature_target(creature)
 			continue
 
 		if _has_completed_current_flag(creature, species_id):
+			_clear_flag_commitment(creature)
 			_release_creature_target(creature)
 			continue
 
@@ -318,6 +336,8 @@ func _process_pending_route_requests(max_requests: int) -> void:
 		var state := int(creature.get("state"))
 
 		if state != CREATURE_STATE_IDLE and state != CREATURE_STATE_WALK:
+			# Survival, reproduction and combat pause the route but preserve the
+			# current flag commitment so it can resume without joining the new queue.
 			_release_creature_target(creature)
 			continue
 
@@ -338,38 +358,53 @@ func _process_pending_route_requests(max_requests: int) -> void:
 			_mark_flag_completed(creature, species_id)
 			continue
 
-		var navigation_anchor := anchor
-
-		if creature.has_method("get_navigation_anchor"):
-			var navigation_variant: Variant = creature.call("get_navigation_anchor")
-
-			if navigation_variant is Vector2i:
-				navigation_anchor = navigation_variant
-
 		attempted_requests += 1
-		var target_anchor := _get_or_assign_target(creature, species_id, footprint)
+		_try_build_flag_route(creature, species_id, footprint, anchor, true)
 
-		if target_anchor == INVALID_ANCHOR:
-			_set_failed_path_retry(creature)
-			continue
 
-		PerformanceStats.add_counter("flag_path_requests")
-		var path_variant: Variant = world_grid.call(
-			"find_path",
-			navigation_anchor,
-			target_anchor,
-			footprint,
-			creature,
-			OPTIMIZED_FLAG_PATH_SEARCH_TILE_CAP
-		)
+func _try_build_flag_route(
+	creature: Node,
+	species_id: StringName,
+	footprint: Vector2i,
+	anchor: Vector2i,
+	commit_on_success: bool
+) -> bool:
+	var navigation_anchor := anchor
 
-		if not (path_variant is Array) or (path_variant as Array).is_empty():
-			PerformanceStats.add_counter("flag_path_failures")
-			_release_creature_target(creature, true)
-			_set_failed_path_retry(creature)
-			continue
+	if creature.has_method("get_navigation_anchor"):
+		var navigation_variant: Variant = creature.call("get_navigation_anchor")
 
-		_apply_flag_path(creature, path_variant as Array)
+		if navigation_variant is Vector2i:
+			navigation_anchor = navigation_variant
+
+	var target_anchor := _get_or_assign_target(creature, species_id, footprint)
+
+	if target_anchor == INVALID_ANCHOR:
+		_set_failed_path_retry(creature)
+		return false
+
+	PerformanceStats.add_counter("flag_path_requests")
+	var path_variant: Variant = world_grid.call(
+		"find_path",
+		navigation_anchor,
+		target_anchor,
+		footprint,
+		creature,
+		OPTIMIZED_FLAG_PATH_SEARCH_TILE_CAP
+	)
+
+	if not (path_variant is Array) or (path_variant as Array).is_empty():
+		PerformanceStats.add_counter("flag_path_failures")
+		_release_creature_target(creature, true)
+		_set_failed_path_retry(creature)
+		return false
+
+	_apply_flag_path(creature, path_variant as Array)
+
+	if commit_on_success:
+		_mark_flag_committed(creature, species_id)
+
+	return true
 
 
 func _get_or_assign_target(
@@ -503,8 +538,27 @@ func _has_completed_current_flag(creature: Node, species_id: StringName) -> bool
 	return int(creature.get_meta(FLAG_COMPLETION_REVISION_META, -1)) == _get_flag_revision(species_id)
 
 
+func _has_current_flag_commitment(creature: Node, species_id: StringName) -> bool:
+	return int(creature.get_meta(FLAG_COMMITMENT_REVISION_META, -1)) == _get_flag_revision(species_id)
+
+
+func _mark_flag_committed(creature: Node, species_id: StringName) -> void:
+	creature.set_meta(FLAG_COMMITMENT_REVISION_META, _get_flag_revision(species_id))
+
+
+func _clear_flag_commitment(creature: Node) -> void:
+	if creature != null and is_instance_valid(creature) and creature.has_meta(FLAG_COMMITMENT_REVISION_META):
+		creature.remove_meta(FLAG_COMMITMENT_REVISION_META)
+
+
+func _clear_all_flag_commitments() -> void:
+	for creature: Node in get_tree().get_nodes_in_group("creatures"):
+		_clear_flag_commitment(creature)
+
+
 func _mark_flag_completed(creature: Node, species_id: StringName) -> void:
 	creature.set_meta(FLAG_COMPLETION_REVISION_META, _get_flag_revision(species_id))
+	_clear_flag_commitment(creature)
 	_release_creature_target(creature, true)
 
 
@@ -556,6 +610,7 @@ func _cancel_species_flag_routes(species_id: StringName) -> void:
 		if assigned_targets.has(creature):
 			_cancel_flag_route_continuation(creature)
 
+		_clear_flag_commitment(creature)
 		_unreserve_target_for_creature(creature)
 		assigned_targets.erase(creature)
 		failed_path_retry_until.erase(creature)
