@@ -24,9 +24,9 @@ enum Stage {
 
 @export var stage_4_texture: Texture2D
 
-@export var growth_time := 5.0
+@export var growth_time := 8.0
 
-@export var spread_delay := 20.0
+@export var spread_delay := 30.0
 
 @export var start_stage: Stage = Stage.STAGE_1
 
@@ -87,11 +87,11 @@ func can_be_eaten() -> bool:
 func get_food_value() -> int:
 	match current_stage:
 		Stage.STAGE_2:
-			return 3
-		Stage.STAGE_3:
 			return 5
-		Stage.STAGE_4:
+		Stage.STAGE_3:
 			return 7
+		Stage.STAGE_4:
+			return 9
 		_:
 			return 0
 
