@@ -10,14 +10,20 @@ const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const FLAG_COMPLETION_REVISION_META := &"player_flag_completed_revision"
 const FLAG_COMMITMENT_REVISION_META := &"player_flag_committed_revision"
 const MAX_NEW_FLAG_PATHS_PER_UPDATE := 5
-const OPTIMIZED_FLAG_PATH_SEARCH_TILE_CAP := 500
+const OPTIMIZED_FLAG_PATH_SEARCH_TILE_CAP := 1800
 const NATURE_MENU_ATTACH_RETRY_FRAMES := 16
+
+const CREATURE_STATE_EATING := 3
+const CREATURE_STATE_LAYING_EGG := 4
+const CREATURE_STATE_COMBAT := 5
+const CREATURE_STATE_DEAD := 6
 
 var flag_revisions: Dictionary = {}
 var pending_route_requests: Array[Node] = []
 var pending_route_lookup: Dictionary = {}
 var reserved_target_tiles: Dictionary = {}
 var reserved_tiles_by_creature: Dictionary = {}
+var target_choice_offsets: Dictionary = {}
 
 
 func _attach_to_game_scene(scene: Node) -> void:
@@ -166,6 +172,7 @@ func clear_all_flags() -> void:
 	_clear_pending_route_requests()
 	_clear_reserved_target_tiles()
 	_clear_all_flag_commitments()
+	_clear_all_target_choice_offsets()
 	_sync_flag_visual()
 
 
@@ -199,6 +206,7 @@ func restore_save_data(save_data: Dictionary) -> void:
 	_clear_pending_route_requests()
 	_clear_reserved_target_tiles()
 	_clear_all_flag_commitments()
+	_clear_all_target_choice_offsets()
 
 	var saved_flags_variant: Variant = save_data.get("flags", [])
 
@@ -237,11 +245,13 @@ func _update_creature_flag_behaviour() -> void:
 
 		if species_id == StringName() or not has_flag(species_id):
 			_clear_flag_commitment(creature)
+			_clear_target_choice_offset(creature)
 			_release_creature_target(creature)
 			continue
 
 		if _has_completed_current_flag(creature, species_id):
 			_clear_flag_commitment(creature)
+			_clear_target_choice_offset(creature)
 			_release_creature_target(creature)
 			continue
 
@@ -321,11 +331,13 @@ func _process_pending_route_requests(max_requests: int) -> void:
 
 		if species_id == StringName() or not has_flag(species_id):
 			_clear_flag_commitment(creature)
+			_clear_target_choice_offset(creature)
 			_release_creature_target(creature)
 			continue
 
 		if _has_completed_current_flag(creature, species_id):
 			_clear_flag_commitment(creature)
+			_clear_target_choice_offset(creature)
 			_release_creature_target(creature)
 			continue
 
@@ -395,11 +407,13 @@ func _try_build_flag_route(
 
 	if not (path_variant is Array) or (path_variant as Array).is_empty():
 		PerformanceStats.add_counter("flag_path_failures")
+		_advance_target_choice_offset(creature)
 		_release_creature_target(creature, true)
 		_set_failed_path_retry(creature)
 		return false
 
 	_apply_flag_path(creature, path_variant as Array)
+	_clear_target_choice_offset(creature)
 
 	if commit_on_success:
 		_mark_flag_committed(creature, species_id)
@@ -430,6 +444,27 @@ func _get_or_assign_target(
 
 	_reserve_target_for_creature(creature, target, footprint)
 	return target
+
+
+func _choose_spread_candidate(
+	creature: Node,
+	species_id: StringName,
+	candidates: Array[Vector2i]
+) -> Vector2i:
+	if candidates.is_empty():
+		return INVALID_ANCHOR
+
+	# The base selector intentionally spreads creatures deterministically. Add a
+	# per-creature offset only after path failure so the next retry tests another
+	# valid destination instead of repeating the same unreachable tile forever.
+	var seed_value := int(creature.get_instance_id())
+	var flag_tile: Vector2i = flags.get(species_id, Vector2i.ZERO)
+	var retry_offset := int(target_choice_offsets.get(creature, 0))
+	var start_index := posmod(
+		seed_value + flag_tile.x * 31 + flag_tile.y * 17 + retry_offset,
+		candidates.size()
+	)
+	return candidates[start_index]
 
 
 func _is_target_reserved_by_other(
@@ -490,6 +525,12 @@ func _cleanup_creature_runtime_data() -> void:
 
 	pending_route_requests = cleaned_queue
 
+	for creature_variant: Variant in target_choice_offsets.keys():
+		var creature := creature_variant as Node
+
+		if creature == null or not is_instance_valid(creature) or creature.is_queued_for_deletion():
+			target_choice_offsets.erase(creature_variant)
+
 
 func _get_creature_species_id(creature: Node) -> StringName:
 	if creature == null or not is_instance_valid(creature) or creature.is_queued_for_deletion():
@@ -547,7 +588,11 @@ func _mark_flag_committed(creature: Node, species_id: StringName) -> void:
 
 
 func _clear_flag_commitment(creature: Node) -> void:
-	if creature != null and is_instance_valid(creature) and creature.has_meta(FLAG_COMMITMENT_REVISION_META):
+	if (
+		creature != null
+		and is_instance_valid(creature)
+		and creature.has_meta(FLAG_COMMITMENT_REVISION_META)
+	):
 		creature.remove_meta(FLAG_COMMITMENT_REVISION_META)
 
 
@@ -559,6 +604,7 @@ func _clear_all_flag_commitments() -> void:
 func _mark_flag_completed(creature: Node, species_id: StringName) -> void:
 	creature.set_meta(FLAG_COMPLETION_REVISION_META, _get_flag_revision(species_id))
 	_clear_flag_commitment(creature)
+	_clear_target_choice_offset(creature)
 	_release_creature_target(creature, true)
 
 
@@ -611,9 +657,100 @@ func _cancel_species_flag_routes(species_id: StringName) -> void:
 			_cancel_flag_route_continuation(creature)
 
 		_clear_flag_commitment(creature)
+		_clear_target_choice_offset(creature)
 		_unreserve_target_for_creature(creature)
 		assigned_targets.erase(creature)
 		failed_path_retry_until.erase(creature)
+
+
+func get_creature_flag_debug_data(creature: Node) -> Dictionary:
+	var result := {
+		"status": "нет активного флага",
+		"committed": false,
+		"target_retry": int(target_choice_offsets.get(creature, 0))
+	}
+
+	if creature == null or not is_instance_valid(creature) or creature.is_queued_for_deletion():
+		result["status"] = "динозавр недоступен"
+		return result
+
+	var species_id := _get_creature_species_id(creature)
+
+	if species_id == StringName():
+		result["status"] = "не относится к флагам игрока"
+		return result
+
+	if not has_flag(species_id):
+		return result
+
+	var flag_tile_variant: Variant = flags.get(species_id, INVALID_ANCHOR)
+
+	if flag_tile_variant is Vector2i:
+		result["flag_tile"] = flag_tile_variant
+
+	var assigned_target_variant: Variant = assigned_targets.get(creature, INVALID_ANCHOR)
+
+	if assigned_target_variant is Vector2i and assigned_target_variant != INVALID_ANCHOR:
+		result["target_tile"] = assigned_target_variant
+
+	var committed := _has_current_flag_commitment(creature, species_id)
+	result["committed"] = committed
+	result["status"] = _resolve_creature_flag_debug_status(creature, species_id, committed)
+	return result
+
+
+func _resolve_creature_flag_debug_status(
+	creature: Node,
+	species_id: StringName,
+	committed: bool
+) -> String:
+	var status := "ожидает первую команду"
+	var footprint_variant: Variant = creature.get("footprint_size")
+	var anchor_variant: Variant = creature.get("anchor_tile")
+	var state := int(creature.get("state"))
+
+	if _has_completed_current_flag(creature, species_id):
+		status = "флаг выполнен"
+	elif (
+		footprint_variant is Vector2i
+		and anchor_variant is Vector2i
+		and _is_footprint_inside_flag_area(species_id, anchor_variant, footprint_variant)
+	):
+		status = "в зоне флага"
+	elif (
+		_hunger_overrides_flag(creature)
+		or state == CREATURE_STATE_SEEK_FOOD
+		or state == CREATURE_STATE_EATING
+	):
+		status = "пауза — еда" if committed else "ждёт — еда"
+	elif state == CREATURE_STATE_LAYING_EGG:
+		status = "пауза — размножение" if committed else "ждёт — размножение"
+	elif state == CREATURE_STATE_COMBAT:
+		status = "пауза — бой" if committed else "ждёт — бой"
+	elif state == CREATURE_STATE_DEAD:
+		status = "мёртв"
+	elif assigned_targets.has(creature) and _has_flag_route_in_progress(creature):
+		status = "идёт к флагу"
+	elif Time.get_ticks_msec() < int(failed_path_retry_until.get(creature, 0)):
+		status = "повторяет поиск пути"
+	elif committed:
+		status = "возобновляет путь"
+	elif pending_route_lookup.has(creature):
+		status = "ждёт очередь флага"
+
+	return status
+
+
+func _advance_target_choice_offset(creature: Node) -> void:
+	target_choice_offsets[creature] = int(target_choice_offsets.get(creature, 0)) + 1
+
+
+func _clear_target_choice_offset(creature: Node) -> void:
+	target_choice_offsets.erase(creature)
+
+
+func _clear_all_target_choice_offsets() -> void:
+	target_choice_offsets.clear()
 
 
 func _reserve_target_for_creature(

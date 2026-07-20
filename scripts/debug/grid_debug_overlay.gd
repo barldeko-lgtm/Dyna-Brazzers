@@ -14,13 +14,15 @@ const PENDING_FOOTPRINT_FILL := Color(0.6, 0.3, 1.0, 0.14)
 const PENDING_FOOTPRINT_OUTLINE := Color(0.75, 0.45, 1.0, 0.95)
 const TARGET_FILL := Color(1.0, 0.85, 0.2, 0.16)
 const TARGET_OUTLINE := Color(1.0, 0.9, 0.3, 0.95)
+const FLAG_TARGET_FILL := Color(0.95, 0.35, 0.95, 0.18)
+const FLAG_TARGET_OUTLINE := Color(1.0, 0.5, 1.0, 0.95)
 const PATH_COLOR := Color(0.2, 0.7, 1.0, 0.95)
 const PATH_POINT_COLOR := Color(0.35, 0.82, 1.0, 0.95)
 
+var debug_enabled := false
+
 @onready var info_panel: PanelContainer = $DebugCanvas/DebugInfoPanel
 @onready var info_label: Label = $DebugCanvas/DebugInfoPanel/MarginContainer/DebugInfoLabel
-
-var debug_enabled := false
 
 
 func _ready() -> void:
@@ -96,6 +98,20 @@ func _get_focus_creature() -> Node:
 	return null
 
 
+func _get_flag_debug_data(creature: Node) -> Dictionary:
+	var player_flags := get_node_or_null("/root/PlayerFlags")
+
+	if player_flags == null or not player_flags.has_method("get_creature_flag_debug_data"):
+		return {"status": "система флагов недоступна"}
+
+	var data_variant: Variant = player_flags.call("get_creature_flag_debug_data", creature)
+
+	if data_variant is Dictionary:
+		return data_variant as Dictionary
+
+	return {"status": "нет данных"}
+
+
 func _build_debug_text() -> String:
 	var world_grid := _find_world_grid()
 	if world_grid == null:
@@ -104,7 +120,11 @@ func _build_debug_text() -> String:
 	var creature := _get_focus_creature()
 	var lines: Array[String] = []
 	lines.append("Grid Debug [F3]")
-	lines.append("grass: %d | occupied: %d" % [world_grid.grass_by_tile.size(), world_grid.occupied_by_tile.size()])
+	lines.append(
+		"grass: %d | occupied: %d" % [
+			world_grid.grass_by_tile.size(), world_grid.occupied_by_tile.size()
+		]
+	)
 	lines.append("blocked terrain: %d" % _count_blocked_tiles(world_grid))
 
 	if not is_instance_valid(creature):
@@ -116,12 +136,33 @@ func _build_debug_text() -> String:
 	if creature.get("current_path") != null:
 		path_length = creature.current_path.size()
 
-	lines.append("focus: %s | %s" % [creature.get_creature_name(), _get_state_name(int(creature.state))])
+	lines.append(
+		"focus: %s | %s" % [
+			creature.get_creature_name(), _get_state_name(int(creature.state))
+		]
+	)
+	var flag_debug := _get_flag_debug_data(creature)
+	lines.append("flag: %s" % String(flag_debug.get("status", "нет данных")))
+
+	var flag_tile_variant: Variant = flag_debug.get("flag_tile", null)
+	if flag_tile_variant is Vector2i:
+		lines.append("flag center: %s" % _format_tile(flag_tile_variant))
+
+	var flag_target_variant: Variant = flag_debug.get("target_tile", null)
+	if flag_target_variant is Vector2i:
+		lines.append("flag target: %s" % _format_tile(flag_target_variant))
+
+	var target_retry := int(flag_debug.get("target_retry", 0))
+	if target_retry > 0:
+		lines.append("flag target retries: %d" % target_retry)
+
 	lines.append("anchor: %s" % _format_tile(creature.anchor_tile))
 	lines.append("pending: %s" % _format_tile(creature.pending_anchor_tile))
 	lines.append("footprint: %dx%d" % [creature.footprint_size.x, creature.footprint_size.y])
 	lines.append("target: %s" % _format_tile(creature.grazing_target_anchor))
-	lines.append("path steps: %d | moving: %s" % [path_length, str(bool(creature.is_moving))])
+	lines.append(
+		"path steps: %d | moving: %s" % [path_length, str(bool(creature.is_moving))]
+	)
 	return "\n".join(lines)
 
 
@@ -159,22 +200,41 @@ func _draw_selected_creature_debug(world_grid: Node) -> void:
 		_draw_tile(tile, world_grid, SELECTED_FOOTPRINT_FILL, SELECTED_FOOTPRINT_OUTLINE)
 
 	if bool(creature.is_moving):
-		for tile in world_grid.get_footprint_tiles(creature.pending_anchor_tile, creature.footprint_size):
+		for tile in world_grid.get_footprint_tiles(
+			creature.pending_anchor_tile, creature.footprint_size
+		):
 			_draw_tile(tile, world_grid, PENDING_FOOTPRINT_FILL, PENDING_FOOTPRINT_OUTLINE)
 
 	if bool(creature.has_grazing_target):
-		for tile in world_grid.get_footprint_tiles(creature.grazing_target_anchor, creature.footprint_size):
+		for tile in world_grid.get_footprint_tiles(
+			creature.grazing_target_anchor, creature.footprint_size
+		):
 			_draw_tile(tile, world_grid, TARGET_FILL, TARGET_OUTLINE)
+
+	var flag_debug := _get_flag_debug_data(creature)
+	var flag_target_variant: Variant = flag_debug.get("target_tile", null)
+
+	if flag_target_variant is Vector2i:
+		for tile in world_grid.get_footprint_tiles(
+			flag_target_variant, creature.footprint_size
+		):
+			_draw_tile(tile, world_grid, FLAG_TARGET_FILL, FLAG_TARGET_OUTLINE)
 
 	_draw_path(world_grid, creature)
 
 
 func _draw_path(world_grid: Node, creature: Node) -> void:
 	var points: PackedVector2Array = []
-	points.append(world_grid.anchor_to_world_position(creature.anchor_tile, creature.footprint_size))
+	points.append(
+		world_grid.anchor_to_world_position(creature.anchor_tile, creature.footprint_size)
+	)
 
 	if bool(creature.is_moving):
-		points.append(world_grid.anchor_to_world_position(creature.pending_anchor_tile, creature.footprint_size))
+		points.append(
+			world_grid.anchor_to_world_position(
+				creature.pending_anchor_tile, creature.footprint_size
+			)
+		)
 
 	for anchor in creature.current_path:
 		points.append(world_grid.anchor_to_world_position(anchor, creature.footprint_size))
@@ -208,23 +268,25 @@ func _count_blocked_tiles(world_grid: Node) -> int:
 
 
 func _get_state_name(state_value: int) -> String:
+	var state_name := "UNKNOWN"
+
 	match state_value:
 		0:
-			return "IDLE"
+			state_name = "IDLE"
 		1:
-			return "WALK"
+			state_name = "WALK"
 		2:
-			return "SEEK_FOOD"
+			state_name = "SEEK_FOOD"
 		3:
-			return "EATING"
+			state_name = "EATING"
 		4:
-			return "LAYING_EGG"
+			state_name = "LAYING_EGG"
 		5:
-			return "COMBAT"
+			state_name = "COMBAT"
 		6:
-			return "DEAD"
-		_:
-			return "UNKNOWN"
+			state_name = "DEAD"
+
+	return state_name
 
 
 func _format_tile(tile: Vector2i) -> String:

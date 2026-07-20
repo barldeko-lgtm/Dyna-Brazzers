@@ -84,14 +84,14 @@ Current UI scripts:
 - `res://scripts/ui/creature_stats_ui.gd` — creature information, selection, and highlight coordination;
 - `res://scripts/ui/player_ui.gd` — terrain minimap, diet/faction markers, player-only counters, and time-speed controls;
 - `res://scripts/flags/player_flag_system.gd` — mature species-flag placement, area/candidate, and route-application helpers;
-- `res://scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload that reads the fixed player catalog, filters non-player factions, batches first route assignments, preserves current-placement commitments across temporary survival/reproduction/combat interruptions, caches reserved targets, and tracks one-shot arrival revisions;
+- `res://scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload that reads the fixed player catalog, filters non-player factions, batches first route assignments, preserves current-placement commitments across temporary survival/reproduction/combat interruptions, rotates destination choice after failed paths, caches reserved targets, and tracks one-shot arrival revisions;
 - `res://scripts/flags/player_flag_visual.gd` — non-blocking world-space flag and influence-area rendering;
 - `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text;
 - `res://scripts/ui/player_nature_ui.gd` — spell buttons, targeting, previews, and the stable access API for nested nature-menu controls;
 - `res://scripts/player/player_energy.gd` — session energy reserve, spending API, and catalog-defined income from living player-faction dinosaurs;
 - `res://scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, DryGround clearing, adjacent mature-grass timer restarts, and spell VFX application;
 - `res://scripts/debug/performance_stats.gd` — F8 CSV performance logging, including separate flag scan/path counters;
-- `res://scripts/debug/grid_debug_overlay.gd` — F3 grid/debug overlay.
+- `res://scripts/debug/grid_debug_overlay.gd` — F3 grid/debug overlay with selected-creature flag status and assigned flag destination.
 
 Expected gameplay scene wiring:
 
@@ -106,7 +106,7 @@ Rules:
 
 - do not put counters or speed controls back into `creature_stats_ui.gd`;
 - do not put detailed debug text back into `creature_stats_ui.gd`;
-- F3 grid overlay and F4 text debug are separate systems;
+- F3 grid overlay and F4 text debug are separate systems; F3 may query `PlayerFlags` through its public debug-data method but must not own flag behaviour;
 - creature selection must remain compatible with nature-power targeting;
 - SaveSystem, player flags, egg creation, and player time controls must resolve nested nature-menu controls through the `player_nature_ui` group API, not paths through `UI/PlayerSidePanel/MarginContainer/...`;
 - keep `main.tscn` as a compositor rather than moving HUD styles or deep UI node trees back into it;
@@ -143,7 +143,7 @@ Rules:
 - only living player-faction creatures whose species exists in `PlayerSpeciesCatalog` generate player energy;
 - player flags affect only player-faction creatures in the fixed player catalog;
 - changing one species flag cancels only that species routes and retry timers; other species flag work remains intact;
-- first-time flag target/path work is processed in batches of at most five creatures per 0.5-second update, while creatures already committed to the current placement resume after food, reproduction, or combat outside that initial batch; a single flag path remains capped at 500 expanded tiles;
+- first-time flag target/path work is processed in batches of at most five creatures per 0.5-second update, while creatures already committed to the current placement resume after food, reproduction, or combat outside that initial batch; a single flag path is capped at 1800 expanded tiles, and failed attempts rotate through alternative valid destinations instead of retrying the same tile forever;
 - target reservations use a tile-to-creature dictionary plus a creature-to-tiles cache instead of all-pairs target comparison;
 - the first successful route marks an in-session commitment to the current flag revision; temporary higher-priority behaviour pauses the route without discarding that commitment, and entering the flag area completes the revision so the creature resumes autonomous wandering and ignores that placement after leaving until the species flag is moved or replaced;
 - active flag revisions and per-creature completed revisions are optional save fields; older saves remain valid and creatures without completion data may answer an existing flag once;
