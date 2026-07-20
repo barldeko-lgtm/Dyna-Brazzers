@@ -50,6 +50,7 @@
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — stage-2 egg targeting and consumption logic.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and egg spawning.
 - `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, animations, and death pose.
+- `scripts/creatures/behaviors/creature_movement_controller.gd` — grid-step execution, route clearing, wandering-step selection, and the creature-owned API used by indirect external orders.
 - `scripts/combat/duel.gd` — temporary one-on-one combat loop.
 - `scripts/resources/grass.gd` — grass growth, consumption, spread, and nature-power reactions.
 - `scripts/resources/egg.gd` — egg stages, species texture application, blocker handling, and hatching.
@@ -162,6 +163,7 @@ The current species resources assign their stage-1 and stage-2 egg textures dire
 - Runtime faction ownership belongs to `creature_faction.gd` metadata and must propagate creature → egg → hatchling and through save/load.
 - Player-only menu order, prices, income, and flag presentation belong in `player_species_catalog.gd`; future enemy-side usage belongs in a separate enemy catalog rather than player UI or species `.tres`.
 - Creature runtime coordination belongs in `scripts/creatures/creature.gd`.
+- Route/FSM field mutation for indirect external orders belongs behind `creature.gd` public methods and `creature_movement_controller.gd`; flag scripts must not set creature movement, food, or state fields directly.
 - Specialized creature behaviour belongs in `scripts/creatures/behaviors/`.
 - Grass and egg lifecycles belong in their own resource scripts.
 - Global music routing, one-shot playback, automatic button-click feedback, audio buses, fades, and persistent Music/Sounds settings belong to the `AudioManager` autoload and `scripts/audio/`.

@@ -114,6 +114,22 @@ Rules:
 - dead/corpse creatures should not remain selectable.
 
 
+## Creature movement and indirect orders
+
+Main files:
+
+- `res://scripts/creatures/creature.gd`;
+- `res://scripts/creatures/behaviors/creature_movement_controller.gd`;
+- `res://scripts/flags/player_flag_system_with_catalog.gd`.
+
+Rules:
+
+- `creature.gd` remains the public facade for route and state transitions;
+- `creature_movement_controller.gd` owns grid-step execution, queued-route mutation, and indirect-order route apply/pause/cancel operations;
+- active flag code must call the creature indirect-order API instead of setting `current_path`, `state_timer`, `state`, `has_grazing_target`, `food_recheck_timer`, or `grazing_candidate_queue`;
+- survival, food, reproduction, and combat remain higher priority than indirect orders.
+
+
 ## Species catalog and faction ownership
 
 Main files:
@@ -142,6 +158,7 @@ Rules:
 - bought eggs are assigned to the player faction; naturally laid eggs inherit their parent faction; hatchlings inherit the egg faction;
 - only living player-faction creatures whose species exists in `PlayerSpeciesCatalog` generate player energy;
 - player flags affect only player-faction creatures in the fixed player catalog;
+- player flags may read creature navigation/species data, but route application, food interruption, route cancellation, and related FSM mutations must go through the creature indirect-order API;
 - changing one species flag cancels only that species routes and retry timers; other species flag work remains intact;
 - first-time flag target/path work is processed in batches of at most five creatures per 0.5-second update, while creatures already committed to the current placement resume after food, reproduction, or combat outside that initial batch; a single flag path is capped at 1800 expanded tiles, and failed attempts rotate through alternative valid destinations instead of retrying the same tile forever;
 - target reservations use a tile-to-creature dictionary plus a creature-to-tiles cache instead of all-pairs target comparison;

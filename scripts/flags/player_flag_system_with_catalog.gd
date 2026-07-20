@@ -277,9 +277,7 @@ func _update_creature_flag_behaviour() -> void:
 			_drop_flag_route_for_hunger(creature)
 			continue
 
-		var state := int(creature.get("state"))
-
-		if state != CREATURE_STATE_IDLE and state != CREATURE_STATE_WALK:
+		if not _can_follow_flag(creature):
 			# Survival, reproduction and combat pause the route but preserve the
 			# current flag commitment so it can resume without joining the new queue.
 			_release_creature_target(creature)
@@ -345,9 +343,7 @@ func _process_pending_route_requests(max_requests: int) -> void:
 			_drop_flag_route_for_hunger(creature)
 			continue
 
-		var state := int(creature.get("state"))
-
-		if state != CREATURE_STATE_IDLE and state != CREATURE_STATE_WALK:
+		if not _can_follow_flag(creature):
 			# Survival, reproduction and combat pause the route but preserve the
 			# current flag commitment so it can resume without joining the new queue.
 			_release_creature_target(creature)
@@ -419,6 +415,61 @@ func _try_build_flag_route(
 		_mark_flag_committed(creature, species_id)
 
 	return true
+
+
+# Active flag behaviour crosses the creature boundary only through the public
+# indirect-order API owned by creature.gd and its movement controller.
+func _can_follow_flag(creature: Node) -> bool:
+	if creature == null or _hunger_overrides_flag(creature):
+		return false
+
+	if not creature.has_method("can_accept_indirect_order"):
+		return false
+
+	return bool(creature.call("can_accept_indirect_order"))
+
+
+func _has_flag_route_in_progress(creature: Node) -> bool:
+	if creature == null or not creature.has_method("has_indirect_order_route_in_progress"):
+		return false
+
+	return bool(creature.call("has_indirect_order_route_in_progress"))
+
+
+func _apply_flag_path(creature: Node, path: Array) -> void:
+	if creature == null or not creature.has_method("apply_indirect_order_route"):
+		return
+
+	creature.call("apply_indirect_order_route", path)
+
+
+func _drop_flag_route_for_hunger(creature: Node) -> void:
+	var had_flag_assignment := assigned_targets.has(creature)
+	_unreserve_target_for_creature(creature)
+	_remove_pending_route_request(creature)
+	assigned_targets.erase(creature)
+	failed_path_retry_until.erase(creature)
+
+	if not had_flag_assignment:
+		return
+
+	if creature != null and creature.has_method("pause_indirect_order_for_food"):
+		creature.call("pause_indirect_order_for_food")
+
+
+func _cancel_flag_route_continuation(creature: Node) -> void:
+	if creature != null and creature.has_method("cancel_indirect_order_route"):
+		creature.call("cancel_indirect_order_route")
+
+
+func _cancel_assigned_flag_routes() -> void:
+	for creature_variant: Variant in assigned_targets.keys():
+		var creature := creature_variant as Node
+
+		if creature == null or not is_instance_valid(creature):
+			continue
+
+		_cancel_flag_route_continuation(creature)
 
 
 func _get_or_assign_target(
@@ -493,7 +544,12 @@ func _is_target_reserved_by_other(
 func _release_creature_target(creature: Node, clear_flag_route := false) -> void:
 	_unreserve_target_for_creature(creature)
 	_remove_pending_route_request(creature)
-	super._release_creature_target(creature, clear_flag_route)
+	var had_flag_assignment := assigned_targets.has(creature)
+	assigned_targets.erase(creature)
+	failed_path_retry_until.erase(creature)
+
+	if clear_flag_route and had_flag_assignment:
+		_cancel_flag_route_continuation(creature)
 
 
 func _cleanup_creature_runtime_data() -> void:

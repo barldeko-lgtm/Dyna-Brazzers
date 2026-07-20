@@ -6,6 +6,7 @@ const CreatureVisualController = preload("res://scripts/creatures/behaviors/crea
 const CreatureReproductionLogic = preload("res://scripts/creatures/behaviors/creature_reproduction_logic.gd")
 const CreaturePredatorLogic = preload("res://scripts/creatures/behaviors/creature_predator_logic.gd")
 const CreatureEggEaterLogic = preload("res://scripts/creatures/behaviors/creature_egg_eater_logic.gd")
+const CreatureMovementController = preload("res://scripts/creatures/behaviors/creature_movement_controller.gd")
 const CREATURE_SELECTION_FRAME_TEXTURE := preload("res://assets/ui/creature_selection_frame.png")
 
 # Core creature FSM.
@@ -133,6 +134,7 @@ var visual_controller: RefCounted
 var reproduction_logic: RefCounted
 var predator_logic: RefCounted
 var egg_eater_logic: RefCounted
+var movement_controller: RefCounted
 
 var is_hover_highlighted := false
 var is_selected_highlighted := false
@@ -172,6 +174,12 @@ func change_state(new_state: State) -> void:
 func _ready() -> void:
 	randomize()
 	add_to_group("creatures")
+	movement_controller = CreatureMovementController.new(
+		self,
+		State.IDLE,
+		State.WALK,
+		State.SEEK_FOOD
+	)
 	visual_controller = CreatureVisualController.new(self)
 	reproduction_logic = CreatureReproductionLogic.new(self)
 	predator_logic = CreaturePredatorLogic.new(self)
@@ -285,9 +293,9 @@ func _physics_process(delta: float) -> void:
 
 	match state:
 		State.IDLE:
-			update_idle(delta)
+			movement_controller.update_idle(delta)
 		State.WALK:
-			update_walk(delta)
+			movement_controller.update_walk(delta)
 		State.SEEK_FOOD:
 			update_seek_food(delta)
 		State.EATING:
@@ -380,29 +388,6 @@ func update_food_behavior() -> void:
 		return
 
 	grazing_logic.update_food_behavior()
-
-
-func update_idle(delta: float) -> void:
-	state_timer -= delta
-
-	if state_timer <= 0.0:
-		enter_walk()
-
-
-func update_walk(delta: float) -> void:
-	state_timer -= delta
-
-	if is_moving:
-		return
-
-	if state_timer <= 0.0:
-		enter_idle()
-		return
-
-	if current_path.is_empty():
-		choose_random_wander_step()
-
-	start_next_path_step_if_needed()
 
 
 func update_seek_food(delta: float) -> void:
@@ -561,16 +546,8 @@ func show_death_visual() -> void:
 
 
 func choose_random_wander_step() -> void:
-	if world_grid == null:
-		return
-
-	var neighbors: Array[Vector2i] = world_grid.get_neighbors(anchor_tile, footprint_size, self)
-
-	if neighbors.is_empty():
-		return
-
-	var random_index := randi_range(0, neighbors.size() - 1)
-	current_path = [neighbors[random_index]]
+	if movement_controller != null:
+		movement_controller.choose_random_wander_step()
 
 
 func can_start_eating_here() -> bool:
@@ -581,10 +558,10 @@ func can_start_eating_here() -> bool:
 
 
 func get_navigation_anchor() -> Vector2i:
-	if is_moving:
-		return pending_anchor_tile
+	if movement_controller == null:
+		return anchor_tile
 
-	return anchor_tile
+	return movement_controller.get_navigation_anchor()
 
 
 # Grazing target selection.
@@ -630,47 +607,51 @@ func get_current_grazing_target_adult_count() -> int:
 	return grazing_logic.get_current_grazing_target_adult_count()
 
 
-# Grid movement.
+# Grid movement. The controller owns route mutation; these wrappers preserve
+# the existing creature API used by grazing, predators, reproduction and debug.
 func start_next_path_step_if_needed() -> void:
-	if is_moving:
-		return
-
-	if current_path.is_empty():
-		return
-
-	pending_anchor_tile = current_path[0]
-	current_path.remove_at(0)
-	movement_target_position = world_grid.anchor_to_world_position(pending_anchor_tile, footprint_size)
-	direction = global_position.direction_to(movement_target_position)
-	is_moving = true
-	update_sprite_visual()
+	if movement_controller != null:
+		movement_controller.start_next_path_step_if_needed()
 
 
 func advance_movement(delta: float) -> void:
-	global_position = global_position.move_toward(movement_target_position, species_data.speed * delta)
-
-	if global_position.distance_to(movement_target_position) > 0.1:
-		return
-
-	global_position = movement_target_position
-	is_moving = false
-
-	if world_grid != null and not world_grid.move_creature(self, pending_anchor_tile, footprint_size):
-		global_position = world_grid.anchor_to_world_position(anchor_tile, footprint_size)
-		clear_path()
-		has_grazing_target = false
-		return
-	anchor_tile = pending_anchor_tile
-
-	if state == State.SEEK_FOOD and can_start_eating_here() and (not has_grazing_target or anchor_tile == grazing_target_anchor):
-		enter_eating()
+	if movement_controller != null:
+		movement_controller.advance_movement(delta)
 
 
 func clear_path() -> void:
-	current_path.clear()
-	is_moving = false
-	pending_anchor_tile = anchor_tile
-	movement_target_position = global_position
+	if movement_controller != null:
+		movement_controller.clear_path()
+
+
+# Stable API for indirect external orders such as player species flags.
+# External systems must use these methods instead of changing movement/FSM fields.
+func can_accept_indirect_order() -> bool:
+	return movement_controller != null and movement_controller.can_accept_indirect_order()
+
+
+func has_indirect_order_route_in_progress() -> bool:
+	return (
+		movement_controller != null
+		and movement_controller.has_indirect_order_route_in_progress()
+	)
+
+
+func apply_indirect_order_route(path: Array) -> bool:
+	if movement_controller == null:
+		return false
+
+	return movement_controller.apply_indirect_order_route(path)
+
+
+func pause_indirect_order_for_food() -> void:
+	if movement_controller != null:
+		movement_controller.pause_indirect_order_for_food()
+
+
+func cancel_indirect_order_route() -> void:
+	if movement_controller != null:
+		movement_controller.cancel_indirect_order_route()
 
 
 func _on_eating_timer_timeout() -> void:
