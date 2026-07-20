@@ -83,8 +83,11 @@ Current UI scripts:
 - `res://scripts/ui/start_screen.gd` — startup menu and three-slot startup loading;
 - `res://scripts/ui/creature_stats_ui.gd` — creature information, selection, and highlight coordination;
 - `res://scripts/ui/player_ui.gd` — terrain minimap, diet/faction markers, player-only counters, and time-speed controls;
-- `res://scripts/flags/player_flag_system.gd` — mature species-flag placement, area/candidate, and route-application helpers;
-- `res://scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload that reads the fixed player catalog, filters non-player factions, batches first route assignments, preserves current-placement commitments across temporary survival/reproduction/combat interruptions, rotates destination choice after failed paths, caches reserved targets, and tracks one-shot arrival revisions;
+- `res://scripts/flags/player_flag_system.gd` — compact facade for scene attachment, placed flag records, visual sync, and stable save/debug entry points;
+- `res://scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload layer that supplies the player catalog and placement revisions;
+- `res://scripts/flags/player_flag_ui_controller.gd` — flag submenu, targeting input, preview, and status text;
+- `res://scripts/flags/player_flag_assignment_service.gd` — creature eligibility, first-route batching, commitment resume, retries, completion, and F3 status;
+- `res://scripts/flags/player_flag_target_allocator.gd` — 11x11 target selection, pasture preference, reservations, and retry rotation;
 - `res://scripts/flags/player_flag_visual.gd` — non-blocking world-space flag and influence-area rendering;
 - `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text;
 - `res://scripts/ui/player_nature_ui.gd` — spell buttons, targeting, previews, and the stable access API for nested nature-menu controls;
@@ -112,6 +115,28 @@ Rules:
 - keep `main.tscn` as a compositor rather than moving HUD styles or deep UI node trees back into it;
 - preserve the root instance names `UI`, `CreatureStatsPanel`, and `PlayerNaturePanel` when rearranging the split scenes so old diagnostic paths remain readable;
 - dead/corpse creatures should not remain selectable.
+
+
+## Player species flags
+
+Main files:
+
+- `res://scripts/flags/player_flag_system.gd`;
+- `res://scripts/flags/player_flag_system_with_catalog.gd`;
+- `res://scripts/flags/player_flag_ui_controller.gd`;
+- `res://scripts/flags/player_flag_assignment_service.gd`;
+- `res://scripts/flags/player_flag_target_allocator.gd`;
+- `res://scripts/flags/player_flag_visual.gd`.
+
+Ownership rules:
+
+- the base facade owns placed flag data, scene attachment, world-visual synchronization, and public save/debug methods;
+- the catalog wrapper owns player-species validation and per-placement revisions;
+- the UI controller owns menu controls, mouse targeting, placement/removal input, preview, and user-facing status text;
+- the assignment service owns creature scanning, five-new-route batching, commitments, pauses, retries, arrival completion, and F3 status data;
+- the target allocator owns destination candidates, 11x11 bounds, pasture preference, tile reservations, and retry destination rotation;
+- only the creature indirect-order API may mutate creature routes or FSM-related movement fields;
+- save files keep the same flag records and completion-revision metadata; this split does not change save format.
 
 
 ## Creature movement and indirect orders
