@@ -1,8 +1,0 @@
-sample_time_sec,fps,memory_static_mb,node_count,object_count,creature_count,grass_count,grass_spread_per_sec,grass_neighbor_checks_per_sec,grass_spawned_per_sec,grazing_searches_per_sec,grazing_candidate_checks_per_sec,grazing_footprint_queries_per_sec,creature_physics_ticks_per_sec,predator_prey_searches_per_sec,predator_prey_candidates_per_sec,path_calls_per_sec,path_expanded_tiles_per_sec,path_success_per_sec,path_failed_per_sec
-239.53,828.0,104.09,6197,8111,47,1431,0,0,0,13,2197,1197,3232,0,0,68,19,5,0
-240.53,1565.0,104.51,6293,8208,47,1455,22,88,24,6,1014,552,2820,0,0,55,112,3,51
-241.53,1270.0,104.55,6306,8224,48,1455,0,0,0,8,1352,730,2867,0,0,68,315,8,60
-242.53,1507.0,104.65,6345,8267,49,1464,10,40,9,7,1183,643,2920,0,0,67,265,6,44
-243.79,1507.0,104.66,6350,8272,49,1464,0,0,0,3,536,313,1398,0,0,32,5956,2,1
-244.79,699.0,104.75,6378,8300,49,1471,6,24,7,10,1690,928,3332,0,0,76,911,5,34
-245.79,1189.0,104.76,6378,8307,49,1471,1,4,0,11,1859,1023,2940,0,0,143,1222,7,102
