@@ -1,5 +1,9 @@
 # Dyna — Current Project State
 
+This document is the detailed snapshot of implemented gameplay and player-visible behaviour.
+For a cold start, read this file first, then `docs/project-map.md`, then `docs/dependencies.md`.
+A small amount of overlap between the three documents is intentional where losing a rule could break the project.
+
 ## Status
 
 Dyna is an early Godot 4.7 ecosystem simulation prototype.
@@ -106,33 +110,20 @@ Older saves without faction fields remain valid: restored creatures and eggs def
 
 `Main Menu` unloads the active game scene and clears temporary `SaveSystem` references without deleting save files. Starting `New Game` afterwards creates a clean session.
 
-## UI split
+## Architecture snapshot
 
-Current UI ownership:
+The active project is deliberately split by responsibility:
 
-- `scripts/ui/start_screen.gd` owns startup-screen flow, startup loading, and the startup audio-settings panel;
-- `scenes/ui/creature_info_panel.tscn` and `scripts/ui/creature_stats_ui.gd` own the self-contained creature information panel, hover/selection, deselection, and the lightning click bridge;
-- `scenes/ui/player_hud.tscn` and `scripts/ui/player_ui.gd` own the gameplay HUD composition, interactive terrain minimap, creature markers, camera-frame display and click navigation, creature/egg counters, time-speed controls, and egg-creation bootstrap;
-- `scripts/catalogs/player_species_catalog.gd` is the single ordered catalog for the six player species and owns player-only egg prices, energy income, flag button text, tooltips, and the current `PASTURE`/`GATHER` flag behaviour category;
-- `scripts/ui/player_egg_creation_ui.gd` owns egg-menu presentation, purchase validation, and requests to the player base; it reads species and prices from the player catalog and obtains its host controls through the nature-menu API rather than scene paths;
-- `scripts/flags/player_flag_system.gd` is the small flag facade: it owns scene attachment, placed-flag data, public save/debug entry points, and synchronization with the world visual;
-- `scripts/flags/player_flag_system_with_catalog.gd` is the active `PlayerFlags` autoload layer: it supplies the fixed player catalog, placement revisions, and delegates runtime work to the flag services;
-- `scripts/flags/player_flag_ui_controller.gd` owns the flag submenu, mouse targeting, placement/removal input, preview updates, and menu status text;
-- `scripts/flags/player_flag_assignment_service.gd` owns player-faction filtering, the five-new-route batch, interruption-safe commitments, path retries, one-shot arrival, and F3 flag diagnostics;
-- `scripts/flags/player_flag_target_allocator.gd` owns 11x11 destination selection, pasture preference, target reservations, and rotation to another destination after a failed path;
-- `scripts/creatures/behaviors/creature_movement_controller.gd` owns grid-route mutation and the public indirect-order boundary; flag assignment requests route apply/pause/cancel operations through creature methods instead of writing movement or FSM fields directly;
-- `scripts/creatures/behaviors/creature_visual_controller.gd` owns directional sprites, animation playback, contour-ground-shadow creation/synchronization, and the species death pose;
-- `scripts/creatures/behaviors/creature_interaction_controller.gd` owns the world-space hover/selection frame, `HoverArea` mouse signals, and the bridge from creature clicks to the creature-info/lightning UI;
-- `scripts/flags/player_flag_visual.gd` draws the world flag, its 11x11 area, and placement preview without blocking terrain;
-- `scripts/ui/debug_status_ui.gd` owns the compact FPS/Time/Mem line and F4 detailed text debug;
-- `scenes/ui/nature_menu.tscn` and `scripts/ui/player_nature_ui.gd` own spell buttons, targeting, previews, named main-menu buttons, and the stable access API for shared dynamic-menu content and time-speed controls;
-- `scripts/player/player_energy.gd` owns the session energy reserve, spending API, save value, and income from living player-faction dinosaurs using the player catalog;
-- `scripts/world/nature_effects_system.gd` owns world-side lightning, rain, sun, earthquake, DryGround clearing, adjacent mature-grass timer restarts, spell VFX application, and successful-cast sound triggers;
-- `scripts/save/save_system.gd` remains the base persistence/menu implementation, while `scripts/save/save_system_with_flags.gd` adds entity faction fields, species-flag placement/completion revisions, backward-compatible player defaults, and the in-game audio-settings page;
-- `scripts/debug/performance_stats.gd` owns F8 CSV logging, including separate flag scan, flag path-request, and flag path-failure rates;
-- `scripts/debug/grid_debug_overlay.gd` owns the F3 grid/debug overlay, including selected-creature flag state, flag center, assigned destination, and retry count.
+- `scenes/main/main.tscn` is a small compositor for the camera, gameplay HUD, world, simulation root, and debug overlay;
+- `player_hud.tscn`, `creature_info_panel.tscn`, and `nature_menu.tscn` own the physical gameplay UI;
+- dynamic save, flag, egg, and time-control menus resolve the nature panel through the `player_nature_ui` group API rather than deep scene paths;
+- `CreatureSpeciesData` stores biological species data, `CreatureFaction` stores runtime ownership, and `PlayerSpeciesCatalog` stores player-only economy and flag presentation;
+- `creature.gd` remains the creature FSM/survival coordinator and public facade; movement, visuals, and mouse interaction are delegated to dedicated controllers;
+- the player-flag facade, UI controller, assignment service, target allocator, and visual have separate ownership;
+- `save_system.gd` owns base slot persistence and reconstruction, while `save_system_with_flags.gd` layers optional faction, flag-revision, and in-game audio-settings data over it;
+- F3 grid diagnostics, F4 text diagnostics, and F8 CSV performance logging are separate systems.
 
-`scenes/main/main.tscn` is now a small gameplay compositor: it instances `scenes/ui/player_hud.tscn` beside the camera, world, simulation root, and debug overlay. `player_hud.tscn` owns the gameplay CanvasLayer and instances `creature_info_panel.tscn` and `nature_menu.tscn`; active SaveSystem, player flags, egg creation, and player time controls continue to resolve nested nature-menu controls through the `player_nature_ui` group API rather than scene paths.
+Exact file paths and ownership are indexed in `docs/project-map.md`; cross-file contracts are in `docs/dependencies.md`.
 
 ## Audio system
 
@@ -193,6 +184,7 @@ The observer camera:
 - starts at the authored `CameraStart` marker for a fresh game;
 - restores saved position and zoom when loading;
 - supports WASD movement and mouse-wheel zoom;
+- moves in real time independently of `Engine.time_scale`;
 - is clamped to the authored world bounds.
 
 ## Player base
@@ -365,33 +357,6 @@ Current death rules:
 
 The stegosaurus currently has a dedicated death-pose asset. Death visuals and corpse lifetime belong to species data rather than the shared creature scene.
 
-## Fragile rules
+## Change-safety reference
 
-- `world.tscn` is the only active world scene.
-- The empty-map bootstrap must never overwrite a non-empty TileMap.
-- Do not manually construct or rewrite Godot `tile_map_data`.
-- Water variants must remain in source id `1`.
-- Mountain variants must remain in source id `2`.
-- Tree terrain must remain in source id `3`.
-- The terrain minimap reads those source ids and must never modify TileMap data.
-- Minimap clicks may move only the observer camera; they must not change terrain, entities, or simulation state.
-- Trees use normal 128x128 tiles assembled into 2x2 visuals.
-- The player base must stay a static 2x2 blocker and must not be serialized as a dynamic creature/resource entity.
-- Player-created eggs must originate near the base, use normal species egg data, be marked as player-owned, and spend energy only after successful creation.
-- Species flags are soft player-faction behaviour priorities, never direct unit control, teleportation, or forced movement that overrides survival states.
-- Flag visuals never reserve or block terrain cells.
-- Grass spreads only onto normal walkable terrain and must not spread onto the player-base footprint.
-- Initial grass nodes are starting seeds, not a growth whitelist.
-- New grass must be positioned before `add_child()`.
-- Species-specific egg textures belong in the species `.tres`, not in duplicated egg scenes. Egg and hatchling faction ownership must propagate independently of those visual resources.
-- When custom egg textures are absent, preserve the shared egg scene defaults rather than assigning `null`.
-- Dead creatures must unregister occupancy before their corpse visual disappears.
-- Gameplay music, shared one-shot effects, and global button-click feedback belong to the global `AudioManager`; do not add duplicate scene-local audio managers, permanent music players, or per-button click players.
-- Do not put counters, speed controls, or debug status back into `creature_stats_ui.gd`.
-- Do not duplicate the in-game menu outside the existing `MENU` button.
-- Returning to Main Menu resets the active session but does not delete saves.
-- Major map edits can make old saved entity positions invalid; recreate saves or add an explicit migration.
-
-- Player-only economy and flag metadata belongs in `PlayerSpeciesCatalog`, not in UI scripts or biological species `.tres` files.
-- Species category checks use `diet_type`; do not infer gameplay identity from resource filenames.
-- Future enemy creatures must receive the `enemy` faction before entering active gameplay and must not generate player energy or follow player flags.
+The complete cross-file invariants, loading order, stable IDs, ownership boundaries, and rules that must survive refactoring are maintained in `docs/dependencies.md`. Do not treat this current-state document alone as sufficient preparation for code changes.

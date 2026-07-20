@@ -1,5 +1,8 @@
 # Dyna Project Map
 
+This document is the repository path and ownership index. It is intentionally descriptive enough for a new agent to locate systems without searching the whole project.
+Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belong in `docs/dependencies.md`.
+
 ## Project root
 
 - `project.godot` — Godot project config. Startup scene is `scenes/ui/start_screen.tscn`; `AudioManager`, `PerformanceStats`, the catalog-backed `PlayerFlags` extension, and the faction-aware `SaveSystem` extension are autoloads.
@@ -37,7 +40,7 @@
 - `scripts/world/start_map_world_grid.gd` — extends the base grid for the authored start map, spawns the player base at `CameraStart`, protects its footprint from grass spreading, and exposes world bounds to the camera.
 - `scripts/world/player_base.gd` — scales the base sprite, registers its static 2x2 blocker footprint, finds nearby valid egg positions, and creates configured species eggs.
 - `scripts/world/start_map_layout.gd` — builds the initial 85x85 terrain only when the `Ground` TileMap is empty; chooses matching water and mountain edge variants.
-- `scripts/camera/camera_controller.gd` — camera movement, wheel zoom, new-game start marker, and map-bound clamping.
+- `scripts/camera/camera_controller.gd` — real-time observer movement independent of simulation speed, wheel zoom, new-game start marker, and map-bound clamping.
 
 ### Creatures and resources
 
@@ -155,35 +158,6 @@ The world scene has source-id base terrain plus a DryGround overlay. The minimap
 - `assets/sprites/creatures/egg_eater/` — egg-eater directional and egg sprites.
 
 The current species resources assign their stage-1 and stage-2 egg textures directly. `egg.tscn` remains shared and supplies defaults for future incomplete species.
-
-## Ownership summary
-
-- Authored terrain and initial world contents belong in `scenes/world/world.tscn`.
-- The player-base scene owns its visual scaling, blocker registration, nearby egg-placement search, and species egg creation; `start_map_world_grid.gd` owns spawning it at the authored camera-start point.
-- Empty-map bootstrap and terrain edge selection belong in `scripts/world/start_map_layout.gd`.
-- Terrain, movement permissions, occupancy, blockers, pathfinding, and resource lookup belong in world-grid scripts.
-- Camera movement and visual boundary clamping belong in `scripts/camera/camera_controller.gd`.
-- Biological species stats, visuals, diet, and species-specific egg texture references belong in `data/species/*.tres`.
-- Universal egg incubation timing belongs in `scripts/resources/egg.gd`; species and faction data must not override it.
-- Legacy save restoration may query the old duration property names, but compatibility accessors resolve them back to `Egg` constants and do not restore per-species timing.
-- Runtime faction ownership belongs to `creature_faction.gd` metadata and must propagate creature → egg → hatchling and through save/load.
-- Player-only menu order, prices, income, and flag presentation belong in `player_species_catalog.gd`; future enemy-side usage belongs in a separate enemy catalog rather than player UI or species `.tres`.
-- Creature runtime coordination, FSM ownership, survival values, and the ordered death-cleanup sequence belong in `scripts/creatures/creature.gd`.
-- Directional sprites, animation playback, contour shadows, and the species death pose belong in `creature_visual_controller.gd`.
-- Hover/selection rendering and mouse-to-UI forwarding belong in `creature_interaction_controller.gd`; other systems continue to use the stable highlight methods on `creature.gd`.
-- Route/FSM field mutation for indirect external orders belongs behind `creature.gd` public methods and `creature_movement_controller.gd`; flag scripts must not set creature movement, food, or state fields directly.
-- Specialized creature behaviour belongs in `scripts/creatures/behaviors/`.
-- Grass and egg lifecycles belong in their own resource scripts.
-- Global music routing, one-shot playback, automatic button-click feedback, audio buses, fades, and persistent Music/Sounds settings belong to the `AudioManager` autoload and `scripts/audio/`.
-- Startup flow, loading, and startup audio-settings controls belong in `start_screen.gd`; startup layout, background presentation, and menu transparency belong in `start_screen.tscn`.
-- Save collection, reconstruction, slot files, and in-game save menu belong in `save_system.gd`.
-- Creature observation and selection belong in `creature_stats_ui.gd`.
-- Terrain minimap generation, diet/faction marker selection, camera-frame updates, minimap click navigation, player-only counters, speed controls, and egg-controller startup belong in `player_ui.gd`.
-- Egg submenu presentation, purchase validation, and base requests belong in `player_egg_creation_ui.gd`; prices and roster order come from `PlayerSpeciesCatalog`.
-- Species-flag ownership is split inside `scripts/flags/`: `player_flag_system.gd` is the facade, `player_flag_system_with_catalog.gd` supplies player catalog/revisions, `player_flag_ui_controller.gd` owns menu/input, `player_flag_assignment_service.gd` owns order lifecycle, `player_flag_target_allocator.gd` owns destinations/reservations, and `player_flag_visual.gd` owns drawing.
-- The base save system stays in `save_system.gd`; faction fields, flag placement/completion revisions, and the in-game audio-settings page are layered through `save_system_with_flags.gd`.
-- Gameplay HUD composition belongs in `scenes/ui/player_hud.tscn`; creature-info structure belongs in `creature_info_panel.tscn`; energy, time, main-menu, spell, and dynamic-menu host structure belongs in `nature_menu.tscn`. Spell controls, targeting, previews, and access to nested nature-menu controls belong in `player_nature_ui.gd`. SaveSystem, player flags, egg creation, and player time controls must use that API instead of hard-coded paths through `main.tscn`. Player energy belongs in `player_energy.gd`; only player-faction catalog entries contribute income, while egg purchases and spell UI use its public API. World-side spell results belong in `nature_effects_system.gd`.
-- Text and grid diagnostics belong in their dedicated debug scripts.
 
 ## Removed / not used
 

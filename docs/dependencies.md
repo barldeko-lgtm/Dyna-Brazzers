@@ -1,4 +1,7 @@
-# Dyna — Dependencies
+# Dyna — Dependencies and Invariants
+
+This is the detailed change-safety map for a new agent: runtime flows, ownership boundaries, stable IDs, compatibility rules, and invariants that must survive refactoring.
+Some critical facts intentionally repeat `current-state.md` or `project-map.md`; this redundancy is defensive and should not be removed merely to reduce line count.
 
 ## World grid
 
@@ -32,7 +35,7 @@ Map flow:
 5. Godot saves later manual TileMap edits in `world.tscn`.
 6. The world grid initializes terrain and occupancy.
 7. `start_map_world_grid.gd` places the fixed player base at `CameraStart` and reserves its 2x2 footprint.
-8. The camera reads authored bounds through the world grid.
+8. The camera reads authored bounds through the world grid and compensates for `Engine.time_scale`, so observer movement remains real-time at every simulation speed.
 
 Rules:
 
@@ -41,7 +44,8 @@ Rules:
 - preserve terrain source ids;
 - keep authored grass, the eggs container, the camera marker, and the player-base spawn footprint on valid terrain;
 - keep the player-base spawn point on a valid 2x2 ground footprint;
-- after major map edits, recreate saves or add migration/version handling.
+- after major map edits, recreate saves or add migration/version handling;
+- do not multiply camera movement by simulation speed or remove its time-scale compensation.
 
 If a task touches movement, blocked tiles, map dimensions, camera bounds, grass placement, the player base, corpse passability, or pathing, inspect these files together.
 
