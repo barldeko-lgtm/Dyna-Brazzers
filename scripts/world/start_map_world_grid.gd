@@ -1,16 +1,19 @@
 extends "res://scripts/world/world_grid.gd"
 
-# Camera bounds for the authored map.
-# Grass may occupy and spread onto any normal walkable terrain except the
-# fixed player-base footprint.
-
+# Camera bounds for the authored map. Grass may occupy and spread onto any
+# normal walkable terrain except either faction base footprint.
 const PLAYER_BASE_SCENE := preload("res://scenes/world/player_base.tscn")
+const ENEMY_BASE_SCENE := preload("res://scenes/world/enemy_base.tscn")
 const PLAYER_BASE_NODE_NAME := "PlayerBase"
+const ENEMY_BASE_NODE_NAME := "EnemyBase"
+const BASE_FOOTPRINT := Vector2i(2, 2)
+const ENEMY_BASE_FALLBACK_MARGIN := Vector2i(4, 4)
 
 
 func _ready() -> void:
 	super._ready()
 	spawn_player_base_if_needed()
+	spawn_enemy_base_if_needed()
 
 
 func can_host_grass(tile: Vector2i) -> bool:
@@ -19,7 +22,7 @@ func can_host_grass(tile: Vector2i) -> bool:
 
 	var occupant: Node = occupied_by_tile.get(tile, null)
 
-	if occupant != null and is_instance_valid(occupant) and occupant.is_in_group("player_base"):
+	if occupant != null and is_instance_valid(occupant) and occupant.is_in_group("faction_base"):
 		return false
 
 	return true
@@ -50,12 +53,63 @@ func spawn_player_base_if_needed() -> void:
 		push_error("StartMapWorldGrid: CameraStart marker was not found for the player base.")
 		return
 
-	var player_base := PLAYER_BASE_SCENE.instantiate() as Node2D
+	_spawn_base(
+		PLAYER_BASE_SCENE,
+		PLAYER_BASE_NODE_NAME,
+		spawn_marker.position
+	)
 
-	if player_base == null:
-		push_error("StartMapWorldGrid: player-base scene could not be instantiated.")
+
+func spawn_enemy_base_if_needed() -> void:
+	if get_node_or_null(ENEMY_BASE_NODE_NAME) != null:
 		return
 
-	player_base.name = PLAYER_BASE_NODE_NAME
-	player_base.position = spawn_marker.position
-	add_child(player_base)
+	var spawn_marker := get_node_or_null("EnemyBaseStart") as Node2D
+	var spawn_position := Vector2.ZERO
+
+	if spawn_marker != null:
+		spawn_position = spawn_marker.position
+	else:
+		# Keep the authored TileMap untouched. Until an EnemyBaseStart marker is
+		# placed in Godot, use a deterministic anchor near the opposite map edge.
+		ensure_initialized()
+		var fallback_anchor := _find_enemy_fallback_anchor()
+		spawn_position = anchor_to_world_position(fallback_anchor, BASE_FOOTPRINT)
+
+	_spawn_base(
+		ENEMY_BASE_SCENE,
+		ENEMY_BASE_NODE_NAME,
+		spawn_position
+	)
+
+
+func _find_enemy_fallback_anchor() -> Vector2i:
+	var preferred_anchor := Vector2i(
+		maxi(map_min.x, map_max.x - ENEMY_BASE_FALLBACK_MARGIN.x),
+		maxi(map_min.y, map_max.y - ENEMY_BASE_FALLBACK_MARGIN.y)
+	)
+
+	for y in range(preferred_anchor.y, map_min.y - 1, -1):
+		for x in range(preferred_anchor.x, map_min.x - 1, -1):
+			var candidate_anchor := Vector2i(x, y)
+
+			if can_place_footprint(candidate_anchor, BASE_FOOTPRINT):
+				return candidate_anchor
+
+	return preferred_anchor
+
+
+func _spawn_base(
+	base_scene: PackedScene,
+	base_name: String,
+	spawn_position: Vector2
+) -> void:
+	var faction_base := base_scene.instantiate() as Node2D
+
+	if faction_base == null:
+		push_error("StartMapWorldGrid: %s scene could not be instantiated." % base_name)
+		return
+
+	faction_base.name = base_name
+	faction_base.position = spawn_position
+	add_child(faction_base)

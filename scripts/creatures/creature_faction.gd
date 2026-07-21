@@ -2,34 +2,35 @@ class_name CreatureFaction
 extends RefCounted
 
 # Runtime ownership is intentionally separate from species data. The same
-# dinosaur species may belong to the player, an enemy faction, aliens, or a
-# neutral ecosystem without duplicating its biological resource.
+# dinosaur species may belong to the player, the enemy, or a neutral ecosystem
+# without duplicating its biological resource.
 const PLAYER: StringName = &"player"
 const ENEMY: StringName = &"enemy"
-const ALIEN: StringName = &"alien"
 const NEUTRAL: StringName = &"neutral"
 const META_KEY: StringName = &"dyna_faction_id"
+
+const VALID_IDS: Dictionary = {
+	PLAYER: true,
+	ENEMY: true,
+	NEUTRAL: true
+}
 
 
 static func normalize(faction_variant: Variant) -> StringName:
 	if faction_variant == null:
 		return PLAYER
 
-	# Runtime faction values are already StringName in the normal path. Avoid
-	# converting them to String and trimming them on every UI/energy/flag scan.
 	if faction_variant is StringName:
 		var faction_id: StringName = faction_variant
-		return PLAYER if faction_id == StringName() else faction_id
+		return _normalize_id(faction_id)
 
 	if faction_variant is String:
 		var faction_text: String = faction_variant
-
-		# Trimming is kept only for external/save compatibility paths.
 		faction_text = faction_text.strip_edges()
-		return PLAYER if faction_text.is_empty() else StringName(faction_text)
+		return PLAYER if faction_text.is_empty() else _normalize_id(StringName(faction_text))
 
 	var faction_text := String(faction_variant).strip_edges()
-	return PLAYER if faction_text.is_empty() else StringName(faction_text)
+	return PLAYER if faction_text.is_empty() else _normalize_id(StringName(faction_text))
 
 
 static func get_id(entity: Node) -> StringName:
@@ -41,13 +42,7 @@ static func get_id(entity: Node) -> StringName:
 	if not entity.has_meta(META_KEY):
 		return PLAYER
 
-	var faction_variant: Variant = entity.get_meta(META_KEY)
-
-	if faction_variant is StringName:
-		var faction_id: StringName = faction_variant
-		return PLAYER if faction_id == StringName() else faction_id
-
-	return normalize(faction_variant)
+	return normalize(entity.get_meta(META_KEY))
 
 
 static func set_id(entity: Node, faction_variant: Variant) -> StringName:
@@ -69,3 +64,22 @@ static func set_id(entity: Node, faction_variant: Variant) -> StringName:
 
 static func is_player(entity: Node) -> bool:
 	return get_id(entity) == PLAYER
+
+
+static func is_enemy(entity: Node) -> bool:
+	return get_id(entity) == ENEMY
+
+
+static func is_neutral(entity: Node) -> bool:
+	return get_id(entity) == NEUTRAL
+
+
+static func _normalize_id(faction_id: StringName) -> StringName:
+	if faction_id == StringName():
+		return PLAYER
+
+	if VALID_IDS.has(faction_id):
+		return faction_id
+
+	# Unknown or removed faction ids must not silently become player-owned.
+	return NEUTRAL

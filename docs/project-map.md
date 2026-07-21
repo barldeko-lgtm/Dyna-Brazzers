@@ -22,6 +22,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scenes/ui/nature_menu.tscn` — self-contained player energy, time controls, named main-menu buttons, spell buttons, and host area used by runtime egg, flag, and save menus.
 - `scenes/world/world.tscn` — only active gameplay world: 85x85 base terrain TileMap, a DryGround overlay with three variants, initial grass, an empty creature container, eggs container, camera marker, and world grid.
 - `scenes/world/player_base.tscn` — fixed 2x2 player nature base, spawned at the authored `CameraStart` marker and used as the origin for player-created eggs.
+- `scenes/world/enemy_base.tscn` — fixed 2x2 enemy base using the temporary player-base visual; it is spawned near the opposite map edge or at an optional `EnemyBaseStart` marker and has no production AI yet.
 - `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures.
 - `scenes/resources/egg.tscn` — shared two-stage egg scene used by all reproducing species.
 - `scenes/creatures/creature.tscn` — shared base creature scene.
@@ -37,8 +38,10 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 ### World and camera
 
 - `scripts/world/world_grid.gd` — terrain lookup, DryGround overlay/rain-hit state, walkability, occupancy, blockers, pathfinding, grass lookup, and footprint queries.
-- `scripts/world/start_map_world_grid.gd` — extends the base grid for the authored start map, spawns the player base at `CameraStart`, protects its footprint from grass spreading, and exposes world bounds to the camera.
-- `scripts/world/player_base.gd` — scales the base sprite, registers its static 2x2 blocker footprint, finds nearby valid egg positions, and creates configured species eggs.
+- `scripts/world/start_map_world_grid.gd` — extends the base grid for the authored start map, spawns the player and enemy bases, protects both footprints from grass spreading, and exposes world bounds to the camera. The enemy base uses `EnemyBaseStart` when present and otherwise chooses a deterministic valid fallback near the opposite map edge without rewriting `world.tscn`.
+- `scripts/world/faction_base.gd` — shared stationary 2x2 base foundation: faction assignment, blocker registration, visual scaling, nearby egg-footprint search, and faction-owned egg creation plumbing.
+- `scripts/world/player_base.gd` — thin player wrapper over `FactionBase`; preserves the existing `create_player_egg()` API used by the player egg menu.
+- `scripts/world/enemy_base.gd` — thin enemy wrapper over `FactionBase`; exposes `create_enemy_egg()` for the future enemy production controller but does not create eggs automatically.
 - `scripts/world/start_map_layout.gd` — builds the initial 85x85 terrain only when the `Ground` TileMap is empty; chooses matching water and mountain edge variants.
 - `scripts/camera/camera_controller.gd` — real-time observer movement independent of simulation speed, wheel zoom, new-game start marker, and map-bound clamping.
 
@@ -46,13 +49,14 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 
 - `scripts/creatures/creature.gd` — creature runtime coordinator and public facade for FSM state, survival, movement, combat, reproduction, death cleanup, visuals, and interaction.
 - `scripts/creatures/creature_species_data.gd` — shared biological species resource schema; `diet_type` is the sole stored nutrition category and helper methods classify herbivores, predators, and egg eaters.
-- `scripts/creatures/creature_faction.gd` — runtime faction ownership helper (`player`, `enemy`, `alien`, `neutral`) kept separate from species identity and defaulting old/current untagged entities to player.
+- `scripts/creatures/creature_faction.gd` — validated runtime faction ownership helper (`player`, `enemy`, `neutral`) kept separate from species identity. Untagged current entities default to player; unknown or removed non-empty faction ids normalize to neutral.
 - `scripts/catalogs/player_species_catalog.gd` — ordered fixed catalog of the six player species with player-only egg prices, energy income, flag text, and current flag behaviour category.
+- `scripts/catalogs/enemy_species_catalog.gd` — fixed six-species enemy roster pointing to enemy-specific biological resources. Enemy economy, population goals, priorities, and production timing are intentionally not implemented yet.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore food search and target ranking.
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — shared carnivore targeting and combat-entry logic.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — stage-2 egg targeting, periodic retargeting, and consumption logic.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and egg spawning.
-- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, animations, contour-ground-shadow creation/synchronization, and death pose.
+- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, animations, contour-ground-shadow creation/synchronization, and death pose. Enemy resources currently omit animation frame resources and therefore use static directional sprites.
 - `scripts/creatures/behaviors/creature_interaction_controller.gd` — world-space hover/selection frame, `HoverArea` mouse signals, and the creature-to-UI click bridge.
 - `scripts/creatures/behaviors/creature_movement_controller.gd` — grid-step execution, route clearing, wandering-step selection, and the creature-owned API used by indirect external orders.
 - `scripts/combat/duel.gd` — temporary one-on-one combat loop.
@@ -99,7 +103,7 @@ On Windows this normally resolves to:
 
 `%APPDATA%/Godot/app_userdata/Dyna/`
 
-Static base terrain and the fixed player base are not included in these files. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored as deltas. Creature and egg factions are optional save fields, so older saves load them as player-owned. Active species flags remain lightweight tile records.
+Static base terrain and both fixed faction bases are not included in these files. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored as deltas. Creature and egg factions are optional save fields, so older saves load them as player-owned. Active species flags remain lightweight tile records. The enemy base currently has no mutable state or production timer to save.
 
 ## Terrain assets
 
@@ -138,11 +142,13 @@ The world scene has source-id base terrain plus a DryGround overlay. The minimap
 - `assets/sprites/effects/rain/rain_cast_01.png` ... `rain_cast_04.png` — transparent rain animation frames.
 - `assets/ui/creature_selection_frame.png` — world-space creature hover/selection frame.
 
-## Player-base asset
+## Faction-base asset
 
-- `assets/sprites/world/player_base.png` — 512x512 transparent source sprite displayed at 256x256 in world space with mipmapped linear filtering.
+- `assets/sprites/world/player_base.png` — temporary shared 512x512 transparent source sprite used by both bases and displayed at 256x256 in world space with mipmapped linear filtering. The enemy scene will receive its own replacement asset later without changing the base logic.
 
 ## Creature and species assets
+
+Player resources:
 
 - `data/species/stegosaurus.tres` — stegosaurus stats, visuals, animations, egg data, and death settings.
 - `data/species/triceratops.tres` — triceratops stats, directional visuals, and custom egg textures.
@@ -150,6 +156,20 @@ The world scene has source-id base terrain plus a DryGround overlay. The minimap
 - `data/species/raptor.tres` — raptor stats, visuals, and custom egg textures.
 - `data/species/pterodactyl.tres` — pterodactyl stats, visuals, and custom egg textures.
 - `data/species/egg_eater.tres` — egg-eater stats, visuals, and custom egg textures.
+
+Enemy resources:
+
+- `data/species/enemy/stegosaurus.tres`;
+- `data/species/enemy/triceratops.tres`;
+- `data/species/enemy/tyrannosaurus.tres`;
+- `data/species/enemy/raptor.tres`;
+- `data/species/enemy/pterodactyl.tres`;
+- `data/species/enemy/egg_eater.tres`.
+
+The six enemy resources currently copy the effective player balance values and reuse the existing directional and two-stage egg PNGs. They intentionally do not reference walk/eat animation frame resources; static directional sprites are used until enemy-specific art is supplied. Enemy and player resources keep the same biological `species_id`, while their distinct resource paths and runtime faction ids keep save restoration and ownership separate.
+
+Current visual folders:
+
 - `assets/sprites/creatures/stegosaurus/` — stegosaurus sprites, animations, and egg sprites.
 - `assets/sprites/creatures/triceratops/` — triceratops directional, animation, and egg sprites.
 - `assets/sprites/creatures/tyrannosaurus/` — tyrannosaurus directional, idle, and egg sprites.
@@ -157,7 +177,7 @@ The world scene has source-id base terrain plus a DryGround overlay. The minimap
 - `assets/sprites/creatures/pterodactyl/` — pterodactyl directional and egg sprites.
 - `assets/sprites/creatures/egg_eater/` — egg-eater directional and egg sprites.
 
-The current species resources assign their stage-1 and stage-2 egg textures directly. `egg.tscn` remains shared and supplies defaults for future incomplete species.
+The species resources assign their stage-1 and stage-2 egg textures directly. `egg.tscn` remains shared and supplies defaults for future incomplete species.
 
 ## Removed / not used
 

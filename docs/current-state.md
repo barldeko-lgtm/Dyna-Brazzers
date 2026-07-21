@@ -13,12 +13,14 @@ Current prototype includes:
 - an editable 85x85 tile-based 2D world;
 - six player-creatable species: stegosaurus, triceratops, tyrannosaurus, raptor, pterodactyl, and egg eater; fresh games start without adult creatures;
 - a fixed 2x2 player nature base that creates player-bought eggs on nearby free tiles;
+- a fixed 2x2 enemy base foundation using the temporary player-base sprite; it blocks the world but does not create eggs automatically yet;
 - quality-aware grass targeting;
 - four-stage renewable grass;
 - eggs, hatching, and population growth;
-- species-specific data resources;
+- player and enemy species-specific data resources;
 - a fixed player-species catalog that centralizes the six player species, egg prices, energy income, and flag presentation without mixing those player-only values into biological species data;
-- runtime faction ownership (`player`, `enemy`, `alien`, or `neutral`) kept separate from species identity, with current entities defaulting to the player faction;
+- a fixed enemy-species catalog pointing to six enemy resource variants without implementing enemy economy or production AI;
+- runtime faction ownership (`player`, `enemy`, or `neutral`) kept separate from species identity, with current untagged entities defaulting to the player faction and unknown non-empty ids normalizing to neutral;
 - species-specific two-stage egg visuals for all current reproducing species;
 - shared carnivore targeting and simple duel-combat code;
 - creature death with a short corpse/death-pose visual before removal;
@@ -47,9 +49,9 @@ Current prototype includes:
 - return to Main Menu with full active-session reset;
 - Exit buttons in both the startup screen and the in-game menu.
 
-Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, shared carnivore/combat prototype code, and the fixed player-base foundation for future egg creation. Roadmap block `0.7 — Player expansion and atmosphere` now includes the interactive terrain minimap, player egg creation, the first all-species flag pass, and the first gameplay-audio foundation.
+Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, shared carnivore/combat prototype code, and the fixed player-base foundation. Roadmap block `0.7 — Player expansion and atmosphere` includes the interactive terrain minimap, player egg creation, the first all-species flag pass, and the first gameplay-audio foundation. Roadmap block `0.8 — Enemies` has started with the two-base foundation, validated three-faction ownership, an enemy six-species catalog, and separate enemy biological resources.
 
-Automatic adult carnivore spawning is currently disabled.
+Automatic adult carnivore spawning is currently disabled. Enemy-base egg production and enemy strategic AI are also currently disabled.
 
 ## Design direction
 
@@ -62,6 +64,8 @@ Keep:
 - world/resource/entity logic separate from UI;
 - simulation-first design, not a standard RTS.
 
+The enemy side follows the same simulation-first direction. Its future controller may choose when to create eggs, but hatched enemy creatures use the same autonomous survival, food, reproduction, movement, and combat systems as player creatures rather than receiving direct unit commands.
+
 ## Startup screen
 
 Current startup flow:
@@ -71,7 +75,7 @@ Current startup flow:
 - the centered menu panel uses approximately 80% opacity so the background remains visible without reducing button readability;
 - `New Game` opens a fresh `scenes/main/main.tscn` session;
 - `Load` shows three slots;
-- occupied slots show save date and time;
+- occupied slots show date and time;
 - empty slots are visible but disabled;
 - `Settings` opens persistent sliders for gameplay music and all non-music sounds;
 - `Exit` closes the application.
@@ -104,9 +108,9 @@ Saved dynamic state includes:
 - simulation speed;
 - save timestamp.
 
-Static base terrain and the fixed player base are not serialized. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored as lightweight deltas.
+Static base terrain and both fixed faction bases are not serialized. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored as lightweight deltas. The enemy base currently has no mutable production or health state that requires persistence.
 
-Older saves without faction fields remain valid: restored creatures and eggs default to the player faction.
+Older saves without faction fields remain valid: restored creatures and eggs default to the player faction. A saved non-empty faction id that is no longer supported is normalized to neutral rather than silently becoming player-owned.
 
 `Main Menu` unloads the active game scene and clears temporary `SaveSystem` references without deleting save files. Starting `New Game` afterwards creates a clean session.
 
@@ -117,7 +121,8 @@ The active project is deliberately split by responsibility:
 - `scenes/main/main.tscn` is a small compositor for the camera, gameplay HUD, world, simulation root, and debug overlay;
 - `player_hud.tscn`, `creature_info_panel.tscn`, and `nature_menu.tscn` own the physical gameplay UI;
 - dynamic save, flag, egg, and time-control menus resolve the nature panel through the `player_nature_ui` group API rather than deep scene paths;
-- `CreatureSpeciesData` stores biological species data, `CreatureFaction` stores runtime ownership, and `PlayerSpeciesCatalog` stores player-only economy and flag presentation;
+- `CreatureSpeciesData` stores biological species data, `CreatureFaction` stores validated runtime ownership, `PlayerSpeciesCatalog` stores player-only economy and flag presentation, and `EnemySpeciesCatalog` selects the enemy biological variants without owning future enemy AI;
+- `faction_base.gd` owns shared fixed-base blocking, visuals, nearby egg placement, and faction assignment; `player_base.gd` and `enemy_base.gd` remain thin faction-specific wrappers;
 - `creature.gd` remains the creature FSM/survival coordinator and public facade; movement, visuals, and mouse interaction are delegated to dedicated controllers;
 - the player-flag facade, UI controller, assignment service, target allocator, and visual have separate ownership;
 - `save_system.gd` owns base slot persistence and reconstruction, while `save_system_with_flags.gd` layers optional faction, flag-revision, and in-game audio-settings data over it;
@@ -156,11 +161,11 @@ Current minimap rules:
 - player herbivores are shown as light-green triangle markers;
 - player predators are shown as red triangle markers;
 - the player egg eater is shown as a blue triangle marker;
-- enemy-faction marker colours are prepared separately for the future enemy roster, while the current right-side counters continue to count only player creatures and eggs;
+- enemy-faction marker colours are selected separately from the player palette; the current right-side counters continue to count only player creatures and eggs;
 - a bright rectangular frame shows the current camera viewport and changes size with camera zoom;
 - left-clicking the minimap moves the observer camera to the selected world position;
 - base terrain stays static during a session; a DryGround overlay may be cleared by its third rain hit, then the minimap rebuilds; a separate overlay redraws the camera frame and 6x6 creature triangle markers during play;
-- eggs, the player base, and world events are not shown yet.
+- eggs, faction bases, and world events are not shown yet.
 
 ## Terrain
 
@@ -187,19 +192,31 @@ The observer camera:
 - moves in real time independently of `Engine.time_scale`;
 - is clamped to the authored world bounds.
 
-## Player base
+## Faction bases
 
-Current player-base rules:
+Shared rules:
+
+- `scripts/world/faction_base.gd` registers a stationary 2x2 blocker footprint, scales the base sprite, applies faction ownership, and contains the shared nearby egg-placement plumbing;
+- both bases belong to the runtime `faction_base` group, remain stationary, and block the same four world-grid cells;
+- creatures and pathfinding treat both footprints as unavailable, like blocked terrain;
+- grass cannot spread onto either faction-base footprint;
+- both bases are static world setup and are not included in save-slot entity data;
+- the shared source texture is currently `assets/sprites/world/player_base.png`, displayed at 256x256 with linear mipmapped filtering.
+
+Player-base rules:
 
 - `scripts/world/start_map_world_grid.gd` instantiates `scenes/world/player_base.tscn` at the authored `CameraStart` marker;
-- the base is stationary and belongs to the `player_base` group;
-- it occupies and blocks a 2x2 grid footprint, equivalent to 256x256 world pixels;
-- creatures and pathfinding treat those four cells as unavailable, like blocked terrain;
-- grass cannot spread onto the player-base footprint;
-- `assets/sprites/world/player_base.png` remains a 512x512 source texture and is displayed at 256x256 with linear mipmapped filtering;
-- the base is static world setup and is not included in save-slot entity data;
-- `scripts/world/player_base.gd` searches for a free stage-1 egg footprint near the base and creates the selected species egg there;
-- player-created eggs use the same shared egg lifecycle and save system as naturally laid eggs.
+- the player base belongs to the `player_base` group;
+- `scripts/world/player_base.gd` preserves `create_player_egg()` for the existing player egg UI;
+- player-created eggs are explicitly player-owned and use the shared egg lifecycle and save system.
+
+Enemy-base rules:
+
+- `scripts/world/start_map_world_grid.gd` instantiates `scenes/world/enemy_base.tscn` at an optional `EnemyBaseStart` child marker when one exists;
+- until that marker is authored in Godot, the enemy base uses a deterministic nearest-valid 2x2 anchor near the opposite map edge without changing TileMap data;
+- the enemy base belongs to the `enemy_base` group and is explicitly enemy-owned;
+- `scripts/world/enemy_base.gd` exposes `create_enemy_egg()` for the next development step;
+- no timer, energy reserve, population logic, automatic egg creation, attack order, or other enemy AI runs yet.
 
 ## Trees
 
@@ -229,7 +246,7 @@ Rules:
 - edible grass returns to the first stage when consumed;
 - only mature grass attempts natural spreading;
 - natural spreading checks cardinal neighbouring tiles;
-- grass may spread across any normal walkable ground tile except the fixed player-base footprint and DryGround overlay;
+- grass may spread across any normal walkable ground tile except either fixed faction-base footprint and the DryGround overlay;
 - initial grass placements are only starting seeds, not an allowed-growth mask;
 - rain advances grass growth, can trigger mature spreading, and removes DryGround only on its third hit; when a cell clears, each mature grass patch on its four cardinal neighbours restarts its normal spread timer;
 - sun reduces or removes grass through the existing nature-power rules.
@@ -240,7 +257,7 @@ Dynamically created grass is positioned before it is added to the scene tree. Th
 
 Eggs use the shared lifecycle from `scenes/resources/egg.tscn` and `scripts/resources/egg.gd`.
 
-All player, enemy, alien, and neutral eggs use one shared timing from `scripts/resources/egg.gd`: stage 1 lasts 5 seconds, blocked expansion retries every 1 second, and stage 2 lasts 10 seconds. Species data controls visuals and hatchling biology, not incubation speed.
+All player, enemy, and neutral eggs use one shared timing from `scripts/resources/egg.gd`: stage 1 lasts 5 seconds, blocked expansion retries every 1 second, and stage 2 lasts 10 seconds. Species data controls visuals and hatchling biology, not incubation speed.
 
 Current reproducing species use their own two-stage egg textures:
 
@@ -267,23 +284,31 @@ Player egg-creation rules:
 - energy is spent only after the base successfully creates the egg;
 - failed placement does not consume energy;
 - created eggs grow, expand, hatch, and save through the existing shared egg system;
-- player-bought eggs are marked as player-owned, naturally laid eggs inherit their parent faction, and hatchlings inherit the egg faction.
-- every creature hatched from either a natural or player-created egg starts with its species maximum health and maximum hunger.
+- player-bought eggs are marked as player-owned, naturally laid eggs inherit their parent faction, and hatchlings inherit the egg faction;
+- every creature hatched from either a natural or base-created egg starts with its species maximum health and maximum hunger;
 - hungry egg eaters recheck valid stage-2 egg targets every 0.5 seconds; they switch only to a candidate at least two tile steps closer, and hunger overrides their species flag.
 
+Enemy egg readiness:
+
+- the enemy base has the same safe nearby egg-placement method but nothing calls it automatically yet;
+- when the next step creates an enemy egg through `create_enemy_egg()`, the egg will receive the enemy faction before entering active gameplay;
+- the existing egg lifecycle will then pass that faction to the hatchling automatically.
 
 ## Species catalog and faction ownership
 
-Species identity and faction ownership are intentionally separate:
+Species identity, resource variant, and faction ownership are intentionally separate:
 
-- `CreatureSpeciesData` and `data/species/*.tres` describe biology, visuals, survival, combat, and reproduction; `diet_type` is the only stored nutrition category, exposed through `is_herbivore()`, `is_predator()`, and `is_egg_eater()`;
+- `CreatureSpeciesData` and species `.tres` files describe biology, visuals, survival, combat, and reproduction; `diet_type` is the only stored nutrition category, exposed through `is_herbivore()`, `is_predator()`, and `is_egg_eater()`;
 - `scripts/catalogs/player_species_catalog.gd` describes how the player uses the fixed six-species roster: menu order, egg cost, energy income, and flag presentation/behaviour category;
-- `scripts/creatures/creature_faction.gd` stores runtime ownership independently as `player`, `enemy`, `alien`, or `neutral`;
-- current creatures and old saves without faction data default to `player`;
+- `scripts/catalogs/enemy_species_catalog.gd` selects the fixed six enemy resource variants without storing player prices, player income, player flag text, or future AI rules;
+- `scripts/creatures/creature_faction.gd` stores runtime ownership independently as `player`, `enemy`, or `neutral`;
+- current creatures and old saves without faction data default to `player`; unknown non-empty ids normalize to `neutral`;
 - all creatures remain a shared logical 2x2 footprint; footprint size is not duplicated in species or faction catalogs;
-- a future six-species enemy roster may reuse the same biological species resources through a separate enemy catalog without receiving player prices, player income, or player flags.
+- player and enemy variants keep the same biological `species_id`, while separate resource paths allow different visuals and stats and keep save restoration unambiguous.
 
-Player systems must filter by faction: only player-owned living creatures generate player energy, only player-owned creatures respond to `PlayerFlags`, and the current HUD counters show only player creatures and eggs.
+The six enemy resources under `data/species/enemy/` currently copy the effective stats of the corresponding player resources. They reuse the current directional sprites and stage-1/stage-2 egg textures, but intentionally omit walk and eating animation frame resources. The existing visual controller therefore displays static directional poses until enemy-specific sprites and animations are supplied.
+
+Player systems must filter by faction: only player-owned living creatures generate player energy, only player-owned creatures respond to `PlayerFlags`, and the current HUD counters show only player creatures and eggs. Enemy creatures still use the same autonomous survival and species behaviour once instantiated.
 
 ## Species-order flags
 
@@ -293,7 +318,7 @@ Rules:
 
 - a flag is placed or moved on a walkable tile; all flags are visual only and never block the world;
 - the `⚑` menu places or moves a selected flag with left-click; right-click cancels and flags cost no energy;
-- eligible player-faction idle/walk creatures without an active higher-priority task receive a soft movement preference toward their own area; enemy and other factions ignore player flags even when they use the same species resource;
+- eligible player-faction idle/walk creatures without an active higher-priority task receive a soft movement preference toward their own area; enemy and neutral creatures ignore player flags even when they use the same biological `species_id`;
 - hunger, eating, reproduction, combat, death, and other survival behaviour remain higher priority than the flag; after a creature has received its first successful route for the current flag placement, temporary interruptions preserve that commitment and the route resumes at the next flag update instead of rejoining the new-creature queue;
 - stegosaurus and triceratops prefer mature grass anchors inside their area; other current species prefer free valid anchors;
 - destinations are distributed through cached reserved footprint tiles instead of repeatedly comparing every creature target with every other target;
@@ -336,7 +361,6 @@ Current rain visual rules:
 - the effect removes itself after playback;
 - the rain overlay remains below the creature selection frame.
 
-
 ## Earthquake
 
 - the spell targets a centered 11x11 tile area and is available only when it intersects at least one egg;
@@ -356,7 +380,7 @@ Current death rules:
 - the corpse is non-blocking;
 - the creature is removed after the corpse lifetime expires.
 
-The stegosaurus currently has a dedicated death-pose asset. Death visuals and corpse lifetime belong to species data rather than the shared creature scene.
+The player stegosaurus currently has a dedicated death-pose asset. Enemy resources do not assign separate death assets yet, so the visual controller falls back to the static right-facing texture. Death visuals and corpse lifetime belong to species data rather than the shared creature scene.
 
 ## Change-safety reference
 
