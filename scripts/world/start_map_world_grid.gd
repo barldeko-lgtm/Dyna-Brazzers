@@ -4,8 +4,12 @@ extends "res://scripts/world/world_grid.gd"
 # normal walkable terrain except either faction base footprint.
 const PLAYER_BASE_SCENE := preload("res://scenes/world/player_base.tscn")
 const ENEMY_BASE_SCENE := preload("res://scenes/world/enemy_base.tscn")
+const ENEMY_ENERGY_SCRIPT := preload("res://scripts/enemies/enemy_energy.gd")
+const ENEMY_PRODUCTION_SCRIPT := preload("res://scripts/enemies/enemy_egg_production_controller.gd")
 const PLAYER_BASE_NODE_NAME := "PlayerBase"
 const ENEMY_BASE_NODE_NAME := "EnemyBase"
+const ENEMY_ENERGY_NODE_NAME := "EnemyEnergy"
+const ENEMY_PRODUCTION_NODE_NAME := "EnemyEggProduction"
 const BASE_FOOTPRINT := Vector2i(2, 2)
 const ENEMY_BASE_FALLBACK_MARGIN := Vector2i(4, 4)
 
@@ -14,6 +18,7 @@ func _ready() -> void:
 	super._ready()
 	spawn_player_base_if_needed()
 	spawn_enemy_base_if_needed()
+	spawn_enemy_runtime_if_needed()
 
 
 func can_host_grass(tile: Vector2i) -> bool:
@@ -81,6 +86,26 @@ func spawn_enemy_base_if_needed() -> void:
 		ENEMY_BASE_NODE_NAME,
 		spawn_position
 	)
+
+
+func spawn_enemy_runtime_if_needed() -> void:
+	if get_node_or_null(ENEMY_ENERGY_NODE_NAME) == null:
+		var enemy_energy := ENEMY_ENERGY_SCRIPT.new() as Node
+
+		if enemy_energy == null:
+			push_error("StartMapWorldGrid: enemy energy could not be created.")
+		else:
+			enemy_energy.name = ENEMY_ENERGY_NODE_NAME
+			add_child(enemy_energy)
+
+	if get_node_or_null(ENEMY_PRODUCTION_NODE_NAME) == null:
+		var enemy_production := ENEMY_PRODUCTION_SCRIPT.new() as Node
+
+		if enemy_production == null:
+			push_error("StartMapWorldGrid: enemy egg production could not be created.")
+		else:
+			enemy_production.name = ENEMY_PRODUCTION_NODE_NAME
+			add_child(enemy_production)
 
 
 func _find_enemy_fallback_anchor() -> Vector2i:

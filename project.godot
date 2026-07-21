@@ -20,7 +20,7 @@ config/icon="res://app_icon.svg"
 AudioManager="*res://scripts/audio/audio_manager.gd"
 PerformanceStats="*res://scripts/debug/performance_stats.gd"
 PlayerFlags="*res://scripts/flags/player_flag_system_with_catalog.gd"
-SaveSystem="*res://scripts/save/save_system_with_flags.gd"
+SaveSystem="*res://scripts/save/save_system_with_enemy.gd"
 
 [display]
 

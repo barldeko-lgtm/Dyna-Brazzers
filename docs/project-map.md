@@ -5,7 +5,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 
 ## Project root
 
-- `project.godot` — Godot project config. Startup scene is `scenes/ui/start_screen.tscn`; `AudioManager`, `PerformanceStats`, the catalog-backed `PlayerFlags` extension, and the faction-aware `SaveSystem` extension are autoloads.
+- `project.godot` — Godot project config. Startup scene is `scenes/ui/start_screen.tscn`; `AudioManager`, `PerformanceStats`, the catalog-backed `PlayerFlags`, and the enemy-state-aware `SaveSystem` extension are autoloads.
 - `default_bus_layout.tres` — shared `Master`, `Music`, `Sounds`, `Ambient`, `SFX`, and `UI` audio-bus layout.
 - `AGENTS.md` — working rules and architecture briefing for agents.
 - `docs/project-map.md` — project structure and file ownership.
@@ -51,7 +51,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/creatures/creature_species_data.gd` — shared biological species resource schema; `diet_type` is the sole stored nutrition category and helper methods classify herbivores, predators, and egg eaters.
 - `scripts/creatures/creature_faction.gd` — validated runtime faction ownership helper (`player`, `enemy`, `neutral`) kept separate from species identity. Untagged current entities default to player; unknown or removed non-empty faction ids normalize to neutral.
 - `scripts/catalogs/player_species_catalog.gd` — ordered fixed catalog of the six player species with player-only egg prices, energy income, flag text, and current flag behaviour category.
-- `scripts/catalogs/enemy_species_catalog.gd` — fixed six-species enemy roster pointing to enemy-specific biological resources. Enemy economy, population goals, priorities, and production timing are intentionally not implemented yet.
+- `scripts/catalogs/enemy_species_catalog.gd` — fixed six-species enemy roster with enemy-specific resources, mirrored egg costs, and per-creature enemy-energy income; strategic population priorities remain future work.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore food search and target ranking.
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — shared carnivore targeting and combat-entry logic.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — stage-2 egg targeting, periodic retargeting, and consumption logic.
@@ -81,10 +81,13 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag, 11x11 area, and placement-preview drawing.
 - `scripts/ui/player_nature_ui.gd` — script on `nature_menu.tscn`; owns spell controls, targeting, previews, named menu-button lookup, and the stable access API used by dynamic menus and time controls.
 - `scripts/player/player_energy.gd` — session energy reserve, spending API, and catalog-defined income from living player-faction dinosaurs only.
+- `scripts/enemies/enemy_energy.gd` — session enemy reserve starting at 5000, spending API, and catalog-defined income from living enemy-faction creatures.
+- `scripts/enemies/enemy_egg_production_controller.gd` — temporary five-second round-robin enemy egg producer; strategic AI will replace this deterministic scaffold later.
 - `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, DryGround clearing, adjacent mature-grass timer restarts, spell VFX application, and successful-cast sound triggers.
-- `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug.
+- `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem/Enemy Enka line and F4 detailed debug.
 - `scripts/save/save_system.gd` — base three-slot JSON persistence with temporary-write verification, backup recovery, in-game menu integration, and runtime reconstruction.
-- `scripts/save/save_system_with_flags.gd` — small `SaveSystem` extension that adds creature/egg faction fields, per-creature completed-flag revisions, backward-compatible player defaults, player species flags, and the in-game audio-settings page without duplicating the base save logic.
+- `scripts/save/save_system_with_flags.gd` — save extension for creature/egg factions, flag revisions, player species flags, and in-game audio settings.
+- `scripts/save/save_system_with_enemy.gd` — final active save layer that adds optional enemy energy and temporary egg-production cursor/timer state.
 - `scripts/debug/performance_stats.gd` — runtime counters and F8 CSV logging, including separate player-flag scan, path-request, and path-failure columns.
 - `scripts/debug/grid_debug_overlay.gd` — F3 visualization of terrain, occupancy, footprints, paths, and the selected creature's current flag state/target.
 - `scripts/effects/` — effect playback and target-preview scripts.

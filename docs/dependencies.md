@@ -61,6 +61,9 @@ Main files:
 - `res://scripts/world/faction_base.gd`;
 - `res://scripts/world/player_base.gd`;
 - `res://scripts/world/enemy_base.gd`;
+- `res://scripts/enemies/enemy_energy.gd`;
+- `res://scripts/enemies/enemy_egg_production_controller.gd`;
+- `res://scripts/catalogs/enemy_species_catalog.gd`;
 - `res://scripts/world/start_map_world_grid.gd`;
 - `res://scripts/world/world_grid.gd`;
 - `res://assets/sprites/world/player_base.png`.
@@ -86,7 +89,7 @@ Enemy-specific flow:
 
 - `enemy_base.gd` exposes `create_enemy_egg()` as a thin wrapper over the same safe common placement method;
 - nothing calls that method automatically yet;
-- enemy energy, production timers, population choices, priorities, attack plans, and all other strategic AI belong to a later system rather than `FactionBase`.
+- enemy energy and the temporary round-robin timer live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`; population choices, priorities, attack plans, and strategic AI remain future work.
 
 Rules:
 
@@ -220,7 +223,7 @@ Ownership layers:
 1. `CreatureSpeciesData` describes one biological/resource variant: identity, diet, stats, visuals, survival, combat, and reproduction. `diet_type` is the single stored nutrition source; systems query it through `is_herbivore()`, `is_predator()`, and `is_egg_eater()`.
 2. `CreatureFaction` describes runtime ownership independently and validates exactly `player`, `enemy`, or `neutral`. Untagged current entities and old save records default to `player`; unknown non-empty ids normalize to `neutral`.
 3. `PlayerSpeciesCatalog` is the single ordered fixed roster for player-only values: egg purchase cost, player energy income, flag text/tooltips, and current `PASTURE`/`GATHER` flag behaviour.
-4. `EnemySpeciesCatalog` is the fixed six-species enemy roster and selects enemy-specific resource paths only. Enemy economy, population goals, production priorities, production cadence, and strategic AI do not belong in this catalog and are not implemented yet.
+4. `EnemySpeciesCatalog` is the fixed six-species enemy roster, selects enemy-specific resource paths, and stores mirrored egg costs and per-creature enemy-energy income. Population goals, strategic priorities, and tactical AI do not belong in this catalog.
 5. Player and enemy variants deliberately keep the same biological `species_id`; the distinct `.tres` resource path chooses the visuals/stats variant, while `CreatureFaction` chooses ownership.
 
 Current enemy resource rules:
@@ -236,8 +239,10 @@ Rules:
 
 - all current dinosaurs keep the shared 2x2 logical footprint; do not duplicate footprint size into catalogs;
 - bought eggs are assigned to the player faction; naturally laid eggs inherit their parent faction; hatchlings inherit the egg faction;
-- a future enemy-base-created egg must be assigned `enemy` before it is added to active gameplay; `FactionBase` already performs this when called through the enemy wrapper;
+- an enemy-base-created egg must be assigned `enemy` before it is added to active gameplay; `FactionBase` performs this when called through the enemy wrapper;
 - only living player-faction creatures whose species exists in `PlayerSpeciesCatalog` generate player energy;
+- only living enemy-faction creatures whose species exists in `EnemySpeciesCatalog` generate enemy energy;
+- the temporary production controller spends enemy energy only after `create_enemy_egg()` returns a real egg and advances its round-robin cursor only after successful spending;
 - player flags affect only player-faction creatures in the fixed player catalog;
 - player flags may read creature navigation/species data, but route application, food interruption, route cancellation, and related FSM mutations must go through the creature indirect-order API;
 - changing one species flag cancels only that species routes and retry timers; other species flag work remains intact;
@@ -323,9 +328,11 @@ Rules:
 
 ## Save system
 
-Main file:
+Main files:
 
-- `res://scripts/save/save_system.gd`.
+- `res://scripts/save/save_system.gd`;
+- `res://scripts/save/save_system_with_flags.gd`;
+- `res://scripts/save/save_system_with_enemy.gd`.
 
 Registration:
 
@@ -346,9 +353,9 @@ In-game UI integration:
 - closing it restores the previous simulation speed;
 - actions are Save, Load, Main Menu, Close Game, and Back.
 
-Saved dynamic data includes creatures, grass, eggs, optional creature/egg faction ids, optional per-creature completed-flag revisions, player energy, rain-cleared DryGround cells and partial hit counts, active species flags with placement revisions, camera state, simulation speed, and save timestamp. `save_system_with_flags.gd` layers these optional fields over the base `SaveSystem`; older saves without them load entities as player-owned, with no active flags, and without completed revisions.
+Saved dynamic data includes creatures, grass, eggs, optional creature/egg faction ids, optional per-creature completed-flag revisions, player energy, optional enemy energy, optional temporary enemy production cursor/timer state, rain-cleared DryGround cells and partial hit counts, active species flags with placement revisions, camera state, simulation speed, and save timestamp. `save_system_with_flags.gd` owns faction/flag/audio additions, while `save_system_with_enemy.gd` is the active final layer for enemy state. Older saves remain valid.
 
-Static base terrain and both fixed faction bases are loaded from start-map setup and are not serialized. Authored DryGround loads with the map; only cleared-cell and partial-hit deltas are saved. The enemy base currently has no health, energy, production timer, or other mutable state to persist.
+Static base terrain and both fixed faction bases are loaded from start-map setup and are not serialized. Authored DryGround loads with the map; only cleared-cell and partial-hit deltas are saved. Enemy energy and the temporary production cursor/timer are serialized separately from the base nodes.
 
 Loading flow:
 
@@ -362,7 +369,8 @@ Loading flow:
 8. Recreate creatures and mutable stats using saved species resource paths.
 9. Preserve the already spawned static player and enemy bases and their blocker registrations.
 10. Restore player energy, camera, and simulation speed.
-11. The save extension reapplies creature/egg factions and completed-flag revisions, defaulting missing faction fields to player and unknown non-empty ids to neutral, before restoring player flags and their active revisions.
+11. The faction/flag save layer reapplies creature/egg factions and completed-flag revisions, defaulting missing faction fields to player and unknown non-empty ids to neutral, before restoring player flags.
+12. The enemy save layer restores optional enemy energy and production cursor/timer state; missing fields keep the new-game defaults.
 
 Rules:
 
@@ -376,7 +384,7 @@ Rules:
 - adding optional faction fields must not invalidate existing version-1 saves;
 - changing map layout, saved schema, or species resource paths may require new saves or a version migration;
 - enemy species resources must keep stable paths after saves begin containing enemy creatures or require a migration;
-- when mutable base health or enemy production state is later added, update save collection/restoration explicitly rather than putting bases into generic creature/egg groups.
+- keep enemy energy and production state in the explicit `save_system_with_enemy.gd` layer rather than putting bases or controller nodes into generic creature/egg groups.
 
 ## Terrain source ids
 

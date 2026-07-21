@@ -1,8 +1,8 @@
 class_name EnemySpeciesCatalog
 extends RefCounted
 
-# Enemy roster only selects enemy-specific biological resources. Production
-# costs, population goals and AI priorities belong to the future enemy logic.
+# Enemy-facing economy metadata and the six enemy resource variants. Strategic
+# population choices belong to the enemy controller, not to this catalog.
 const STEGOSAURUS := preload("res://data/species/enemy/stegosaurus.tres")
 const TRICERATOPS := preload("res://data/species/enemy/triceratops.tres")
 const TYRANNOSAURUS := preload("res://data/species/enemy/tyrannosaurus.tres")
@@ -12,12 +12,36 @@ const EGG_EATER := preload("res://data/species/enemy/egg_eater.tres")
 
 const EMPTY_ENTRY: Dictionary = {}
 
-const STEGOSAURUS_ENTRY: Dictionary = {"species_data": STEGOSAURUS}
-const TRICERATOPS_ENTRY: Dictionary = {"species_data": TRICERATOPS}
-const TYRANNOSAURUS_ENTRY: Dictionary = {"species_data": TYRANNOSAURUS}
-const RAPTOR_ENTRY: Dictionary = {"species_data": RAPTOR}
-const PTERODACTYL_ENTRY: Dictionary = {"species_data": PTERODACTYL}
-const EGG_EATER_ENTRY: Dictionary = {"species_data": EGG_EATER}
+const STEGOSAURUS_ENTRY: Dictionary = {
+	"species_data": STEGOSAURUS,
+	"egg_purchase_cost": 350.0,
+	"energy_income_per_second": 0.8
+}
+const TRICERATOPS_ENTRY: Dictionary = {
+	"species_data": TRICERATOPS,
+	"egg_purchase_cost": 450.0,
+	"energy_income_per_second": 0.6
+}
+const TYRANNOSAURUS_ENTRY: Dictionary = {
+	"species_data": TYRANNOSAURUS,
+	"egg_purchase_cost": 1300.0,
+	"energy_income_per_second": 0.2
+}
+const RAPTOR_ENTRY: Dictionary = {
+	"species_data": RAPTOR,
+	"egg_purchase_cost": 1000.0,
+	"energy_income_per_second": 0.2
+}
+const PTERODACTYL_ENTRY: Dictionary = {
+	"species_data": PTERODACTYL,
+	"egg_purchase_cost": 1000.0,
+	"energy_income_per_second": 0.2
+}
+const EGG_EATER_ENTRY: Dictionary = {
+	"species_data": EGG_EATER,
+	"egg_purchase_cost": 1200.0,
+	"energy_income_per_second": 0.2
+}
 
 const ENTRY_BY_ID: Dictionary = {
 	&"stegosaurus": STEGOSAURUS_ENTRY,
@@ -37,6 +61,7 @@ const SUPPORTED_IDS: Array[StringName] = [
 	&"egg_eater"
 ]
 
+# Keep production deterministic for the temporary scaffold.
 const SPECIES_ENTRIES: Array[Dictionary] = [
 	STEGOSAURUS_ENTRY,
 	TRICERATOPS_ENTRY,
