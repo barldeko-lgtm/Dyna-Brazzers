@@ -49,6 +49,9 @@ Rules:
 - the runtime enemy fallback must search existing terrain only and must never modify the TileMap;
 - after major map edits, recreate saves or add migration/version handling;
 - do not multiply camera movement by simulation speed or remove its time-scale compensation.
+- keep the active zoom bounds at `0.3` minimum and `2.0` maximum unless a later camera-design task explicitly retunes both values;
+- keep `min_zoom` and `max_zoom` only in `camera_controller.gd`; `scenes/main/main.tscn` may set the starting `zoom` but must not duplicate the limit exports;
+- enforce zoom limits after loading so old saves cannot restore an out-of-range close zoom.
 
 If a task touches movement, blocked tiles, map dimensions, camera bounds, grass placement, either faction base, corpse passability, or pathing, inspect these files together.
 
@@ -66,7 +69,8 @@ Main files:
 - `res://scripts/catalogs/enemy_species_catalog.gd`;
 - `res://scripts/world/start_map_world_grid.gd`;
 - `res://scripts/world/world_grid.gd`;
-- `res://assets/sprites/world/player_base.png`.
+- `res://assets/sprites/world/player_base.png`;
+- `res://assets/sprites/world/enemy_base.png`.
 
 Shared runtime flow:
 
@@ -75,7 +79,7 @@ Shared runtime flow:
 3. `faction_base.gd` converts the requested world position into a 2x2 anchor.
 4. If the requested footprint is blocked, it asks the world grid for a nearby valid anchor.
 5. The base registers through `world_grid.register_blocker()`.
-6. Its current 512x512 texture is scaled to a 256x256 world visual with linear mipmapped filtering.
+6. Each base uses its own 512x512 transparent texture, scaled to a 256x256 world visual with linear mipmapped filtering.
 7. Pathfinding and creature placement automatically avoid the four reserved cells.
 8. `can_host_grass()` rejects cells occupied by any node in the `faction_base` group.
 9. Both bases are static setup and are not collected or reconstructed by `SaveSystem`.
@@ -88,7 +92,7 @@ Player-specific flow:
 Enemy-specific flow:
 
 - `enemy_base.gd` exposes `create_enemy_egg()` as a thin wrapper over the same safe common placement method;
-- nothing calls that method automatically yet;
+- `enemy_egg_production_controller.gd` calls that method once per five-second production attempt for the current catalog species;
 - enemy energy and the temporary round-robin timer live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`; population choices, priorities, attack plans, and strategic AI remain future work.
 
 Rules:

@@ -22,7 +22,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scenes/ui/nature_menu.tscn` — self-contained player energy, time controls, named main-menu buttons, spell buttons, and host area used by runtime egg, flag, and save menus.
 - `scenes/world/world.tscn` — only active gameplay world: 85x85 base terrain TileMap, a DryGround overlay with three variants, initial grass, an empty creature container, eggs container, camera marker, and world grid.
 - `scenes/world/player_base.tscn` — fixed 2x2 player nature base, spawned at the authored `CameraStart` marker and used as the origin for player-created eggs.
-- `scenes/world/enemy_base.tscn` — fixed 2x2 enemy base using the temporary player-base visual; it is spawned near the opposite map edge or at an optional `EnemyBaseStart` marker and has no production AI yet.
+- `scenes/world/enemy_base.tscn` — fixed 2x2 enemy base using its dedicated `enemy_base.png` visual; it is spawned near the opposite map edge or at an authored `EnemyBaseStart` marker and serves the temporary five-second egg producer.
 - `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures.
 - `scenes/resources/egg.tscn` — shared two-stage egg scene used by all reproducing species.
 - `scenes/creatures/creature.tscn` — shared base creature scene.
@@ -41,9 +41,9 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/world/start_map_world_grid.gd` — extends the base grid for the authored start map, spawns the player and enemy bases, protects both footprints from grass spreading, and exposes world bounds to the camera. The enemy base uses `EnemyBaseStart` when present and otherwise chooses a deterministic valid fallback near the opposite map edge without rewriting `world.tscn`.
 - `scripts/world/faction_base.gd` — shared stationary 2x2 base foundation: faction assignment, blocker registration, visual scaling, nearby egg-footprint search, and faction-owned egg creation plumbing.
 - `scripts/world/player_base.gd` — thin player wrapper over `FactionBase`; preserves the existing `create_player_egg()` API used by the player egg menu.
-- `scripts/world/enemy_base.gd` — thin enemy wrapper over `FactionBase`; exposes `create_enemy_egg()` for the future enemy production controller but does not create eggs automatically.
+- `scripts/world/enemy_base.gd` — thin enemy wrapper over `FactionBase`; exposes `create_enemy_egg()` to the temporary enemy production controller while keeping strategic decisions outside the base.
 - `scripts/world/start_map_layout.gd` — builds the initial 85x85 terrain only when the `Ground` TileMap is empty; chooses matching water and mountain edge variants.
-- `scripts/camera/camera_controller.gd` — real-time observer movement independent of simulation speed, wheel zoom, new-game start marker, and map-bound clamping.
+- `scripts/camera/camera_controller.gd` — single owner of the 0.3–2.0 zoom limits, real-time observer movement independent of simulation speed, loaded-zoom normalization, new-game start marker, and map-bound clamping; `main.tscn` stores only the starting zoom.
 
 ### Creatures and resources
 
@@ -106,7 +106,7 @@ On Windows this normally resolves to:
 
 `%APPDATA%/Godot/app_userdata/Dyna/`
 
-Static base terrain and both fixed faction bases are not included in these files. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored as deltas. Creature and egg factions are optional save fields, so older saves load them as player-owned. Active species flags remain lightweight tile records. The enemy base currently has no mutable state or production timer to save.
+Static base terrain and both fixed faction bases are not included in these files. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored as deltas. Creature and egg factions are optional save fields, so older saves load them as player-owned. Active species flags remain lightweight tile records. Enemy energy plus the temporary production cursor and remaining timer are optional saved state.
 
 ## Terrain assets
 
@@ -145,9 +145,10 @@ The world scene has source-id base terrain plus a DryGround overlay. The minimap
 - `assets/sprites/effects/rain/rain_cast_01.png` ... `rain_cast_04.png` — transparent rain animation frames.
 - `assets/ui/creature_selection_frame.png` — world-space creature hover/selection frame.
 
-## Faction-base asset
+## Faction-base assets
 
-- `assets/sprites/world/player_base.png` — temporary shared 512x512 transparent source sprite used by both bases and displayed at 256x256 in world space with mipmapped linear filtering. The enemy scene will receive its own replacement asset later without changing the base logic.
+- `assets/sprites/world/player_base.png` — 512x512 transparent player-base source sprite displayed at 256x256 in world space with mipmapped linear filtering.
+- `assets/sprites/world/enemy_base.png` — 512x512 transparent enemy-base source sprite displayed at 256x256 through the same shared base-scaling logic.
 
 ## Creature and species assets
 

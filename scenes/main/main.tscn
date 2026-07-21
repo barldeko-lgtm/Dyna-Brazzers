@@ -1,22 +1,20 @@
 [gd_scene format=3 uid="uid://c66x7w4kpw6by"]
 
-[ext_resource type="PackedScene" path="res://scenes/world/world.tscn" id="1_hyk8p"]
+[ext_resource type="PackedScene" uid="uid://dwlwta88eydnm" path="res://scenes/world/world.tscn" id="1_hyk8p"]
 [ext_resource type="Script" uid="uid://b7vbapxldrm6c" path="res://scripts/camera/camera_controller.gd" id="1_iuonh"]
 [ext_resource type="PackedScene" path="res://scenes/debug/grid_debug_overlay.tscn" id="4_grid_debug_overlay"]
 [ext_resource type="PackedScene" path="res://scenes/ui/player_hud.tscn" id="5_player_hud"]
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=1646183539]
 
-[node name="Camera2D" type="Camera2D" parent="."]
-zoom = Vector2(0.8, 0.8)
+[node name="Camera2D" type="Camera2D" parent="." unique_id=2035087402]
+zoom = Vector2(0.6, 0.6)
 script = ExtResource("1_iuonh")
-min_zoom = 0.3
-max_zoom = 5.0
 
-[node name="UI" parent="." instance=ExtResource("5_player_hud")]
+[node name="UI" parent="." unique_id=288994034 instance=ExtResource("5_player_hud")]
 
-[node name="Simulation" type="Node" parent="."]
+[node name="Simulation" type="Node" parent="." unique_id=1909221079]
 
-[node name="World" parent="." instance=ExtResource("1_hyk8p")]
+[node name="World" parent="." unique_id=800246024 instance=ExtResource("1_hyk8p")]
 
-[node name="GridDebugOverlay" parent="." instance=ExtResource("4_grid_debug_overlay")]
+[node name="GridDebugOverlay" parent="." unique_id=1133888284 instance=ExtResource("4_grid_debug_overlay")]

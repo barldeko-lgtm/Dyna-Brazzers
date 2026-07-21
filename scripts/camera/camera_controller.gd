@@ -3,8 +3,8 @@ extends Camera2D
 # Free observer camera, constrained to the authored world.
 @export var move_speed := 1500.0
 @export var zoom_step := 0.1
-@export var min_zoom := 0.7
-@export var max_zoom := 7.0
+@export var min_zoom := 0.3
+@export var max_zoom := 0.7
 @export var clamp_to_world := true
 @export var use_camera_start_marker := true
 
@@ -20,6 +20,7 @@ func _ready() -> void:
 # not make the observer camera faster or slower.
 func _process(delta: float) -> void:
 	_ensure_world_grid()
+	_enforce_zoom_limits()
 
 	var direction: Vector2 = Vector2.ZERO
 
@@ -49,6 +50,7 @@ func _get_unscaled_delta(scaled_delta: float) -> float:
 
 func _initialize_camera() -> void:
 	_ensure_world_grid()
+	_enforce_zoom_limits()
 
 	if use_camera_start_marker and not start_position_checked:
 		var start_marker: Node = get_tree().get_first_node_in_group("camera_start")
@@ -79,12 +81,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			change_zoom(zoom_step)
 
 
-# Clamp zoom.
 func change_zoom(amount: float) -> void:
-	var new_zoom: float = zoom.x + amount
-	new_zoom = clampf(new_zoom, min_zoom, max_zoom)
-	zoom = Vector2(new_zoom, new_zoom)
+	zoom = Vector2(zoom.x + amount, zoom.x + amount)
+	_enforce_zoom_limits()
 	_clamp_camera_to_world()
+
+
+func _enforce_zoom_limits() -> void:
+	var lower_limit := minf(min_zoom, max_zoom)
+	var upper_limit := maxf(min_zoom, max_zoom)
+	var clamped_zoom := clampf(zoom.x, lower_limit, upper_limit)
+	zoom = Vector2(clamped_zoom, clamped_zoom)
 
 
 func _clamp_camera_to_world() -> void:

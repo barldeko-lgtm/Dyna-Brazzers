@@ -13,7 +13,7 @@ Current prototype includes:
 - an editable 85x85 tile-based 2D world;
 - six player-creatable species: stegosaurus, triceratops, tyrannosaurus, raptor, pterodactyl, and egg eater; fresh games start without adult creatures;
 - a fixed 2x2 player nature base that creates player-bought eggs on nearby free tiles;
-- a fixed 2x2 enemy base using the temporary player-base sprite; it blocks the world and creates enemy eggs through a temporary five-second round-robin production loop;
+- a fixed 2x2 enemy base with its own 512x512 transparent sprite; it is displayed at 256x256, blocks the world, and creates enemy eggs through a temporary five-second round-robin production loop;
 - quality-aware grass targeting;
 - four-stage renewable grass;
 - eggs, hatching, and population growth;
@@ -42,7 +42,7 @@ Current prototype includes:
 - F3 grid/debug overlay with selected-creature flag status and assigned flag target;
 - water, mountain, and tree terrain;
 - a reversible DryGround overlay with three visual variants: it blocks movement and grass, clears after three rain hits, and reopens naturally through adjacent mature-grass spread timers;
-- free observer camera constrained to the map;
+- free observer camera constrained to the map and to a 0.3–2.0 zoom range;
 - centered startup screen with a 1920x1080 illustrated Dyna Brazzers background and a lightly transparent menu panel;
 - three save slots with date/time labels; invalid slots are marked damaged and cannot be loaded;
 - each save is written and validated as a temporary JSON file before replacing its slot, with backup recovery if replacement is interrupted;
@@ -190,6 +190,9 @@ The observer camera:
 - starts at the authored `CameraStart` marker for a fresh game;
 - restores saved position and zoom when loading;
 - supports WASD movement and mouse-wheel zoom;
+- clamps zoom between `0.3` (farthest view) and `2.0` (closest view);
+- keeps those zoom limits only in `scripts/camera/camera_controller.gd`; `main.tscn` stores only the starting zoom of `0.8`;
+- reapplies the zoom clamp during runtime, so older saves containing a larger zoom are normalized automatically;
 - moves in real time independently of `Engine.time_scale`;
 - is clamped to the authored world bounds.
 
@@ -202,7 +205,7 @@ Shared rules:
 - creatures and pathfinding treat both footprints as unavailable, like blocked terrain;
 - grass cannot spread onto either faction-base footprint;
 - both bases are static world setup and are not included in save-slot entity data;
-- the shared source texture is currently `assets/sprites/world/player_base.png`, displayed at 256x256 with linear mipmapped filtering.
+- the player base uses `assets/sprites/world/player_base.png` and the enemy base uses `assets/sprites/world/enemy_base.png`; both are 512x512 transparent source textures displayed at 256x256 with linear mipmapped filtering.
 
 Player-base rules:
 
