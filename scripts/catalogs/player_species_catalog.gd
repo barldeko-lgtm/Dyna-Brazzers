@@ -21,7 +21,7 @@ const EMPTY_ENTRY: Dictionary = {}
 const STEGOSAURUS_ENTRY: Dictionary = {
 	"species_data": STEGOSAURUS,
 	"egg_purchase_cost": 350.0,
-	"energy_income_per_second": 0.4,
+	"energy_income_per_second": 0.8,
 	"flag_button_text": "Стего\nпастбище",
 	"flag_tooltip": "Поставить или перенести пастбищный флаг стегозавров",
 	"flag_behaviour_type": FlagBehaviourType.PASTURE
@@ -29,7 +29,7 @@ const STEGOSAURUS_ENTRY: Dictionary = {
 const TRICERATOPS_ENTRY: Dictionary = {
 	"species_data": TRICERATOPS,
 	"egg_purchase_cost": 450.0,
-	"energy_income_per_second": 0.3,
+	"energy_income_per_second": 0.6,
 	"flag_button_text": "Трицер\nпастбище",
 	"flag_tooltip": "Поставить или перенести пастбищный флаг трицератопсов",
 	"flag_behaviour_type": FlagBehaviourType.PASTURE
@@ -37,7 +37,7 @@ const TRICERATOPS_ENTRY: Dictionary = {
 const TYRANNOSAURUS_ENTRY: Dictionary = {
 	"species_data": TYRANNOSAURUS,
 	"egg_purchase_cost": 1300.0,
-	"energy_income_per_second": 0.1,
+	"energy_income_per_second": 0.2,
 	"flag_button_text": "Ти-рекс\nохота",
 	"flag_tooltip": "Поставить или перенести флаг охоты ти-рексов",
 	"flag_behaviour_type": FlagBehaviourType.GATHER
@@ -45,7 +45,7 @@ const TYRANNOSAURUS_ENTRY: Dictionary = {
 const RAPTOR_ENTRY: Dictionary = {
 	"species_data": RAPTOR,
 	"egg_purchase_cost": 1000.0,
-	"energy_income_per_second": 0.1,
+	"energy_income_per_second": 0.2,
 	"flag_button_text": "Раптор\nзащита",
 	"flag_tooltip": "Поставить или перенести защитный флаг рапторов",
 	"flag_behaviour_type": FlagBehaviourType.GATHER
@@ -53,7 +53,7 @@ const RAPTOR_ENTRY: Dictionary = {
 const PTERODACTYL_ENTRY: Dictionary = {
 	"species_data": PTERODACTYL,
 	"egg_purchase_cost": 1000.0,
-	"energy_income_per_second": 0.1,
+	"energy_income_per_second": 0.2,
 	"flag_button_text": "Птеро\nпатруль",
 	"flag_tooltip": "Поставить или перенести патрульный флаг птеродактилей",
 	"flag_behaviour_type": FlagBehaviourType.GATHER
@@ -61,7 +61,7 @@ const PTERODACTYL_ENTRY: Dictionary = {
 const EGG_EATER_ENTRY: Dictionary = {
 	"species_data": EGG_EATER,
 	"egg_purchase_cost": 1200.0,
-	"energy_income_per_second": 0.1,
+	"energy_income_per_second": 0.2,
 	"flag_button_text": "Яйцеед\nпоиск",
 	"flag_tooltip": "Поставить или перенести флаг поиска яйцеедов",
 	"flag_behaviour_type": FlagBehaviourType.GATHER

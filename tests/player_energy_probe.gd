@@ -1,6 +1,7 @@
 extends SceneTree
 
 const PlayerEnergy = preload("res://scripts/player/player_energy.gd")
+const PlayerSpeciesCatalog = preload("res://scripts/catalogs/player_species_catalog.gd")
 const CreatureSpeciesData = preload("res://scripts/creatures/creature_species_data.gd")
 
 class FakeCreature extends Node:
@@ -31,12 +32,35 @@ func _run_probe() -> void:
 		quit(1)
 		return
 
+	var expected_income_by_species: Dictionary = {
+		&"stegosaurus": 0.8,
+		&"triceratops": 0.6,
+		&"tyrannosaurus": 0.2,
+		&"raptor": 0.2,
+		&"pterodactyl": 0.2,
+		&"egg_eater": 0.2
+	}
+
+	for species_id: StringName in expected_income_by_species:
+		var catalog_entry := PlayerSpeciesCatalog.get_entry(species_id)
+		var expected_income: float = expected_income_by_species[species_id]
+		var actual_income: float = float(catalog_entry.get("energy_income_per_second", 0.0))
+
+		if not is_equal_approx(actual_income, expected_income):
+			push_error("Expected %s to generate %s energy per second, got %s." % [
+				species_id,
+				expected_income,
+				actual_income
+			])
+			quit(1)
+			return
+
 	var before := energy.get_energy()
 	energy.call("_on_income_tick")
 	var gained := energy.get_energy() - before
 
-	if not is_equal_approx(gained, 0.4):
-		push_error("Expected a stegosaurus to generate 0.4 energy per timer tick, got %s." % gained)
+	if not is_equal_approx(gained, 0.8):
+		push_error("Expected a stegosaurus to generate 0.8 energy per timer tick, got %s." % gained)
 		quit(1)
 		return
 
@@ -64,8 +88,8 @@ func _run_probe() -> void:
 	runtime_energy.call("_on_income_tick")
 	var runtime_gained := float(runtime_energy.call("get_energy")) - runtime_before
 
-	if not is_equal_approx(runtime_gained, 0.4):
-		push_error("Main-scene PlayerEnergy gained %s instead of 0.4." % runtime_gained)
+	if not is_equal_approx(runtime_gained, 0.8):
+		push_error("Main-scene PlayerEnergy gained %s instead of 0.8." % runtime_gained)
 		quit(1)
 		return
 
@@ -82,7 +106,7 @@ func _run_probe() -> void:
 		quit(1)
 		return
 
-	print("PASS: a living stegosaurus generates 0.4 energy in one second.")
+	print("PASS: a living stegosaurus generates 0.8 energy in one second.")
 	print("PASS: main scene wires PlayerEnergy to the active world.")
 	print("PASS: nature UI refreshes after dinosaur income changes.")
 	quit(0)
