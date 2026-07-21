@@ -12,15 +12,12 @@ stage_1_texture = ExtResource("2_grass_stage_1")
 stage_2_texture = ExtResource("3_grass_stage_2")
 stage_3_texture = ExtResource("4_grass_stage_3")
 stage_4_texture = ExtResource("5_grass_stage_4")
-growth_time = 5.0
 
 [node name="BodySprite" type="Sprite2D" parent="." unique_id=1265757433]
 texture = ExtResource("2_grass_stage_1")
 
 [node name="GrowthTimer" type="Timer" parent="." unique_id=119334545]
-wait_time = 5.0
 one_shot = true
 
 [node name="SpreadTimer" type="Timer" parent="." unique_id=1804818480]
-wait_time = 20.0
 one_shot = true

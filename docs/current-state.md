@@ -15,7 +15,7 @@ Current prototype includes:
 - a fixed 2x2 player nature base that creates player-bought eggs on nearby free tiles;
 - a fixed 2x2 enemy base with its own 512x512 transparent sprite; it is displayed at 256x256, blocks the world, and creates enemy eggs through a temporary five-second round-robin production loop;
 - quality-aware grass targeting;
-- four-stage renewable grass;
+- four-stage renewable grass with an 8-second interval between growth stages and a 30-second mature spread delay;
 - eggs, hatching, and population growth;
 - player and enemy species-specific data resources;
 - a fixed player-species catalog that centralizes the six player species, egg prices, energy income, and flag presentation without mixing those player-only values into biological species data;
@@ -42,7 +42,7 @@ Current prototype includes:
 - F3 grid/debug overlay with selected-creature flag status and assigned flag target;
 - water, mountain, and tree terrain;
 - a reversible DryGround overlay with three visual variants: it blocks movement and grass, clears after three rain hits, and reopens naturally through adjacent mature-grass spread timers;
-- free observer camera constrained to the map and to a 0.3–2.0 zoom range;
+- free observer camera constrained to the map and to a 0.3–0.7 zoom range;
 - centered startup screen with a 1920x1080 illustrated Dyna Brazzers background and a lightly transparent menu panel;
 - three save slots with date/time labels; invalid slots are marked damaged and cannot be loaded;
 - each save is written and validated as a temporary JSON file before replacing its slot, with backup recovery if replacement is interrupted;
@@ -190,8 +190,8 @@ The observer camera:
 - starts at the authored `CameraStart` marker for a fresh game;
 - restores saved position and zoom when loading;
 - supports WASD movement and mouse-wheel zoom;
-- clamps zoom between `0.3` (farthest view) and `2.0` (closest view);
-- keeps those zoom limits only in `scripts/camera/camera_controller.gd`; `main.tscn` stores only the starting zoom of `0.8`;
+- clamps zoom between `0.3` (farthest view) and `0.7` (closest view);
+- keeps those zoom limits only in `scripts/camera/camera_controller.gd`; `main.tscn` stores only the starting zoom of `0.6`;
 - reapplies the zoom clamp during runtime, so older saves containing a larger zoom are normalized automatically;
 - moves in real time independently of `Engine.time_scale`;
 - is clamped to the authored world bounds.
@@ -245,7 +245,7 @@ A TileMap Pattern can be used in the editor to place complete 2x2 trees.
 
 ## Grass
 
-Grass has four growth stages.
+Grass has four growth stages. `scripts/resources/grass.gd` is the single owner of grass timing: each unfinished stage advances after 8 seconds, and mature grass attempts natural spreading after 30 seconds. `scenes/resources/grass.tscn` provides nodes and textures without overriding those timing values.
 
 Rules:
 

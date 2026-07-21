@@ -49,7 +49,7 @@ Rules:
 - the runtime enemy fallback must search existing terrain only and must never modify the TileMap;
 - after major map edits, recreate saves or add migration/version handling;
 - do not multiply camera movement by simulation speed or remove its time-scale compensation.
-- keep the active zoom bounds at `0.3` minimum and `2.0` maximum unless a later camera-design task explicitly retunes both values;
+- keep the active zoom bounds at `0.3` minimum and `0.7` maximum unless a later camera-design task explicitly retunes both values;
 - keep `min_zoom` and `max_zoom` only in `camera_controller.gd`; `scenes/main/main.tscn` may set the starting `zoom` but must not duplicate the limit exports;
 - enforce zoom limits after loading so old saves cannot restore an out-of-range close zoom.
 
@@ -433,7 +433,9 @@ Do not use old object-tree files or abandoned large-tree tile assets.
 
 ## Grass lifecycle
 
-`res://scripts/resources/grass.gd` owns:
+`res://scripts/resources/grass.gd` owns all grass lifecycle timing and behaviour. Its active timing values are `growth_time = 8.0` seconds for each unfinished stage and `spread_delay = 30.0` seconds for the mature spread attempt. `res://scenes/resources/grass.tscn` must provide the nodes and textures without overriding those exports or the Timer `wait_time` fields.
+
+It also owns:
 
 - four-stage growth;
 - stage visuals;
@@ -452,6 +454,7 @@ Dependencies:
 
 Rules:
 
+- start `GrowthTimer` and `SpreadTimer` with explicit values from `growth_time`, `spread_delay`, or restored save time; do not rely on Timer-node defaults;
 - grass may exist and spread only on normal walkable terrain and not on occupied DryGround;
 - grass must not spread onto either fixed faction-base footprint;
 - initial grass nodes do not define an allowed-growth region;

@@ -23,7 +23,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scenes/world/world.tscn` — only active gameplay world: 85x85 base terrain TileMap, a DryGround overlay with three variants, initial grass, an empty creature container, eggs container, camera marker, and world grid.
 - `scenes/world/player_base.tscn` — fixed 2x2 player nature base, spawned at the authored `CameraStart` marker and used as the origin for player-created eggs.
 - `scenes/world/enemy_base.tscn` — fixed 2x2 enemy base using its dedicated `enemy_base.png` visual; it is spawned near the opposite map edge or at an authored `EnemyBaseStart` marker and serves the temporary five-second egg producer.
-- `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures.
+- `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures and Timer nodes; it does not override lifecycle timing from `grass.gd`.
 - `scenes/resources/egg.tscn` — shared two-stage egg scene used by all reproducing species.
 - `scenes/creatures/creature.tscn` — shared base creature scene.
 - `scenes/debug/grid_debug_overlay.tscn` — F3 grid/debug overlay.
@@ -43,7 +43,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/world/player_base.gd` — thin player wrapper over `FactionBase`; preserves the existing `create_player_egg()` API used by the player egg menu.
 - `scripts/world/enemy_base.gd` — thin enemy wrapper over `FactionBase`; exposes `create_enemy_egg()` to the temporary enemy production controller while keeping strategic decisions outside the base.
 - `scripts/world/start_map_layout.gd` — builds the initial 85x85 terrain only when the `Ground` TileMap is empty; chooses matching water and mountain edge variants.
-- `scripts/camera/camera_controller.gd` — single owner of the 0.3–2.0 zoom limits, real-time observer movement independent of simulation speed, loaded-zoom normalization, new-game start marker, and map-bound clamping; `main.tscn` stores only the starting zoom.
+- `scripts/camera/camera_controller.gd` — single owner of the 0.3–0.7 zoom limits, real-time observer movement independent of simulation speed, loaded-zoom normalization, new-game start marker, and map-bound clamping; `main.tscn` stores only the starting zoom of 0.6.
 
 ### Creatures and resources
 
@@ -60,7 +60,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/creatures/behaviors/creature_interaction_controller.gd` — world-space hover/selection frame, `HoverArea` mouse signals, and the creature-to-UI click bridge.
 - `scripts/creatures/behaviors/creature_movement_controller.gd` — grid-step execution, route clearing, wandering-step selection, and the creature-owned API used by indirect external orders.
 - `scripts/combat/duel.gd` — temporary one-on-one combat loop.
-- `scripts/resources/grass.gd` — grass growth, consumption, spread, and nature-power reactions.
+- `scripts/resources/grass.gd` — grass growth, consumption, spread, and nature-power reactions; it is the single owner of the 8-second growth-stage interval and 30-second mature spread delay.
 - `scripts/resources/egg.gd` — egg stages, species texture application, blocker handling, hatching, and the single shared 5/1/10-second incubation schedule used by every species and faction.
 
 ### Audio
