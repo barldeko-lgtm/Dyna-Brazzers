@@ -42,6 +42,12 @@ func update_walk(delta: float) -> void:
 	var path_variant: Variant = creature.get("current_path")
 
 	if not (path_variant is Array) or (path_variant as Array).is_empty():
+		if creature.has_method("is_hunting") and bool(creature.is_hunting()):
+			return
+
+		if creature.has_method("should_hold_at_locked_approach") and bool(creature.should_hold_at_locked_approach()):
+			return
+
 		choose_random_wander_step()
 
 	start_next_path_step_if_needed()

@@ -129,6 +129,8 @@ var reproduction_cooldown_remaining := 0.0
 
 var pending_egg_anchor := Vector2i.ZERO
 var current_duel: Duel = null
+var pending_duel_opponent: Node = null
+var combat_engagement_hunter: Node = null
 var grazing_logic: RefCounted
 var visual_controller: RefCounted
 var reproduction_logic: RefCounted
@@ -267,7 +269,13 @@ func _physics_process(delta: float) -> void:
 	if check_health_death():
 		return
 
-	update_predator_behavior()
+	update_predator_behavior(delta)
+
+	if is_waiting_for_duel() or is_waiting_for_combat_engagement():
+		if is_moving:
+			advance_movement(delta)
+		return
+
 	update_egg_eater_behavior()
 	update_reproduction_behavior()
 	update_food_behavior()
@@ -358,8 +366,20 @@ func update_predator_path_retry_cooldown(delta: float) -> void:
 	predator_path_retry_cooldown_remaining = max(predator_path_retry_cooldown_remaining - delta, 0.0)
 
 
-func update_predator_behavior() -> void:
-	predator_logic.update_predator_behavior()
+func update_predator_behavior(delta: float) -> void:
+	predator_logic.update_predator_behavior(delta)
+
+
+func is_hunting() -> bool:
+	return predator_logic != null and predator_logic.is_hunting()
+
+
+func get_hunt_target() -> Node:
+	return predator_logic.get_hunt_target() if predator_logic != null else null
+
+
+func should_hold_at_locked_approach() -> bool:
+	return predator_logic != null and predator_logic.should_hold_at_locked_approach()
 
 
 func update_egg_eater_behavior() -> void:
@@ -463,10 +483,15 @@ func enter_dead() -> void:
 
 	change_state(State.DEAD)
 
+	if predator_logic != null:
+		predator_logic.cancel_hunt_target()
+
 	if current_duel != null:
 		current_duel.handle_fighter_death(self)
 
 	has_grazing_target = false
+	cancel_pending_duel()
+	cancel_combat_engagement()
 	clear_path()
 	eating_timer.stop()
 	egg_laying_timer.stop()
@@ -714,6 +739,56 @@ func can_fight() -> bool:
 	return state == State.IDLE or state == State.WALK or state == State.SEEK_FOOD
 
 
+func begin_duel_settlement(opponent: Node) -> void:
+	if opponent == null or not is_instance_valid(opponent):
+		return
+
+	pending_duel_opponent = opponent
+
+
+func begin_combat_engagement(hunter: Node) -> void:
+	if hunter == null or not is_instance_valid(hunter) or state == State.DEAD or current_duel != null:
+		return
+
+	combat_engagement_hunter = hunter
+
+
+func get_combat_engagement_hunter() -> Node:
+	if combat_engagement_hunter == null or not is_instance_valid(combat_engagement_hunter):
+		combat_engagement_hunter = null
+
+	return combat_engagement_hunter
+
+
+func is_waiting_for_combat_engagement() -> bool:
+	return get_combat_engagement_hunter() != null
+
+
+func cancel_combat_engagement(expected_hunter: Node = null) -> void:
+	if expected_hunter != null and combat_engagement_hunter != expected_hunter:
+		return
+
+	combat_engagement_hunter = null
+
+
+func get_pending_duel_opponent() -> Node:
+	if pending_duel_opponent == null or not is_instance_valid(pending_duel_opponent):
+		pending_duel_opponent = null
+
+	return pending_duel_opponent
+
+
+func is_waiting_for_duel() -> bool:
+	return get_pending_duel_opponent() != null
+
+
+func cancel_pending_duel(expected_opponent: Node = null) -> void:
+	if expected_opponent != null and pending_duel_opponent != expected_opponent:
+		return
+
+	pending_duel_opponent = null
+
+
 func is_in_duel() -> bool:
 	return current_duel != null
 
@@ -721,6 +796,8 @@ func is_in_duel() -> bool:
 func attach_duel(duel: Duel) -> void:
 	current_duel = duel
 	has_grazing_target = false
+	cancel_pending_duel()
+	cancel_combat_engagement()
 	clear_path()
 	eating_timer.stop()
 	egg_laying_timer.stop()
@@ -735,6 +812,8 @@ func detach_duel(duel: Duel) -> void:
 		return
 
 	current_duel = null
+	cancel_pending_duel()
+	cancel_combat_engagement()
 
 	if state == State.DEAD:
 		return

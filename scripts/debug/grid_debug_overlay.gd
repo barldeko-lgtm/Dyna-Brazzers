@@ -14,6 +14,8 @@ const PENDING_FOOTPRINT_FILL := Color(0.6, 0.3, 1.0, 0.14)
 const PENDING_FOOTPRINT_OUTLINE := Color(0.75, 0.45, 1.0, 0.95)
 const TARGET_FILL := Color(1.0, 0.85, 0.2, 0.16)
 const TARGET_OUTLINE := Color(1.0, 0.9, 0.3, 0.95)
+const HUNT_TARGET_FILL := Color(1.0, 0.2, 0.2, 0.2)
+const HUNT_TARGET_OUTLINE := Color(1.0, 0.35, 0.35, 0.95)
 const FLAG_TARGET_FILL := Color(0.95, 0.35, 0.95, 0.18)
 const FLAG_TARGET_OUTLINE := Color(1.0, 0.5, 1.0, 0.95)
 const PATH_COLOR := Color(0.2, 0.7, 1.0, 0.95)
@@ -138,7 +140,7 @@ func _build_debug_text() -> String:
 
 	lines.append(
 		"focus: %s | %s" % [
-			creature.get_creature_name(), _get_state_name(int(creature.state))
+			creature.get_creature_name(), _get_display_state_name(creature)
 		]
 	)
 	var flag_debug := _get_flag_debug_data(creature)
@@ -160,6 +162,9 @@ func _build_debug_text() -> String:
 	lines.append("pending: %s" % _format_tile(creature.pending_anchor_tile))
 	lines.append("footprint: %dx%d" % [creature.footprint_size.x, creature.footprint_size.y])
 	lines.append("target: %s" % _format_tile(creature.grazing_target_anchor))
+	var hunt_target := _get_hunt_target(creature)
+	if is_instance_valid(hunt_target):
+		lines.append("hunt target: %s" % hunt_target.get_creature_name())
 	lines.append(
 		"path steps: %d | moving: %s" % [path_length, str(bool(creature.is_moving))]
 	)
@@ -211,6 +216,12 @@ func _draw_selected_creature_debug(world_grid: Node) -> void:
 		):
 			_draw_tile(tile, world_grid, TARGET_FILL, TARGET_OUTLINE)
 
+	var hunt_target := _get_hunt_target(creature)
+	if is_instance_valid(hunt_target) and world_grid.creature_anchors.has(hunt_target):
+		var hunt_anchor: Vector2i = world_grid.creature_anchors[hunt_target]
+		for tile in world_grid.get_footprint_tiles(hunt_anchor, hunt_target.footprint_size):
+			_draw_tile(tile, world_grid, HUNT_TARGET_FILL, HUNT_TARGET_OUTLINE)
+
 	var flag_debug := _get_flag_debug_data(creature)
 	var flag_target_variant: Variant = flag_debug.get("target_tile", null)
 
@@ -244,6 +255,13 @@ func _draw_path(world_grid: Node, creature: Node) -> void:
 
 	for point in points:
 		draw_circle(point, 7.0, PATH_POINT_COLOR)
+
+
+func _get_hunt_target(creature: Node) -> Node:
+	if creature.has_method("get_hunt_target"):
+		return creature.get_hunt_target()
+
+	return null
 
 
 func _draw_tile(tile: Vector2i, world_grid: Node, fill_color: Color, outline_color: Color) -> void:
@@ -287,6 +305,16 @@ func _get_state_name(state_value: int) -> String:
 			state_name = "DEAD"
 
 	return state_name
+
+
+func _get_display_state_name(creature: Node) -> String:
+	if creature.has_method("is_waiting_for_combat_engagement") and bool(creature.is_waiting_for_combat_engagement()):
+		return "ENGAGED"
+
+	if creature.has_method("is_hunting") and bool(creature.is_hunting()):
+		return "HUNTING"
+
+	return _get_state_name(int(creature.state))
 
 
 func _format_tile(tile: Vector2i) -> String:
