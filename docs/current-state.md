@@ -22,7 +22,7 @@ Current prototype includes:
 - a fixed enemy-species catalog pointing to six enemy resource variants and mirroring the current player egg costs and per-creature energy income;
 - runtime faction ownership (`player`, `enemy`, or `neutral`) kept separate from species identity, with current untagged entities defaulting to the player faction and unknown non-empty ids normalizing to neutral;
 - species-specific two-stage egg visuals for all current reproducing species;
-- shared carnivore targeting and simple duel-combat code;
+- shared carnivore targeting that tries reachable side anchors in distance order, plus simple duel-combat code;
 - creature death with a short corpse/death-pose visual before removal;
 - static flattened contour shadows beneath creatures;
 - player nature powers: lightning, rain, sun, and earthquake;

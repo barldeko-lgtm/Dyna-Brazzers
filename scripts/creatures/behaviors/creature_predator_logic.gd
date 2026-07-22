@@ -1,7 +1,6 @@
 extends RefCounted
 
 const Duel = preload("res://scripts/combat/duel.gd")
-const INVALID_ANCHOR := Vector2i(2147483647, 2147483647)
 
 var creature: Node
 
@@ -122,6 +121,7 @@ func are_footprints_side_adjacent(a_anchor: Vector2i, a_size: Vector2i, b_anchor
 
 func build_path_to_prey(prey: Node) -> void:
 	PerformanceStats.add_counter("predator_path_rebuild_requests")
+	creature.current_path.clear()
 
 	if creature.world_grid == null or prey == null or not creature.world_grid.creature_anchors.has(prey):
 		return
@@ -133,8 +133,7 @@ func build_path_to_prey(prey: Node) -> void:
 		Vector2i(0, -creature.footprint_size.y),
 		Vector2i(0, prey.footprint_size.y)
 	]
-	var best_anchor := INVALID_ANCHOR
-	var best_distance: float = INF
+	var ranked_anchors: Array[Vector2i] = []
 
 	for offset in approach_offsets:
 		var candidate_anchor: Vector2i = prey_anchor + offset
@@ -142,16 +141,42 @@ func build_path_to_prey(prey: Node) -> void:
 		if not creature.world_grid.can_place_footprint(candidate_anchor, creature.footprint_size, creature):
 			continue
 
-		var distance: float = float(creature.world_grid.estimate_path_steps(creature.anchor_tile, candidate_anchor))
+		_insert_approach_anchor_by_distance(ranked_anchors, candidate_anchor)
 
-		if distance < best_distance:
-			best_distance = distance
-			best_anchor = candidate_anchor
+	for approach_anchor in ranked_anchors:
+		var path: Array[Vector2i] = creature.world_grid.find_path(
+			creature.anchor_tile,
+			approach_anchor,
+			creature.footprint_size,
+			creature,
+			creature.max_path_search_tiles
+		)
 
-	if best_anchor == INVALID_ANCHOR:
+		if path.is_empty():
+			continue
+
+		creature.current_path = path
 		return
 
-	creature.current_path = creature.world_grid.find_path(creature.anchor_tile, best_anchor, creature.footprint_size, creature, creature.max_path_search_tiles)
+
+func _insert_approach_anchor_by_distance(ranked_anchors: Array[Vector2i], candidate_anchor: Vector2i) -> void:
+	var candidate_distance: int = creature.world_grid.estimate_path_steps(
+		creature.anchor_tile,
+		candidate_anchor
+	)
+	var insert_index: int = ranked_anchors.size()
+
+	for index in range(ranked_anchors.size()):
+		var current_distance: int = creature.world_grid.estimate_path_steps(
+			creature.anchor_tile,
+			ranked_anchors[index]
+		)
+
+		if candidate_distance < current_distance:
+			insert_index = index
+			break
+
+	ranked_anchors.insert(insert_index, candidate_anchor)
 
 
 func start_duel_with(opponent: Node) -> Duel:

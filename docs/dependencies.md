@@ -184,6 +184,7 @@ Rules:
 - `creature.gd` remains the public facade for route and state transitions;
 - `creature_movement_controller.gd` owns grid-step execution, queued-route mutation, and indirect-order route apply/pause/cancel operations;
 - before a creature begins smooth movement, `world_grid.gd` must atomically reserve its next footprint; arrival converts that reservation into normal occupancy, while route cancellation, failed movement, and removal release it;
+- predator logic ranks free side anchors around prey by estimated distance, then tries their paths in that order until one is reachable;
 - active flag code must call the creature indirect-order API instead of setting `current_path`, `state_timer`, `state`, `has_grazing_target`, `food_recheck_timer`, or `grazing_candidate_queue`;
 - survival, food, reproduction, and combat remain higher priority than indirect orders;
 - enemy creatures use the same movement controller and autonomous FSM; do not create an enemy-only movement or survival copy.
