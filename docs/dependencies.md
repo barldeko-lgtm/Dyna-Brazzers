@@ -177,16 +177,18 @@ Main files:
 
 - `res://scripts/creatures/creature.gd`;
 - `res://scripts/creatures/behaviors/creature_movement_controller.gd`;
+- `res://scripts/creatures/behaviors/creature_predator_logic.gd`;
 - `res://scripts/flags/player_flag_system_with_catalog.gd`.
 
 Rules:
 
-- `creature.gd` remains the public facade for route and state transitions;
-- `creature_movement_controller.gd` owns grid-step execution, queued-route mutation, and indirect-order route apply/pause/cancel operations;
+- `creature.gd` remains the public facade for external route and state transitions; internal creature behaviour modules may call their owned controller APIs but must not mutate route/FSM fields directly;
+- `creature_movement_controller.gd` owns every queued-route mutation, grid-step execution, autonomous behavior-route replacement/clearing, and indirect-order route apply/pause/cancel operations;
 - before a creature begins smooth movement, `world_grid.gd` must atomically reserve its next footprint; arrival converts that reservation into normal occupancy, while route cancellation, failed movement, and removal release it;
-- predator logic ranks free side anchors around prey by estimated distance, then tries their paths in that order until one is reachable;
-- a predator locks its prey and selected approach path, checks the nearest new prey every two seconds, and switches only when its actual path is at least two steps shorter; with four or fewer route steps left, it rechecks approach sides without changing prey; one step before the locked approach, prey engagement suppresses new movement until duel entry or an emergency release;
-- when an adjacent hunter or prey is mid-step, both finish that step without starting another, then revalidate side contact before entering a duel;
+- predator logic scans at most the three nearest available prey inside the species radius, builds a reachable approach route for each, and chooses the shortest actual route; when no candidate is reachable or present, the next population scan waits two seconds;
+- a prey approach may use any anchor that overlaps at least one tile along a footprint side; for the current shared 2x2 footprint this means the centered side anchor plus one-tile shifts in either direction, while full corner diagonals remain invalid;
+- prey remains shareable while merely being pursued, but `combat_engagement_hunter` is exclusive once one hunter begins the final approach; other hunters must drop that prey immediately and search again in the same update;
+- predator logic must use the movement controller behavior-route API instead of writing or clearing `current_path` directly; an already active smooth step is preserved while queued hunt steps are replaced or removed;
 - active flag code must call the creature indirect-order API instead of setting `current_path`, `state_timer`, `state`, `has_grazing_target`, `food_recheck_timer`, or `grazing_candidate_queue`;
 - survival, food, reproduction, and combat remain higher priority than indirect orders;
 - enemy creatures use the same movement controller and autonomous FSM; do not create an enemy-only movement or survival copy.

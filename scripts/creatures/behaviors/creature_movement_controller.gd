@@ -90,6 +90,29 @@ func get_navigation_anchor() -> Vector2i:
 	return anchor_variant if anchor_variant is Vector2i else Vector2i.ZERO
 
 
+# Internal autonomous behaviours such as predator hunting replace only queued
+# steps here. An already active smooth step and its reservation are preserved.
+func replace_behavior_route(path: Array) -> void:
+	creature.set("current_path", _normalize_route(path))
+
+
+func clear_behavior_route() -> void:
+	_clear_queued_path()
+
+
+func get_queued_route_step_count() -> int:
+	var path_variant: Variant = creature.get("current_path")
+
+	if not (path_variant is Array):
+		return 0
+
+	return (path_variant as Array).size()
+
+
+func get_remaining_route_steps() -> int:
+	return get_queued_route_step_count() + (1 if bool(creature.get("is_moving")) else 0)
+
+
 func start_next_path_step_if_needed() -> void:
 	if bool(creature.get("is_moving")):
 		return
@@ -222,19 +245,11 @@ func can_accept_indirect_order() -> bool:
 
 
 func has_indirect_order_route_in_progress() -> bool:
-	if bool(creature.get("is_moving")):
-		return true
-
-	var path_variant: Variant = creature.get("current_path")
-	return path_variant is Array and not (path_variant as Array).is_empty()
+	return get_remaining_route_steps() > 0
 
 
 func apply_indirect_order_route(path: Array) -> bool:
-	var normalized_path: Array[Vector2i] = []
-
-	for step_variant: Variant in path:
-		if step_variant is Vector2i:
-			normalized_path.append(step_variant)
+	var normalized_path := _normalize_route(path)
 
 	if normalized_path.is_empty():
 		return false
@@ -286,6 +301,16 @@ func cancel_indirect_order_route() -> void:
 
 	if creature.has_method("enter_walk"):
 		creature.call("enter_walk")
+
+
+func _normalize_route(path: Array) -> Array[Vector2i]:
+	var normalized_path: Array[Vector2i] = []
+
+	for step_variant: Variant in path:
+		if step_variant is Vector2i:
+			normalized_path.append(step_variant)
+
+	return normalized_path
 
 
 func _clear_queued_path() -> void:
