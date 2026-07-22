@@ -5,3 +5,6 @@
 # Performance/debug logs generated at runtime (F8 CSV logging)
 logs/
 logs/*.csv
+
+# Local-only diagnostic probes
+tests/
