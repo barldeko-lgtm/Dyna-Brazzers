@@ -124,7 +124,7 @@ The active project is deliberately split by responsibility:
 - dynamic save, flag, egg, and time-control menus resolve the nature panel through the `player_nature_ui` group API rather than deep scene paths;
 - `CreatureSpeciesData` stores biological species data, `CreatureFaction` stores validated runtime ownership, `PlayerSpeciesCatalog` stores player-only economy and flag presentation, and `EnemySpeciesCatalog` selects the enemy biological variants without owning future enemy AI;
 - `faction_base.gd` owns shared fixed-base blocking, visuals, nearby egg placement, and faction assignment; `player_base.gd` and `enemy_base.gd` remain thin faction-specific wrappers;
-- `creature.gd` remains the creature FSM/survival coordinator and public facade; movement, visuals, and mouse interaction are delegated to dedicated controllers;
+- `creature.gd` remains the creature FSM/survival coordinator and public facade; movement, visuals, and mouse interaction are delegated to dedicated controllers, while the world grid reserves each next movement anchor before visual travel;
 - the player-flag facade, UI controller, assignment service, target allocator, and visual have separate ownership;
 - `save_system.gd` owns base slot persistence and reconstruction, `save_system_with_flags.gd` layers optional faction/flag/audio data, and `save_system_with_enemy.gd` adds enemy energy plus the temporary production cursor/timer;
 - F3 grid diagnostics, F4 text diagnostics, and F8 CSV performance logging are separate systems.

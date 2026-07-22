@@ -38,6 +38,12 @@ var blocker_anchors: Dictionary = {}
 
 var occupied_by_tile: Dictionary = {}
 
+# A creature keeps its current footprint occupied while it moves smoothly. Its
+# next footprint is reserved separately so another creature cannot start toward
+# the same anchor before the mover arrives and converts it to occupancy.
+var movement_reservation_anchors: Dictionary = {}
+var reserved_by_tile: Dictionary = {}
+
 var is_initialized := false
 
 var grass_render_offset := Vector2.ZERO
@@ -322,7 +328,44 @@ func can_place_footprint(anchor_tile: Vector2i, footprint_size: Vector2i, creatu
 		if occupied_by_tile.has(tile) and occupied_by_tile[tile] != creature:
 			return false
 
+		if reserved_by_tile.has(tile) and reserved_by_tile[tile] != creature:
+			return false
+
 	return true
+
+
+func reserve_movement_destination(creature: Node, anchor_tile: Vector2i, footprint_size: Vector2i) -> bool:
+	if creature == null or not is_instance_valid(creature):
+		return false
+
+	var existing_anchor_variant: Variant = movement_reservation_anchors.get(creature, null)
+
+	if existing_anchor_variant is Vector2i:
+		var existing_anchor: Vector2i = existing_anchor_variant
+
+		if existing_anchor == anchor_tile:
+			return true
+
+		release_movement_reservation(creature, footprint_size)
+
+	if not can_place_footprint(anchor_tile, footprint_size, creature):
+		return false
+
+	movement_reservation_anchors[creature] = anchor_tile
+	_reserve_movement_tiles(anchor_tile, footprint_size, creature)
+	return true
+
+
+func release_movement_reservation(creature: Node, footprint_size: Vector2i) -> void:
+	if not movement_reservation_anchors.has(creature):
+		return
+
+	var anchor_variant: Variant = movement_reservation_anchors[creature]
+
+	if anchor_variant is Vector2i:
+		_release_movement_tiles(anchor_variant, footprint_size, creature)
+
+	movement_reservation_anchors.erase(creature)
 
 
 func find_nearest_valid_anchor(preferred_anchor: Vector2i, footprint_size: Vector2i, creature: Node = null, max_radius: int = 12) -> Vector2i:
@@ -378,6 +421,8 @@ func is_creature_registered(creature: Node) -> bool:
 
 
 func unregister_creature(creature: Node, footprint_size: Vector2i) -> void:
+	release_movement_reservation(creature, footprint_size)
+
 	if not creature_anchors.has(creature):
 		return
 
@@ -395,10 +440,12 @@ func move_creature(creature: Node, new_anchor_tile: Vector2i, footprint_size: Ve
 
 	if not can_place_footprint(new_anchor_tile, footprint_size, creature):
 		_reserve_tiles(previous_anchor, footprint_size, creature)
+		release_movement_reservation(creature, footprint_size)
 		return false
 
 	creature_anchors[creature] = new_anchor_tile
 	_reserve_tiles(new_anchor_tile, footprint_size, creature)
+	release_movement_reservation(creature, footprint_size)
 	return true
 
 
@@ -671,6 +718,17 @@ func _release_tiles(anchor_tile: Vector2i, footprint_size: Vector2i, creature: N
 	for tile in get_footprint_tiles(anchor_tile, footprint_size):
 		if occupied_by_tile.get(tile) == creature:
 			occupied_by_tile.erase(tile)
+
+
+func _reserve_movement_tiles(anchor_tile: Vector2i, footprint_size: Vector2i, creature: Node) -> void:
+	for tile in get_footprint_tiles(anchor_tile, footprint_size):
+		reserved_by_tile[tile] = creature
+
+
+func _release_movement_tiles(anchor_tile: Vector2i, footprint_size: Vector2i, creature: Node) -> void:
+	for tile in get_footprint_tiles(anchor_tile, footprint_size):
+		if reserved_by_tile.get(tile) == creature:
+			reserved_by_tile.erase(tile)
 
 
 func _reject_unregistered_creature(creature: Node, attempted_anchor: Vector2i) -> void:

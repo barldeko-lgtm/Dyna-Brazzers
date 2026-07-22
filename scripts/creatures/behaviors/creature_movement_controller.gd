@@ -102,22 +102,30 @@ func start_next_path_step_if_needed() -> void:
 		return
 
 	var next_anchor: Vector2i = next_anchor_variant
-	current_path.remove_at(0)
-	creature.set("current_path", current_path)
-	creature.set("pending_anchor_tile", next_anchor)
-
 	var world_grid: Node = creature.get("world_grid")
 
 	if world_grid == null:
 		return
 
 	var footprint: Vector2i = creature.get("footprint_size")
+
+	if not bool(world_grid.call(
+		"reserve_movement_destination", creature, next_anchor, footprint
+	)):
+		clear_path()
+		return
+
+	current_path.remove_at(0)
+	creature.set("current_path", current_path)
+	creature.set("pending_anchor_tile", next_anchor)
+
 	var target_position: Vector2 = world_grid.call(
 		"anchor_to_world_position", next_anchor, footprint
 	)
 	var body := creature as CharacterBody2D
 
 	if body == null:
+		world_grid.call("release_movement_reservation", creature, footprint)
 		return
 
 	creature.set("movement_target_position", target_position)
@@ -186,6 +194,12 @@ func advance_movement(delta: float) -> void:
 
 
 func clear_path() -> void:
+	var world_grid: Node = creature.get("world_grid")
+
+	if world_grid != null:
+		var footprint: Vector2i = creature.get("footprint_size")
+		world_grid.call("release_movement_reservation", creature, footprint)
+
 	_clear_queued_path()
 	creature.set("is_moving", false)
 	creature.set("pending_anchor_tile", creature.get("anchor_tile"))
