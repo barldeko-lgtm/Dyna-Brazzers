@@ -92,7 +92,7 @@ Player-specific flow:
 Enemy-specific flow:
 
 - `enemy_base.gd` exposes `create_enemy_egg()` as a thin wrapper over the same safe common placement method;
-- `enemy_egg_production_controller.gd` calls that method once per five-second production attempt for the current catalog species;
+- `enemy_egg_production_controller.gd` retains that five-second production path, but its `automatic_production_enabled` switch currently defaults to `false`, so no timer attempts run;
 - enemy energy and the temporary round-robin timer live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`; population choices, priorities, attack plans, and strategic AI remain future work.
 
 Rules:
@@ -253,7 +253,7 @@ Rules:
 - an enemy-base-created egg must be assigned `enemy` before it is added to active gameplay; `FactionBase` performs this when called through the enemy wrapper;
 - only living player-faction creatures whose species exists in `PlayerSpeciesCatalog` generate player energy;
 - only living enemy-faction creatures whose species exists in `EnemySpeciesCatalog` generate enemy energy;
-- the temporary production controller spends enemy energy only after `create_enemy_egg()` returns a real egg and advances its round-robin cursor only after successful spending;
+- when automatic production is enabled again, the temporary controller must spend enemy energy only after `create_enemy_egg()` returns a real egg and advance its round-robin cursor only after successful spending; while disabled, restore must keep its timer stopped;
 - player flags affect only player-faction creatures in the fixed player catalog;
 - player flags may read creature navigation/species data, but route application, food interruption, route cancellation, and related FSM mutations must go through the creature indirect-order API;
 - changing one species flag cancels only that species routes and retry timers; other species flag work remains intact;
@@ -381,7 +381,7 @@ Loading flow:
 9. Preserve the already spawned static player and enemy bases and their blocker registrations.
 10. Restore player energy, camera, and simulation speed.
 11. The faction/flag save layer reapplies creature/egg factions and completed-flag revisions, defaulting missing faction fields to player and unknown non-empty ids to neutral, before restoring player flags.
-12. The enemy save layer restores optional enemy energy and production cursor/timer state; missing fields keep the new-game defaults.
+12. The enemy save layer restores optional enemy energy and production cursor/timer state; missing fields keep the new-game defaults, and the disabled production switch must leave the restored timer stopped.
 
 Rules:
 
@@ -480,7 +480,7 @@ Rules:
 
 - evaluate only 2x2 anchors containing at least `min_grass_to_eat` edible tiles; the current shared minimum remains two;
 - sum the food value of every edible grass tile under the full four-tile footprint;
-- use a cheap preliminary score only to create an eight-anchor shortlist;
+- use a cheap preliminary score only to create a ten-anchor shortlist;
 - build a current real path to every shortlisted anchor, reject blocked or unreachable entries, and calculate the final score as `total food value - actual route steps * 2`;
 - allow lower-stage edible grass as fallback when its reachable route makes it the better final choice;
 - initial targeting and the two-second periodic retarget check must use the same path-aware ranking; exact score ties keep the current target;

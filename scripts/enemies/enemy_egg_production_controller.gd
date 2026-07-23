@@ -5,6 +5,9 @@ class_name EnemyEggProductionController
 # stay outside this scaffold and will replace the simple round-robin rule later.
 const ENEMY_SPECIES_CATALOG := preload("res://scripts/catalogs/enemy_species_catalog.gd")
 
+# Temporary project switch. The controller, save state and enemy-base plumbing
+# remain in place, but no automatic enemy eggs are produced while this is false.
+@export var automatic_production_enabled := false
 @export var production_interval := 5.0
 
 var production_timer: Timer = null
@@ -25,10 +28,16 @@ func _setup_production_timer() -> void:
 	production_timer.one_shot = false
 	production_timer.timeout.connect(_on_production_timer_timeout)
 	add_child(production_timer)
-	production_timer.start()
+
+	if automatic_production_enabled:
+		production_timer.start()
 
 
 func _on_production_timer_timeout() -> void:
+	if not automatic_production_enabled:
+		production_timer.stop()
+		return
+
 	_refresh_runtime_references()
 
 	if enemy_base == null or enemy_energy == null:
@@ -102,6 +111,10 @@ func restore_save_data(saved_data: Dictionary) -> void:
 		)
 
 	if production_timer == null:
+		return
+
+	if not automatic_production_enabled:
+		production_timer.stop()
 		return
 
 	var saved_time_left := float(

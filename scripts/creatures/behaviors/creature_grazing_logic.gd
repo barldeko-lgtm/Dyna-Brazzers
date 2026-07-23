@@ -1,7 +1,7 @@
 extends RefCounted
 
 const GRAZING_DISTANCE_COST_PER_TILE: float = 2.0
-const GRAZING_PATH_CANDIDATE_LIMIT: int = 8
+const GRAZING_PATH_CANDIDATE_LIMIT: int = 10
 const GLOBAL_GRAZING_CANDIDATE_LIMIT: int = 32
 
 var creature: Node
@@ -90,7 +90,7 @@ func can_start_eating_here() -> bool:
 # Grazing target selection.
 # Grass stages 2-4 remain edible. Only 2x2 footprint anchors containing at
 # least min_grass_to_eat edible tiles are eligible. A cheap pass builds an
-# eight-anchor shortlist; real routes are then built to all eight and the final
+# ten-anchor shortlist; real routes are then built to all ten and the final
 # score uses actual remaining route steps:
 # total food value under the footprint - route steps * 2.
 func try_acquire_grazing_target() -> void:
