@@ -1,5 +1,9 @@
 extends Node2D
 
+const CREATURE_GRAZING_LOGIC = preload(
+	"res://scripts/creatures/behaviors/creature_grazing_logic.gd"
+)
+
 # Grass growth and spread.
 @onready var body_sprite: Sprite2D = $BodySprite
 
@@ -75,8 +79,12 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	if world_grid != null:
+	if world_grid != null and is_instance_valid(world_grid):
+		var was_registered: bool = world_grid.get_grass_at_tile(tile_position) == self
 		world_grid.unregister_grass(self, tile_position)
+
+		if was_registered:
+			_notify_grazing_cache_changed(tile_position)
 
 
 # Consumption.
@@ -110,9 +118,13 @@ func consume() -> bool:
 
 
 func set_stage(new_stage: Stage) -> void:
+	var stage_changed: bool = current_stage != new_stage
 	current_stage = new_stage
 	apply_current_stage_visual()
 	update_timers()
+
+	if stage_changed:
+		_notify_grazing_cache_changed(tile_position)
 
 
 # Rain.
@@ -278,7 +290,13 @@ func sync_tile_position_with_world() -> bool:
 	if world_grid == null:
 		return false
 
-	world_grid.unregister_grass(self, tile_position)
+	var previous_tile: Vector2i = tile_position
+	var was_registered: bool = world_grid.get_grass_at_tile(previous_tile) == self
+	world_grid.unregister_grass(self, previous_tile)
+
+	if was_registered:
+		_notify_grazing_cache_changed(previous_tile)
+
 	var initial_position := global_position
 	tile_position = world_grid.world_to_map_tile(initial_position)
 
@@ -287,8 +305,16 @@ func sync_tile_position_with_world() -> bool:
 
 	render_offset = Vector2.ZERO
 	world_grid.register_grass(self, tile_position)
+	_notify_grazing_cache_changed(tile_position)
 	global_position = world_grid.grass_tile_to_world_position(tile_position)
 	return true
+
+
+func _notify_grazing_cache_changed(changed_tile: Vector2i) -> void:
+	if world_grid == null or not is_instance_valid(world_grid):
+		return
+
+	CREATURE_GRAZING_LOGIC.notify_grass_changed(world_grid, changed_tile)
 
 
 # Lookup helper.

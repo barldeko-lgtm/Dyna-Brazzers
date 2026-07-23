@@ -52,8 +52,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/creatures/creature_faction.gd` — validated runtime faction ownership helper (`player`, `enemy`, `neutral`) kept separate from species identity. Untagged current entities default to player; unknown or removed non-empty faction ids normalize to neutral.
 - `scripts/catalogs/player_species_catalog.gd` — ordered fixed catalog of the six player species with player-only egg prices, energy income, flag text, and current flag behaviour category.
 - `scripts/catalogs/enemy_species_catalog.gd` — fixed six-species enemy roster with enemy-specific resources, mirrored egg costs, and per-creature enemy-energy income; strategic population priorities remain future work.
-- `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore ten-pasture shortlist, cheap two-second validation of the stored route, five-second alternative comparison, one shared forward breadth-first route wave that continues through 80/150/300 expansion stages without restarting, final `food value - path steps * 2` ranking, upper-bound stopping, and movement-controller-owned grazing routes.
-- `scripts/creatures/behaviors/grazing_multi_target_pathfinder.gd` — deprecated compatibility stub that may remain on local copies from the abandoned experiment; it has no runtime ownership and is not preloaded.
+- `scripts/creatures/behaviors/creature_grazing_logic.gd` — shared sectorized 2x2 pasture cache, ten-candidate herbivore shortlist, one shared breadth-first route wave with continuing 80/150/300 expansion thresholds, two-second current-route validation, five-second alternative comparison, upper-bound early stopping, final `food value - path steps * 2` ranking, and movement-controller-owned grazing routes.
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — shared carnivore three-candidate prey search, reachable-path comparison, side-overlap approach selection, target locking, engagement handoff, step settlement, and combat-entry logic.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — stage-2 egg targeting, periodic retargeting, and consumption logic.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and egg spawning.
@@ -61,7 +60,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/creatures/behaviors/creature_interaction_controller.gd` — world-space hover/selection frame, `HoverArea` mouse signals, and the creature-to-UI click bridge.
 - `scripts/creatures/behaviors/creature_movement_controller.gd` — sole owner of queued-route mutation and grid-step execution; exposes separate behavior-route replacement/clearing for autonomous systems plus the existing indirect-order API.
 - `scripts/combat/duel.gd` — temporary one-on-one combat loop.
-- `scripts/resources/grass.gd` — grass growth, consumption, spread, and nature-power reactions; it is the single owner of the 8-second growth-stage interval and 30-second mature spread delay.
+- `scripts/resources/grass.gd` — grass growth, consumption, spread, and nature-power reactions; it is the single owner of the 8-second growth-stage interval and 30-second mature spread delay, and notifies the shared grazing cache after registration, removal, or stage changes.
 - `scripts/resources/egg.gd` — egg stages, species texture application, blocker handling, hatching, and the single shared 5/1/10-second incubation schedule used by every species and faction.
 
 ### Audio

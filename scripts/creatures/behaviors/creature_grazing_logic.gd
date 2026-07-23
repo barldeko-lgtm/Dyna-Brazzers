@@ -7,6 +7,14 @@ const GRAZING_PATH_LIMIT_NEAR: int = 80
 const GRAZING_PATH_LIMIT_MEDIUM: int = 150
 const GRAZING_PATH_LIMIT_FALLBACK: int = 300
 const GLOBAL_GRAZING_CANDIDATE_LIMIT: int = 32
+const GRAZING_CACHE_FOOTPRINT_SIZE: Vector2i = Vector2i(2, 2)
+const GRAZING_CACHE_SECTOR_SIZE: int = 8
+
+# Shared between every herbivore in the active world. Grass nodes update only
+# the four 2x2 pasture anchors touched by a stage/register/unregister change.
+# The cache is split into small sectors so local searches inspect only nearby
+# pasture entries rather than rebuilding anchors from the full grass registry.
+static var grazing_pasture_cache_by_world: Dictionary = {}
 
 var creature: Node
 var full_recheck_timer: float = GRAZING_FULL_RECHECK_INTERVAL
@@ -14,6 +22,180 @@ var full_recheck_timer: float = GRAZING_FULL_RECHECK_INTERVAL
 
 func _init(owner_creature: Node) -> void:
 	creature = owner_creature
+
+
+# Shared 2x2 pasture cache.
+static func notify_grass_changed(world_grid: Node, grass_tile: Vector2i) -> void:
+	if world_grid == null or not is_instance_valid(world_grid):
+		return
+
+	var cache: Dictionary = _get_grazing_cache(world_grid)
+
+	for offset_y: int in range(GRAZING_CACHE_FOOTPRINT_SIZE.y):
+		for offset_x: int in range(GRAZING_CACHE_FOOTPRINT_SIZE.x):
+			_refresh_cached_pasture(
+				world_grid,
+				cache,
+				grass_tile - Vector2i(offset_x, offset_y)
+			)
+
+	PerformanceStats.add_counter(
+		"grazing_cache_anchor_refreshes",
+		GRAZING_CACHE_FOOTPRINT_SIZE.x * GRAZING_CACHE_FOOTPRINT_SIZE.y
+	)
+
+
+static func _get_grazing_cache(world_grid: Node) -> Dictionary:
+	var world_id: int = int(world_grid.get_instance_id())
+
+	if grazing_pasture_cache_by_world.has(world_id):
+		var existing_cache: Dictionary = grazing_pasture_cache_by_world[world_id]
+		var cached_world: Variant = existing_cache.get("world", null)
+
+		if cached_world != null and is_instance_valid(cached_world) and cached_world == world_grid:
+			return existing_cache
+
+	var new_cache: Dictionary = {
+		"world": world_grid,
+		"pastures": {},
+		"sectors": {}
+	}
+	grazing_pasture_cache_by_world[world_id] = new_cache
+	return new_cache
+
+
+static func _refresh_cached_pasture(
+	world_grid: Node,
+	cache: Dictionary,
+	pasture_anchor: Vector2i
+) -> void:
+	var bottom_right := pasture_anchor + GRAZING_CACHE_FOOTPRINT_SIZE - Vector2i.ONE
+
+	if not world_grid.is_tile_inside_map(pasture_anchor) or not world_grid.is_tile_inside_map(
+		bottom_right
+	):
+		_remove_cached_pasture(cache, pasture_anchor)
+		return
+
+	var adult_count: int = 0
+	var food_value: int = 0
+
+	for offset_y: int in range(GRAZING_CACHE_FOOTPRINT_SIZE.y):
+		for offset_x: int in range(GRAZING_CACHE_FOOTPRINT_SIZE.x):
+			var tile := pasture_anchor + Vector2i(offset_x, offset_y)
+			var grass: Node = world_grid.get_grass_at_tile(tile)
+
+			if not is_instance_valid(grass):
+				continue
+
+			if not grass.has_method("can_be_eaten") or not grass.can_be_eaten():
+				continue
+
+			adult_count += 1
+
+			if grass.has_method("get_food_value"):
+				food_value += int(grass.get_food_value())
+			else:
+				food_value += 7
+
+	if adult_count <= 0:
+		_remove_cached_pasture(cache, pasture_anchor)
+		return
+
+	var pastures: Dictionary = cache["pastures"]
+	pastures[pasture_anchor] = {
+		"anchor": pasture_anchor,
+		"adult_count": adult_count,
+		"food_value": food_value
+	}
+
+	var sectors: Dictionary = cache["sectors"]
+	var sector_key: Vector2i = _get_grazing_cache_sector(pasture_anchor)
+
+	if not sectors.has(sector_key):
+		sectors[sector_key] = {}
+
+	var sector_entries: Dictionary = sectors[sector_key]
+	sector_entries[pasture_anchor] = true
+
+
+static func _remove_cached_pasture(
+	cache: Dictionary,
+	pasture_anchor: Vector2i
+) -> void:
+	var pastures: Dictionary = cache["pastures"]
+	pastures.erase(pasture_anchor)
+	var sectors: Dictionary = cache["sectors"]
+	var sector_key: Vector2i = _get_grazing_cache_sector(pasture_anchor)
+
+	if not sectors.has(sector_key):
+		return
+
+	var sector_entries: Dictionary = sectors[sector_key]
+	sector_entries.erase(pasture_anchor)
+
+	if sector_entries.is_empty():
+		sectors.erase(sector_key)
+
+
+static func _get_grazing_cache_sector(anchor: Vector2i) -> Vector2i:
+	return Vector2i(
+		floori(float(anchor.x) / float(GRAZING_CACHE_SECTOR_SIZE)),
+		floori(float(anchor.y) / float(GRAZING_CACHE_SECTOR_SIZE))
+	)
+
+
+static func _collect_cached_pastures(
+	world_grid: Node,
+	origin_anchor: Vector2i,
+	search_radius: int
+) -> Array[Dictionary]:
+	var cache: Dictionary = _get_grazing_cache(world_grid)
+	var pastures: Dictionary = cache["pastures"]
+	var collected: Array[Dictionary] = []
+
+	if search_radius < 0:
+		for pasture_data_variant: Variant in pastures.values():
+			if not (pasture_data_variant is Dictionary):
+				continue
+
+			var pasture_data: Dictionary = pasture_data_variant
+			collected.append(pasture_data.duplicate())
+
+		return collected
+
+	var start_tile := origin_anchor - Vector2i(search_radius, search_radius)
+	var end_tile := origin_anchor + Vector2i(search_radius, search_radius)
+	var min_sector: Vector2i = _get_grazing_cache_sector(start_tile)
+	var max_sector: Vector2i = _get_grazing_cache_sector(end_tile)
+	var sectors: Dictionary = cache["sectors"]
+
+	for sector_y: int in range(min_sector.y, max_sector.y + 1):
+		for sector_x: int in range(min_sector.x, max_sector.x + 1):
+			var sector_key := Vector2i(sector_x, sector_y)
+
+			if not sectors.has(sector_key):
+				continue
+
+			var sector_entries: Dictionary = sectors[sector_key]
+
+			for pasture_anchor_variant: Variant in sector_entries.keys():
+				if not (pasture_anchor_variant is Vector2i):
+					continue
+
+				var pasture_anchor: Vector2i = pasture_anchor_variant
+
+				if pasture_anchor.x < start_tile.x or pasture_anchor.x > end_tile.x:
+					continue
+
+				if pasture_anchor.y < start_tile.y or pasture_anchor.y > end_tile.y:
+					continue
+
+				if pastures.has(pasture_anchor):
+					var pasture_data: Dictionary = pastures[pasture_anchor]
+					collected.append(pasture_data.duplicate())
+
+	return collected
 
 
 # Food state machine.
@@ -112,7 +294,8 @@ func can_start_eating_here() -> bool:
 
 # Grazing target selection.
 #
-# A cheap grass-registry pass keeps up to ten eligible 2x2 pasture anchors.
+# A shared sector cache keeps up to ten eligible 2x2 pasture anchors. Grass
+# stage/register/unregister changes refresh only the four affected anchors.
 # One breadth-first path wave then starts at the herbivore and reaches all ten
 # candidates through the same visited-cell map. The wave expands at most 300
 # anchors total, not 300 anchors per candidate. Thresholds 80, 150 and 300
@@ -219,27 +402,40 @@ func find_quality_ranked_grazing_candidates(
 
 	if search_radius >= 0:
 		# A square search with radius R contains at most (2R + 1)^2 anchors.
-		# Request enough raw entries so the food-value re-rank sees every local
-		# candidate rather than only the old count-ranked subset.
+		# Keep the same first-stage ranking breadth as the previous grass-registry
+		# scan, but source those anchors from nearby cache sectors.
 		var search_diameter: int = search_radius * 2 + 1
 		scan_limit = max(scan_limit, search_diameter * search_diameter)
 	else:
-		# The global fallback is driven by the grass registry and remains bounded.
+		# Preserve the bounded global fallback shortlist before the final food-value
+		# re-rank, matching the previous selection semantics.
 		scan_limit = max(
 			scan_limit * 8,
 			GLOBAL_GRAZING_CANDIDATE_LIMIT
 		)
 
-	var raw_candidates: Array[Dictionary] = creature.world_grid.find_best_grazing_targets(
-		navigation_anchor,
-		creature.footprint_size,
-		creature.min_grass_to_eat,
-		search_radius,
-		creature,
-		creature.grazing_grass_weight,
-		creature.grazing_distance_penalty,
-		scan_limit
-	)
+	var raw_candidates: Array[Dictionary] = []
+
+	if creature.footprint_size == GRAZING_CACHE_FOOTPRINT_SIZE:
+		raw_candidates = _find_cached_raw_grazing_candidates(
+			navigation_anchor,
+			search_radius,
+			scan_limit
+		)
+	else:
+		# Current species all use 2x2 footprints. Keep the old generic world-grid
+		# scan as a compatibility fallback for a future differently sized species.
+		raw_candidates = creature.world_grid.find_best_grazing_targets(
+			navigation_anchor,
+			creature.footprint_size,
+			creature.min_grass_to_eat,
+			search_radius,
+			creature,
+			creature.grazing_grass_weight,
+			creature.grazing_distance_penalty,
+			scan_limit
+		)
+
 	var quality_ranked: Array[Dictionary] = []
 
 	for raw_candidate: Dictionary in raw_candidates:
@@ -247,17 +443,14 @@ func find_quality_ranked_grazing_candidates(
 			"anchor",
 			creature.anchor_tile
 		)
-		var distance: int = int(raw_candidate.get(
-			"distance",
-			creature.world_grid.estimate_path_steps(
-				navigation_anchor,
-				anchor
-			)
-		))
-		var food_value: int = get_grazing_target_food_value(anchor)
+		var distance: int = int(raw_candidate.get("distance", 0))
+		var food_value: int = int(raw_candidate.get("food_value", -1))
+
+		if food_value < 0:
+			food_value = get_grazing_target_food_value(anchor)
+
 		var rescored_candidate: Dictionary = raw_candidate.duplicate()
 		rescored_candidate["food_value"] = food_value
-		rescored_candidate["distance"] = distance
 		rescored_candidate["score"] = (
 			float(food_value)
 			- float(distance) * GRAZING_DISTANCE_COST_PER_TILE
@@ -270,6 +463,123 @@ func find_quality_ranked_grazing_candidates(
 		)
 
 	return quality_ranked
+
+
+func _find_cached_raw_grazing_candidates(
+	navigation_anchor: Vector2i,
+	search_radius: int,
+	max_results: int
+) -> Array[Dictionary]:
+	PerformanceStats.add_counter("grazing_searches")
+	PerformanceStats.add_counter("grazing_cache_queries")
+	var ranked_results: Array[Dictionary] = []
+	var candidate_checks: int = 0
+	var valid_footprint_checks: int = 0
+	var cached_pastures: Array[Dictionary] = _collect_cached_pastures(
+		creature.world_grid,
+		navigation_anchor,
+		search_radius
+	)
+
+	for cached_pasture: Dictionary in cached_pastures:
+		candidate_checks += 1
+		var adult_count: int = int(cached_pasture.get("adult_count", 0))
+
+		if adult_count < creature.min_grass_to_eat:
+			continue
+
+		var anchor: Vector2i = cached_pasture.get(
+			"anchor",
+			creature.anchor_tile
+		)
+
+		# Occupancy and movement reservations are intentionally not cached. They
+		# remain live per creature, so crowding behaviour is unchanged.
+		if not creature.world_grid.can_place_footprint(
+			anchor,
+			creature.footprint_size,
+			creature
+		):
+			continue
+
+		valid_footprint_checks += 1
+		var distance: int = creature.world_grid.estimate_path_steps(
+			navigation_anchor,
+			anchor
+		)
+		var rough_score: float = (
+			float(adult_count) * float(creature.grazing_grass_weight)
+			- float(distance) * float(creature.grazing_distance_penalty)
+		)
+		var raw_candidate: Dictionary = cached_pasture.duplicate()
+		raw_candidate["distance"] = distance
+		raw_candidate["score"] = rough_score
+		_insert_cached_raw_candidate(
+			ranked_results,
+			raw_candidate,
+			max_results
+		)
+
+	PerformanceStats.add_counter("grazing_candidate_checks", candidate_checks)
+	PerformanceStats.add_counter(
+		"grazing_valid_footprints",
+		valid_footprint_checks
+	)
+
+	if ranked_results.is_empty():
+		PerformanceStats.add_counter("grazing_search_misses")
+	else:
+		PerformanceStats.add_counter("grazing_search_hits")
+
+	return ranked_results
+
+
+func _insert_cached_raw_candidate(
+	ranked_candidates: Array[Dictionary],
+	candidate: Dictionary,
+	max_results: int
+) -> void:
+	if max_results <= 0:
+		return
+
+	var insert_index: int = ranked_candidates.size()
+
+	for index: int in range(ranked_candidates.size()):
+		if _is_cached_raw_candidate_better(
+			candidate,
+			ranked_candidates[index]
+		):
+			insert_index = index
+			break
+
+	if insert_index >= max_results:
+		return
+
+	ranked_candidates.insert(insert_index, candidate)
+
+	if ranked_candidates.size() > max_results:
+		ranked_candidates.resize(max_results)
+
+
+func _is_cached_raw_candidate_better(
+	candidate: Dictionary,
+	current_best: Dictionary
+) -> bool:
+	var candidate_score: float = float(candidate.get("score", -INF))
+	var current_score: float = float(current_best.get("score", -INF))
+
+	if not is_equal_approx(candidate_score, current_score):
+		return candidate_score > current_score
+
+	var candidate_distance: int = int(candidate.get("distance", 0))
+	var current_distance: int = int(current_best.get("distance", 0))
+
+	if candidate_distance != current_distance:
+		return candidate_distance < current_distance
+
+	return int(candidate.get("adult_count", 0)) > int(
+		current_best.get("adult_count", 0)
+	)
 
 
 func _insert_quality_ranked_candidate(
