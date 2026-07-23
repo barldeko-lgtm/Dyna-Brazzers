@@ -57,6 +57,11 @@ const MINIMAP_OTHER_FACTION_COLOR := Color(0xc88ce8ff)
 @onready var player_egg_eater_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerEggEaterCountLabel")
 @onready var player_egg_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerEggCountLabel")
 @onready var player_total_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerTotalCountLabel")
+@onready var enemy_herbivore_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/EnemyHerbivoreCountLabel")
+@onready var enemy_predator_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/EnemyPredatorCountLabel")
+@onready var enemy_egg_eater_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/EnemyEggEaterCountLabel")
+@onready var enemy_egg_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/EnemyEggCountLabel")
+@onready var enemy_total_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/EnemyTotalCountLabel")
 
 var time_speed_buttons: Array[Button] = []
 var entity_counts_refresh_timer := 0.0
@@ -524,25 +529,48 @@ func move_camera_to_minimap_position(local_position: Vector2) -> void:
 
 
 func update_entity_counts_text() -> void:
-	var herbivore_count := count_creatures_by_category("herbivore", CREATURE_FACTION.PLAYER)
-	var predator_count := count_creatures_by_category("predator", CREATURE_FACTION.PLAYER)
-	var egg_eater_count := count_creatures_by_category("egg_eater", CREATURE_FACTION.PLAYER)
-	var egg_count := count_eggs(CREATURE_FACTION.PLAYER)
+	var player_herbivore_count := count_creatures_by_category("herbivore", CREATURE_FACTION.PLAYER)
+	var player_predator_count := count_creatures_by_category("predator", CREATURE_FACTION.PLAYER)
+	var player_egg_eater_count := count_creatures_by_category("egg_eater", CREATURE_FACTION.PLAYER)
+	var player_egg_count := count_eggs(CREATURE_FACTION.PLAYER)
+	var enemy_herbivore_count := count_creatures_by_category("herbivore", CREATURE_FACTION.ENEMY)
+	var enemy_predator_count := count_creatures_by_category("predator", CREATURE_FACTION.ENEMY)
+	var enemy_egg_eater_count := count_creatures_by_category("egg_eater", CREATURE_FACTION.ENEMY)
+	var enemy_egg_count := count_eggs(CREATURE_FACTION.ENEMY)
 
 	if player_herbivore_count_label != null:
-		player_herbivore_count_label.text = str(herbivore_count)
+		player_herbivore_count_label.text = str(player_herbivore_count)
 
 	if player_predator_count_label != null:
-		player_predator_count_label.text = str(predator_count)
+		player_predator_count_label.text = str(player_predator_count)
 
 	if player_egg_eater_count_label != null:
-		player_egg_eater_count_label.text = str(egg_eater_count)
+		player_egg_eater_count_label.text = str(player_egg_eater_count)
 
 	if player_egg_count_label != null:
-		player_egg_count_label.text = str(egg_count)
+		player_egg_count_label.text = str(player_egg_count)
 
 	if player_total_count_label != null:
-		player_total_count_label.text = str(herbivore_count + predator_count + egg_eater_count)
+		player_total_count_label.text = str(
+			player_herbivore_count + player_predator_count + player_egg_eater_count
+		)
+
+	if enemy_herbivore_count_label != null:
+		enemy_herbivore_count_label.text = str(enemy_herbivore_count)
+
+	if enemy_predator_count_label != null:
+		enemy_predator_count_label.text = str(enemy_predator_count)
+
+	if enemy_egg_eater_count_label != null:
+		enemy_egg_eater_count_label.text = str(enemy_egg_eater_count)
+
+	if enemy_egg_count_label != null:
+		enemy_egg_count_label.text = str(enemy_egg_count)
+
+	if enemy_total_count_label != null:
+		enemy_total_count_label.text = str(
+			enemy_herbivore_count + enemy_predator_count + enemy_egg_eater_count
+		)
 
 
 func count_creatures_by_category(category: StringName, faction_id: StringName) -> int:

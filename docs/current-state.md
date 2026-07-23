@@ -34,7 +34,7 @@ Current prototype includes:
 - species-order flags for all six player species, each with an 11x11 influence area;
 - a local four-frame rain VFX;
 - a global audio system with looping gameplay music, lightning, rain, sun, and earthquake sound effects, automatic button-click feedback, separate audio buses, and persistent Music/Sounds volume controls;
-- right-side HUD with live creature and egg counters;
+- right-side HUD with separate live player/enemy creature-category, egg, and total-creature counters;
 - an interactive right-side terrain minimap showing ground, water, mountains, trees, creature markers, and the current camera view;
 - separated player UI, creature info UI, debug status UI, and save system;
 - stone corner hover/selection frame over creatures;
@@ -163,7 +163,7 @@ Current minimap rules:
 - player herbivores are shown as light-green triangle markers;
 - player predators are shown as red triangle markers;
 - the player egg eater is shown as a blue triangle marker;
-- enemy-faction marker colours are selected separately from the player palette; the current right-side counters continue to count only player creatures and eggs;
+- enemy-faction marker colours are selected separately from the player palette; the right-side table separately counts player and enemy herbivores, predators, egg eaters, eggs, and total living creatures;
 - a bright rectangular frame shows the current camera viewport and changes size with camera zoom;
 - left-clicking the minimap moves the observer camera to the selected world position;
 - base terrain stays static during a session; a DryGround overlay may be cleared by its third rain hit, then the minimap rebuilds; a separate overlay redraws the camera frame and 6x6 creature triangle markers during play;
@@ -318,7 +318,7 @@ Species identity, resource variant, and faction ownership are intentionally sepa
 
 The six enemy resources under `data/species/enemy/` currently copy the effective stats of the corresponding player resources. They reuse the current directional sprites and stage-1/stage-2 egg textures, but intentionally omit walk and eating animation frame resources. The existing visual controller therefore displays static directional poses until enemy-specific sprites and animations are supplied.
 
-Player systems must filter by faction: only player-owned living creatures generate player energy, only player-owned creatures respond to `PlayerFlags`, and the current HUD counters show only player creatures and eggs. Enemy energy counts only living enemy creatures. Enemy creatures still use the same autonomous survival and species behaviour once instantiated.
+Player systems must filter by faction: only player-owned living creatures generate player energy and only player-owned creatures respond to `PlayerFlags`. The HUD keeps separate player and enemy creature-category, egg, and total-creature counters. Enemy energy counts only living enemy creatures. Enemy creatures still use the same autonomous survival and species behaviour once instantiated.
 
 ## Species-order flags
 

@@ -116,7 +116,7 @@ Current UI scripts:
 
 - `res://scripts/ui/start_screen.gd` — startup menu and three-slot startup loading;
 - `res://scripts/ui/creature_stats_ui.gd` — creature information, selection, and highlight coordination;
-- `res://scripts/ui/player_ui.gd` — terrain minimap, diet/faction markers, player-only counters, and time-speed controls;
+- `res://scripts/ui/player_ui.gd` — terrain minimap, diet/faction markers, separate player/enemy creature and egg counters, and time-speed controls;
 - `res://scripts/flags/player_flag_system.gd` — compact facade for scene attachment, placed flag records, visual sync, and stable save/debug entry points;
 - `res://scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload layer that supplies the player catalog and placement revisions;
 - `res://scripts/flags/player_flag_ui_controller.gd` — flag submenu, targeting input, preview, and status text;
@@ -262,7 +262,7 @@ Rules:
 - the first successful route marks an in-session commitment to the current flag revision; temporary higher-priority behaviour pauses the route without discarding that commitment, and entering the flag area completes the revision so the creature resumes autonomous wandering and ignores that placement after leaving until the species flag is moved or replaced;
 - active flag revisions and per-creature completed revisions are optional save fields; older saves remain valid and creatures without completion data may answer an existing flag once;
 - minimap category comes from `diet_type`, never from resource path text; faction selects the marker palette;
-- current HUD counts only player creatures and player eggs;
+- the HUD counts player and enemy creatures/eggs separately by faction; total columns count living creatures and exclude eggs;
 - creature and egg faction ids are optional save fields, so old version-1 saves remain valid and restore missing values as player;
 - a removed or otherwise unknown non-empty faction id restores as neutral;
 - `PerformanceStats` writes `flag_creatures_scanned_per_sec`, `flag_path_requests_per_sec`, and `flag_path_failures_per_sec` to new F8 CSV logs;
