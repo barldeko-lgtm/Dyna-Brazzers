@@ -17,6 +17,7 @@ Current prototype includes:
 - quality- and route-aware grass targeting with a shared sectorized 2x2 pasture cache, a ten-pasture shortlist, one shared breadth-first route wave, two-second validation of the current route, five-second comparison of alternatives, early upper-bound stopping, and staged 80/150/300-tile expansion limits;
 - four-stage renewable grass with an 8-second interval between growth stages and a 30-second mature spread delay;
 - eggs, hatching, and population growth;
+- hunger continues to decay at the normal species rate while herbivores eat and while any creature lays an egg; successful reproduction has no separate one-time hunger charge;
 - player and enemy species-specific data resources;
 - a fixed player-species catalog that centralizes the six player species, egg prices, energy income, and flag presentation without mixing those player-only values into biological species data;
 - a fixed enemy-species catalog pointing to six enemy resource variants and mirroring the current player egg costs and per-creature energy income;

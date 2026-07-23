@@ -208,7 +208,11 @@ func update_food_behavior() -> void:
 	if creature.world_grid == null:
 		return
 
-	if creature.state == creature.State.EATING or creature.state == creature.State.LAYING_EGG or creature.state == creature.State.COMBAT:
+	if creature.state == creature.State.EATING:
+		creature.hunger = clamp(creature.hunger - creature.species_data.hunger_decay_rate * creature.get_physics_process_delta_time(), 0.0, creature.species_data.max_hunger)
+		return
+
+	if creature.state == creature.State.LAYING_EGG or creature.state == creature.State.COMBAT:
 		return
 
 	if creature.is_moving:
