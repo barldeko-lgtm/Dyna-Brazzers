@@ -14,7 +14,7 @@ Current prototype includes:
 - six player-creatable species: stegosaurus, triceratops, tyrannosaurus, raptor, pterodactyl, and egg eater; fresh games start without adult creatures;
 - a fixed 2x2 player nature base that creates player-bought eggs on nearby free tiles;
 - a fixed 2x2 enemy base with its own 512x512 transparent sprite; it is displayed at 256x256, blocks the world, and keeps the temporary five-second round-robin egg-production scaffold available while automatic production is currently disabled;
-- quality- and route-aware grass targeting with a ten-pasture shortlist, two-second validation of the current route, five-second comparison of alternatives, early upper-bound stopping, and staged 80/150/300-tile path limits;
+- quality- and route-aware grass targeting with a ten-pasture shortlist, cheap two-second validation of the stored route, five-second comparison of alternatives, one shared forward breadth-first path wave, upper-bound stopping, and continuous 80/150/300-tile expansion stages;
 - four-stage renewable grass with an 8-second interval between growth stages and a 30-second mature spread delay;
 - eggs, hatching, and population growth;
 - player and enemy species-specific data resources;
@@ -124,7 +124,7 @@ The active project is deliberately split by responsibility:
 - dynamic save, flag, egg, and time-control menus resolve the nature panel through the `player_nature_ui` group API rather than deep scene paths;
 - `CreatureSpeciesData` stores biological species data, `CreatureFaction` stores validated runtime ownership, `PlayerSpeciesCatalog` stores player-only economy and flag presentation, and `EnemySpeciesCatalog` selects the enemy biological variants without owning future enemy AI;
 - `faction_base.gd` owns shared fixed-base blocking, visuals, nearby egg placement, and faction assignment; `player_base.gd` and `enemy_base.gd` remain thin faction-specific wrappers;
-- `creature.gd` remains the creature FSM/survival coordinator and public facade; movement, visuals, and mouse interaction are delegated to dedicated controllers, the world grid reserves each next movement anchor before visual travel, and predator plus grazing logic ask the movement controller to replace or clear queued behavior routes instead of mutating them directly;
+- `creature.gd` remains the creature FSM/survival coordinator and public facade; movement, visuals, and mouse interaction are delegated to dedicated controllers, the world grid remains the authority for legal footprint neighbours and reservations, grazing logic compares several pasture goals in one shared forward breadth-first wave, and predator plus grazing logic ask the movement controller to replace or clear queued behavior routes instead of mutating them directly;
 - the player-flag facade, UI controller, assignment service, target allocator, and visual have separate ownership;
 - `save_system.gd` owns base slot persistence and reconstruction, `save_system_with_flags.gd` layers optional faction/flag/audio data, and `save_system_with_enemy.gd` adds enemy energy plus the temporary production cursor/timer;
 - F3 grid diagnostics, F4 text diagnostics, and F8 CSV performance logging are separate systems.
@@ -342,9 +342,9 @@ Rules:
 
 Herbivores evaluate 2x2 pasture anchors containing at least two edible grass tiles. Food value is the sum of all edible grass under the four-tile footprint: stage 2 is worth 5, stage 3 is worth 7, and stage 4 is worth 9.
 
-A cheap preliminary pass creates a ten-anchor shortlist. Initial acquisition compares real routes with staged expansion caps: 80 tiles first, 150 only when the first stage finds no reachable pasture, and 300 only as the final fallback. Reachable patches are scored as `total food value - actual route steps * 2`. Because the cheap score is an upper bound, comparison stops once the remaining sorted candidates can no longer beat the current winner.
+A cheap preliminary pass creates a ten-anchor shortlist. `creature_grazing_logic.gd` then performs one shared forward breadth-first wave from the herbivore toward all shortlisted pastures instead of starting a separate path search for every pasture. The same queue and visited-cell map continue through 80, 150, and 300 expanded tiles without restarting; reachable patches are scored as `total food value - actual route steps * 2`, and comparison stops as soon as every unreached candidate's cheap upper bound is below the real winner. Only the winning route is committed to movement. The search stays in the already loaded grazing module and adds no extra creature-scene preload, so egg hatching remains on the unchanged shared egg/creature lifecycle.
 
-Every two seconds the herbivore validates only its current pasture and rebuilds that one real route with the 80-tile limit, so newly occupied corridors are noticed without recomparing the whole shortlist. Every five seconds it may compare nearby alternatives; exact score ties keep the current target to avoid needless switching.
+Every two seconds the herbivore validates the already stored route against the world grid's current legal neighbours, occupancy, and reservations. A clear route requires no path search; a blocked route immediately triggers the shared multi-target comparison. Every five seconds it compares nearby alternatives normally, and exact score ties keep the current target to avoid needless switching.
 
 Grazing logic uses the movement controller behavior-route API instead of mutating the queued route directly. A creature must reach a valid eating position before consuming grass.
 

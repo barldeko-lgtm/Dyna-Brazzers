@@ -189,7 +189,7 @@ Rules:
 - predator logic scans at most the three nearest available prey inside the species radius, builds a reachable approach route for each, and chooses the shortest actual route; when no candidate is reachable or present, the next population scan waits two seconds;
 - a prey approach may use any anchor that overlaps at least one tile along a footprint side; for the current shared 2x2 footprint this means the centered side anchor plus one-tile shifts in either direction, while full corner diagonals remain invalid;
 - prey remains shareable while merely being pursued, but `combat_engagement_hunter` is exclusive once one hunter begins the final approach; other hunters must drop that prey immediately and search again in the same update;
-- predator and grazing logic must use the movement controller behavior-route API instead of writing or clearing `current_path` directly; an already active smooth step is preserved while queued behavior steps are replaced or removed;
+- predator and grazing logic must use the movement controller behavior-route API instead of writing or clearing `current_path` directly; grazing may read a route snapshot only to validate whether its existing steps are still legal, while an already active smooth step is preserved when queued behavior steps are replaced or removed;
 - active flag code must call the creature indirect-order API instead of setting `current_path`, `state_timer`, `state`, `has_grazing_target`, `food_recheck_timer`, or `grazing_candidate_queue`;
 - survival, food, reproduction, and combat remain higher priority than indirect orders;
 - enemy creatures use the same movement controller and autonomous FSM; do not create an enemy-only movement or survival copy.
@@ -472,19 +472,20 @@ Rules:
 
 ## Grazing target ranking
 
-Main file:
+Main files:
 
-- `res://scripts/creatures/behaviors/creature_grazing_logic.gd`.
+- `res://scripts/creatures/behaviors/creature_grazing_logic.gd`;
+- `res://scripts/world/world_grid.gd`.
 
 Rules:
 
 - evaluate only 2x2 anchors containing at least `min_grass_to_eat` edible tiles; the current shared minimum remains two;
 - sum the food value of every edible grass tile under the full four-tile footprint;
 - use a cheap preliminary score only to create a ten-anchor shortlist;
-- build current real paths with staged expansion limits of 80, then 150 only if no reachable pasture was found, then 300 only as the final fallback; reject blocked or unreachable entries and calculate the final score as `total food value - actual route steps * 2`;
+- compare the shortlist through one shared forward breadth-first wave inside `creature_grazing_logic.gd` rather than one independent search per pasture; one queue and visited-cell map continue across the 80, 150, and 300 expansion thresholds without discarding earlier work, currently blocked goals are rejected, and the final score is `total food value - actual route steps * 2`;
 - allow lower-stage edible grass as fallback when its reachable route makes it the better final choice;
-- validate only the current target and its real route every two seconds; compare the ten-candidate alternative shortlist every five seconds, keep exact score ties on the current target, and stop comparison when the remaining cheap upper bounds cannot beat the current winner;
-- grazing logic must replace or clear queued routes through `creature_movement_controller.gd`, never by mutating `current_path` directly;
+- every two seconds validate the existing queued route through `world_grid.get_neighbors()` so changed occupancy, reservations, and diagonal corner blocking are noticed without another path search; if validation fails, immediately run the shared comparison; compare alternatives normally every five seconds, keep exact score ties on the current target, and stop when remaining cheap upper bounds cannot beat the current winner;
+- the shared grazing wave may query only public world-grid placement/neighbour APIs and must never reserve, move, or mutate entities; grazing logic must replace or clear queued routes through `creature_movement_controller.gd`, never by mutating `current_path` directly; it must add no extra preload to `creature.gd`, `creature.tscn`, or the egg hatch path; `grazing_multi_target_pathfinder.gd` is only a deprecated compatibility stub and must not be preloaded;
 - do not allow consumption before the creature reaches a valid eating anchor.
 
 ## Egg lifecycle and species visuals

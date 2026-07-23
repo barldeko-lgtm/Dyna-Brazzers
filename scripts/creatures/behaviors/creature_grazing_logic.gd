@@ -9,9 +9,7 @@ const GRAZING_PATH_LIMIT_FALLBACK: int = 300
 const GLOBAL_GRAZING_CANDIDATE_LIMIT: int = 32
 
 var creature: Node
-var full_recheck_timer := GRAZING_FULL_RECHECK_INTERVAL
-var current_target_score: float = -INF
-var current_target_route_steps := 0
+var full_recheck_timer: float = GRAZING_FULL_RECHECK_INTERVAL
 
 
 func _init(owner_creature: Node) -> void:
@@ -46,14 +44,19 @@ func update_seek_food(delta: float) -> void:
 	creature.food_recheck_timer -= delta
 	full_recheck_timer -= delta
 
-	var acquired_during_route_check := false
+	var acquired_during_route_check: bool = false
 
-	# Every two seconds only the current target and its real route are validated.
-	# A full ten-candidate comparison is intentionally kept on a slower timer.
+	# Every two seconds validate the already selected target and every queued
+	# route step against current occupancy and reservations. This catches a path
+	# blocked by another creature without launching a new search while the route
+	# remains clear.
 	if creature.food_recheck_timer <= 0.0:
 		acquired_during_route_check = recheck_current_grazing_route()
 		creature.food_recheck_timer = creature.food_recheck_interval
 
+	# Every five seconds compare the current target with up to ten alternatives.
+	# If the two-second validation already had to reacquire a target this frame,
+	# do not immediately repeat the same full search.
 	if full_recheck_timer <= 0.0:
 		full_recheck_timer = GRAZING_FULL_RECHECK_INTERVAL
 
@@ -81,19 +84,15 @@ func update_seek_food(delta: float) -> void:
 				_clear_grazing_target()
 				try_acquire_grazing_target()
 		else:
+			# The queued path was exhausted or cancelled before arrival. Rebuild it
+			# with the same single-wave search instead of retrying candidates one by
+			# one through separate A* calls.
 			build_path_to_grazing_target()
-
-			if _get_queued_route_steps() == 0:
-				# The route to the current target just became blocked. Try a saved
-				# runner-up first, then perform a fresh staged search if needed.
-				advance_to_next_grazing_candidate()
 
 
 func enter_seek_food() -> void:
 	creature.food_recheck_timer = creature.food_recheck_interval
 	full_recheck_timer = GRAZING_FULL_RECHECK_INTERVAL
-	current_target_score = -INF
-	current_target_route_steps = 0
 	creature.has_grazing_target = false
 	creature.grazing_candidate_queue.clear()
 	creature.clear_path()
@@ -105,117 +104,101 @@ func can_start_eating_here() -> bool:
 	if creature.world_grid == null:
 		return false
 
-	return creature.world_grid.count_adult_grass_under_footprint(creature.anchor_tile, creature.footprint_size) >= creature.min_grass_to_eat
+	return creature.world_grid.count_adult_grass_under_footprint(
+		creature.anchor_tile,
+		creature.footprint_size
+	) >= creature.min_grass_to_eat
 
 
 # Grazing target selection.
-# Grass stages 2-4 remain edible. Only 2x2 footprint anchors containing at
-# least min_grass_to_eat edible tiles are eligible. A cheap pass builds a
-# ten-anchor shortlist. Real routes are compared with staged expansion caps:
-# 80 first, 150 only if the first stage finds nothing, and 300 only as the final
-# fallback. The final score is:
+#
+# A cheap grass-registry pass keeps up to ten eligible 2x2 pasture anchors.
+# One breadth-first path wave then starts at the herbivore and reaches all ten
+# candidates through the same visited-cell map. The wave expands at most 300
+# anchors total, not 300 anchors per candidate. Thresholds 80, 150 and 300
+# continue the same queue without restarting work.
+#
+# Final score:
 # total food value under the footprint - actual route steps * 2.
-func try_acquire_grazing_target() -> void:
+func try_acquire_grazing_target(include_current_target: bool = false) -> void:
 	PerformanceStats.add_counter("grazing_acquire_requests")
 
 	if creature.world_grid == null:
 		return
 
-	var ranked_plans: Array[Dictionary] = _find_path_ranked_grazing_plans(
-		creature.nearby_grazing_recheck_radius
+	var best_plan: Dictionary = _find_best_grazing_plan(
+		creature.nearby_grazing_recheck_radius,
+		include_current_target
 	)
 
-	if ranked_plans.is_empty():
-		ranked_plans = _find_path_ranked_grazing_plans(-1)
+	if best_plan.is_empty():
+		best_plan = _find_best_grazing_plan(-1, include_current_target)
 
-	_commit_ranked_grazing_plans(ranked_plans)
+	_commit_grazing_plan(best_plan)
 	full_recheck_timer = GRAZING_FULL_RECHECK_INTERVAL
 
 
-func _find_path_ranked_grazing_plans(
+func _find_best_grazing_plan(
 	search_radius: int,
-	minimum_score_to_beat: float = -INF,
-	allow_fallback_stages: bool = true
-) -> Array[Dictionary]:
+	include_current_target: bool
+) -> Dictionary:
 	if creature.world_grid == null:
-		return []
+		return {}
 
-	var rough_candidates: Array[Dictionary] = find_quality_ranked_grazing_candidates(
+	var candidates: Array[Dictionary] = find_quality_ranked_grazing_candidates(
 		search_radius,
 		GRAZING_PATH_CANDIDATE_LIMIT
 	)
 
-	if rough_candidates.is_empty():
-		return []
+	if include_current_target:
+		_append_current_target_candidate(candidates)
 
-	var path_limits: Array[int] = _get_grazing_path_limits()
+	if candidates.is_empty():
+		return {}
 
-	if not allow_fallback_stages and path_limits.size() > 1:
-		path_limits.resize(1)
+	var plan: Dictionary = _find_best_path_in_shared_wave(candidates)
 
-	for path_limit: int in path_limits:
-		var stage_plans: Array[Dictionary] = _evaluate_grazing_candidates_at_limit(
-			rough_candidates,
-			path_limit,
-			minimum_score_to_beat
+	if plan.is_empty():
+		PerformanceStats.add_counter("grazing_candidate_unreachable")
+
+	return plan
+
+
+func _append_current_target_candidate(candidates: Array[Dictionary]) -> void:
+	if not is_current_grazing_target_still_valid():
+		return
+
+	for candidate: Dictionary in candidates:
+		var candidate_anchor: Vector2i = candidate.get(
+			"anchor",
+			creature.anchor_tile
 		)
 
-		# A more expensive stage is used only when the cheaper stage found no
-		# reachable option at all. This keeps the normal case bounded by 80 tiles.
-		if not stage_plans.is_empty():
-			return stage_plans
+		if candidate_anchor == creature.grazing_target_anchor:
+			candidate["prefer_on_tie"] = true
+			return
 
-	return []
-
-
-func _evaluate_grazing_candidates_at_limit(
-	rough_candidates: Array[Dictionary],
-	path_limit: int,
-	minimum_score_to_beat: float
-) -> Array[Dictionary]:
-	var path_ranked_plans: Array[Dictionary] = []
 	var navigation_anchor: Vector2i = creature.get_navigation_anchor()
-	var active_step_count: int = 1 if creature.is_moving else 0
-	var best_score := minimum_score_to_beat
-	var has_best_score := minimum_score_to_beat != -INF
-	var has_minimum_score := minimum_score_to_beat != -INF
+	var distance: int = creature.world_grid.estimate_path_steps(
+		navigation_anchor,
+		creature.grazing_target_anchor
+	)
+	var food_value: int = get_grazing_target_food_value(
+		creature.grazing_target_anchor
+	)
+	var adult_count: int = get_current_grazing_target_adult_count()
 
-	for rough_candidate: Dictionary in rough_candidates:
-		var rough_score: float = float(rough_candidate.get("score", -INF))
+	if candidates.size() >= GRAZING_PATH_CANDIDATE_LIMIT:
+		candidates.pop_back()
 
-		# The cheap score uses the minimum possible step count. A real route can
-		# only be equal or longer, so once this upper bound is below the current
-		# winner, every remaining sorted candidate is unable to win.
-		if has_best_score and rough_score < best_score:
-			break
-
-		var plan: Dictionary = _build_grazing_plan(
-			rough_candidate,
-			navigation_anchor,
-			active_step_count,
-			path_limit
-		)
-
-		if plan.is_empty():
-			continue
-
-		var plan_score: float = float(plan.get("score", -INF))
-
-		# Periodic retargeting keeps the current target on an exact score tie.
-		if has_minimum_score and (plan_score < minimum_score_to_beat or is_equal_approx(plan_score, minimum_score_to_beat)):
-			continue
-
-		_insert_path_ranked_grazing_plan(
-			path_ranked_plans,
-			plan,
-			GRAZING_PATH_CANDIDATE_LIMIT
-		)
-
-		if not has_best_score or plan_score > best_score:
-			best_score = plan_score
-			has_best_score = true
-
-	return path_ranked_plans
+	candidates.append({
+		"anchor": creature.grazing_target_anchor,
+		"adult_count": adult_count,
+		"food_value": food_value,
+		"distance": distance,
+		"score": float(food_value) - float(distance) * GRAZING_DISTANCE_COST_PER_TILE,
+		"prefer_on_tie": true
+	})
 
 
 func find_quality_ranked_grazing_candidates(
@@ -226,22 +209,26 @@ func find_quality_ranked_grazing_candidates(
 		return []
 
 	var navigation_anchor: Vector2i = creature.get_navigation_anchor()
-	var result_limit: int = max(
-		result_limit_override if result_limit_override > 0 else GRAZING_PATH_CANDIDATE_LIMIT,
-		1
-	)
+	var result_limit: int = GRAZING_PATH_CANDIDATE_LIMIT
+
+	if result_limit_override > 0:
+		result_limit = result_limit_override
+
+	result_limit = max(result_limit, 1)
 	var scan_limit: int = result_limit
 
 	if search_radius >= 0:
 		# A square search with radius R contains at most (2R + 1)^2 anchors.
-		# Requesting that many results guarantees that the quality re-rank sees
-		# every valid nearby patch instead of only the old count-ranked top few.
+		# Request enough raw entries so the food-value re-rank sees every local
+		# candidate rather than only the old count-ranked subset.
 		var search_diameter: int = search_radius * 2 + 1
 		scan_limit = max(scan_limit, search_diameter * search_diameter)
 	else:
-		# Global fallback is used only when there is no nearby reachable patch.
-		# Keep it bounded to avoid building a huge temporary candidate list.
-		scan_limit = max(scan_limit * 8, GLOBAL_GRAZING_CANDIDATE_LIMIT)
+		# The global fallback is driven by the grass registry and remains bounded.
+		scan_limit = max(
+			scan_limit * 8,
+			GLOBAL_GRAZING_CANDIDATE_LIMIT
+		)
 
 	var raw_candidates: Array[Dictionary] = creature.world_grid.find_best_grazing_targets(
 		navigation_anchor,
@@ -253,26 +240,29 @@ func find_quality_ranked_grazing_candidates(
 		creature.grazing_distance_penalty,
 		scan_limit
 	)
-
 	var quality_ranked: Array[Dictionary] = []
 
 	for raw_candidate: Dictionary in raw_candidates:
-		var anchor: Vector2i = raw_candidate.get("anchor", creature.anchor_tile)
+		var anchor: Vector2i = raw_candidate.get(
+			"anchor",
+			creature.anchor_tile
+		)
 		var distance: int = int(raw_candidate.get(
 			"distance",
-			creature.world_grid.estimate_path_steps(navigation_anchor, anchor)
+			creature.world_grid.estimate_path_steps(
+				navigation_anchor,
+				anchor
+			)
 		))
 		var food_value: int = get_grazing_target_food_value(anchor)
-		var score: float = (
-			float(food_value)
-			- float(distance) * GRAZING_DISTANCE_COST_PER_TILE
-		)
-
 		var rescored_candidate: Dictionary = raw_candidate.duplicate()
 		rescored_candidate["food_value"] = food_value
 		rescored_candidate["distance"] = distance
-		rescored_candidate["score"] = score
-
+		rescored_candidate["score"] = (
+			float(food_value)
+			- float(distance) * GRAZING_DISTANCE_COST_PER_TILE
+		)
+		rescored_candidate["prefer_on_tie"] = false
 		_insert_quality_ranked_candidate(
 			quality_ranked,
 			rescored_candidate,
@@ -280,85 +270,6 @@ func find_quality_ranked_grazing_candidates(
 		)
 
 	return quality_ranked
-
-
-func _get_grazing_path_limits() -> Array[int]:
-	var max_allowed: int = max(int(creature.max_path_search_tiles), 1)
-	var configured_limits: Array[int] = [
-		GRAZING_PATH_LIMIT_NEAR,
-		GRAZING_PATH_LIMIT_MEDIUM,
-		GRAZING_PATH_LIMIT_FALLBACK
-	]
-	var path_limits: Array[int] = []
-
-	for configured_limit: int in configured_limits:
-		var path_limit: int = min(configured_limit, max_allowed)
-
-		if path_limit > 0 and not path_limits.has(path_limit):
-			path_limits.append(path_limit)
-
-	return path_limits
-
-
-func _build_grazing_plan(
-	candidate: Dictionary,
-	navigation_anchor: Vector2i,
-	active_step_count: int,
-	max_expanded_tiles: int = GRAZING_PATH_LIMIT_NEAR
-) -> Dictionary:
-	if creature.world_grid == null:
-		return {}
-
-	var target_anchor: Vector2i = candidate.get("anchor", creature.anchor_tile)
-	var path: Array[Vector2i] = []
-
-	if target_anchor != navigation_anchor:
-		path = creature.world_grid.find_path(
-			navigation_anchor,
-			target_anchor,
-			creature.footprint_size,
-			creature,
-			max_expanded_tiles
-		)
-
-		if path.is_empty():
-			PerformanceStats.add_counter("grazing_candidate_unreachable")
-			return {}
-
-	var food_value: int = int(candidate.get(
-		"food_value",
-		get_grazing_target_food_value(target_anchor)
-	))
-	var route_steps: int = path.size() + active_step_count
-	var path_score: float = (
-		float(food_value)
-		- float(route_steps) * GRAZING_DISTANCE_COST_PER_TILE
-	)
-	var plan: Dictionary = candidate.duplicate()
-	plan["anchor"] = target_anchor
-	plan["food_value"] = food_value
-	plan["rough_score"] = float(candidate.get("score", path_score))
-	plan["path"] = path
-	plan["route_steps"] = route_steps
-	plan["score"] = path_score
-	plan["path_limit"] = max_expanded_tiles
-	return plan
-
-
-func _build_current_target_plan(max_expanded_tiles: int) -> Dictionary:
-	if not creature.has_grazing_target:
-		return {}
-
-	return _build_grazing_plan(
-		{
-			"anchor": creature.grazing_target_anchor,
-			"food_value": get_grazing_target_food_value(creature.grazing_target_anchor),
-			"adult_count": get_current_grazing_target_adult_count()
-		},
-		creature.get_navigation_anchor(),
-		1 if creature.is_moving else 0,
-		max_expanded_tiles
-	)
 
 
 func _insert_quality_ranked_candidate(
@@ -385,31 +296,10 @@ func _insert_quality_ranked_candidate(
 		ranked_candidates.resize(max_results)
 
 
-func _insert_path_ranked_grazing_plan(
-	ranked_plans: Array[Dictionary],
-	plan: Dictionary,
-	max_results: int
-) -> void:
-	if max_results <= 0:
-		return
-
-	var insert_index: int = ranked_plans.size()
-
-	for index: int in range(ranked_plans.size()):
-		if _is_path_ranked_plan_better(plan, ranked_plans[index]):
-			insert_index = index
-			break
-
-	if insert_index >= max_results:
-		return
-
-	ranked_plans.insert(insert_index, plan)
-
-	if ranked_plans.size() > max_results:
-		ranked_plans.resize(max_results)
-
-
-func is_quality_candidate_better(candidate: Dictionary, current_best: Dictionary) -> bool:
+func is_quality_candidate_better(
+	candidate: Dictionary,
+	current_best: Dictionary
+) -> bool:
 	var candidate_score: float = float(candidate.get("score", -INF))
 	var current_score: float = float(current_best.get("score", -INF))
 
@@ -428,15 +318,203 @@ func is_quality_candidate_better(candidate: Dictionary, current_best: Dictionary
 	if candidate_distance != current_distance:
 		return candidate_distance < current_distance
 
-	return int(candidate.get("adult_count", 0)) > int(current_best.get("adult_count", 0))
+	return int(candidate.get("adult_count", 0)) > int(
+		current_best.get("adult_count", 0)
+	)
 
 
-func _is_path_ranked_plan_better(candidate: Dictionary, current_best: Dictionary) -> bool:
+# One shared breadth-first wave for every shortlisted pasture. The queue uses a
+# read index rather than pop_front(), so queue removal itself stays O(1).
+func _find_best_path_in_shared_wave(candidates: Array[Dictionary]) -> Dictionary:
+	PerformanceStats.add_counter("path_calls")
+
+	if creature.world_grid == null or candidates.is_empty():
+		PerformanceStats.add_counter("path_failed")
+		return {}
+
+	var start_anchor: Vector2i = creature.get_navigation_anchor()
+	var active_step_count: int = 1 if creature.is_moving else 0
+	var unresolved_targets: Dictionary = {}
+
+	for source_candidate: Dictionary in candidates:
+		var target_anchor: Vector2i = source_candidate.get(
+			"anchor",
+			creature.anchor_tile
+		)
+
+		if unresolved_targets.has(target_anchor):
+			continue
+
+		if target_anchor != start_anchor and not creature.world_grid.can_place_footprint(
+			target_anchor,
+			creature.footprint_size,
+			creature
+		):
+			PerformanceStats.add_counter("path_blocked_goal")
+			continue
+
+		var candidate: Dictionary = source_candidate.duplicate()
+		candidate["upper_bound_score"] = (
+			float(candidate.get("score", -INF))
+			- float(active_step_count) * GRAZING_DISTANCE_COST_PER_TILE
+		)
+		unresolved_targets[target_anchor] = candidate
+
+	if unresolved_targets.is_empty():
+		PerformanceStats.add_counter("path_failed")
+		return {}
+
+	var expansion_limits: Array[int] = _get_grazing_path_limits()
+	var stage_index: int = 0
+	var current_limit: int = expansion_limits[stage_index]
+	var open_queue: Array[Vector2i] = [start_anchor]
+	var queue_index: int = 0
+	var steps_by_anchor: Dictionary = {start_anchor: 0}
+	var came_from: Dictionary = {}
+	var best_plan: Dictionary = {}
+	var expanded_tiles: int = 0
+	var search_capped: bool = false
+
+	while queue_index < open_queue.size():
+		if expanded_tiles >= current_limit:
+			if not best_plan.is_empty() and not _unresolved_candidate_can_beat(
+				best_plan,
+				unresolved_targets
+			):
+				break
+
+			stage_index += 1
+
+			if stage_index >= expansion_limits.size():
+				search_capped = true
+				break
+
+			current_limit = expansion_limits[stage_index]
+
+		var current: Vector2i = open_queue[queue_index]
+		queue_index += 1
+		expanded_tiles += 1
+		var route_steps: int = int(steps_by_anchor.get(current, 0))
+
+		if unresolved_targets.has(current):
+			var reached_candidate: Dictionary = unresolved_targets[current]
+			var path: Array[Vector2i] = _reconstruct_shared_path(
+				came_from,
+				start_anchor,
+				current
+			)
+			var total_route_steps: int = route_steps + active_step_count
+			var food_value: int = int(reached_candidate.get("food_value", 0))
+			var plan: Dictionary = reached_candidate.duplicate()
+			plan["anchor"] = current
+			plan["path"] = path
+			plan["route_steps"] = total_route_steps
+			plan["score"] = (
+				float(food_value)
+				- float(total_route_steps) * GRAZING_DISTANCE_COST_PER_TILE
+			)
+			unresolved_targets.erase(current)
+
+			if best_plan.is_empty() or _is_shared_plan_better(plan, best_plan):
+				best_plan = plan
+
+			if unresolved_targets.is_empty() or not _unresolved_candidate_can_beat(
+				best_plan,
+				unresolved_targets
+			):
+				break
+
+		var neighbors: Array[Vector2i] = creature.world_grid.get_neighbors(
+			current,
+			creature.footprint_size,
+			creature
+		)
+
+		for neighbor: Vector2i in neighbors:
+			if steps_by_anchor.has(neighbor):
+				continue
+
+			steps_by_anchor[neighbor] = route_steps + 1
+			came_from[neighbor] = current
+			open_queue.append(neighbor)
+
+	PerformanceStats.add_counter("path_expanded_tiles", expanded_tiles)
+
+	if search_capped:
+		PerformanceStats.add_counter("path_capped")
+
+	if best_plan.is_empty():
+		PerformanceStats.add_counter("path_failed")
+		return {}
+
+	PerformanceStats.add_counter("path_success")
+	best_plan["search_capped"] = search_capped
+	best_plan["path_limit"] = current_limit
+	return best_plan
+
+
+func _get_grazing_path_limits() -> Array[int]:
+	var max_allowed: int = max(int(creature.max_path_search_tiles), 1)
+	var configured_limits: Array[int] = [
+		GRAZING_PATH_LIMIT_NEAR,
+		GRAZING_PATH_LIMIT_MEDIUM,
+		GRAZING_PATH_LIMIT_FALLBACK
+	]
+	var path_limits: Array[int] = []
+
+	for configured_limit: int in configured_limits:
+		var path_limit: int = min(configured_limit, max_allowed)
+
+		if path_limit > 0 and not path_limits.has(path_limit):
+			path_limits.append(path_limit)
+
+	if path_limits.is_empty():
+		path_limits.append(max_allowed)
+
+	return path_limits
+
+
+func _unresolved_candidate_can_beat(
+	best_plan: Dictionary,
+	unresolved_targets: Dictionary
+) -> bool:
+	if best_plan.is_empty():
+		return true
+
+	var best_score: float = float(best_plan.get("score", -INF))
+
+	for target_variant: Variant in unresolved_targets.keys():
+		if not (target_variant is Vector2i):
+			continue
+
+		var target_anchor: Vector2i = target_variant
+		var candidate: Dictionary = unresolved_targets[target_anchor]
+		var upper_bound: float = float(
+			candidate.get("upper_bound_score", -INF)
+		)
+
+		# Equality remains relevant because the current target wins an exact tie.
+		if upper_bound > best_score or is_equal_approx(upper_bound, best_score):
+			return true
+
+	return false
+
+
+func _is_shared_plan_better(
+	candidate: Dictionary,
+	current_best: Dictionary
+) -> bool:
 	var candidate_score: float = float(candidate.get("score", -INF))
 	var current_score: float = float(current_best.get("score", -INF))
 
 	if not is_equal_approx(candidate_score, current_score):
 		return candidate_score > current_score
+
+	var candidate_preferred: bool = bool(candidate.get("prefer_on_tie", false))
+	var current_preferred: bool = bool(current_best.get("prefer_on_tie", false))
+
+	if candidate_preferred != current_preferred:
+		return candidate_preferred
 
 	var candidate_food_value: int = int(candidate.get("food_value", 0))
 	var current_food_value: int = int(current_best.get("food_value", 0))
@@ -444,41 +522,56 @@ func _is_path_ranked_plan_better(candidate: Dictionary, current_best: Dictionary
 	if candidate_food_value != current_food_value:
 		return candidate_food_value > current_food_value
 
-	var candidate_route_steps: int = int(candidate.get("route_steps", 0))
-	var current_route_steps: int = int(current_best.get("route_steps", 0))
+	var candidate_steps: int = int(candidate.get("route_steps", 0))
+	var current_steps: int = int(current_best.get("route_steps", 0))
 
-	if candidate_route_steps != current_route_steps:
-		return candidate_route_steps < current_route_steps
+	if candidate_steps != current_steps:
+		return candidate_steps < current_steps
 
-	return int(candidate.get("adult_count", 0)) > int(current_best.get("adult_count", 0))
+	return int(candidate.get("adult_count", 0)) > int(
+		current_best.get("adult_count", 0)
+	)
 
 
-func _extract_candidate_anchors(
-	ranked_plans: Array[Dictionary],
-	start_index: int = 0
+func _reconstruct_shared_path(
+	came_from: Dictionary,
+	start_anchor: Vector2i,
+	target_anchor: Vector2i
 ) -> Array[Vector2i]:
-	var anchors: Array[Vector2i] = []
+	var path: Array[Vector2i] = []
+	var cursor: Vector2i = target_anchor
+	var safety_counter: int = 0
 
-	for index: int in range(start_index, ranked_plans.size()):
-		anchors.append(ranked_plans[index].get("anchor", creature.anchor_tile))
+	while cursor != start_anchor:
+		if not came_from.has(cursor):
+			return []
 
-	return anchors
+		path.push_front(cursor)
+		cursor = came_from[cursor]
+		safety_counter += 1
+
+		if safety_counter > 4096:
+			return []
+
+	return path
 
 
-func _commit_ranked_grazing_plans(ranked_plans: Array[Dictionary]) -> void:
-	if ranked_plans.is_empty():
+func _commit_grazing_plan(plan: Dictionary) -> void:
+	creature.grazing_candidate_queue.clear()
+
+	if plan.is_empty():
 		_clear_grazing_target()
 		return
 
-	creature.grazing_candidate_queue = _extract_candidate_anchors(ranked_plans, 1)
-	_apply_grazing_plan(ranked_plans[0])
+	_apply_grazing_plan(plan)
 
 
 func _apply_grazing_plan(plan: Dictionary) -> void:
 	creature.has_grazing_target = true
-	creature.grazing_target_anchor = plan.get("anchor", creature.anchor_tile)
-	current_target_route_steps = int(plan.get("route_steps", 0))
-	current_target_score = float(plan.get("score", -INF))
+	creature.grazing_target_anchor = plan.get(
+		"anchor",
+		creature.anchor_tile
+	)
 
 	var path_variant: Variant = plan.get("path", [])
 	var path: Array = []
@@ -489,49 +582,10 @@ func _apply_grazing_plan(plan: Dictionary) -> void:
 	_replace_grazing_route(path)
 
 
-# Tries queued candidates in the path-ranked order captured by the last scan.
+# Compatibility entry point retained for creature.gd and older callers. A fresh
+# shared search replaces the old saved-runner-up loop.
 func advance_to_next_grazing_candidate() -> void:
-	if creature.world_grid == null:
-		_clear_grazing_target()
-		return
-
-	while not creature.grazing_candidate_queue.is_empty():
-		var candidate_anchor: Vector2i = creature.grazing_candidate_queue.pop_front()
-
-		if not creature.world_grid.can_place_footprint(
-			candidate_anchor,
-			creature.footprint_size,
-			creature
-		):
-			continue
-
-		var adult_count: int = creature.world_grid.count_adult_grass_under_footprint(
-			candidate_anchor,
-			creature.footprint_size
-		)
-
-		if adult_count < creature.min_grass_to_eat:
-			continue
-
-		var plan: Dictionary = _build_grazing_plan(
-			{
-				"anchor": candidate_anchor,
-				"adult_count": adult_count,
-				"food_value": get_grazing_target_food_value(candidate_anchor)
-			},
-			creature.get_navigation_anchor(),
-			1 if creature.is_moving else 0,
-			GRAZING_PATH_LIMIT_NEAR
-		)
-
-		if plan.is_empty():
-			continue
-
-		_apply_grazing_plan(plan)
-		return
-
-	_clear_grazing_target()
-	try_acquire_grazing_target()
+	try_acquire_grazing_target(true)
 
 
 func apply_grazing_target(target_data: Dictionary) -> void:
@@ -540,11 +594,11 @@ func apply_grazing_target(target_data: Dictionary) -> void:
 		return
 
 	creature.has_grazing_target = true
-	creature.grazing_target_anchor = target_data.get("anchor", creature.anchor_tile)
+	creature.grazing_target_anchor = target_data.get(
+		"anchor",
+		creature.anchor_tile
+	)
 	build_path_to_grazing_target()
-
-	if _get_queued_route_steps() == 0 and creature.grazing_target_anchor != creature.get_navigation_anchor():
-		advance_to_next_grazing_candidate()
 
 
 func build_path_to_grazing_target() -> void:
@@ -553,79 +607,73 @@ func build_path_to_grazing_target() -> void:
 	if creature.world_grid == null or not creature.has_grazing_target:
 		return
 
-	var plan: Dictionary = _build_current_target_plan(GRAZING_PATH_LIMIT_NEAR)
-
-	if plan.is_empty():
-		current_target_score = -INF
-		current_target_route_steps = 0
-		_clear_grazing_route()
-		return
-
-	_apply_grazing_plan(plan)
+	# The old queued route is no longer usable. Reconsider the current pasture
+	# together with nearby alternatives in one shared wave, so a blocked route
+	# never causes a separate current-target search followed by another full one.
+	try_acquire_grazing_target(true)
 
 
-# Returns true when the cheap current-route check had to run a full acquisition.
+# Returns true when route validation had to perform a full target acquisition.
 func recheck_current_grazing_route() -> bool:
 	PerformanceStats.add_counter("grazing_route_validation_requests")
 
-	if creature.world_grid == null:
+	if creature.world_grid == null or not creature.has_grazing_target:
 		return false
 
-	if not creature.has_grazing_target:
-		# With no current route there is nothing cheap to validate. The next
-		# full five-second search owns reacquisition, avoiding a heavy scan every
-		# two seconds when the map temporarily has no reachable pasture.
-		return false
-
-	if not is_current_grazing_target_still_valid():
-		_clear_grazing_target()
-		try_acquire_grazing_target()
+	if not is_current_grazing_target_still_valid() or not is_current_grazing_route_clear():
+		try_acquire_grazing_target(true)
 		return true
 
-	var current_plan: Dictionary = _build_current_target_plan(GRAZING_PATH_LIMIT_NEAR)
-
-	if current_plan.is_empty():
-		_clear_grazing_target()
-		try_acquire_grazing_target()
-		return true
-
-	_apply_grazing_plan(current_plan)
 	return false
 
 
-# Full alternative comparison. The current route itself is refreshed by the
-# two-second validation above; every five seconds nearby alternatives may replace
-# it only when their real score is strictly better.
 func recheck_grazing_target() -> void:
 	PerformanceStats.add_counter("grazing_recheck_requests")
 
 	if creature.world_grid == null:
 		return
 
-	if not creature.has_grazing_target or not is_current_grazing_target_still_valid():
-		try_acquire_grazing_target()
-		return
+	try_acquire_grazing_target(true)
 
-	if current_target_score == -INF:
-		var current_plan: Dictionary = _build_current_target_plan(GRAZING_PATH_LIMIT_NEAR)
 
-		if current_plan.is_empty():
-			_clear_grazing_target()
-			try_acquire_grazing_target()
-			return
+func is_current_grazing_route_clear() -> bool:
+	if not creature.has_grazing_target or creature.world_grid == null:
+		return false
 
-		_apply_grazing_plan(current_plan)
+	var navigation_anchor: Vector2i = creature.get_navigation_anchor()
 
-	var nearby_plans: Array[Dictionary] = _find_path_ranked_grazing_plans(
-		creature.nearby_grazing_recheck_radius,
-		current_target_score,
-		false
-	)
+	if navigation_anchor == creature.grazing_target_anchor:
+		return true
 
-	if nearby_plans.is_empty():
-		return
+	var path_variant: Variant = creature.get("current_path")
 
-	_commit_ranked_grazing_plans(nearby_plans)
+	if not (path_variant is Array):
+		return false
+
+	var route: Array = path_variant as Array
+
+	if route.is_empty():
+		return false
+
+	var previous_anchor: Vector2i = navigation_anchor
+
+	for step_variant: Variant in route:
+		if not (step_variant is Vector2i):
+			return false
+
+		var step_anchor: Vector2i = step_variant
+		var neighbors: Array[Vector2i] = creature.world_grid.get_neighbors(
+			previous_anchor,
+			creature.footprint_size,
+			creature
+		)
+
+		if not neighbors.has(step_anchor):
+			return false
+
+		previous_anchor = step_anchor
+
+	return previous_anchor == creature.grazing_target_anchor
 
 
 func is_current_grazing_target_still_valid() -> bool:
@@ -684,8 +732,6 @@ func _clear_grazing_target() -> void:
 	creature.has_grazing_target = false
 	creature.grazing_target_anchor = creature.anchor_tile
 	creature.grazing_candidate_queue.clear()
-	current_target_score = -INF
-	current_target_route_steps = 0
 	_clear_grazing_route()
 
 
