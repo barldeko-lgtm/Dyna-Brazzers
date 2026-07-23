@@ -22,7 +22,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scenes/ui/nature_menu.tscn` — self-contained player energy, time controls, named main-menu buttons, spell buttons, and host area used by runtime egg, flag, and save menus.
 - `scenes/world/world.tscn` — only active gameplay world: 85x85 base terrain TileMap, a DryGround overlay with three variants, initial grass, an empty creature container, eggs container, camera marker, and world grid.
 - `scenes/world/player_base.tscn` — fixed 2x2 player nature base, spawned at the authored `CameraStart` marker and used as the origin for player-created eggs.
-- `scenes/world/enemy_base.tscn` — fixed 2x2 enemy base using its dedicated `enemy_base.png` visual; it is spawned near the opposite map edge or at an authored `EnemyBaseStart` marker and keeps the shared egg-placement plumbing available while automatic enemy production is disabled.
+- `scenes/world/enemy_base.tscn` — fixed 2x2 enemy base using its dedicated `enemy_base.png` visual; it is spawned near the opposite map edge or at an authored `EnemyBaseStart` marker and supplies the shared egg-placement plumbing used by active automatic enemy production.
 - `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures and Timer nodes; it does not override lifecycle timing from `grass.gd`.
 - `scenes/resources/egg.tscn` — shared two-stage egg scene used by all reproducing species.
 - `scenes/creatures/creature.tscn` — shared base creature scene.
@@ -48,7 +48,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 ### Creatures and resources
 
 - `scripts/creatures/creature.gd` — creature runtime coordinator and public facade for FSM state, survival, movement, combat, reproduction, death cleanup, visuals, and interaction.
-- `scripts/creatures/creature_species_data.gd` — shared biological species resource schema; `diet_type` is the sole stored nutrition category and helper methods classify herbivores, predators, and egg eaters.
+- `scripts/creatures/creature_species_data.gd` — shared biological species resource schema; `diet_type` is the sole stored nutrition category, helper methods classify herbivores, predators, and egg eaters, and reproduction has no separate one-time hunger-cost field.
 - `scripts/creatures/creature_faction.gd` — validated runtime faction ownership helper (`player`, `enemy`, `neutral`) kept separate from species identity. Untagged current entities default to player; unknown or removed non-empty faction ids normalize to neutral.
 - `scripts/catalogs/player_species_catalog.gd` — ordered fixed catalog of the six player species with player-only egg prices, energy income, flag text, and current flag behaviour category.
 - `scripts/catalogs/enemy_species_catalog.gd` — fixed six-species enemy roster with enemy-specific resources, mirrored egg costs, and per-creature enemy-energy income; strategic population priorities remain future work.
@@ -82,7 +82,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/ui/player_nature_ui.gd` — script on `nature_menu.tscn`; owns spell controls, targeting, previews, named menu-button lookup, and the stable access API used by dynamic menus and time controls.
 - `scripts/player/player_energy.gd` — session energy reserve, spending API, and catalog-defined income from living player-faction dinosaurs only.
 - `scripts/enemies/enemy_energy.gd` — session enemy reserve starting at 5000, spending API, and catalog-defined income from living enemy-faction creatures.
-- `scripts/enemies/enemy_egg_production_controller.gd` — temporary five-second round-robin enemy egg producer with automatic production currently disabled by default; strategic AI will replace this deterministic scaffold later.
+- `scripts/enemies/enemy_egg_production_controller.gd` — active temporary five-second round-robin enemy egg producer; strategic AI will replace this deterministic scaffold later.
 - `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, DryGround clearing, adjacent mature-grass timer restarts, spell VFX application, and successful-cast sound triggers.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem/Enemy Enka line and F4 detailed debug.
 - `scripts/save/save_system.gd` — base three-slot JSON persistence with temporary-write verification, backup recovery, in-game menu integration, and runtime reconstruction.

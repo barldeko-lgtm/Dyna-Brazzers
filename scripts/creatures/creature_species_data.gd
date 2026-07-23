@@ -66,7 +66,6 @@ enum DietType {
 @export var reproduction_min_hunger := 70.0
 @export var reproduction_min_age := 3.0
 @export var reproduction_cooldown := 20.0
-@export var reproduction_hunger_cost := 20.0
 
 
 func is_herbivore() -> bool:

@@ -5,9 +5,9 @@ class_name EnemyEggProductionController
 # stay outside this scaffold and will replace the simple round-robin rule later.
 const ENEMY_SPECIES_CATALOG := preload("res://scripts/catalogs/enemy_species_catalog.gd")
 
-# Temporary project switch. The controller, save state and enemy-base plumbing
-# remain in place, but no automatic enemy eggs are produced while this is false.
-@export var automatic_production_enabled := false
+# Temporary project switch. Set this to false only when automatic enemy egg
+# production must be paused without removing its save state or base plumbing.
+@export var automatic_production_enabled := true
 @export var production_interval := 5.0
 
 var production_timer: Timer = null

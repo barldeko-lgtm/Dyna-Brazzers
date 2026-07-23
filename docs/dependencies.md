@@ -92,7 +92,7 @@ Player-specific flow:
 Enemy-specific flow:
 
 - `enemy_base.gd` exposes `create_enemy_egg()` as a thin wrapper over the same safe common placement method;
-- `enemy_egg_production_controller.gd` retains that five-second production path, but its `automatic_production_enabled` switch currently defaults to `false`, so no timer attempts run;
+- `enemy_egg_production_controller.gd` runs that five-second production path by default through `automatic_production_enabled = true`;
 - enemy energy and the temporary round-robin timer live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`; population choices, priorities, attack plans, and strategic AI remain future work.
 
 Rules:
@@ -231,7 +231,7 @@ Main files:
 
 Ownership layers:
 
-1. `CreatureSpeciesData` describes one biological/resource variant: identity, diet, stats, visuals, survival, combat, and reproduction. `diet_type` is the single stored nutrition source; systems query it through `is_herbivore()`, `is_predator()`, and `is_egg_eater()`.
+1. `CreatureSpeciesData` describes one biological/resource variant: identity, diet, stats, visuals, survival, combat, and reproduction. `diet_type` is the single stored nutrition source; systems query it through `is_herbivore()`, `is_predator()`, and `is_egg_eater()`. Reproduction uses its eligibility gates, laying duration, and cooldown only; no separate one-time hunger-cost property exists.
 2. `CreatureFaction` describes runtime ownership independently and validates exactly `player`, `enemy`, or `neutral`. Untagged current entities and old save records default to `player`; unknown non-empty ids normalize to `neutral`.
 3. `PlayerSpeciesCatalog` is the single ordered fixed roster for player-only values: egg purchase cost, player energy income, flag text/tooltips, and current `PASTURE`/`GATHER` flag behaviour.
 4. `EnemySpeciesCatalog` is the fixed six-species enemy roster, selects enemy-specific resource paths, and stores mirrored egg costs and per-creature enemy-energy income. Population goals, strategic priorities, and tactical AI do not belong in this catalog.
@@ -253,7 +253,7 @@ Rules:
 - an enemy-base-created egg must be assigned `enemy` before it is added to active gameplay; `FactionBase` performs this when called through the enemy wrapper;
 - only living player-faction creatures whose species exists in `PlayerSpeciesCatalog` generate player energy;
 - only living enemy-faction creatures whose species exists in `EnemySpeciesCatalog` generate enemy energy;
-- when automatic production is enabled again, the temporary controller must spend enemy energy only after `create_enemy_egg()` returns a real egg and advance its round-robin cursor only after successful spending; while disabled, restore must keep its timer stopped;
+- while automatic production is active, the temporary controller must spend enemy energy only after `create_enemy_egg()` returns a real egg and advance its round-robin cursor only after successful spending; restore resumes the saved timer when production is enabled and stops it only when the project switch is explicitly disabled;
 - player flags affect only player-faction creatures in the fixed player catalog;
 - player flags may read creature navigation/species data, but route application, food interruption, route cancellation, and related FSM mutations must go through the creature indirect-order API;
 - changing one species flag cancels only that species routes and retry timers; other species flag work remains intact;
@@ -381,7 +381,7 @@ Loading flow:
 9. Preserve the already spawned static player and enemy bases and their blocker registrations.
 10. Restore player energy, camera, and simulation speed.
 11. The faction/flag save layer reapplies creature/egg factions and completed-flag revisions, defaulting missing faction fields to player and unknown non-empty ids to neutral, before restoring player flags.
-12. The enemy save layer restores optional enemy energy and production cursor/timer state; missing fields keep the new-game defaults, and the disabled production switch must leave the restored timer stopped.
+12. The enemy save layer restores optional enemy energy and production cursor/timer state; missing fields keep the new-game defaults, and the enabled production switch resumes the restored timer from its saved remaining time.
 
 Rules:
 

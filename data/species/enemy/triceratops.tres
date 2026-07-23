@@ -47,4 +47,3 @@ reproduction_min_health = 30.0
 reproduction_min_hunger = 70.0
 reproduction_min_age = 4.0
 reproduction_cooldown = 65.0
-reproduction_hunger_cost = 20.0
