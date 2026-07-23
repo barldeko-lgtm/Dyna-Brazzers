@@ -116,7 +116,7 @@ Current UI scripts:
 
 - `res://scripts/ui/start_screen.gd` — startup menu and three-slot startup loading;
 - `res://scripts/ui/creature_stats_ui.gd` — creature information, selection, and highlight coordination;
-- `res://scripts/ui/player_ui.gd` — terrain minimap, diet/faction markers, separate player/enemy creature and egg counters, and time-speed controls;
+- `res://scripts/ui/player_ui.gd` — terrain minimap, diet/faction markers, separate player/enemy creature and egg counters, `BASE`/`ENEMY` camera focus, and time-speed controls;
 - `res://scripts/flags/player_flag_system.gd` — compact facade for scene attachment, placed flag records, visual sync, and stable save/debug entry points;
 - `res://scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload layer that supplies the player catalog and placement revisions;
 - `res://scripts/flags/player_flag_ui_controller.gd` — flag submenu, targeting input, preview, and status text;
@@ -146,6 +146,7 @@ Rules:
 - F3 grid overlay and F4 text debug are separate systems; F3 may query `PlayerFlags` through its public debug-data method but must not own flag behaviour;
 - creature selection must remain compatible with nature-power targeting;
 - SaveSystem, player flags, egg creation, and player time controls must resolve nested nature-menu controls through the `player_nature_ui` group API, not paths through `UI/PlayerSidePanel/MarginContainer/...`;
+- the `BASE` and `ENEMY` buttons may be resolved from the main-menu grid returned by the nature-menu API, but camera targets must be found through the stable `player_base` and `enemy_base` groups rather than scene paths;
 - keep `main.tscn` as a compositor rather than moving HUD styles or deep UI node trees back into it;
 - preserve the root instance names `UI`, `CreatureStatsPanel`, and `PlayerNaturePanel` when rearranging the split scenes so old diagnostic paths remain readable;
 - dead/corpse creatures should not remain selectable.

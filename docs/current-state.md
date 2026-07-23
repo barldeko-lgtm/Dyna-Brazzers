@@ -166,6 +166,7 @@ Current minimap rules:
 - enemy-faction marker colours are selected separately from the player palette; the right-side table separately counts player and enemy herbivores, predators, egg eaters, eggs, and total living creatures;
 - a bright rectangular frame shows the current camera viewport and changes size with camera zoom;
 - left-clicking the minimap moves the observer camera to the selected world position;
+- the right-side `BASE` and `ENEMY` buttons center the observer camera on the player and enemy bases through their stable runtime groups;
 - base terrain stays static during a session; a DryGround overlay may be cleared by its third rain hit, then the minimap rebuilds; a separate overlay redraws the camera frame and 6x6 creature triangle markers during play;
 - eggs, faction bases, and world events are not shown yet.
 

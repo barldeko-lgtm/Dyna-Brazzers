@@ -3,6 +3,7 @@ extends PanelContainer
 # Player side-panel UI:
 # - interactive terrain minimap
 # - entity counters
+# - camera shortcuts to faction bases
 # - time speed controls
 # - player egg-creation UI bootstrap
 #
@@ -63,6 +64,9 @@ const MINIMAP_OTHER_FACTION_COLOR := Color(0xc88ce8ff)
 @onready var enemy_egg_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/EnemyEggCountLabel")
 @onready var enemy_total_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/EnemyTotalCountLabel")
 
+var nature_menu_ui: Node = null
+var player_base_button: Button = null
+var enemy_base_button: Button = null
 var time_speed_buttons: Array[Button] = []
 var entity_counts_refresh_timer := 0.0
 var terrain_minimap_texture: ImageTexture = null
@@ -83,6 +87,7 @@ func _ready() -> void:
 	add_to_group("player_ui")
 	_bind_nature_menu_controls()
 	setup_time_speed_controls()
+	setup_base_navigation_controls()
 	setup_player_egg_creation_ui()
 	update_entity_counts_text()
 	entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
@@ -624,13 +629,15 @@ func count_eggs(faction_id: StringName) -> int:
 
 func _bind_nature_menu_controls() -> void:
 	time_speed_buttons.clear()
-	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
+	nature_menu_ui = get_tree().get_first_node_in_group("player_nature_ui")
+	player_base_button = null
+	enemy_base_button = null
 
-	if nature_ui == null or not nature_ui.has_method("get_time_speed_buttons"):
+	if nature_menu_ui == null or not nature_menu_ui.has_method("get_time_speed_buttons"):
 		push_error("PlayerUI: nature-menu API was not found.")
 		return
 
-	var buttons_variant: Variant = nature_ui.call("get_time_speed_buttons")
+	var buttons_variant: Variant = nature_menu_ui.call("get_time_speed_buttons")
 
 	if not (buttons_variant is Array):
 		push_error("PlayerUI: nature-menu speed controls are invalid.")
@@ -641,6 +648,53 @@ func _bind_nature_menu_controls() -> void:
 
 		if button != null:
 			time_speed_buttons.append(button)
+
+	if nature_menu_ui.has_method("get_main_menu_grid"):
+		var main_menu_grid := nature_menu_ui.call("get_main_menu_grid") as GridContainer
+
+		if main_menu_grid != null:
+			player_base_button = main_menu_grid.get_node_or_null("BaseMenuButton") as Button
+			enemy_base_button = main_menu_grid.get_node_or_null("EnemyMenuButton") as Button
+
+
+func setup_base_navigation_controls() -> void:
+	var player_base_callable := Callable(self, "_on_player_base_button_pressed")
+	var enemy_base_callable := Callable(self, "_on_enemy_base_button_pressed")
+
+	if player_base_button != null and not player_base_button.pressed.is_connected(
+		player_base_callable
+	):
+		player_base_button.pressed.connect(player_base_callable)
+
+	if enemy_base_button != null and not enemy_base_button.pressed.is_connected(
+		enemy_base_callable
+	):
+		enemy_base_button.pressed.connect(enemy_base_callable)
+
+
+func _on_player_base_button_pressed() -> void:
+	focus_camera_on_faction_base(&"player_base")
+
+
+func _on_enemy_base_button_pressed() -> void:
+	focus_camera_on_faction_base(&"enemy_base")
+
+
+func focus_camera_on_faction_base(base_group: StringName) -> void:
+	var faction_base := get_tree().get_first_node_in_group(base_group) as Node2D
+	var camera := find_active_camera()
+
+	if faction_base == null or camera == null:
+		push_warning("PlayerUI: camera or faction base '%s' was not found." % str(base_group))
+		return
+
+	if nature_menu_ui != null and nature_menu_ui.has_method("cancel_all_targeting"):
+		nature_menu_ui.call("cancel_all_targeting")
+
+	camera.global_position = faction_base.global_position
+	has_minimap_camera_state = false
+	minimap_entity_refresh_timer = 0.0
+	update_minimap_camera_view(true)
 
 
 func setup_player_egg_creation_ui() -> void:
