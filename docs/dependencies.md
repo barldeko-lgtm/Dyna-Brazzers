@@ -178,6 +178,7 @@ Main files:
 - `res://scripts/creatures/creature.gd`;
 - `res://scripts/creatures/behaviors/creature_movement_controller.gd`;
 - `res://scripts/creatures/behaviors/creature_predator_logic.gd`;
+- `res://scripts/creatures/behaviors/creature_grazing_logic.gd`;
 - `res://scripts/flags/player_flag_system_with_catalog.gd`.
 
 Rules:
@@ -188,7 +189,7 @@ Rules:
 - predator logic scans at most the three nearest available prey inside the species radius, builds a reachable approach route for each, and chooses the shortest actual route; when no candidate is reachable or present, the next population scan waits two seconds;
 - a prey approach may use any anchor that overlaps at least one tile along a footprint side; for the current shared 2x2 footprint this means the centered side anchor plus one-tile shifts in either direction, while full corner diagonals remain invalid;
 - prey remains shareable while merely being pursued, but `combat_engagement_hunter` is exclusive once one hunter begins the final approach; other hunters must drop that prey immediately and search again in the same update;
-- predator logic must use the movement controller behavior-route API instead of writing or clearing `current_path` directly; an already active smooth step is preserved while queued hunt steps are replaced or removed;
+- predator and grazing logic must use the movement controller behavior-route API instead of writing or clearing `current_path` directly; an already active smooth step is preserved while queued behavior steps are replaced or removed;
 - active flag code must call the creature indirect-order API instead of setting `current_path`, `state_timer`, `state`, `has_grazing_target`, `food_recheck_timer`, or `grazing_candidate_queue`;
 - survival, food, reproduction, and combat remain higher priority than indirect orders;
 - enemy creatures use the same movement controller and autonomous FSM; do not create an enemy-only movement or survival copy.
@@ -477,10 +478,13 @@ Main file:
 
 Rules:
 
-- evaluate food under the full creature footprint;
-- compare food quality/value with estimated travel distance;
-- allow lower-stage edible grass as fallback;
-- initial targeting and periodic retargeting must use the same ranking;
+- evaluate only 2x2 anchors containing at least `min_grass_to_eat` edible tiles; the current shared minimum remains two;
+- sum the food value of every edible grass tile under the full four-tile footprint;
+- use a cheap preliminary score only to create an eight-anchor shortlist;
+- build a current real path to every shortlisted anchor, reject blocked or unreachable entries, and calculate the final score as `total food value - actual route steps * 2`;
+- allow lower-stage edible grass as fallback when its reachable route makes it the better final choice;
+- initial targeting and the two-second periodic retarget check must use the same path-aware ranking; exact score ties keep the current target;
+- grazing logic must replace or clear queued routes through `creature_movement_controller.gd`, never by mutating `current_path` directly;
 - do not allow consumption before the creature reaches a valid eating anchor.
 
 ## Egg lifecycle and species visuals

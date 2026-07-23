@@ -14,7 +14,7 @@ Current prototype includes:
 - six player-creatable species: stegosaurus, triceratops, tyrannosaurus, raptor, pterodactyl, and egg eater; fresh games start without adult creatures;
 - a fixed 2x2 player nature base that creates player-bought eggs on nearby free tiles;
 - a fixed 2x2 enemy base with its own 512x512 transparent sprite; it is displayed at 256x256, blocks the world, and creates enemy eggs through a temporary five-second round-robin production loop;
-- quality-aware grass targeting;
+- quality- and route-aware grass targeting that builds current routes to eight eligible 2x2 pasture candidates and scores each reachable patch by total food value minus two points per path step;
 - four-stage renewable grass with an 8-second interval between growth stages and a 30-second mature spread delay;
 - eggs, hatching, and population growth;
 - player and enemy species-specific data resources;
@@ -124,7 +124,7 @@ The active project is deliberately split by responsibility:
 - dynamic save, flag, egg, and time-control menus resolve the nature panel through the `player_nature_ui` group API rather than deep scene paths;
 - `CreatureSpeciesData` stores biological species data, `CreatureFaction` stores validated runtime ownership, `PlayerSpeciesCatalog` stores player-only economy and flag presentation, and `EnemySpeciesCatalog` selects the enemy biological variants without owning future enemy AI;
 - `faction_base.gd` owns shared fixed-base blocking, visuals, nearby egg placement, and faction assignment; `player_base.gd` and `enemy_base.gd` remain thin faction-specific wrappers;
-- `creature.gd` remains the creature FSM/survival coordinator and public facade; movement, visuals, and mouse interaction are delegated to dedicated controllers, the world grid reserves each next movement anchor before visual travel, and predator logic asks the movement controller to replace or clear queued hunt routes instead of mutating them directly;
+- `creature.gd` remains the creature FSM/survival coordinator and public facade; movement, visuals, and mouse interaction are delegated to dedicated controllers, the world grid reserves each next movement anchor before visual travel, and predator plus grazing logic ask the movement controller to replace or clear queued behavior routes instead of mutating them directly;
 - the player-flag facade, UI controller, assignment service, target allocator, and visual have separate ownership;
 - `save_system.gd` owns base slot persistence and reconstruction, `save_system_with_flags.gd` layers optional faction/flag/audio data, and `save_system_with_enemy.gd` adds enemy energy plus the temporary production cursor/timer;
 - F3 grid diagnostics, F4 text diagnostics, and F8 CSV performance logging are separate systems.
@@ -340,11 +340,11 @@ Rules:
 
 ## Grazing target scoring
 
-Herbivores evaluate the total available food under their full footprint and compare it with travel distance.
+Herbivores evaluate 2x2 pasture anchors containing at least two edible grass tiles. Food value is the sum of all edible grass under the four-tile footprint: stage 2 is worth 5, stage 3 is worth 7, and stage 4 is worth 9.
 
-More mature grass is worth more, but nearer lower-stage edible grass remains a valid fallback. Initial target selection and periodic retargeting use the same scoring logic.
+A cheap preliminary pass creates an eight-anchor shortlist. The creature then builds a real current route to every shortlisted anchor, rejects blocked or unreachable entries, and scores each reachable patch as `total food value - actual route steps * 2`. Initial target selection and the two-second periodic retarget check use this same path-aware formula; exact score ties keep the current target to avoid needless switching.
 
-A creature must reach a valid eating position before consuming grass.
+Grazing logic uses the movement controller behavior-route API instead of mutating the queued route directly. A creature must reach a valid eating position before consuming grass.
 
 ## Creature selection highlight
 

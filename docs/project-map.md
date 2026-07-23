@@ -52,7 +52,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/creatures/creature_faction.gd` — validated runtime faction ownership helper (`player`, `enemy`, `neutral`) kept separate from species identity. Untagged current entities default to player; unknown or removed non-empty faction ids normalize to neutral.
 - `scripts/catalogs/player_species_catalog.gd` — ordered fixed catalog of the six player species with player-only egg prices, energy income, flag text, and current flag behaviour category.
 - `scripts/catalogs/enemy_species_catalog.gd` — fixed six-species enemy roster with enemy-specific resources, mirrored egg costs, and per-creature enemy-energy income; strategic population priorities remain future work.
-- `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore food search and target ranking.
+- `scripts/creatures/behaviors/creature_grazing_logic.gd` — herbivore search over eight eligible 2x2 pasture candidates, current reachable-route comparison, final `food value - path steps * 2` ranking, and movement-controller-owned grazing routes.
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — shared carnivore three-candidate prey search, reachable-path comparison, side-overlap approach selection, target locking, engagement handoff, step settlement, and combat-entry logic.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — stage-2 egg targeting, periodic retargeting, and consumption logic.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and egg spawning.
