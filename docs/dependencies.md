@@ -481,9 +481,9 @@ Rules:
 - evaluate only 2x2 anchors containing at least `min_grass_to_eat` edible tiles; the current shared minimum remains two;
 - sum the food value of every edible grass tile under the full four-tile footprint;
 - use a cheap preliminary score only to create a ten-anchor shortlist;
-- build a current real path to every shortlisted anchor, reject blocked or unreachable entries, and calculate the final score as `total food value - actual route steps * 2`;
+- build current real paths with staged expansion limits of 80, then 150 only if no reachable pasture was found, then 300 only as the final fallback; reject blocked or unreachable entries and calculate the final score as `total food value - actual route steps * 2`;
 - allow lower-stage edible grass as fallback when its reachable route makes it the better final choice;
-- initial targeting and the two-second periodic retarget check must use the same path-aware ranking; exact score ties keep the current target;
+- validate only the current target and its real route every two seconds; compare the ten-candidate alternative shortlist every five seconds, keep exact score ties on the current target, and stop comparison when the remaining cheap upper bounds cannot beat the current winner;
 - grazing logic must replace or clear queued routes through `creature_movement_controller.gd`, never by mutating `current_path` directly;
 - do not allow consumption before the creature reaches a valid eating anchor.
 

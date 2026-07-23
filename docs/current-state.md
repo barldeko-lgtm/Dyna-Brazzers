@@ -14,7 +14,7 @@ Current prototype includes:
 - six player-creatable species: stegosaurus, triceratops, tyrannosaurus, raptor, pterodactyl, and egg eater; fresh games start without adult creatures;
 - a fixed 2x2 player nature base that creates player-bought eggs on nearby free tiles;
 - a fixed 2x2 enemy base with its own 512x512 transparent sprite; it is displayed at 256x256, blocks the world, and keeps the temporary five-second round-robin egg-production scaffold available while automatic production is currently disabled;
-- quality- and route-aware grass targeting that builds current routes to ten eligible 2x2 pasture candidates and scores each reachable patch by total food value minus two points per path step;
+- quality- and route-aware grass targeting with a ten-pasture shortlist, two-second validation of the current route, five-second comparison of alternatives, early upper-bound stopping, and staged 80/150/300-tile path limits;
 - four-stage renewable grass with an 8-second interval between growth stages and a 30-second mature spread delay;
 - eggs, hatching, and population growth;
 - player and enemy species-specific data resources;
@@ -342,7 +342,9 @@ Rules:
 
 Herbivores evaluate 2x2 pasture anchors containing at least two edible grass tiles. Food value is the sum of all edible grass under the four-tile footprint: stage 2 is worth 5, stage 3 is worth 7, and stage 4 is worth 9.
 
-A cheap preliminary pass creates a ten-anchor shortlist. The creature then builds a real current route to every shortlisted anchor, rejects blocked or unreachable entries, and scores each reachable patch as `total food value - actual route steps * 2`. Initial target selection and the two-second periodic retarget check use this same path-aware formula; exact score ties keep the current target to avoid needless switching.
+A cheap preliminary pass creates a ten-anchor shortlist. Initial acquisition compares real routes with staged expansion caps: 80 tiles first, 150 only when the first stage finds no reachable pasture, and 300 only as the final fallback. Reachable patches are scored as `total food value - actual route steps * 2`. Because the cheap score is an upper bound, comparison stops once the remaining sorted candidates can no longer beat the current winner.
+
+Every two seconds the herbivore validates only its current pasture and rebuilds that one real route with the 80-tile limit, so newly occupied corridors are noticed without recomparing the whole shortlist. Every five seconds it may compare nearby alternatives; exact score ties keep the current target to avoid needless switching.
 
 Grazing logic uses the movement controller behavior-route API instead of mutating the queued route directly. A creature must reach a valid eating position before consuming grass.
 
