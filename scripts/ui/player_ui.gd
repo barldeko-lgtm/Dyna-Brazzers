@@ -4,7 +4,7 @@ extends PanelContainer
 # - interactive terrain minimap
 # - entity counters
 # - camera shortcuts to faction bases
-# - time speed controls
+# - time speed buttons and keyboard shortcuts
 # - player egg-creation UI bootstrap
 #
 # Keep this separate from creature_stats_ui.gd so the creature info window does
@@ -751,3 +751,45 @@ func apply_time_speed_by_index(index: int) -> void:
 
 func _on_time_speed_button_pressed(index: int) -> void:
 	apply_time_speed_by_index(index)
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not (event is InputEventKey):
+		return
+
+	var key_event := event as InputEventKey
+
+	if not key_event.pressed or key_event.echo:
+		return
+
+	var speed_index := get_time_speed_shortcut_index(key_event)
+
+	if speed_index < 0:
+		return
+
+	apply_time_speed_by_index(speed_index)
+	get_viewport().set_input_as_handled()
+
+
+func get_time_speed_shortcut_index(key_event: InputEventKey) -> int:
+	match key_event.physical_keycode:
+		KEY_1:
+			return 0
+		KEY_2:
+			return 1
+		KEY_3:
+			return 2
+		KEY_4:
+			return 3
+
+	match key_event.keycode:
+		KEY_1:
+			return 0
+		KEY_2:
+			return 1
+		KEY_3:
+			return 2
+		KEY_4:
+			return 3
+
+	return -1

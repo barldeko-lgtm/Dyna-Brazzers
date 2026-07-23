@@ -71,7 +71,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 
 - `scripts/ui/start_screen.gd` — startup menu, slot loading, and runtime-built Music/Sounds settings controls.
 - `scripts/ui/creature_stats_ui.gd` — script owned by the root `PanelContainer` of `creature_info_panel.tscn`; handles creature information, hover, selection, and the lightning click bridge.
-- `scripts/ui/player_ui.gd` — script on `player_hud.tscn`'s right-side panel; handles interactive terrain minimap generation, diet/faction markers, separate player/enemy creature and egg counters, camera viewport display/click navigation, `BASE`/`ENEMY` camera focus through faction-base groups, time controls, and egg-controller bootstrap.
+- `scripts/ui/player_ui.gd` — script on `player_hud.tscn`'s right-side panel; handles interactive terrain minimap generation, diet/faction markers, separate player/enemy creature and egg counters, camera viewport display/click navigation, `BASE`/`ENEMY` camera focus through faction-base groups, time buttons plus `1`–`4` speed shortcuts, and egg-controller bootstrap.
 - `scripts/ui/player_egg_creation_ui.gd` — runtime egg submenu presentation, button availability, and base purchase requests using the player species catalog; nested host controls come from the nature-menu API.
 - `scripts/flags/player_flag_system.gd` — compact flag facade for gameplay-scene attachment, placed-flag data, visual synchronization, and stable save/debug entry points.
 - `scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload layer that supplies player-catalog menu entries and placement revisions, then delegates UI and creature assignment to dedicated services.

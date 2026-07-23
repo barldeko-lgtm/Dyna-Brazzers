@@ -167,6 +167,7 @@ Current minimap rules:
 - a bright rectangular frame shows the current camera viewport and changes size with camera zoom;
 - left-clicking the minimap moves the observer camera to the selected world position;
 - the right-side `BASE` and `ENEMY` buttons center the observer camera on the player and enemy bases through their stable runtime groups;
+- number keys `1`–`4` switch simulation speed to `x1`, `x2`, `x3`, and `x5`; the matching right-side speed button updates at the same time;
 - base terrain stays static during a session; a DryGround overlay may be cleared by its third rain hit, then the minimap rebuilds; a separate overlay redraws the camera frame and 6x6 creature triangle markers during play;
 - eggs, faction bases, and world events are not shown yet.
 
