@@ -7,12 +7,14 @@ const ENEMY_BASE_SCENE := preload("res://scenes/world/enemy_base.tscn")
 const ENEMY_ENERGY_SCRIPT := preload("res://scripts/enemies/enemy_energy.gd")
 const ENEMY_PRODUCTION_SCRIPT := preload("res://scripts/enemies/enemy_egg_production_controller.gd")
 const ENEMY_AI_SCRIPT := preload("res://scripts/enemies/enemy_ai_controller.gd")
+const ENEMY_SPELL_CONTROLLER_SCRIPT := preload("res://scripts/enemies/enemy_spell_controller.gd")
 const ENEMY_FLAG_SYSTEM_SCRIPT := preload("res://scripts/flags/enemy_flag_system.gd")
 const PLAYER_BASE_NODE_NAME := "PlayerBase"
 const ENEMY_BASE_NODE_NAME := "EnemyBase"
 const ENEMY_ENERGY_NODE_NAME := "EnemyEnergy"
 const ENEMY_PRODUCTION_NODE_NAME := "EnemyEggProduction"
 const ENEMY_AI_NODE_NAME := "EnemyAI"
+const ENEMY_SPELL_CONTROLLER_NODE_NAME := "EnemySpellController"
 const ENEMY_FLAG_SYSTEM_NODE_NAME := "EnemyAttackFlags"
 const BASE_FOOTPRINT := Vector2i(2, 2)
 const ENEMY_BASE_FALLBACK_MARGIN := Vector2i(4, 4)
@@ -119,6 +121,15 @@ func spawn_enemy_runtime_if_needed() -> void:
 		else:
 			enemy_ai.name = ENEMY_AI_NODE_NAME
 			add_child(enemy_ai)
+
+	if get_node_or_null(ENEMY_SPELL_CONTROLLER_NODE_NAME) == null:
+		var enemy_spells := ENEMY_SPELL_CONTROLLER_SCRIPT.new() as Node
+
+		if enemy_spells == null:
+			push_error("StartMapWorldGrid: enemy spell controller could not be created.")
+		else:
+			enemy_spells.name = ENEMY_SPELL_CONTROLLER_NODE_NAME
+			add_child(enemy_spells)
 
 	if get_node_or_null(ENEMY_FLAG_SYSTEM_NODE_NAME) == null:
 		var enemy_flags := ENEMY_FLAG_SYSTEM_SCRIPT.new() as Node

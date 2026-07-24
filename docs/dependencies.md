@@ -69,6 +69,7 @@ Main files:
 - `res://scripts/enemies/enemy_energy.gd`;
 - `res://scripts/enemies/enemy_egg_production_controller.gd`;
 - `res://scripts/enemies/enemy_ai_controller.gd`;
+- `res://scripts/enemies/enemy_spell_controller.gd`;
 - `res://scripts/flags/enemy_flag_system.gd`;
 - `res://scripts/flags/enemy_flag_assignment_service.gd`;
 - `res://scripts/flags/enemy_flag_visual.gd`;
@@ -102,8 +103,9 @@ Enemy-specific flow:
 - `enemy_base.gd` exposes `create_enemy_egg()` as a thin wrapper over the same safe common placement method;
 - `enemy_egg_production_controller.gd` remains instantiated for save compatibility, but `automatic_production_enabled = false`, so its old five-second round-robin timer stays stopped;
 - `enemy_ai_controller.gd` runs the active four-second strategic turn: it builds a derived population/satiety snapshot, fills a completed-minute herbivore cap clamped to 10–60 with a projected 3:1 stegosaurus/triceratops mix only while normalized average adult-herbivore satiety is at least 40%, skips the turn below that threshold while projected herbivores remain below the cap, and at or above the cap ignores satiety while running the current predator task (two projected raptors, first projected tyrannosaurus, first projected pterodactyl, then successful tyrannosaurus/pterodactyl purchases alternating) and attempting one purchase;
+- `enemy_spell_controller.gd` listens to `enemy_ai_controller.gd`'s completed snapshot but does not own population choices. Whenever adult enemy herbivore average satiety is below the snapshot threshold, it may make one rain search and cast independently of whether the production phase skipped or created a predator egg;
 - enemy energy starts at 3000 for a fresh session; loaded saves restore their stored enemy-energy value; the disabled legacy round-robin scaffold and active strategic production live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`;
-- `enemy_flag_system.gd` creates three persistent runtime rally objectives at the player base for enemy tyrannosauruses, pterodactyls, and egg eaters. It reuses the shared indirect-order assignment/path flow, never owns movement or survival logic, and does not change the current production roster; egg-eater production, dynamic attack planning, spells, and base-damage logic remain future work.
+- `enemy_flag_system.gd` creates three persistent runtime rally objectives at the player base for enemy tyrannosauruses, pterodactyls, and egg eaters. It reuses the shared indirect-order assignment/path flow, never owns movement or survival logic, and does not change the current production roster; egg-eater production, dynamic attack planning, additional spells, and base-damage logic remain future work.
 
 Rules:
 
@@ -115,12 +117,13 @@ Rules:
 - player egg UI must continue finding the player base through the `player_base` group and using `create_player_egg()`;
 - enemy strategic production must find the enemy base through the `enemy_base` group and use `create_enemy_egg()` or the inherited `create_faction_egg()` API;
 - `start_map_world_grid.gd` must create exactly one runtime node named `EnemyAI`; the controller registers itself in the stable `enemy_ai` group;
+- the same bootstrap must create exactly one runtime node named `EnemySpellController`; it registers in `enemy_spell_controller`, connects to the public `EnemyAI.turn_completed` signal, and must keep spell decisions outside `enemy_ai_controller.gd`;
 - the same bootstrap must create exactly one runtime node named `EnemyAttackFlags`; it derives all three target positions from the current `PlayerBase` anchor after base placement and never rewrites terrain or scene serialization;
 - the enemy-AI snapshot must count only entities whose runtime faction is `enemy`; adult creatures must also use the matching enemy-catalog species resource, use catalog-supported biological `species_id` values, count each incubating egg as one future adult of its hatch species, and calculate satiety only from living adult enemy herbivores; this second resource guard must prevent a wrongly tagged player resource from entering enemy population or satiety calculations;
 - adult, egg, and projected per-species totals must remain separate inside the snapshot so production can use eggs as future adults; eggs must never enter the adult-herbivore satiety average, and F5 must display the normalized average plus the resulting hunger-gate state;
 - population snapshots are derived state and must be rebuilt from `creatures` and `eggs`, not serialized as a second source of truth; elapsed AI game time, turn index, and remaining turn delay are the only strategic-AI save fields;
 - the herbivore cap must equal `clamp(floor(elapsed_simulation_seconds / 60), 10, 60)`; the herbivore selector uses projected counts and preserves 3:1 dynamically, but it may run only when there are no adult herbivores yet or their normalized average satiety is at least the exported 40% threshold; below that threshold and below the cap the whole strategic turn must be skipped without selecting, placing, or paying for any egg; at or above the cap predator production ignores herbivore satiety, first maintains two projected raptors, then establishes one projected tyrannosaurus and one projected pterodactyl, then alternates tyrannosaurus and pterodactyl only after successful egg creation;
-- energy must be spent only after `create_enemy_egg()` returns a real egg; failed placement must cost nothing;
+- egg energy must be spent only after `create_enemy_egg()` returns a real egg; failed placement must cost nothing; enemy rain must first find a positive target and pass `can_apply_rain()`, then spend its configured cost, and refund that exact cost if `apply_rain()` still fails;
 - shared blocker, visual, and nearby egg-placement changes belong in `faction_base.gd`, not duplicated in both wrappers;
 - do not add either base to dynamic save groups such as `creatures`, `eggs`, or `grass`;
 - do not add strategic decision-making to the base scene;
@@ -274,7 +277,8 @@ Ownership layers:
 3. `PlayerSpeciesCatalog` is the single ordered fixed roster for player-only values: egg purchase cost, player energy income, flag text/tooltips, and current `PASTURE`/`GATHER` flag behaviour.
 4. `EnemySpeciesCatalog` is the fixed six-species enemy roster, selects enemy-specific resource paths, and stores mirrored egg costs and per-creature enemy-energy income. Population goals, strategic priorities, and tactical AI do not belong in this catalog.
 5. `EnemyAIController` owns strategic snapshots and current production decisions. Its four-second turn counts enemy adults and eggs by catalog-supported biological `species_id`; eggs use `hatch_species_data.species_id` first and their stored `species_id` only as a fallback. It currently chooses only stegosaurus/triceratops eggs toward a projected 3:1 ratio.
-6. Player and enemy variants deliberately keep the same biological `species_id`; the distinct `.tres` resource path chooses the visuals/stats variant, while `CreatureFaction` chooses ownership.
+6. `EnemySpellController` owns enemy spell triggers, target searches, and spell costs. Its first rain pass reads the completed AI snapshot but does not alter it or make egg-production decisions.
+7. Player and enemy variants deliberately keep the same biological `species_id`; the distinct `.tres` resource path chooses the visuals/stats variant, while `CreatureFaction` chooses ownership.
 
 Current enemy resource rules:
 
@@ -293,6 +297,8 @@ Rules:
 - only living player-faction creatures whose species exists in `PlayerSpeciesCatalog` generate player energy;
 - only living enemy-faction creatures whose species exists in `EnemySpeciesCatalog` generate enemy energy;
 - the enemy-AI scan may iterate the stable `creatures` and `eggs` groups only on its four-second timer; it must not scan them every frame, and it must ignore invalid, queued-for-deletion, non-enemy, or unsupported-species entities; average satiety must use only adult enemy herbivores, normalize each creature by its own `max_hunger`, and exclude all eggs;
+- the enemy rain search may run only after a completed four-second AI snapshot reports at least one adult enemy herbivore and normalized average satiety below the snapshot threshold; check affordability before scanning the grass registry;
+- the first rain-targeting pass must ignore DryGround value, young-grass growth, herd distance, and long-term recovery. It may scan `world_grid.grass_by_tile`, retain only stage-4 grass whose `has_tried_to_spread` is false and which has at least one cardinal cell accepted by the same `can_host_grass()` plus `has_grass_at_tile()` rules used by real spreading, generate only centers whose rain square contains such a source, and score a center by the count of unique immediately spawnable cells;
 - the legacy automatic producer must remain disabled; old saved cursor/timer data may still be restored into its node, but restore must leave its timer stopped;
 - the active AI must spend enemy energy only after `create_enemy_egg()` returns a real egg, must not spend when placement fails, and must wait rather than substitute a different species when the selected herbivore or predator target is unaffordable;
 - player flags affect only player-faction creatures in the fixed player catalog;
@@ -576,6 +582,7 @@ Main files:
 
 - `res://scripts/ui/player_nature_ui.gd`;
 - `res://scripts/world/nature_effects_system.gd`;
+- `res://scripts/enemies/enemy_spell_controller.gd`;
 - `res://scripts/effects/rain_target_preview.gd`;
 - `res://scripts/effects/rain_cast_effect.gd`;
 - `res://scenes/effects/rain_target_preview.tscn`;
@@ -584,7 +591,7 @@ Main files:
 
 Rules:
 
-- `player_nature_ui.gd` owns rain targeting and preview, while `nature_effects_system.gd` owns successful rain gameplay and cast VFX;
+- `player_nature_ui.gd` owns player rain targeting and preview, `enemy_spell_controller.gd` owns automatic enemy rain decisions and cost handling, and `nature_effects_system.gd` remains the single owner of successful rain gameplay and cast VFX;
 - the visual effect must not apply grass changes itself;
 - playback remains independent of `Engine.time_scale`;
 - preserve real alpha transparency;
