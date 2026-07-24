@@ -70,7 +70,7 @@ func refresh_debug_text() -> void:
 		snapshot.get("average_adult_herbivore_satiety_percent", -1.0)
 	)
 	var satiety_threshold := float(
-		snapshot.get("minimum_average_herbivore_satiety_percent", 50.0)
+		snapshot.get("minimum_average_herbivore_satiety_percent", 40.0)
 	)
 	var herbivore_spawning_blocked := bool(
 		snapshot.get("herbivore_spawning_blocked_by_hunger", false)
@@ -103,9 +103,9 @@ func refresh_debug_text() -> void:
 	])
 	lines.append("Режим: %s" % _format_production_phase(production_phase))
 	if adult_herbivore_count <= 0 or average_herbivore_satiety < 0.0:
-		lines.append("Сытость взрослых травоядных: нет данных | спавн: разрешён")
+		lines.append("Сытость взрослых травоядных: нет данных | добор: разрешён")
 	else:
-		lines.append("Сытость травоядных: %.1f%% / %.0f%% | спавн: %s" % [
+		lines.append("Сытость травоядных: %.1f%% / %.0f%% | добор: %s" % [
 			average_herbivore_satiety,
 			satiety_threshold,
 			"СТОП" if herbivore_spawning_blocked else "разрешён"
@@ -134,8 +134,8 @@ func _format_production_phase(phase: String) -> String:
 			return "добор травоядных (стег/триц = 3:1)"
 		"predators":
 			return "хищники (2 раптора → тирекс → птеро → чередование)"
-		"predators_food_pressure":
-			return "хищники: сытость травоядных ниже порога"
+		"wait_food_pressure":
+			return "пропуск хода: голод ниже потолка"
 	return "ожидание"
 
 

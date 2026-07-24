@@ -2,8 +2,8 @@ extends Node
 class_name EnemyAIController
 
 # Strategic enemy turn. Every four simulation seconds it takes one lightweight
-# snapshot, then buys either a herbivore needed by the current time-based cap or
-# a predator when the cap is full or adult herbivores are under food pressure.
+# snapshot. It fills the herbivore cap only while adult herbivores are fed, skips
+# the turn when they are hungry below the cap, and produces predators at the cap.
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const ENEMY_SPECIES_CATALOG := preload("res://scripts/catalogs/enemy_species_catalog.gd")
 
@@ -23,7 +23,7 @@ const BASE_DEFENSE_RAPTOR_TARGET := 2
 @export var turn_interval := 4.0
 @export var minimum_herbivore_cap := 10
 @export var maximum_herbivore_cap := 60
-@export_range(0.0, 100.0, 0.1) var minimum_average_herbivore_satiety_percent := 50.0
+@export_range(0.0, 100.0, 0.1) var minimum_average_herbivore_satiety_percent := 40.0
 
 signal turn_completed(snapshot: Dictionary)
 
@@ -160,27 +160,39 @@ func perform_turn(snapshot: Dictionary) -> void:
 		snapshot.get("herbivore_spawning_blocked_by_hunger", false)
 	)
 	var selected_species_id := StringName()
-	var production_phase := "predators"
-	var egg_production_phase := "predators"
+	var production_phase := "waiting"
 
-	if herbivore_count < herbivore_cap and not herbivore_spawning_blocked:
+	if herbivore_count < herbivore_cap:
+		if herbivore_spawning_blocked:
+			var average_satiety := float(
+				snapshot.get("average_adult_herbivore_satiety_percent", -1.0)
+			)
+			var satiety_threshold := float(
+				snapshot.get(
+					"minimum_average_herbivore_satiety_percent",
+					get_minimum_average_herbivore_satiety_percent()
+				)
+			)
+			snapshot["production_phase"] = "wait_food_pressure"
+			snapshot["selected_species_id"] = StringName()
+			snapshot["selected_egg_cost"] = 0.0
+			snapshot["action"] = "skip_turn_food_pressure"
+			last_action_text = "пропуск хода: сытость травоядных %.1f%% ниже %.0f%%" % [
+				average_satiety,
+				satiety_threshold
+			]
+			return
+
 		production_phase = "herbivores"
-		egg_production_phase = "herbivores"
 		selected_species_id = choose_next_herbivore_species(snapshot)
 	else:
-		if herbivore_count < herbivore_cap and herbivore_spawning_blocked:
-			production_phase = "predators_food_pressure"
+		# At or above the cap predator production ignores herbivore satiety.
+		production_phase = "predators"
 		selected_species_id = choose_next_predator_species(snapshot)
 
 	snapshot["production_phase"] = production_phase
 	snapshot["selected_species_id"] = selected_species_id
-	_try_create_selected_egg(snapshot, selected_species_id, egg_production_phase)
-
-	if (
-		production_phase == "predators_food_pressure"
-		and str(snapshot.get("action", "")) == "create_predator_egg"
-	):
-		last_action_text = "травоядные голодны; %s" % last_action_text
+	_try_create_selected_egg(snapshot, selected_species_id, production_phase)
 
 
 func choose_next_herbivore_species(snapshot: Dictionary) -> StringName:
