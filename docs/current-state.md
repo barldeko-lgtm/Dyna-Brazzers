@@ -33,6 +33,7 @@ Current prototype includes:
 - an active enemy-AI production controller that takes one lightweight population snapshot every four simulation seconds, counts every enemy egg immediately as one future adult, measures normalized average satiety across adult enemy herbivores only, with both explicit enemy ownership and the enemy catalog resource required, fills a time-based stegosaurus/triceratops cap at a projected 3:1 ratio while that average is at least 40%, skips the turn when satiety is below 40% and projected herbivores are still below the cap, and uses the current predator priority (two raptors, then the first tyrannosaurus, the first pterodactyl, and alternating tyrannosaurus/pterodactyl eggs) at or above the cap regardless of herbivore satiety;
 - player-created species eggs bought for nature energy through the egg submenu;
 - species-order flags for all six player species, each with an 11x11 influence area;
+- three persistent enemy attack flags for tyrannosaurus, pterodactyl, and egg eater, automatically placed together at the player base when a session starts;
 - a local four-frame rain VFX;
 - a global audio system with looping gameplay music, lightning, rain, sun, and earthquake sound effects, automatic button-click feedback, separate audio buses, and persistent Music/Sounds volume controls;
 - right-side HUD with separate live player/enemy creature-category, egg, and total-creature counters;
@@ -53,9 +54,9 @@ Current prototype includes:
 - return to Main Menu with full active-session reset;
 - Exit buttons in both the startup screen and the in-game menu.
 
-Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, shared carnivore/combat prototype code, and the fixed player-base foundation. Roadmap block `0.7 — Player expansion and atmosphere` includes the interactive terrain minimap, player egg creation, the first all-species flag pass, and the first gameplay-audio foundation. Roadmap block `0.8 — Enemies` has started with the two-base foundation, validated three-faction ownership, an enemy six-species catalog, separate enemy biological resources, mirrored enemy energy, four-second population snapshots, a minute-based herbivore cap, and the first herbivore/predator production phases.
+Roadmap block `0.5 — Visuals and game interface` is complete. Work on `0.6 — Carnivores and species variety` includes triceratops, tyrannosaurus, raptor, pterodactyl, egg-eater behaviour, shared carnivore/combat prototype code, and the fixed player-base foundation. Roadmap block `0.7 — Player expansion and atmosphere` includes the interactive terrain minimap, player egg creation, the first all-species flag pass, and the first gameplay-audio foundation. Roadmap block `0.8 — Enemies` has started with the two-base foundation, validated three-faction ownership, an enemy six-species catalog, separate enemy biological resources, mirrored enemy energy, four-second population snapshots, a minute-based herbivore cap, and the first herbivore/predator production phases, plus the first three static enemy attack flags at the player base.
 
-The temporary five-second round-robin producer remains disabled. Every four simulation seconds the strategic AI snapshots projected population and normalized satiety for adult enemy herbivores; eggs affect projected population but never the satiety average. Its herbivore cap is 10 through minute 10, then equals the number of completed game minutes from minute 11 onward, capped at 60. Below the cap it buys stegosaurus/triceratops eggs toward 3:1 only while adult-herbivore average satiety is at least 40%; below 40% it skips the entire turn without buying any egg. At or above the cap it ignores herbivore satiety and uses the predator task: two projected raptors first, then at least one projected tyrannosaurus, at least one projected pterodactyl, and successful tyrannosaurus/pterodactyl purchases alternating afterwards. Rain-based food support, egg eater production, flags, spells, and attacks are not implemented yet.
+The temporary five-second round-robin producer remains disabled. Every four simulation seconds the strategic AI snapshots projected population and normalized satiety for adult enemy herbivores; eggs affect projected population but never the satiety average. Its herbivore cap is 10 through minute 10, then equals the number of completed game minutes from minute 11 onward, capped at 60. Below the cap it buys stegosaurus/triceratops eggs toward 3:1 only while adult-herbivore average satiety is at least 40%; below 40% it skips the entire turn without buying any egg. At or above the cap it ignores herbivore satiety and uses the predator task: two projected raptors first, then at least one projected tyrannosaurus, at least one projected pterodactyl, and successful tyrannosaurus/pterodactyl purchases alternating afterwards. Rain-based food support, egg eater production, spells, base attacks, and dynamic enemy flag placement are not implemented yet.
 
 ## Design direction
 
@@ -68,7 +69,7 @@ Keep:
 - world/resource/entity logic separate from UI;
 - simulation-first design, not a standard RTS.
 
-The enemy side follows the same simulation-first direction. Every four simulation seconds the enemy AI observes projected population plus normalized average satiety across adult enemy herbivores. It fills its current minute-based herbivore cap with a 3:1 stegosaurus/triceratops mix only while that average remains at least 40%; when food pressure lowers it below 40% while projected herbivores are still below the cap, the controller skips the turn until a future rain task is added. Once projected herbivores reach or exceed the cap, predator production continues regardless of herbivore satiety. Enemy energy is spent only after successful placement. Hatched enemy creatures still use the same autonomous survival, food, reproduction, movement, and combat systems as player creatures rather than receiving direct unit commands.
+The enemy side follows the same simulation-first direction. Every four simulation seconds the enemy AI observes projected population plus normalized average satiety across adult enemy herbivores. It fills its current minute-based herbivore cap with a 3:1 stegosaurus/triceratops mix only while that average remains at least 40%; when food pressure lowers it below 40% while projected herbivores are still below the cap, the controller skips the turn until a future rain task is added. Once projected herbivores reach or exceed the cap, predator production continues regardless of herbivore satiety. Enemy energy is spent only after successful placement. Tyrannosauruses, pterodactyls, and egg eaters also receive persistent indirect rally objectives around the player base; survival, food, reproduction, hunting, and combat still override those routes. Hatched enemy creatures use the same autonomous systems as player creatures rather than receiving direct unit commands.
 
 ## Startup screen
 
@@ -114,7 +115,7 @@ Saved dynamic state includes:
 - simulation speed;
 - save timestamp.
 
-Static base terrain and both fixed faction bases are not serialized. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored as lightweight deltas. Enemy energy and the legacy production cursor/timer remain optional save fields for backward compatibility, but the round-robin timer stays disabled after restore. Strategic-AI elapsed game time, turn index, and remaining turn delay are saved; its population snapshot is rebuilt from restored creatures and eggs.
+Static base terrain and both fixed faction bases are not serialized. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored as lightweight deltas. Enemy energy and the legacy production cursor/timer remain optional save fields for backward compatibility, but the round-robin timer stays disabled after restore. Strategic-AI elapsed game time, turn index, and remaining turn delay are saved; its population snapshot is rebuilt from restored creatures and eggs. The three enemy attack-flag positions are also derived from the runtime player base and are rebuilt rather than serialized.
 
 Older saves without faction fields remain valid: restored creatures and eggs default to the player faction. A saved non-empty faction id that is no longer supported is normalized to neutral rather than silently becoming player-owned.
 
@@ -130,7 +131,7 @@ The active project is deliberately split by responsibility:
 - `CreatureSpeciesData` stores biological species data, `CreatureFaction` stores validated runtime ownership, `PlayerSpeciesCatalog` stores player-only economy and flag presentation, and `EnemySpeciesCatalog` selects the enemy biological variants without owning strategic rules; `enemy_ai_controller.gd` owns the four-second population/satiety snapshot, saved AI game time, minute-based herbivore cap, adult-herbivore hunger gate, herbivore ratio choice, predator priorities, and spending turn;
 - `faction_base.gd` owns shared fixed-base blocking, visuals, nearby egg placement, and faction assignment; `player_base.gd` and `enemy_base.gd` remain thin faction-specific wrappers;
 - `creature.gd` remains the creature FSM/survival coordinator and public facade; movement, visuals, and mouse interaction are delegated to dedicated controllers, the world grid reserves each next movement anchor before visual travel, and predator plus grazing logic ask the movement controller to replace or clear queued behavior routes instead of mutating them directly;
-- the player-flag facade, UI controller, assignment service, target allocator, and visual have separate ownership;
+- the player-flag facade, UI controller, assignment service, target allocator, and visual have separate ownership; the static enemy attack-flag facade reuses the same indirect-order assignment and target-allocation path through an enemy-only eligibility layer;
 - `save_system.gd` owns base slot persistence and reconstruction, `save_system_with_flags.gd` layers optional faction/flag/audio data, and `save_system_with_enemy.gd` adds enemy energy, strategic-AI timing state, and backward-compatible legacy production cursor/timer fields;
 - F3 grid diagnostics, F4 general text diagnostics, the separate F5 enemy-AI snapshot panel, and F8 CSV performance logging are separate systems.
 
@@ -317,6 +318,17 @@ Enemy egg production and current AI phases:
 - while projected herbivores are below the current cap and normalized average adult-herbivore satiety is at least 40%, the selector chooses stegosaurus until there are three projected stegosauruses for the next projected triceratops, then chooses triceratops; if at least one adult herbivore exists and that average drops below 40% while projected herbivores remain below the cap, the AI skips the whole turn without selecting or buying an egg; at or above the cap it ignores satiety and runs the predator task, first ensuring two projected raptors, then one projected tyrannosaurus and one projected pterodactyl, then alternating successful tyrannosaurus/pterodactyl purchases; with no adult herbivores the gate remains open so a fresh ecosystem can start; if energy or placement is unavailable, the AI waits without spending;
 - the snapshot is derived runtime information and is not saved, because it is rebuilt from restored creatures and eggs; only elapsed AI game time, turn index, and remaining turn delay are persisted.
 
+Enemy attack-flag rules:
+
+- `start_map_world_grid.gd` creates one runtime `EnemyAttackFlags` node after both faction bases and the strategic enemy runtime exist;
+- three visible flags — tyrannosaurus, pterodactyl, and egg eater — share one 11x11 objective area centered on the player base and are fanned apart visually so all three poles remain readable;
+- only explicitly enemy-owned creatures using the matching enemy-catalog resource may follow these objectives; player and neutral creatures are ignored;
+- the objectives use the existing creature indirect-order API and shared target reservations/pathfinding rather than an enemy-only movement implementation;
+- hunger, food seeking, reproduction, hunting, combat, death, and other survival states remain higher priority;
+- unlike player one-shot flags, these enemy objectives are persistent rally zones: a creature that later leaves the area may receive a route back;
+- the three positions are derived from the current runtime player base and are rebuilt on new game and load rather than stored in the save;
+- the egg-eater flag is active immediately, but the current strategic production controller still does not create egg-eater eggs.
+
 ## Species catalog and faction ownership
 
 Species identity, resource variant, and faction ownership are intentionally separate:
@@ -333,7 +345,7 @@ The six enemy resources under `data/species/enemy/` currently copy the effective
 
 Player systems must filter by faction: only player-owned living creatures generate player energy and only player-owned creatures respond to `PlayerFlags`. The HUD keeps separate player and enemy creature-category, egg, and total-creature counters. Enemy energy counts only living enemy creatures. Enemy creatures still use the same autonomous survival and species behaviour once instantiated.
 
-## Species-order flags
+## Player species-order flags
 
 The `⚑` menu supports one independent 11x11 flag for each current player species: stegosaurus, triceratops, tyrannosaurus, raptor, pterodactyl, and egg eater.
 
@@ -351,6 +363,10 @@ Rules:
 - arrival revisions are saved per creature and active flag revisions are saved with flag positions, so one-shot completion survives normal save/load;
 - removal mode deletes the flag clicked at its center;
 - old saves without flag revision data remain valid: existing flags start at revision 1 and creatures without completion data may respond once.
+
+## Enemy attack flags
+
+The enemy has three non-editable species flags for tyrannosaurus, pterodactyl, and egg eater. All three are created at session startup on the player base and share one 11x11 rally area. Their poles are drawn side by side, while destinations inside the area are spread across free creature footprints. These flags are persistent strategic objectives rather than one-shot player orders: after an autonomous detour, an eligible enemy creature may return to the area. They never override hunger, food, reproduction, hunting, combat, or death.
 
 ## Grazing target scoring
 

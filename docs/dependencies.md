@@ -69,6 +69,9 @@ Main files:
 - `res://scripts/enemies/enemy_energy.gd`;
 - `res://scripts/enemies/enemy_egg_production_controller.gd`;
 - `res://scripts/enemies/enemy_ai_controller.gd`;
+- `res://scripts/flags/enemy_flag_system.gd`;
+- `res://scripts/flags/enemy_flag_assignment_service.gd`;
+- `res://scripts/flags/enemy_flag_visual.gd`;
 - `res://scenes/debug/enemy_ai_debug_overlay.tscn`;
 - `res://scripts/debug/enemy_ai_debug_overlay.gd`;
 - `res://scripts/catalogs/enemy_species_catalog.gd`;
@@ -99,7 +102,8 @@ Enemy-specific flow:
 - `enemy_base.gd` exposes `create_enemy_egg()` as a thin wrapper over the same safe common placement method;
 - `enemy_egg_production_controller.gd` remains instantiated for save compatibility, but `automatic_production_enabled = false`, so its old five-second round-robin timer stays stopped;
 - `enemy_ai_controller.gd` runs the active four-second strategic turn: it builds a derived population/satiety snapshot, fills a completed-minute herbivore cap clamped to 10–60 with a projected 3:1 stegosaurus/triceratops mix only while normalized average adult-herbivore satiety is at least 40%, skips the turn below that threshold while projected herbivores remain below the cap, and at or above the cap ignores satiety while running the current predator task (two projected raptors, first projected tyrannosaurus, first projected pterodactyl, then successful tyrannosaurus/pterodactyl purchases alternating) and attempting one purchase;
-- enemy energy starts at 3000 for a fresh session; loaded saves restore their stored enemy-energy value; the disabled legacy round-robin scaffold and active strategic production live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`; egg-eater priorities, attack plans, flags, and spells remain future work.
+- enemy energy starts at 3000 for a fresh session; loaded saves restore their stored enemy-energy value; the disabled legacy round-robin scaffold and active strategic production live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`;
+- `enemy_flag_system.gd` creates three persistent runtime rally objectives at the player base for enemy tyrannosauruses, pterodactyls, and egg eaters. It reuses the shared indirect-order assignment/path flow, never owns movement or survival logic, and does not change the current production roster; egg-eater production, dynamic attack planning, spells, and base-damage logic remain future work.
 
 Rules:
 
@@ -111,6 +115,7 @@ Rules:
 - player egg UI must continue finding the player base through the `player_base` group and using `create_player_egg()`;
 - enemy strategic production must find the enemy base through the `enemy_base` group and use `create_enemy_egg()` or the inherited `create_faction_egg()` API;
 - `start_map_world_grid.gd` must create exactly one runtime node named `EnemyAI`; the controller registers itself in the stable `enemy_ai` group;
+- the same bootstrap must create exactly one runtime node named `EnemyAttackFlags`; it derives all three target positions from the current `PlayerBase` anchor after base placement and never rewrites terrain or scene serialization;
 - the enemy-AI snapshot must count only entities whose runtime faction is `enemy`; adult creatures must also use the matching enemy-catalog species resource, use catalog-supported biological `species_id` values, count each incubating egg as one future adult of its hatch species, and calculate satiety only from living adult enemy herbivores; this second resource guard must prevent a wrongly tagged player resource from entering enemy population or satiety calculations;
 - adult, egg, and projected per-species totals must remain separate inside the snapshot so production can use eggs as future adults; eggs must never enter the adult-herbivore satiety average, and F5 must display the normalized average plus the resulting hunger-gate state;
 - population snapshots are derived state and must be rebuilt from `creatures` and `eggs`, not serialized as a second source of truth; elapsed AI game time, turn index, and remaining turn delay are the only strategic-AI save fields;
@@ -118,7 +123,10 @@ Rules:
 - energy must be spent only after `create_enemy_egg()` returns a real egg; failed placement must cost nothing;
 - shared blocker, visual, and nearby egg-placement changes belong in `faction_base.gd`, not duplicated in both wrappers;
 - do not add either base to dynamic save groups such as `creatures`, `eggs`, or `grass`;
-- do not add strategic decision-making to the base scene.
+- do not add strategic decision-making to the base scene;
+- enemy attack flags must accept only explicitly enemy-owned creatures whose resource matches `EnemySpeciesCatalog`; tyrannosaurus, pterodactyl, and egg eater share one 11x11 area at the player base, while every other species ignores it;
+- enemy attack objectives must remain indirect and lower priority than hunger, food, reproduction, hunting, combat, death, and other survival states;
+- the enemy objectives are persistent rally zones and are rebuilt from the player-base position on every session/load, so do not serialize their positions as a second source of truth.
 
 ## UI ownership
 
@@ -187,7 +195,16 @@ Ownership rules:
 - the assignment service owns creature scanning, five-new-route batching, commitments, pauses, retries, arrival completion, and F3 status data;
 - the target allocator owns destination candidates, 11x11 bounds, pasture preference, tile reservations, and retry destination rotation;
 - only the creature indirect-order API may mutate creature routes or FSM-related movement fields;
-- save files keep the same flag records and completion-revision metadata; this split does not change save format.
+- save files keep the same player-flag records and completion-revision metadata; this split does not change save format.
+
+Enemy attack objectives use:
+
+- `res://scripts/flags/enemy_flag_system.gd`;
+- `res://scripts/flags/enemy_flag_assignment_service.gd`;
+- `res://scripts/flags/enemy_flag_visual.gd`;
+- the existing `player_flag_assignment_service.gd` and `player_flag_target_allocator.gd` as shared indirect-order plumbing.
+
+The enemy facade owns only three fixed species targets and their visual synchronization. The enemy assignment layer owns faction/resource eligibility and persistent-rally semantics. Target selection, reservations, route limits, interruption handling, and creature route mutation continue through the existing shared paths.
 
 ## Creature movement and indirect orders
 
@@ -197,7 +214,9 @@ Main files:
 - `res://scripts/creatures/behaviors/creature_movement_controller.gd`;
 - `res://scripts/creatures/behaviors/creature_predator_logic.gd`;
 - `res://scripts/creatures/behaviors/creature_grazing_logic.gd`;
-- `res://scripts/flags/player_flag_system_with_catalog.gd`.
+- `res://scripts/flags/player_flag_system_with_catalog.gd`;
+- `res://scripts/flags/enemy_flag_system.gd`;
+- `res://scripts/flags/enemy_flag_assignment_service.gd`.
 
 Rules:
 
@@ -210,7 +229,8 @@ Rules:
 - predator and grazing logic must use the movement controller behavior-route API instead of writing or clearing `current_path` directly; an already active smooth step is preserved while queued behavior steps are replaced or removed;
 - active flag code must call the creature indirect-order API instead of setting `current_path`, `state_timer`, `state`, `has_grazing_target`, `food_recheck_timer`, or `grazing_candidate_queue`;
 - survival, food, reproduction, and combat remain higher priority than indirect orders;
-- enemy creatures use the same movement controller and autonomous FSM; do not create an enemy-only movement or survival copy.
+- enemy creatures use the same movement controller and autonomous FSM; do not create an enemy-only movement or survival copy;
+- enemy attack flags may specialize eligibility and completion semantics, but must reuse the same indirect-order route API, shared 1800-tile path cap, batching, retries, and target allocator.
 
 ## Creature visual and interaction boundaries
 
@@ -276,12 +296,13 @@ Rules:
 - the legacy automatic producer must remain disabled; old saved cursor/timer data may still be restored into its node, but restore must leave its timer stopped;
 - the active AI must spend enemy energy only after `create_enemy_egg()` returns a real egg, must not spend when placement fails, and must wait rather than substitute a different species when the selected herbivore or predator target is unaffordable;
 - player flags affect only player-faction creatures in the fixed player catalog;
-- player flags may read creature navigation/species data, but route application, food interruption, route cancellation, and related FSM mutations must go through the creature indirect-order API;
+- enemy attack flags affect only enemy-faction tyrannosaurus, pterodactyl, and egg-eater creatures whose resource matches the enemy catalog; the three static objectives are centered at the player base and never affect player or neutral entities;
+- player and enemy flags may read creature navigation/species data, but route application, food interruption, route cancellation, and related FSM mutations must go through the creature indirect-order API;
 - changing one species flag cancels only that species routes and retry timers; other species flag work remains intact;
 - first-time flag target/path work is processed in batches of at most five creatures per 0.5-second update, while creatures already committed to the current placement resume after food, reproduction, or combat outside that initial batch; a single flag path is capped at 1800 expanded tiles, and failed attempts rotate through alternative valid destinations instead of retrying the same tile forever;
 - target reservations use a tile-to-creature dictionary plus a creature-to-tiles cache instead of all-pairs target comparison;
-- the first successful route marks an in-session commitment to the current flag revision; temporary higher-priority behaviour pauses the route without discarding that commitment, and entering the flag area completes the revision so the creature resumes autonomous wandering and ignores that placement after leaving until the species flag is moved or replaced;
-- active flag revisions and per-creature completed revisions are optional save fields; older saves remain valid and creatures without completion data may answer an existing flag once;
+- for player flags, the first successful route marks an in-session commitment to the current flag revision; temporary higher-priority behaviour pauses the route without discarding that commitment, and entering the flag area completes the revision so the creature resumes autonomous wandering and ignores that placement after leaving until the species flag is moved or replaced; enemy attack flags instead remain persistent rally objectives and may be followed again after the creature leaves their area;
+- active player-flag revisions and per-creature completed revisions are optional save fields; older saves remain valid and creatures without completion data may answer an existing player flag once; enemy attack-flag positions and completion state are not saved;
 - minimap category comes from `diet_type`, never from resource path text; faction selects the marker palette;
 - the HUD counts player and enemy creatures/eggs separately by faction; total columns count living creatures and exclude eggs;
 - creature and egg faction ids are optional save fields, so old version-1 saves remain valid and restore missing values as player;

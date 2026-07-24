@@ -39,7 +39,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 ### World and camera
 
 - `scripts/world/world_grid.gd` — terrain lookup, DryGround overlay/rain-hit state, walkability, occupancy, next-step movement reservations, blockers, pathfinding, grass lookup, and footprint queries.
-- `scripts/world/start_map_world_grid.gd` — extends the base grid for the authored start map, spawns the player and enemy bases, creates enemy energy, the disabled legacy production scaffold, and the active enemy-AI runtime node, protects both base footprints from grass spreading, and exposes world bounds to the camera. The enemy base uses `EnemyBaseStart` when present and otherwise chooses a deterministic valid fallback near the opposite map edge without rewriting `world.tscn`.
+- `scripts/world/start_map_world_grid.gd` — extends the base grid for the authored start map, spawns the player and enemy bases, creates enemy energy, the disabled legacy production scaffold, the active enemy-AI runtime node, and the static enemy attack-flag system, protects both base footprints from grass spreading, and exposes world bounds to the camera. The enemy base uses `EnemyBaseStart` when present and otherwise chooses a deterministic valid fallback near the opposite map edge without rewriting `world.tscn`.
 - `scripts/world/faction_base.gd` — shared stationary 2x2 base foundation: faction assignment, blocker registration, visual scaling, nearby egg-footprint search, and faction-owned egg creation plumbing.
 - `scripts/world/player_base.gd` — thin player wrapper over `FactionBase`; preserves the existing `create_player_egg()` API used by the player egg menu.
 - `scripts/world/enemy_base.gd` — thin enemy wrapper over `FactionBase`; exposes `create_enemy_egg()` to the strategic enemy AI while keeping decisions outside the base.
@@ -80,6 +80,9 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/flags/player_flag_assignment_service.gd` — player-faction filtering, five-new-route batching, immediate committed-route resume, retries, completion revisions, and F3 status data.
 - `scripts/flags/player_flag_target_allocator.gd` — target selection within the 11x11 area, pasture preference, per-creature tile reservation, and retry destination rotation.
 - `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag, 11x11 area, and placement-preview drawing.
+- `scripts/flags/enemy_flag_system.gd` — runtime-only static enemy objective facade; places tyrannosaurus, pterodactyl, and egg-eater flags at the player base, owns their fixed revisions, and updates enemy assignments every 0.5 simulation seconds.
+- `scripts/flags/enemy_flag_assignment_service.gd` — enemy-faction and enemy-resource eligibility layer over the shared flag assignment/path service; keeps the player-base objectives persistent instead of recording one-shot completion.
+- `scripts/flags/enemy_flag_visual.gd` — draws one shared 11x11 enemy rally area and fans the three overlapping species flag poles apart.
 - `scripts/ui/player_nature_ui.gd` — script on `nature_menu.tscn`; owns spell controls, targeting, previews, named menu-button lookup, and the stable access API used by dynamic menus and time controls.
 - `scripts/player/player_energy.gd` — session energy reserve, spending API, and catalog-defined income from living player-faction dinosaurs only.
 - `scripts/enemies/enemy_energy.gd` — session enemy reserve starting at 3000, spending API, and catalog-defined income from living enemy-faction creatures.
@@ -109,7 +112,7 @@ On Windows this normally resolves to:
 
 `%APPDATA%/Godot/app_userdata/Dyna/`
 
-Static base terrain and both fixed faction bases are not included in these files. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored as deltas. Creature and egg factions are optional save fields, so older saves load them as player-owned. Active species flags remain lightweight tile records. Enemy energy plus disabled legacy production cursor/timer fields remain optional saved state.
+Static base terrain and both fixed faction bases are not included in these files. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored as deltas. Creature and egg factions are optional save fields, so older saves load them as player-owned. Active player species flags remain lightweight tile records. The three enemy attack flags are runtime-derived from the player base and are not serialized. Enemy energy plus disabled legacy production cursor/timer fields remain optional saved state.
 
 ## Terrain assets
 
