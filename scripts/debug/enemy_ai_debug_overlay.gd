@@ -2,7 +2,6 @@ extends Node2D
 
 # Separate F5-only enemy-AI diagnostics. F4 remains the general performance and
 # world debug panel, while this overlay shows only the latest strategic snapshot.
-const ENEMY_SPECIES_CATALOG := preload("res://scripts/catalogs/enemy_species_catalog.gd")
 const TOGGLE_KEY := KEY_F5
 const REFRESH_INTERVAL := 0.2
 
@@ -59,9 +58,6 @@ func refresh_debug_text() -> void:
 
 	var snapshot_variant: Variant = enemy_ai.call("get_population_snapshot")
 	var snapshot: Dictionary = snapshot_variant if snapshot_variant is Dictionary else {}
-	var adult_counts := _read_counts(snapshot, "adult_by_species")
-	var egg_counts := _read_counts(snapshot, "egg_by_species")
-	var planned_counts := _read_counts(snapshot, "planned_population_by_species")
 	var turn_index := int(snapshot.get("turn_index", 0))
 	var action_text := "ожидание первого хода"
 	var time_until_next_turn := 0.0
@@ -110,31 +106,8 @@ func refresh_debug_text() -> void:
 		]
 	)
 	lines.append("")
-
-	for species_id: StringName in ENEMY_SPECIES_CATALOG.get_supported_ids():
-		var species_data := ENEMY_SPECIES_CATALOG.get_species_data(species_id)
-		var species_name := String(species_id)
-
-		if species_data != null:
-			species_name = species_data.species_name
-
-		lines.append(
-			"%s: взрослые %d | яйца %d | итог %d" % [
-				species_name,
-				int(adult_counts.get(species_id, 0)),
-				int(egg_counts.get(species_id, 0)),
-				int(planned_counts.get(species_id, 0))
-			]
-		)
-
-	lines.append("")
-	lines.append("Итог для ИИ уже включает невылупившиеся яйца.")
+	lines.append("Яйца уже входят в расчёт популяции.")
 	debug_label.text = "\n".join(lines)
-
-
-func _read_counts(snapshot: Dictionary, key: String) -> Dictionary:
-	var counts_variant: Variant = snapshot.get(key, {})
-	return counts_variant if counts_variant is Dictionary else {}
 
 
 func _format_production_phase(phase: String) -> String:
@@ -142,7 +115,7 @@ func _format_production_phase(phase: String) -> String:
 		"herbivores":
 			return "добор травоядных (стег/триц = 3:1)"
 		"predators":
-			return "хищники (выравнивание трёх видов)"
+			return "хищники (2 раптора → тирекс → птеро → чередование)"
 	return "ожидание"
 
 

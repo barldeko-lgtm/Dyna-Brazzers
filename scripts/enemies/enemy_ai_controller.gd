@@ -18,6 +18,7 @@ const PREDATOR_IDS: Array[StringName] = [
 	PTERODACTYL_ID,
 	TYRANNOSAURUS_ID
 ]
+const BASE_DEFENSE_RAPTOR_TARGET := 2
 
 @export var turn_interval := 4.0
 @export var minimum_herbivore_cap := 10
@@ -32,6 +33,7 @@ var latest_snapshot: Dictionary = {}
 var last_action_text := "ожидание первого хода"
 var enemy_base: Node = null
 var enemy_energy: Node = null
+var next_late_predator_id: StringName = TYRANNOSAURUS_ID
 
 
 func _ready() -> void:
@@ -162,19 +164,24 @@ func choose_next_herbivore_species(snapshot: Dictionary) -> StringName:
 
 func choose_next_predator_species(snapshot: Dictionary) -> StringName:
 	var planned_counts := _read_population_counts(snapshot)
-	var selected_species_id := PREDATOR_IDS[0]
-	var selected_count := int(planned_counts.get(selected_species_id, 0))
+	var raptor_count := int(planned_counts.get(RAPTOR_ID, 0))
+	var tyrannosaurus_count := int(planned_counts.get(TYRANNOSAURUS_ID, 0))
+	var pterodactyl_count := int(planned_counts.get(PTERODACTYL_ID, 0))
 
-	# Keep the first predator pass balanced. Stable order resolves equal counts as
-	# raptor, then pterodactyl, then tyrannosaurus.
-	for species_id: StringName in PREDATOR_IDS:
-		var species_count := int(planned_counts.get(species_id, 0))
+	# First establish a cheap two-raptor defense around the enemy base. Eggs count
+	# immediately, so the AI does not queue duplicate defenders while they hatch.
+	if raptor_count < BASE_DEFENSE_RAPTOR_TARGET:
+		return RAPTOR_ID
 
-		if species_count < selected_count:
-			selected_species_id = species_id
-			selected_count = species_count
+	# After the defense pair, establish one heavy ground predator and one flying
+	# predator before entering the long-term alternating production cycle.
+	if tyrannosaurus_count < 1:
+		return TYRANNOSAURUS_ID
 
-	return selected_species_id
+	if pterodactyl_count < 1:
+		return PTERODACTYL_ID
+
+	return next_late_predator_id
 
 
 func get_population_snapshot() -> Dictionary:
@@ -221,7 +228,8 @@ func get_save_data() -> Dictionary:
 	return {
 		"elapsed_simulation_seconds": get_elapsed_simulation_seconds(),
 		"turn_index": turn_index,
-		"timer_time_left": time_left
+		"timer_time_left": time_left,
+		"next_late_predator_id": String(next_late_predator_id)
 	}
 
 
@@ -231,6 +239,14 @@ func restore_save_data(saved_data: Dictionary) -> void:
 		0.0
 	)
 	turn_index = maxi(int(saved_data.get("turn_index", 0)), 0)
+	var restored_next_predator := StringName(
+		String(saved_data.get("next_late_predator_id", String(TYRANNOSAURUS_ID)))
+	)
+	next_late_predator_id = (
+		restored_next_predator
+		if restored_next_predator == TYRANNOSAURUS_ID or restored_next_predator == PTERODACTYL_ID
+		else TYRANNOSAURUS_ID
+	)
 	latest_snapshot = collect_population_snapshot()
 	latest_snapshot["turn_index"] = turn_index
 	latest_snapshot["action"] = "restored_waiting"
@@ -299,6 +315,8 @@ func _try_create_selected_egg(
 		return
 
 	_record_created_egg_in_snapshot(snapshot, selected_species_id)
+	if production_phase == "predators":
+		_advance_predator_rotation_after_success(selected_species_id)
 	snapshot["enemy_energy_after_action"] = _get_enemy_energy_value()
 	snapshot["action"] = (
 		"create_herbivore_egg"
@@ -309,6 +327,13 @@ func _try_create_selected_egg(
 		species_data.species_name,
 		roundi(egg_cost)
 	]
+
+
+func _advance_predator_rotation_after_success(created_species_id: StringName) -> void:
+	if created_species_id == TYRANNOSAURUS_ID:
+		next_late_predator_id = PTERODACTYL_ID
+	elif created_species_id == PTERODACTYL_ID:
+		next_late_predator_id = TYRANNOSAURUS_ID
 
 
 func _create_empty_snapshot() -> Dictionary:
