@@ -66,6 +66,9 @@ Main files:
 - `res://scripts/world/enemy_base.gd`;
 - `res://scripts/enemies/enemy_energy.gd`;
 - `res://scripts/enemies/enemy_egg_production_controller.gd`;
+- `res://scripts/enemies/enemy_ai_controller.gd`;
+- `res://scenes/debug/enemy_ai_debug_overlay.tscn`;
+- `res://scripts/debug/enemy_ai_debug_overlay.gd`;
 - `res://scripts/catalogs/enemy_species_catalog.gd`;
 - `res://scripts/world/start_map_world_grid.gd`;
 - `res://scripts/world/world_grid.gd`;
@@ -93,7 +96,8 @@ Enemy-specific flow:
 
 - `enemy_base.gd` exposes `create_enemy_egg()` as a thin wrapper over the same safe common placement method;
 - `enemy_egg_production_controller.gd` runs that five-second production path by default through `automatic_production_enabled = true`;
-- enemy energy and the temporary round-robin timer live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`; population choices, priorities, attack plans, and strategic AI remain future work.
+- `enemy_ai_controller.gd` runs a separate four-second strategic turn, but its first implementation only builds a derived population snapshot and performs no gameplay action;
+- enemy energy, temporary round-robin production, and strategic observation live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`; population choices, priorities, attack plans, flags, and spells remain future work.
 
 Rules:
 
@@ -104,6 +108,10 @@ Rules:
 - prefer an authored `EnemyBaseStart` marker for final map composition, but add or move it only through Godot rather than hand-editing TileMap serialization;
 - player egg UI must continue finding the player base through the `player_base` group and using `create_player_egg()`;
 - future enemy production logic must find the enemy base through the `enemy_base` group and use `create_enemy_egg()` or the inherited `create_faction_egg()` API;
+- `start_map_world_grid.gd` must create exactly one runtime node named `EnemyAI`; the controller registers itself in the stable `enemy_ai` group;
+- the enemy-AI snapshot must count only entities whose runtime faction is `enemy`, use catalog-supported biological `species_id` values, and count each incubating egg as one future adult of its hatch species;
+- adult, egg, and projected per-species totals must remain separate inside the snapshot so F5 can validate the projected counts;
+- population snapshots are derived state and must be rebuilt from `creatures` and `eggs`, not serialized as a second source of truth;
 - shared blocker, visual, and nearby egg-placement changes belong in `faction_base.gd`, not duplicated in both wrappers;
 - do not add either base to dynamic save groups such as `creatures`, `eggs`, or `grass`;
 - do not add strategic decision-making to the base scene.
@@ -123,7 +131,8 @@ Current UI scripts:
 - `res://scripts/flags/player_flag_assignment_service.gd` — creature eligibility, first-route batching, commitment resume, retries, completion, and F3 status;
 - `res://scripts/flags/player_flag_target_allocator.gd` — 11x11 target selection, pasture preference, reservations, and retry rotation;
 - `res://scripts/flags/player_flag_visual.gd` — non-blocking world-space flag and influence-area rendering;
-- `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and F4 detailed debug text;
+- `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and general F4 detailed debug text;
+- `res://scripts/debug/enemy_ai_debug_overlay.gd` — separate F5-only display of the latest `enemy_ai` snapshot;
 - `res://scripts/ui/player_nature_ui.gd` — spell buttons, targeting, previews, and the stable access API for nested nature-menu controls;
 - `res://scripts/player/player_energy.gd` — session energy reserve, spending API, and catalog-defined income from living player-faction dinosaurs;
 - `res://scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, DryGround clearing, adjacent mature-grass timer restarts, and spell VFX application;
@@ -143,7 +152,8 @@ Rules:
 
 - do not put counters or speed controls back into `creature_stats_ui.gd`;
 - do not put detailed debug text back into `creature_stats_ui.gd`;
-- F3 grid overlay and F4 text debug are separate systems; F3 may query `PlayerFlags` through its public debug-data method but must not own flag behaviour;
+- F3 grid overlay, F4 general text debug, and F5 enemy-AI debug are separate systems; F3 may query `PlayerFlags` through its public debug-data method but must not own flag behaviour;
+- F5 may read only the public `enemy_ai` snapshot/timing methods and must not make strategic decisions or mutate enemy state;
 - creature selection must remain compatible with nature-power targeting;
 - SaveSystem, player flags, egg creation, and player time controls must resolve nested nature-menu controls through the `player_nature_ui` group API, not paths through `UI/PlayerSidePanel/MarginContainer/...`;
 - the `BASE` and `ENEMY` buttons may be resolved from the main-menu grid returned by the nature-menu API, but camera targets must be found through the stable `player_base` and `enemy_base` groups rather than scene paths;
@@ -237,7 +247,8 @@ Ownership layers:
 2. `CreatureFaction` describes runtime ownership independently and validates exactly `player`, `enemy`, or `neutral`. Untagged current entities and old save records default to `player`; unknown non-empty ids normalize to `neutral`.
 3. `PlayerSpeciesCatalog` is the single ordered fixed roster for player-only values: egg purchase cost, player energy income, flag text/tooltips, and current `PASTURE`/`GATHER` flag behaviour.
 4. `EnemySpeciesCatalog` is the fixed six-species enemy roster, selects enemy-specific resource paths, and stores mirrored egg costs and per-creature enemy-energy income. Population goals, strategic priorities, and tactical AI do not belong in this catalog.
-5. Player and enemy variants deliberately keep the same biological `species_id`; the distinct `.tres` resource path chooses the visuals/stats variant, while `CreatureFaction` chooses ownership.
+5. `EnemyAIController` owns strategic snapshots and later decisions. Its current four-second turn counts enemy adults and eggs by catalog-supported biological `species_id`; eggs use `hatch_species_data.species_id` first and their stored `species_id` only as a fallback.
+6. Player and enemy variants deliberately keep the same biological `species_id`; the distinct `.tres` resource path chooses the visuals/stats variant, while `CreatureFaction` chooses ownership.
 
 Current enemy resource rules:
 
@@ -255,6 +266,7 @@ Rules:
 - an enemy-base-created egg must be assigned `enemy` before it is added to active gameplay; `FactionBase` performs this when called through the enemy wrapper;
 - only living player-faction creatures whose species exists in `PlayerSpeciesCatalog` generate player energy;
 - only living enemy-faction creatures whose species exists in `EnemySpeciesCatalog` generate enemy energy;
+- the enemy-AI scan may iterate the stable `creatures` and `eggs` groups only on its four-second timer; it must not scan them every frame, and it must ignore invalid, queued-for-deletion, non-enemy, or unsupported-species entities;
 - while automatic production is active, the temporary controller must spend enemy energy only after `create_enemy_egg()` returns a real egg and advance its round-robin cursor only after successful spending; restore resumes the saved timer when production is enabled and stops it only when the project switch is explicitly disabled;
 - player flags affect only player-faction creatures in the fixed player catalog;
 - player flags may read creature navigation/species data, but route application, food interruption, route cancellation, and related FSM mutations must go through the creature indirect-order API;

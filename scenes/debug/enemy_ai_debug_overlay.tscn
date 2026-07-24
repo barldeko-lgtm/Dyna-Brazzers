@@ -1,0 +1,42 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/debug/enemy_ai_debug_overlay.gd" id="1_enemy_ai_debug"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_enemy_ai_debug_bg"]
+bg_color = Color(0.035, 0.055, 0.09, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.55, 0.85, 0.95)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="EnemyAIDebugOverlay" type="Node2D"]
+script = ExtResource("1_enemy_ai_debug")
+
+[node name="DebugCanvas" type="CanvasLayer" parent="."]
+layer = 20
+
+[node name="DebugInfoPanel" type="PanelContainer" parent="DebugCanvas"]
+visible = false
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 460.0
+offset_bottom = 326.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_enemy_ai_debug_bg")
+
+[node name="MarginContainer" type="MarginContainer" parent="DebugCanvas/DebugInfoPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="DebugInfoLabel" type="Label" parent="DebugCanvas/DebugInfoPanel/MarginContainer"]
+layout_mode = 2
+text = "Enemy AI — F5"
+autowrap_mode = 2

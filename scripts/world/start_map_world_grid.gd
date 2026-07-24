@@ -6,10 +6,12 @@ const PLAYER_BASE_SCENE := preload("res://scenes/world/player_base.tscn")
 const ENEMY_BASE_SCENE := preload("res://scenes/world/enemy_base.tscn")
 const ENEMY_ENERGY_SCRIPT := preload("res://scripts/enemies/enemy_energy.gd")
 const ENEMY_PRODUCTION_SCRIPT := preload("res://scripts/enemies/enemy_egg_production_controller.gd")
+const ENEMY_AI_SCRIPT := preload("res://scripts/enemies/enemy_ai_controller.gd")
 const PLAYER_BASE_NODE_NAME := "PlayerBase"
 const ENEMY_BASE_NODE_NAME := "EnemyBase"
 const ENEMY_ENERGY_NODE_NAME := "EnemyEnergy"
 const ENEMY_PRODUCTION_NODE_NAME := "EnemyEggProduction"
+const ENEMY_AI_NODE_NAME := "EnemyAI"
 const BASE_FOOTPRINT := Vector2i(2, 2)
 const ENEMY_BASE_FALLBACK_MARGIN := Vector2i(4, 4)
 
@@ -106,6 +108,15 @@ func spawn_enemy_runtime_if_needed() -> void:
 		else:
 			enemy_production.name = ENEMY_PRODUCTION_NODE_NAME
 			add_child(enemy_production)
+
+	if get_node_or_null(ENEMY_AI_NODE_NAME) == null:
+		var enemy_ai := ENEMY_AI_SCRIPT.new() as Node
+
+		if enemy_ai == null:
+			push_error("StartMapWorldGrid: enemy AI could not be created.")
+		else:
+			enemy_ai.name = ENEMY_AI_NODE_NAME
+			add_child(enemy_ai)
 
 
 func _find_enemy_fallback_anchor() -> Vector2i:

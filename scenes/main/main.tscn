@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://b7vbapxldrm6c" path="res://scripts/camera/camera_controller.gd" id="1_iuonh"]
 [ext_resource type="PackedScene" path="res://scenes/debug/grid_debug_overlay.tscn" id="4_grid_debug_overlay"]
 [ext_resource type="PackedScene" path="res://scenes/ui/player_hud.tscn" id="5_player_hud"]
+[ext_resource type="PackedScene" path="res://scenes/debug/enemy_ai_debug_overlay.tscn" id="6_enemy_ai_debug_overlay"]
 
 [node name="Main" type="Node2D" unique_id=1646183539]
 
@@ -18,3 +19,5 @@ script = ExtResource("1_iuonh")
 [node name="World" parent="." unique_id=800246024 instance=ExtResource("1_hyk8p")]
 
 [node name="GridDebugOverlay" parent="." unique_id=1133888284 instance=ExtResource("4_grid_debug_overlay")]
+
+[node name="EnemyAIDebugOverlay" parent="." instance=ExtResource("6_enemy_ai_debug_overlay")]
