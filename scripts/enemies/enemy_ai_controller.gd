@@ -3,7 +3,7 @@ class_name EnemyAIController
 
 # Strategic enemy turn. Every four simulation seconds it takes one lightweight
 # snapshot, then buys either a herbivore needed by the current time-based cap or
-# a predator once that herbivore foundation is full.
+# a predator when the cap is full or adult herbivores are under food pressure.
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const ENEMY_SPECIES_CATALOG := preload("res://scripts/catalogs/enemy_species_catalog.gd")
 
@@ -23,6 +23,7 @@ const BASE_DEFENSE_RAPTOR_TARGET := 2
 @export var turn_interval := 4.0
 @export var minimum_herbivore_cap := 10
 @export var maximum_herbivore_cap := 60
+@export_range(0.0, 100.0, 0.1) var minimum_average_herbivore_satiety_percent := 50.0
 
 signal turn_completed(snapshot: Dictionary)
 
@@ -70,6 +71,8 @@ func collect_population_snapshot() -> Dictionary:
 	var planned_population_by_species := _create_empty_population_counts()
 	var adult_count := 0
 	var egg_count := 0
+	var adult_herbivore_count := 0
+	var adult_herbivore_satiety_total_percent := 0.0
 
 	for creature_variant: Variant in get_tree().get_nodes_in_group("creatures"):
 		var creature := creature_variant as Node
@@ -87,6 +90,13 @@ func collect_population_snapshot() -> Dictionary:
 			planned_population_by_species.get(species_id, 0)
 		) + 1
 		adult_count += 1
+
+		if _is_herbivore_species_id(species_id):
+			var satiety_percent := _get_creature_satiety_percent(creature)
+
+			if satiety_percent >= 0.0:
+				adult_herbivore_count += 1
+				adult_herbivore_satiety_total_percent += satiety_percent
 
 	for egg_variant: Variant in get_tree().get_nodes_in_group("eggs"):
 		var egg := egg_variant as Node
@@ -106,6 +116,13 @@ func collect_population_snapshot() -> Dictionary:
 		) + 1
 		egg_count += 1
 
+	var average_adult_herbivore_satiety_percent := -1.0
+
+	if adult_herbivore_count > 0:
+		average_adult_herbivore_satiety_percent = (
+			adult_herbivore_satiety_total_percent / float(adult_herbivore_count)
+		)
+
 	var snapshot := {
 		"turn_index": turn_index,
 		"adult_by_species": adult_by_species,
@@ -114,6 +131,10 @@ func collect_population_snapshot() -> Dictionary:
 		"adult_count": adult_count,
 		"egg_count": egg_count,
 		"planned_population_count": adult_count + egg_count,
+		"adult_herbivore_count": adult_herbivore_count,
+		"average_adult_herbivore_satiety_percent": average_adult_herbivore_satiety_percent,
+		"minimum_average_herbivore_satiety_percent": get_minimum_average_herbivore_satiety_percent(),
+		"herbivore_spawning_blocked_by_hunger": false,
 		"enemy_energy_before_action": 0.0,
 		"enemy_energy_after_action": 0.0,
 		"selected_species_id": StringName(),
@@ -135,18 +156,31 @@ func perform_turn(snapshot: Dictionary) -> void:
 
 	var herbivore_count := int(snapshot.get("planned_herbivore_count", 0))
 	var herbivore_cap := int(snapshot.get("herbivore_cap", get_current_herbivore_cap()))
+	var herbivore_spawning_blocked := bool(
+		snapshot.get("herbivore_spawning_blocked_by_hunger", false)
+	)
 	var selected_species_id := StringName()
 	var production_phase := "predators"
+	var egg_production_phase := "predators"
 
-	if herbivore_count < herbivore_cap:
+	if herbivore_count < herbivore_cap and not herbivore_spawning_blocked:
 		production_phase = "herbivores"
+		egg_production_phase = "herbivores"
 		selected_species_id = choose_next_herbivore_species(snapshot)
 	else:
+		if herbivore_count < herbivore_cap and herbivore_spawning_blocked:
+			production_phase = "predators_food_pressure"
 		selected_species_id = choose_next_predator_species(snapshot)
 
 	snapshot["production_phase"] = production_phase
 	snapshot["selected_species_id"] = selected_species_id
-	_try_create_selected_egg(snapshot, selected_species_id, production_phase)
+	_try_create_selected_egg(snapshot, selected_species_id, egg_production_phase)
+
+	if (
+		production_phase == "predators_food_pressure"
+		and str(snapshot.get("action", "")) == "create_predator_egg"
+	):
+		last_action_text = "травоядные голодны; %s" % last_action_text
 
 
 func choose_next_herbivore_species(snapshot: Dictionary) -> StringName:
@@ -217,6 +251,10 @@ func get_current_herbivore_cap() -> int:
 	var safe_maximum := maxi(maximum_herbivore_cap, safe_minimum)
 	var elapsed_full_minutes := int(floor(get_elapsed_simulation_seconds() / 60.0))
 	return clampi(elapsed_full_minutes, safe_minimum, safe_maximum)
+
+
+func get_minimum_average_herbivore_satiety_percent() -> float:
+	return clampf(minimum_average_herbivore_satiety_percent, 0.0, 100.0)
 
 
 func get_save_data() -> Dictionary:
@@ -345,6 +383,10 @@ func _create_empty_snapshot() -> Dictionary:
 		"adult_count": 0,
 		"egg_count": 0,
 		"planned_population_count": 0,
+		"adult_herbivore_count": 0,
+		"average_adult_herbivore_satiety_percent": -1.0,
+		"minimum_average_herbivore_satiety_percent": get_minimum_average_herbivore_satiety_percent(),
+		"herbivore_spawning_blocked_by_hunger": false,
 		"enemy_energy_before_action": 0.0,
 		"enemy_energy_after_action": 0.0,
 		"selected_species_id": StringName(),
@@ -395,11 +437,24 @@ func _refresh_population_summary_fields(snapshot: Dictionary) -> void:
 	for species_id: StringName in PREDATOR_IDS:
 		predator_count += int(planned_counts.get(species_id, 0))
 
+	var adult_herbivore_count := int(snapshot.get("adult_herbivore_count", 0))
+	var average_satiety := float(
+		snapshot.get("average_adult_herbivore_satiety_percent", -1.0)
+	)
+	var satiety_threshold := get_minimum_average_herbivore_satiety_percent()
+	var spawning_blocked_by_hunger := (
+		adult_herbivore_count > 0
+		and average_satiety >= 0.0
+		and average_satiety < satiety_threshold
+	)
+
 	snapshot["elapsed_simulation_seconds"] = get_elapsed_simulation_seconds()
 	snapshot["elapsed_full_minutes"] = int(floor(get_elapsed_simulation_seconds() / 60.0))
 	snapshot["herbivore_cap"] = get_current_herbivore_cap()
 	snapshot["planned_herbivore_count"] = herbivore_count
 	snapshot["planned_predator_count"] = predator_count
+	snapshot["minimum_average_herbivore_satiety_percent"] = satiety_threshold
+	snapshot["herbivore_spawning_blocked_by_hunger"] = spawning_blocked_by_hunger
 
 
 func _read_population_counts(snapshot: Dictionary) -> Dictionary:
@@ -429,6 +484,28 @@ func _is_valid_enemy_entity(entity: Node) -> bool:
 		and not entity.is_queued_for_deletion()
 		and CREATURE_FACTION.get_id(entity) == CREATURE_FACTION.ENEMY
 	)
+
+
+func _is_herbivore_species_id(species_id: StringName) -> bool:
+	return species_id == STEGOSAURUS_ID or species_id == TRICERATOPS_ID
+
+
+func _get_creature_satiety_percent(creature: Node) -> float:
+	if creature == null or not is_instance_valid(creature):
+		return -1.0
+
+	var species_data := creature.get("species_data") as CreatureSpeciesData
+
+	if species_data == null or not species_data.is_herbivore():
+		return -1.0
+
+	var raw_hunger: Variant = creature.get("hunger")
+
+	if raw_hunger == null:
+		return -1.0
+
+	var maximum_hunger := maxf(float(species_data.max_hunger), 0.001)
+	return clampf(float(raw_hunger) / maximum_hunger * 100.0, 0.0, 100.0)
 
 
 func _get_creature_species_id(creature: Node) -> StringName:

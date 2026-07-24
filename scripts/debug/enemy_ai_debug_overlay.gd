@@ -65,6 +65,16 @@ func refresh_debug_text() -> void:
 	var elapsed_simulation_seconds := float(snapshot.get("elapsed_simulation_seconds", 0.0))
 	var herbivore_cap := int(snapshot.get("herbivore_cap", 10))
 	var production_phase := str(snapshot.get("production_phase", "waiting"))
+	var adult_herbivore_count := int(snapshot.get("adult_herbivore_count", 0))
+	var average_herbivore_satiety := float(
+		snapshot.get("average_adult_herbivore_satiety_percent", -1.0)
+	)
+	var satiety_threshold := float(
+		snapshot.get("minimum_average_herbivore_satiety_percent", 50.0)
+	)
+	var herbivore_spawning_blocked := bool(
+		snapshot.get("herbivore_spawning_blocked_by_hunger", false)
+	)
 
 	if enemy_ai.has_method("get_last_action_text"):
 		action_text = str(enemy_ai.call("get_last_action_text"))
@@ -92,6 +102,14 @@ func refresh_debug_text() -> void:
 		roundi(enemy_energy_value)
 	])
 	lines.append("Режим: %s" % _format_production_phase(production_phase))
+	if adult_herbivore_count <= 0 or average_herbivore_satiety < 0.0:
+		lines.append("Сытость взрослых травоядных: нет данных | спавн: разрешён")
+	else:
+		lines.append("Сытость травоядных: %.1f%% / %.0f%% | спавн: %s" % [
+			average_herbivore_satiety,
+			satiety_threshold,
+			"СТОП" if herbivore_spawning_blocked else "разрешён"
+		])
 	lines.append("Травоядные: %d / %d | хищники: %d" % [
 		int(snapshot.get("planned_herbivore_count", 0)),
 		herbivore_cap,
@@ -116,6 +134,8 @@ func _format_production_phase(phase: String) -> String:
 			return "добор травоядных (стег/триц = 3:1)"
 		"predators":
 			return "хищники (2 раптора → тирекс → птеро → чередование)"
+		"predators_food_pressure":
+			return "хищники: сытость травоядных ниже порога"
 	return "ожидание"
 
 

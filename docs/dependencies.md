@@ -96,7 +96,7 @@ Enemy-specific flow:
 
 - `enemy_base.gd` exposes `create_enemy_egg()` as a thin wrapper over the same safe common placement method;
 - `enemy_egg_production_controller.gd` remains instantiated for save compatibility, but `automatic_production_enabled = false`, so its old five-second round-robin timer stays stopped;
-- `enemy_ai_controller.gd` runs the active four-second strategic turn: it builds a derived population snapshot, fills a completed-minute herbivore cap clamped to 10–60 with a projected 3:1 stegosaurus/triceratops mix, then balances raptor/pterodactyl/tyrannosaurus counts and attempts one purchase;
+- `enemy_ai_controller.gd` runs the active four-second strategic turn: it builds a derived population/satiety snapshot, fills a completed-minute herbivore cap clamped to 10–60 with a projected 3:1 stegosaurus/triceratops mix only while normalized average adult-herbivore satiety is at least 50%, blocks herbivore spawning below that threshold, then runs the current predator task (two projected raptors, first projected tyrannosaurus, first projected pterodactyl, then successful tyrannosaurus/pterodactyl purchases alternating) and attempts one purchase;
 - enemy energy, the disabled legacy round-robin scaffold, and active strategic production live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`; egg-eater priorities, attack plans, flags, and spells remain future work.
 
 Rules:
@@ -109,10 +109,10 @@ Rules:
 - player egg UI must continue finding the player base through the `player_base` group and using `create_player_egg()`;
 - enemy strategic production must find the enemy base through the `enemy_base` group and use `create_enemy_egg()` or the inherited `create_faction_egg()` API;
 - `start_map_world_grid.gd` must create exactly one runtime node named `EnemyAI`; the controller registers itself in the stable `enemy_ai` group;
-- the enemy-AI snapshot must count only entities whose runtime faction is `enemy`, use catalog-supported biological `species_id` values, and count each incubating egg as one future adult of its hatch species;
-- adult, egg, and projected per-species totals must remain separate inside the snapshot so F5 can validate the projected counts and production can use eggs as future adults;
+- the enemy-AI snapshot must count only entities whose runtime faction is `enemy`, use catalog-supported biological `species_id` values, count each incubating egg as one future adult of its hatch species, and calculate satiety only from living adult enemy herbivores;
+- adult, egg, and projected per-species totals must remain separate inside the snapshot so production can use eggs as future adults; eggs must never enter the adult-herbivore satiety average, and F5 must display the normalized average plus the resulting hunger-gate state;
 - population snapshots are derived state and must be rebuilt from `creatures` and `eggs`, not serialized as a second source of truth; elapsed AI game time, turn index, and remaining turn delay are the only strategic-AI save fields;
-- the herbivore cap must equal `clamp(floor(elapsed_simulation_seconds / 60), 10, 60)`; the herbivore selector uses projected counts and preserves 3:1 dynamically, while the predator selector chooses the least represented of raptor, pterodactyl, and tyrannosaurus with stable tie order;
+- the herbivore cap must equal `clamp(floor(elapsed_simulation_seconds / 60), 10, 60)`; the herbivore selector uses projected counts and preserves 3:1 dynamically, but it may run only when there are no adult herbivores yet or their normalized average satiety is at least the exported 50% threshold; below that threshold herbivore production is blocked and the current alternative predator task runs; the predator selector must first maintain two projected raptors, then establish one projected tyrannosaurus and one projected pterodactyl, then alternate tyrannosaurus and pterodactyl only after successful egg creation;
 - energy must be spent only after `create_enemy_egg()` returns a real egg; failed placement must cost nothing;
 - shared blocker, visual, and nearby egg-placement changes belong in `faction_base.gd`, not duplicated in both wrappers;
 - do not add either base to dynamic save groups such as `creatures`, `eggs`, or `grass`;
@@ -155,7 +155,7 @@ Rules:
 - do not put counters or speed controls back into `creature_stats_ui.gd`;
 - do not put detailed debug text back into `creature_stats_ui.gd`;
 - F3 grid overlay, F4 general text debug, and F5 enemy-AI debug are separate systems; F3 may query `PlayerFlags` through its public debug-data method but must not own flag behaviour;
-- F5 may read only the public `enemy_ai` snapshot/timing/energy/cap methods and must not make strategic decisions or mutate enemy state;
+- F5 may read only the public `enemy_ai` snapshot/timing/energy/cap/satiety fields and methods and must not make strategic decisions or mutate enemy state;
 - the F5 panel must remain anchored at the top-right with its right edge at least 16 pixels left of the 300-pixel gameplay HUD, so it never covers the minimap;
 - creature selection must remain compatible with nature-power targeting;
 - SaveSystem, player flags, egg creation, and player time controls must resolve nested nature-menu controls through the `player_nature_ui` group API, not paths through `UI/PlayerSidePanel/MarginContainer/...`;
@@ -269,7 +269,7 @@ Rules:
 - an enemy-base-created egg must be assigned `enemy` before it is added to active gameplay; `FactionBase` performs this when called through the enemy wrapper;
 - only living player-faction creatures whose species exists in `PlayerSpeciesCatalog` generate player energy;
 - only living enemy-faction creatures whose species exists in `EnemySpeciesCatalog` generate enemy energy;
-- the enemy-AI scan may iterate the stable `creatures` and `eggs` groups only on its four-second timer; it must not scan them every frame, and it must ignore invalid, queued-for-deletion, non-enemy, or unsupported-species entities;
+- the enemy-AI scan may iterate the stable `creatures` and `eggs` groups only on its four-second timer; it must not scan them every frame, and it must ignore invalid, queued-for-deletion, non-enemy, or unsupported-species entities; average satiety must use only adult enemy herbivores, normalize each creature by its own `max_hunger`, and exclude all eggs;
 - the legacy automatic producer must remain disabled; old saved cursor/timer data may still be restored into its node, but restore must leave its timer stopped;
 - the active AI must spend enemy energy only after `create_enemy_egg()` returns a real egg, must not spend when placement fails, and must wait rather than substitute a different species when the selected herbivore or predator target is unaffordable;
 - player flags affect only player-faction creatures in the fixed player catalog;
