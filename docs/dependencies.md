@@ -95,9 +95,9 @@ Player-specific flow:
 Enemy-specific flow:
 
 - `enemy_base.gd` exposes `create_enemy_egg()` as a thin wrapper over the same safe common placement method;
-- `enemy_egg_production_controller.gd` runs that five-second production path by default through `automatic_production_enabled = true`;
-- `enemy_ai_controller.gd` runs a separate four-second strategic turn, but its first implementation only builds a derived population snapshot and performs no gameplay action;
-- enemy energy, temporary round-robin production, and strategic observation live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`; population choices, priorities, attack plans, flags, and spells remain future work.
+- `enemy_egg_production_controller.gd` remains instantiated for save compatibility, but `automatic_production_enabled = false`, so its old five-second round-robin timer stays stopped;
+- `enemy_ai_controller.gd` runs the active four-second strategic turn: it builds a derived population snapshot, chooses the next herbivore toward a projected 3:1 stegosaurus/triceratops ratio, and attempts one purchase;
+- enemy energy, the disabled legacy round-robin scaffold, and active strategic production live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`; non-herbivore priorities, attack plans, flags, and spells remain future work.
 
 Rules:
 
@@ -107,11 +107,13 @@ Rules:
 - moving `CameraStart` also moves the fresh-game player base and camera start;
 - prefer an authored `EnemyBaseStart` marker for final map composition, but add or move it only through Godot rather than hand-editing TileMap serialization;
 - player egg UI must continue finding the player base through the `player_base` group and using `create_player_egg()`;
-- future enemy production logic must find the enemy base through the `enemy_base` group and use `create_enemy_egg()` or the inherited `create_faction_egg()` API;
+- enemy strategic production must find the enemy base through the `enemy_base` group and use `create_enemy_egg()` or the inherited `create_faction_egg()` API;
 - `start_map_world_grid.gd` must create exactly one runtime node named `EnemyAI`; the controller registers itself in the stable `enemy_ai` group;
 - the enemy-AI snapshot must count only entities whose runtime faction is `enemy`, use catalog-supported biological `species_id` values, and count each incubating egg as one future adult of its hatch species;
-- adult, egg, and projected per-species totals must remain separate inside the snapshot so F5 can validate the projected counts;
+- adult, egg, and projected per-species totals must remain separate inside the snapshot so F5 can validate the projected counts and production can use eggs as future adults;
 - population snapshots are derived state and must be rebuilt from `creatures` and `eggs`, not serialized as a second source of truth;
+- the current herbivore selector must use projected counts and preserve the 3:1 target dynamically: choose triceratops only when the existing stegosaurus count already covers three for that next triceratops; otherwise choose stegosaurus;
+- energy must be spent only after `create_enemy_egg()` returns a real egg; failed placement must cost nothing;
 - shared blocker, visual, and nearby egg-placement changes belong in `faction_base.gd`, not duplicated in both wrappers;
 - do not add either base to dynamic save groups such as `creatures`, `eggs`, or `grass`;
 - do not add strategic decision-making to the base scene.
@@ -153,7 +155,8 @@ Rules:
 - do not put counters or speed controls back into `creature_stats_ui.gd`;
 - do not put detailed debug text back into `creature_stats_ui.gd`;
 - F3 grid overlay, F4 general text debug, and F5 enemy-AI debug are separate systems; F3 may query `PlayerFlags` through its public debug-data method but must not own flag behaviour;
-- F5 may read only the public `enemy_ai` snapshot/timing methods and must not make strategic decisions or mutate enemy state;
+- F5 may read only the public `enemy_ai` snapshot/timing/energy methods and must not make strategic decisions or mutate enemy state;
+- the F5 panel must remain anchored at the top-right with its right edge at least 16 pixels left of the 300-pixel gameplay HUD, so it never covers the minimap;
 - creature selection must remain compatible with nature-power targeting;
 - SaveSystem, player flags, egg creation, and player time controls must resolve nested nature-menu controls through the `player_nature_ui` group API, not paths through `UI/PlayerSidePanel/MarginContainer/...`;
 - the `BASE` and `ENEMY` buttons may be resolved from the main-menu grid returned by the nature-menu API, but camera targets must be found through the stable `player_base` and `enemy_base` groups rather than scene paths;
@@ -247,7 +250,7 @@ Ownership layers:
 2. `CreatureFaction` describes runtime ownership independently and validates exactly `player`, `enemy`, or `neutral`. Untagged current entities and old save records default to `player`; unknown non-empty ids normalize to `neutral`.
 3. `PlayerSpeciesCatalog` is the single ordered fixed roster for player-only values: egg purchase cost, player energy income, flag text/tooltips, and current `PASTURE`/`GATHER` flag behaviour.
 4. `EnemySpeciesCatalog` is the fixed six-species enemy roster, selects enemy-specific resource paths, and stores mirrored egg costs and per-creature enemy-energy income. Population goals, strategic priorities, and tactical AI do not belong in this catalog.
-5. `EnemyAIController` owns strategic snapshots and later decisions. Its current four-second turn counts enemy adults and eggs by catalog-supported biological `species_id`; eggs use `hatch_species_data.species_id` first and their stored `species_id` only as a fallback.
+5. `EnemyAIController` owns strategic snapshots and current production decisions. Its four-second turn counts enemy adults and eggs by catalog-supported biological `species_id`; eggs use `hatch_species_data.species_id` first and their stored `species_id` only as a fallback. It currently chooses only stegosaurus/triceratops eggs toward a projected 3:1 ratio.
 6. Player and enemy variants deliberately keep the same biological `species_id`; the distinct `.tres` resource path chooses the visuals/stats variant, while `CreatureFaction` chooses ownership.
 
 Current enemy resource rules:
@@ -267,7 +270,8 @@ Rules:
 - only living player-faction creatures whose species exists in `PlayerSpeciesCatalog` generate player energy;
 - only living enemy-faction creatures whose species exists in `EnemySpeciesCatalog` generate enemy energy;
 - the enemy-AI scan may iterate the stable `creatures` and `eggs` groups only on its four-second timer; it must not scan them every frame, and it must ignore invalid, queued-for-deletion, non-enemy, or unsupported-species entities;
-- while automatic production is active, the temporary controller must spend enemy energy only after `create_enemy_egg()` returns a real egg and advance its round-robin cursor only after successful spending; restore resumes the saved timer when production is enabled and stops it only when the project switch is explicitly disabled;
+- the legacy automatic producer must remain disabled; old saved cursor/timer data may still be restored into its node, but restore must leave its timer stopped;
+- the active AI must spend enemy energy only after `create_enemy_egg()` returns a real egg, must not spend when placement fails, and must wait rather than substitute a different species when the selected ratio target is unaffordable;
 - player flags affect only player-faction creatures in the fixed player catalog;
 - player flags may read creature navigation/species data, but route application, food interruption, route cancellation, and related FSM mutations must go through the creature indirect-order API;
 - changing one species flag cancels only that species routes and retry timers; other species flag work remains intact;
@@ -378,9 +382,9 @@ In-game UI integration:
 - closing it restores the previous simulation speed;
 - actions are Save, Load, Main Menu, Close Game, and Back.
 
-Saved dynamic data includes creatures, grass, eggs, optional creature/egg faction ids, optional per-creature completed-flag revisions, player energy, optional enemy energy, optional temporary enemy production cursor/timer state, rain-cleared DryGround cells and partial hit counts, active species flags with placement revisions, camera state, simulation speed, and save timestamp. `save_system_with_flags.gd` owns faction/flag/audio additions, while `save_system_with_enemy.gd` is the active final layer for enemy state. Older saves remain valid.
+Saved dynamic data includes creatures, grass, eggs, optional creature/egg faction ids, optional per-creature completed-flag revisions, player energy, optional enemy energy, optional legacy enemy production cursor/timer state, rain-cleared DryGround cells and partial hit counts, active species flags with placement revisions, camera state, simulation speed, and save timestamp. `save_system_with_flags.gd` owns faction/flag/audio additions, while `save_system_with_enemy.gd` is the active final layer for enemy state. Older saves remain valid.
 
-Static base terrain and both fixed faction bases are loaded from start-map setup and are not serialized. Authored DryGround loads with the map; only cleared-cell and partial-hit deltas are saved. Enemy energy and the temporary production cursor/timer are serialized separately from the base nodes.
+Static base terrain and both fixed faction bases are loaded from start-map setup and are not serialized. Authored DryGround loads with the map; only cleared-cell and partial-hit deltas are saved. Enemy energy and the disabled legacy production cursor/timer are serialized separately from the base nodes.
 
 Loading flow:
 
@@ -395,7 +399,7 @@ Loading flow:
 9. Preserve the already spawned static player and enemy bases and their blocker registrations.
 10. Restore player energy, camera, and simulation speed.
 11. The faction/flag save layer reapplies creature/egg factions and completed-flag revisions, defaulting missing faction fields to player and unknown non-empty ids to neutral, before restoring player flags.
-12. The enemy save layer restores optional enemy energy and production cursor/timer state; missing fields keep the new-game defaults, and the enabled production switch resumes the restored timer from its saved remaining time.
+12. The enemy save layer restores optional enemy energy and legacy production cursor/timer state; missing fields keep the new-game defaults, and the disabled legacy producer leaves its timer stopped after restore.
 
 Rules:
 

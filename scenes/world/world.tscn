@@ -112,10 +112,10 @@ tile_map_data = PackedByteArray("AAASAD0AAAAAAAAAAAASADwAAAAAAAAAAAATADwAAAAAAAA
 tile_set = SubResource("TileSet_dry_ground")
 
 [node name="EnemyBaseStart" type="Marker2D" parent="." unique_id=1222018368]
-position = Vector2(2496, 6656)
+position = Vector2(2240, 8576)
 
 [node name="CameraStart" type="Marker2D" parent="." unique_id=1587753738 groups=["camera_start"]]
-position = Vector2(2240, 8512)
+position = Vector2(2624, 7168)
 
 [node name="Creatures" type="Node2D" parent="." unique_id=1940305396]
 

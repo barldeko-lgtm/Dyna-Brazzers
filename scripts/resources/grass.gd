@@ -30,7 +30,7 @@ enum Stage {
 
 @export var growth_time := 8.0
 
-@export var spread_delay := 30.0
+@export var spread_delay := 45.0
 
 @export var start_stage: Stage = Stage.STAGE_1
 

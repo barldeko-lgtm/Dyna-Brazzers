@@ -1,13 +1,14 @@
 extends Node
 class_name EnemyEggProductionController
 
-# Temporary deterministic production loop. Strategic choices and population AI
-# stay outside this scaffold and will replace the simple round-robin rule later.
+# Legacy deterministic production scaffold. It stays instantiated for save-file
+# compatibility, but automatic production is disabled now that EnemyAIController
+# owns enemy egg choices and spending.
 const ENEMY_SPECIES_CATALOG := preload("res://scripts/catalogs/enemy_species_catalog.gd")
 
-# Temporary project switch. Set this to false only when automatic enemy egg
-# production must be paused without removing its save state or base plumbing.
-@export var automatic_production_enabled := true
+# Keep false during strategic-AI development. Old saves may still contain the
+# round-robin cursor/timer, but restore_save_data() leaves this timer stopped.
+@export var automatic_production_enabled := false
 @export var production_interval := 5.0
 
 var production_timer: Timer = null

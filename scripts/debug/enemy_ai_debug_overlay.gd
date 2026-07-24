@@ -65,6 +65,7 @@ func refresh_debug_text() -> void:
 	var turn_index := int(snapshot.get("turn_index", 0))
 	var action_text := "ожидание первого хода"
 	var time_until_next_turn := 0.0
+	var enemy_energy_value := float(snapshot.get("enemy_energy_after_action", 0.0))
 
 	if enemy_ai.has_method("get_last_action_text"):
 		action_text = str(enemy_ai.call("get_last_action_text"))
@@ -72,9 +73,13 @@ func refresh_debug_text() -> void:
 	if enemy_ai.has_method("get_time_until_next_turn"):
 		time_until_next_turn = maxf(float(enemy_ai.call("get_time_until_next_turn")), 0.0)
 
+	if enemy_ai.has_method("get_enemy_energy_value"):
+		enemy_energy_value = maxf(float(enemy_ai.call("get_enemy_energy_value")), 0.0)
+
 	var lines: Array[String] = []
 	lines.append("Enemy AI — F5")
 	lines.append("Ход: %d | следующий через %.1f сек" % [turn_index, time_until_next_turn])
+	lines.append("Энка: %d | травоядные: стег/триц = 3:1" % roundi(enemy_energy_value))
 	lines.append("Действие: %s" % action_text)
 	lines.append(
 		"Популяция для решений: %d = взрослые %d + яйца %d" % [

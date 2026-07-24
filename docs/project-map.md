@@ -22,12 +22,12 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scenes/ui/nature_menu.tscn` — self-contained player energy, time controls, named main-menu buttons, spell buttons, and host area used by runtime egg, flag, and save menus.
 - `scenes/world/world.tscn` — only active gameplay world: 85x85 base terrain TileMap, a DryGround overlay with three variants, initial grass, an empty creature container, eggs container, camera marker, and world grid.
 - `scenes/world/player_base.tscn` — fixed 2x2 player nature base, spawned at the authored `CameraStart` marker and used as the origin for player-created eggs.
-- `scenes/world/enemy_base.tscn` — fixed 2x2 enemy base using its dedicated `enemy_base.png` visual; it is spawned near the opposite map edge or at an authored `EnemyBaseStart` marker and supplies the shared egg-placement plumbing used by active automatic enemy production.
+- `scenes/world/enemy_base.tscn` — fixed 2x2 enemy base using its dedicated `enemy_base.png` visual; it is spawned near the opposite map edge or at an authored `EnemyBaseStart` marker and supplies the shared egg-placement plumbing used by strategic AI production.
 - `scenes/resources/grass.tscn` — grass resource scene with four growth-stage textures and Timer nodes; it does not override lifecycle timing from `grass.gd`.
 - `scenes/resources/egg.tscn` — shared two-stage egg scene used by all reproducing species.
 - `scenes/creatures/creature.tscn` — shared base creature scene.
 - `scenes/debug/grid_debug_overlay.tscn` — F3 grid/debug overlay.
-- `scenes/debug/enemy_ai_debug_overlay.tscn` — separate F5 panel for the latest enemy-AI population snapshot; it does not share the general F4 text block.
+- `scenes/debug/enemy_ai_debug_overlay.tscn` — separate compact F5 panel for the latest enemy-AI population snapshot and action, anchored at the top-right immediately left of the 300-pixel gameplay HUD; it does not share the general F4 text block.
 - `scenes/effects/lightning_strike_effect.tscn` — lightning effect.
 - `scenes/effects/rain_target_preview.tscn` — rain targeting preview.
 - `scenes/effects/rain_cast_effect.tscn` — four-frame rain cast animation.
@@ -39,10 +39,10 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 ### World and camera
 
 - `scripts/world/world_grid.gd` — terrain lookup, DryGround overlay/rain-hit state, walkability, occupancy, next-step movement reservations, blockers, pathfinding, grass lookup, and footprint queries.
-- `scripts/world/start_map_world_grid.gd` — extends the base grid for the authored start map, spawns the player and enemy bases, creates enemy energy, temporary production, and the first enemy-AI runtime node, protects both base footprints from grass spreading, and exposes world bounds to the camera. The enemy base uses `EnemyBaseStart` when present and otherwise chooses a deterministic valid fallback near the opposite map edge without rewriting `world.tscn`.
+- `scripts/world/start_map_world_grid.gd` — extends the base grid for the authored start map, spawns the player and enemy bases, creates enemy energy, the disabled legacy production scaffold, and the active enemy-AI runtime node, protects both base footprints from grass spreading, and exposes world bounds to the camera. The enemy base uses `EnemyBaseStart` when present and otherwise chooses a deterministic valid fallback near the opposite map edge without rewriting `world.tscn`.
 - `scripts/world/faction_base.gd` — shared stationary 2x2 base foundation: faction assignment, blocker registration, visual scaling, nearby egg-footprint search, and faction-owned egg creation plumbing.
 - `scripts/world/player_base.gd` — thin player wrapper over `FactionBase`; preserves the existing `create_player_egg()` API used by the player egg menu.
-- `scripts/world/enemy_base.gd` — thin enemy wrapper over `FactionBase`; exposes `create_enemy_egg()` to the temporary enemy production controller while keeping strategic decisions outside the base.
+- `scripts/world/enemy_base.gd` — thin enemy wrapper over `FactionBase`; exposes `create_enemy_egg()` to the strategic enemy AI while keeping decisions outside the base.
 - `scripts/world/start_map_layout.gd` — builds the initial 85x85 terrain only when the `Ground` TileMap is empty; chooses matching water and mountain edge variants.
 - `scripts/camera/camera_controller.gd` — single owner of the 0.3–0.7 zoom limits, real-time observer movement independent of simulation speed, loaded-zoom normalization, new-game start marker, and map-bound clamping; `main.tscn` stores only the starting zoom of 0.6.
 
@@ -83,14 +83,14 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/ui/player_nature_ui.gd` — script on `nature_menu.tscn`; owns spell controls, targeting, previews, named menu-button lookup, and the stable access API used by dynamic menus and time controls.
 - `scripts/player/player_energy.gd` — session energy reserve, spending API, and catalog-defined income from living player-faction dinosaurs only.
 - `scripts/enemies/enemy_energy.gd` — session enemy reserve starting at 5000, spending API, and catalog-defined income from living enemy-faction creatures.
-- `scripts/enemies/enemy_egg_production_controller.gd` — active temporary five-second round-robin enemy egg producer; strategic production choices will replace this deterministic scaffold later.
-- `scripts/enemies/enemy_ai_controller.gd` — first strategic-AI foundation: every four simulation seconds it counts enemy adults and enemy eggs by biological `species_id`, stores adult/egg/projected totals, performs an observation-only turn, and exposes the latest runtime snapshot through the `enemy_ai` group.
+- `scripts/enemies/enemy_egg_production_controller.gd` — disabled legacy five-second round-robin scaffold retained only for backward-compatible save cursor/timer handling.
+- `scripts/enemies/enemy_ai_controller.gd` — every four simulation seconds counts enemy adults and eggs by biological `species_id`, stores adult/egg/projected totals, selects a stegosaurus or triceratops egg toward a projected 3:1 ratio, spends energy after successful placement, and exposes the latest turn through the `enemy_ai` group.
 - `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, DryGround clearing, adjacent mature-grass timer restarts, spell VFX application, and successful-cast sound triggers.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem/Enemy Enka line and general F4 detailed debug.
-- `scripts/debug/enemy_ai_debug_overlay.gd` — F5-only enemy-AI diagnostics showing turn timing, last action, adults, eggs, and projected per-species population.
+- `scripts/debug/enemy_ai_debug_overlay.gd` — F5-only enemy-AI diagnostics showing turn timing, current enemy energy, last action, adults, eggs, and projected per-species population.
 - `scripts/save/save_system.gd` — base three-slot JSON persistence with temporary-write verification, backup recovery, in-game menu integration, and runtime reconstruction.
 - `scripts/save/save_system_with_flags.gd` — save extension for creature/egg factions, flag revisions, player species flags, and in-game audio settings.
-- `scripts/save/save_system_with_enemy.gd` — final active save layer that adds optional enemy energy and temporary egg-production cursor/timer state.
+- `scripts/save/save_system_with_enemy.gd` — final active save layer that adds optional enemy energy and preserves legacy egg-production cursor/timer fields while the old producer remains disabled.
 - `scripts/debug/performance_stats.gd` — runtime counters and F8 CSV logging, including separate player-flag scan, path-request, and path-failure columns.
 - `scripts/debug/grid_debug_overlay.gd` — F3 visualization of terrain, occupancy, footprints, paths, and the selected creature's current flag state/target.
 - `scripts/effects/` — effect playback and target-preview scripts.
@@ -109,7 +109,7 @@ On Windows this normally resolves to:
 
 `%APPDATA%/Godot/app_userdata/Dyna/`
 
-Static base terrain and both fixed faction bases are not included in these files. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored as deltas. Creature and egg factions are optional save fields, so older saves load them as player-owned. Active species flags remain lightweight tile records. Enemy energy plus the temporary production cursor and remaining timer are optional saved state.
+Static base terrain and both fixed faction bases are not included in these files. The authored DryGround overlay loads with the map; rain-cleared cells and partial hit counts are stored as deltas. Creature and egg factions are optional save fields, so older saves load them as player-owned. Active species flags remain lightweight tile records. Enemy energy plus disabled legacy production cursor/timer fields remain optional saved state.
 
 ## Terrain assets
 
