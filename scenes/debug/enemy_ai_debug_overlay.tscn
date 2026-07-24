@@ -40,6 +40,6 @@ theme_override_constants/margin_bottom = 10
 
 [node name="DebugInfoLabel" type="Label" parent="DebugCanvas/DebugInfoPanel/MarginContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 13
 text = "Enemy AI — F5"
 autowrap_mode = 2

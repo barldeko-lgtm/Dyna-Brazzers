@@ -3,10 +3,11 @@ extends Label
 # Compact performance line + optional detailed debug status.
 #
 # Always visible:
-# FPS | Time | Mem | Enemy Enka
+# FPS | Time | Mem
 #
 # Press F4 to show/hide detailed debug text.
 # F3 grid debug overlay remains separate in scripts/debug/grid_debug_overlay.gd.
+# Enemy AI and enemy energy diagnostics are isolated in the F5 panel.
 
 const TOGGLE_KEY := KEY_F4
 
@@ -74,17 +75,11 @@ func build_debug_status_text() -> String:
 func build_compact_status_line() -> String:
 	var elapsed_text := format_elapsed_time(simulation_elapsed_seconds)
 	var memory_mb := PerformanceStats.get_static_memory_mb()
-	var enemy_energy_value := 0.0
-	var enemy_energy := get_tree().get_first_node_in_group("enemy_energy")
 
-	if enemy_energy != null and enemy_energy.has_method("get_energy"):
-		enemy_energy_value = float(enemy_energy.call("get_energy"))
-
-	return "FPS: %d | Time: %s | Mem: %.1f MB | Enemy Enka: %d" % [
+	return "FPS: %d | Time: %s | Mem: %.1f MB" % [
 		Engine.get_frames_per_second(),
 		elapsed_text,
-		memory_mb,
-		roundi(enemy_energy_value)
+		memory_mb
 	]
 
 

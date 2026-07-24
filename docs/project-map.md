@@ -27,7 +27,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scenes/resources/egg.tscn` — shared two-stage egg scene used by all reproducing species.
 - `scenes/creatures/creature.tscn` — shared base creature scene.
 - `scenes/debug/grid_debug_overlay.tscn` — F3 grid/debug overlay.
-- `scenes/debug/enemy_ai_debug_overlay.tscn` — separate compact F5 panel for the latest enemy-AI population snapshot and action, anchored at the top-right immediately left of the 300-pixel gameplay HUD; it does not share the general F4 text block.
+- `scenes/debug/enemy_ai_debug_overlay.tscn` — separate compact F5 panel using font size 13 for AI time, enemy energy, production phase, herbivore cap, latest population snapshot, and action; it remains anchored at the top-right immediately left of the 300-pixel gameplay HUD and does not share the general F4 text block.
 - `scenes/effects/lightning_strike_effect.tscn` — lightning effect.
 - `scenes/effects/rain_target_preview.tscn` — rain targeting preview.
 - `scenes/effects/rain_cast_effect.tscn` — four-frame rain cast animation.
@@ -52,7 +52,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/creatures/creature_species_data.gd` — shared biological species resource schema; `diet_type` is the sole stored nutrition category, helper methods classify herbivores, predators, and egg eaters, and reproduction has no separate one-time hunger-cost field.
 - `scripts/creatures/creature_faction.gd` — validated runtime faction ownership helper (`player`, `enemy`, `neutral`) kept separate from species identity. Untagged current entities default to player; unknown or removed non-empty faction ids normalize to neutral.
 - `scripts/catalogs/player_species_catalog.gd` — ordered fixed catalog of the six player species with player-only egg prices, energy income, flag text, and current flag behaviour category.
-- `scripts/catalogs/enemy_species_catalog.gd` — fixed six-species enemy roster with enemy-specific resources, mirrored egg costs, and per-creature enemy-energy income; strategic population priorities remain future work.
+- `scripts/catalogs/enemy_species_catalog.gd` — fixed six-species enemy roster with enemy-specific resources, mirrored egg costs, and per-creature enemy-energy income; the controller currently uses the catalog for herbivore and predator production priorities.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — shared sectorized 2x2 pasture cache, ten-candidate herbivore shortlist, one shared breadth-first route wave with continuing 80/150/300 expansion thresholds, two-second current-route validation, five-second alternative comparison, upper-bound early stopping, final `food value - path steps * 2` ranking, and movement-controller-owned grazing routes.
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — shared carnivore three-candidate prey search, reachable-path comparison, side-overlap approach selection, target locking, engagement handoff, step settlement, and combat-entry logic.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — stage-2 egg targeting, periodic retargeting, and consumption logic.
@@ -84,13 +84,13 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/player/player_energy.gd` — session energy reserve, spending API, and catalog-defined income from living player-faction dinosaurs only.
 - `scripts/enemies/enemy_energy.gd` — session enemy reserve starting at 5000, spending API, and catalog-defined income from living enemy-faction creatures.
 - `scripts/enemies/enemy_egg_production_controller.gd` — disabled legacy five-second round-robin scaffold retained only for backward-compatible save cursor/timer handling.
-- `scripts/enemies/enemy_ai_controller.gd` — every four simulation seconds counts enemy adults and eggs by biological `species_id`, stores adult/egg/projected totals, selects a stegosaurus or triceratops egg toward a projected 3:1 ratio, spends energy after successful placement, and exposes the latest turn through the `enemy_ai` group.
+- `scripts/enemies/enemy_ai_controller.gd` — every four simulation seconds counts enemy adults and eggs by biological `species_id`, stores adult/egg/projected totals, tracks saved AI game time, fills a completed-minute herbivore cap clamped to 10–60 with stegosaurus/triceratops toward 3:1, then balances raptor/pterodactyl/tyrannosaurus production, spends energy after successful placement, and exposes the latest turn through the `enemy_ai` group.
 - `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, DryGround clearing, adjacent mature-grass timer restarts, spell VFX application, and successful-cast sound triggers.
-- `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem/Enemy Enka line and general F4 detailed debug.
-- `scripts/debug/enemy_ai_debug_overlay.gd` — F5-only enemy-AI diagnostics showing turn timing, current enemy energy, last action, adults, eggs, and projected per-species population.
+- `scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and general F4 detailed debug; enemy energy is shown only in F5.
+- `scripts/debug/enemy_ai_debug_overlay.gd` — F5-only enemy-AI diagnostics showing saved AI game time, turn timing, current enemy energy, production phase, herbivore count/cap, last action, adults, eggs, and projected per-species population.
 - `scripts/save/save_system.gd` — base three-slot JSON persistence with temporary-write verification, backup recovery, in-game menu integration, and runtime reconstruction.
 - `scripts/save/save_system_with_flags.gd` — save extension for creature/egg factions, flag revisions, player species flags, and in-game audio settings.
-- `scripts/save/save_system_with_enemy.gd` — final active save layer that adds optional enemy energy and preserves legacy egg-production cursor/timer fields while the old producer remains disabled.
+- `scripts/save/save_system_with_enemy.gd` — final active save layer that adds optional enemy energy, strategic-AI elapsed time/turn/timer state, and legacy egg-production cursor/timer fields while the old producer remains disabled.
 - `scripts/debug/performance_stats.gd` — runtime counters and F8 CSV logging, including separate player-flag scan, path-request, and path-failure columns.
 - `scripts/debug/grid_debug_overlay.gd` — F3 visualization of terrain, occupancy, footprints, paths, and the selected creature's current flag state/target.
 - `scripts/effects/` — effect playback and target-preview scripts.

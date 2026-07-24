@@ -66,6 +66,9 @@ func refresh_debug_text() -> void:
 	var action_text := "ожидание первого хода"
 	var time_until_next_turn := 0.0
 	var enemy_energy_value := float(snapshot.get("enemy_energy_after_action", 0.0))
+	var elapsed_simulation_seconds := float(snapshot.get("elapsed_simulation_seconds", 0.0))
+	var herbivore_cap := int(snapshot.get("herbivore_cap", 10))
+	var production_phase := str(snapshot.get("production_phase", "waiting"))
 
 	if enemy_ai.has_method("get_last_action_text"):
 		action_text = str(enemy_ai.call("get_last_action_text"))
@@ -76,10 +79,28 @@ func refresh_debug_text() -> void:
 	if enemy_ai.has_method("get_enemy_energy_value"):
 		enemy_energy_value = maxf(float(enemy_ai.call("get_enemy_energy_value")), 0.0)
 
+	if enemy_ai.has_method("get_elapsed_simulation_seconds"):
+		elapsed_simulation_seconds = maxf(
+			float(enemy_ai.call("get_elapsed_simulation_seconds")),
+			0.0
+		)
+
+	if enemy_ai.has_method("get_current_herbivore_cap"):
+		herbivore_cap = maxi(int(enemy_ai.call("get_current_herbivore_cap")), 0)
+
 	var lines: Array[String] = []
 	lines.append("Enemy AI — F5")
 	lines.append("Ход: %d | следующий через %.1f сек" % [turn_index, time_until_next_turn])
-	lines.append("Энка: %d | травоядные: стег/триц = 3:1" % roundi(enemy_energy_value))
+	lines.append("Время ИИ: %s | энка: %d" % [
+		_format_elapsed_time(elapsed_simulation_seconds),
+		roundi(enemy_energy_value)
+	])
+	lines.append("Режим: %s" % _format_production_phase(production_phase))
+	lines.append("Травоядные: %d / %d | хищники: %d" % [
+		int(snapshot.get("planned_herbivore_count", 0)),
+		herbivore_cap,
+		int(snapshot.get("planned_predator_count", 0))
+	])
 	lines.append("Действие: %s" % action_text)
 	lines.append(
 		"Популяция для решений: %d = взрослые %d + яйца %d" % [
@@ -114,3 +135,24 @@ func refresh_debug_text() -> void:
 func _read_counts(snapshot: Dictionary, key: String) -> Dictionary:
 	var counts_variant: Variant = snapshot.get(key, {})
 	return counts_variant if counts_variant is Dictionary else {}
+
+
+func _format_production_phase(phase: String) -> String:
+	match phase:
+		"herbivores":
+			return "добор травоядных (стег/триц = 3:1)"
+		"predators":
+			return "хищники (выравнивание трёх видов)"
+	return "ожидание"
+
+
+func _format_elapsed_time(total_seconds: float) -> String:
+	var seconds := maxi(int(total_seconds), 0)
+	var hours := int(seconds / 3600)
+	var minutes := int((seconds % 3600) / 60)
+	var remaining_seconds := seconds % 60
+
+	if hours > 0:
+		return "%02d:%02d:%02d" % [hours, minutes, remaining_seconds]
+
+	return "%02d:%02d" % [minutes, remaining_seconds]

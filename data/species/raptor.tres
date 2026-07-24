@@ -46,4 +46,4 @@ egg_stage_2_texture = ExtResource("10_egg_stage_2")
 reproduction_min_health = 80.0
 reproduction_min_hunger = 100.0
 reproduction_min_age = 5.0
-reproduction_cooldown = 75.0
+reproduction_cooldown = 100.0
