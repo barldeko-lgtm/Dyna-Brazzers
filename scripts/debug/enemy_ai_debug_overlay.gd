@@ -103,9 +103,10 @@ func refresh_debug_text() -> void:
 	])
 	lines.append("Режим: %s" % _format_production_phase(production_phase))
 	if adult_herbivore_count <= 0 or average_herbivore_satiety < 0.0:
-		lines.append("Сытость взрослых травоядных: нет данных | добор: разрешён")
+		lines.append("Сытость травоядных врага: нет данных | добор: разрешён")
 	else:
-		lines.append("Сытость травоядных: %.1f%% / %.0f%% | добор: %s" % [
+		lines.append("Сытость травоядных врага (%d взрослых): %.1f%% / %.0f%% | добор: %s" % [
+			adult_herbivore_count,
 			average_herbivore_satiety,
 			satiety_threshold,
 			"СТОП" if herbivore_spawning_blocked else "разрешён"

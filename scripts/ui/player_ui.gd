@@ -22,6 +22,7 @@ class MinimapOverlay:
 
 const PLAYER_EGG_CREATION_UI_SCRIPT := preload("res://scripts/ui/player_egg_creation_ui.gd")
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
+const ENEMY_SPECIES_CATALOG := preload("res://scripts/catalogs/enemy_species_catalog.gd")
 
 const TIME_SPEED_VALUES := [1.0, 2.0, 3.0, 5.0]
 const ENTITY_COUNTS_REFRESH_INTERVAL := 0.5
@@ -47,10 +48,11 @@ const MINIMAP_CAMERA_COLOR := Color(0xfff1a3ff)
 const MINIMAP_HERBIVORE_COLOR := Color(0x9be26aff)
 const MINIMAP_PREDATOR_COLOR := Color(0xe25757ff)
 const MINIMAP_EGG_EATER_COLOR := Color(0x2b63ffff)
-const MINIMAP_ENEMY_HERBIVORE_COLOR := Color(0xe6a85fff)
+const MINIMAP_ENEMY_HERBIVORE_COLOR := Color(0xffc928ff)
 const MINIMAP_ENEMY_PREDATOR_COLOR := Color(0xb83555ff)
 const MINIMAP_ENEMY_EGG_EATER_COLOR := Color(0x8c5de8ff)
 const MINIMAP_OTHER_FACTION_COLOR := Color(0xc88ce8ff)
+const MINIMAP_MARKER_SHADOW_COLOR := Color(0x11151fff)
 
 @onready var minimap_placeholder: PanelContainer = get_node_or_null("MarginContainer/VBoxContainer/MiniMapPlaceholder") as PanelContainer
 @onready var player_herbivore_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerHerbivoreCountLabel")
@@ -354,7 +356,7 @@ func draw_creature_markers_on_overlay(overlay: Control) -> void:
 
 func get_minimap_creature_color(creature: Node) -> Color:
 	var category := get_creature_category(creature)
-	var faction_id := CREATURE_FACTION.get_id(creature)
+	var faction_id := get_minimap_creature_faction_id(creature)
 
 	if faction_id == CREATURE_FACTION.ENEMY:
 		match category:
@@ -375,6 +377,28 @@ func get_minimap_creature_color(creature: Node) -> Color:
 			return MINIMAP_EGG_EATER_COLOR
 		_:
 			return MINIMAP_HERBIVORE_COLOR
+
+
+func get_minimap_creature_faction_id(creature: Node) -> StringName:
+	var faction_id := CREATURE_FACTION.get_id(creature)
+
+	if faction_id != CREATURE_FACTION.PLAYER:
+		return faction_id
+
+	# Enemy species resources are a defensive UI fallback during reconstruction:
+	# ownership metadata remains authoritative, but an enemy creature should never
+	# disappear into the player palette for a frame or an older incomplete save.
+	var species_data := creature.get("species_data") as CreatureSpeciesData
+
+	if species_data == null:
+		return faction_id
+
+	var species_id := StringName(String(species_data.species_id).strip_edges())
+
+	if ENEMY_SPECIES_CATALOG.get_species_data(species_id) == species_data:
+		return CREATURE_FACTION.ENEMY
+
+	return faction_id
 
 
 func get_minimap_content_rect(draw_size: Vector2) -> Rect2:
@@ -412,8 +436,18 @@ func draw_triangle_marker_on_overlay(overlay: Control, center_position: Vector2,
 		floor(center_position.x - MINIMAP_CREATURE_MARKER_HALF_SIZE),
 		floor(center_position.y - MINIMAP_CREATURE_MARKER_HALF_SIZE)
 	)
+	var marker_pixels := get_triangle_marker_pixels()
 
-	for pixel_offset in get_triangle_marker_pixels():
+	# One-pixel southeast shadow keeps every faction marker readable over terrain,
+	# especially the orange enemy-herbivore marker over brown ground.
+	for pixel_offset in marker_pixels:
+		overlay.draw_rect(
+			Rect2(top_left + pixel_offset + Vector2.ONE, Vector2.ONE),
+			MINIMAP_MARKER_SHADOW_COLOR,
+			true
+		)
+
+	for pixel_offset in marker_pixels:
 		overlay.draw_rect(Rect2(top_left + pixel_offset, Vector2.ONE), marker_color, true)
 
 

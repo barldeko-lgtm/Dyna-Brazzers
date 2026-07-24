@@ -77,7 +77,7 @@ func collect_population_snapshot() -> Dictionary:
 	for creature_variant: Variant in get_tree().get_nodes_in_group("creatures"):
 		var creature := creature_variant as Node
 
-		if not _is_valid_enemy_entity(creature):
+		if not _is_valid_enemy_creature(creature):
 			continue
 
 		var species_id := _get_creature_species_id(creature)
@@ -496,6 +496,26 @@ func _is_valid_enemy_entity(entity: Node) -> bool:
 		and not entity.is_queued_for_deletion()
 		and CREATURE_FACTION.get_id(entity) == CREATURE_FACTION.ENEMY
 	)
+
+
+func _is_valid_enemy_creature(creature: Node) -> bool:
+	if not _is_valid_enemy_entity(creature):
+		return false
+
+	var species_data := creature.get("species_data") as CreatureSpeciesData
+
+	if species_data == null:
+		return false
+
+	var species_id := _normalize_supported_species_id(species_data.species_id)
+
+	if species_id == StringName():
+		return false
+
+	# The faction tag is the ownership source of truth. Matching the enemy catalog
+	# as a second guard prevents a wrongly tagged player resource from entering the
+	# enemy population or adult-herbivore satiety average.
+	return ENEMY_SPECIES_CATALOG.get_species_data(species_id) == species_data
 
 
 func _is_herbivore_species_id(species_id: StringName) -> bool:

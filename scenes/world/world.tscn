@@ -115,7 +115,7 @@ tile_set = SubResource("TileSet_dry_ground")
 position = Vector2(2240, 8576)
 
 [node name="CameraStart" type="Marker2D" parent="." unique_id=1587753738 groups=["camera_start"]]
-position = Vector2(2624, 7168)
+position = Vector2(2496, 7232)
 
 [node name="Creatures" type="Node2D" parent="." unique_id=1940305396]
 
