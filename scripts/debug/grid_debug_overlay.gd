@@ -1,6 +1,7 @@
 extends Node2D
 
 const TOGGLE_KEY := KEY_F3
+const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const BLOCKED_TERRAIN_FILL := Color(0.9, 0.2, 0.2, 0.16)
 const BLOCKED_TERRAIN_OUTLINE := Color(0.95, 0.35, 0.35, 0.6)
 const GRASS_STAGE_1_FILL := Color(0.55, 0.75, 0.2, 0.16)
@@ -101,17 +102,36 @@ func _get_focus_creature() -> Node:
 
 
 func _get_flag_debug_data(creature: Node) -> Dictionary:
+	if creature != null and is_instance_valid(creature) and CREATURE_FACTION.is_enemy(creature):
+		var enemy_flags := get_tree().get_first_node_in_group("enemy_flag_system")
+
+		if enemy_flags == null or not enemy_flags.has_method("get_creature_flag_debug_data"):
+			return {"status": "вражеские флаги недоступны", "flag_system": "enemy"}
+
+		var enemy_data_variant: Variant = enemy_flags.call(
+			"get_creature_flag_debug_data", creature
+		)
+
+		if enemy_data_variant is Dictionary:
+			var enemy_data := enemy_data_variant as Dictionary
+			enemy_data["flag_system"] = "enemy"
+			return enemy_data
+
+		return {"status": "нет данных", "flag_system": "enemy"}
+
 	var player_flags := get_node_or_null("/root/PlayerFlags")
 
 	if player_flags == null or not player_flags.has_method("get_creature_flag_debug_data"):
-		return {"status": "система флагов недоступна"}
+		return {"status": "система флагов недоступна", "flag_system": "player"}
 
 	var data_variant: Variant = player_flags.call("get_creature_flag_debug_data", creature)
 
 	if data_variant is Dictionary:
-		return data_variant as Dictionary
+		var player_data := data_variant as Dictionary
+		player_data["flag_system"] = "player"
+		return player_data
 
-	return {"status": "нет данных"}
+	return {"status": "нет данных", "flag_system": "player"}
 
 
 func _build_debug_text() -> String:
@@ -144,7 +164,10 @@ func _build_debug_text() -> String:
 		]
 	)
 	var flag_debug := _get_flag_debug_data(creature)
-	lines.append("flag: %s" % String(flag_debug.get("status", "нет данных")))
+	var flag_label := (
+		"enemy flag" if String(flag_debug.get("flag_system", "player")) == "enemy" else "flag"
+	)
+	lines.append("%s: %s" % [flag_label, String(flag_debug.get("status", "нет данных"))])
 
 	var flag_tile_variant: Variant = flag_debug.get("flag_tile", null)
 	if flag_tile_variant is Vector2i:

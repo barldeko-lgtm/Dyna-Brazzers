@@ -164,13 +164,13 @@ Rules:
 
 - do not put counters or speed controls back into `creature_stats_ui.gd`;
 - do not put detailed debug text back into `creature_stats_ui.gd`;
-- F3 grid overlay, F4 general text debug, and F5 enemy-AI debug are separate systems; F3 may query `PlayerFlags` through its public debug-data method but must not own flag behaviour;
+- F3 grid overlay, F4 general text debug, and F5 enemy-AI debug are separate systems; F3 may query `PlayerFlags` for player creatures and the runtime `enemy_flag_system` for enemy creatures through their public debug-data methods, but must not own flag behaviour;
 - F5 may read only the public `enemy_ai` snapshot/timing/energy/cap/satiety fields and methods and must not make strategic decisions or mutate enemy state; its satiety line should identify the value as enemy-only and show the included adult-enemy-herbivore count for verification;
 - the F5 panel must remain anchored at the top-right with its right edge at least 16 pixels left of the 300-pixel gameplay HUD, so it never covers the minimap;
 - minimap creature markers must remain readable over every terrain colour; enemy herbivores use the high-contrast enemy colour plus the shared one-pixel marker shadow, and enemy-resource detection may be used only as a presentation fallback when ownership metadata is temporarily absent;
 - creature selection must remain compatible with nature-power targeting;
 - SaveSystem, player flags, egg creation, and player time controls must resolve nested nature-menu controls through the `player_nature_ui` group API, not paths through `UI/PlayerSidePanel/MarginContainer/...`;
-- the `BASE` and `ENEMY` buttons may be resolved from the main-menu grid returned by the nature-menu API, but camera targets must be found through the stable `player_base` and `enemy_base` groups rather than scene paths;
+- the `BASE` and `ENEMY` buttons may be resolved from the main-menu grid returned by the nature-menu API, but camera targets must be found through the stable `player_base` and `enemy_base` groups rather than scene paths; button focus must offset the camera horizontally by half of the actual right-side panel width divided by the current camera zoom so the base appears centered in the unobscured world area;
 - keyboard shortcuts `1`–`4` must call `player_ui.gd`'s existing `apply_time_speed_by_index()` path so `Engine.time_scale` and the four pressed-button states remain synchronized; the stable mapping is `1 → x1`, `2 → x2`, `3 → x3`, `4 → x5`;
 - keep `main.tscn` as a compositor rather than moving HUD styles or deep UI node trees back into it;
 - preserve the root instance names `UI`, `CreatureStatsPanel`, and `PlayerNaturePanel` when rearranging the split scenes so old diagnostic paths remain readable;

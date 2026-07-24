@@ -43,7 +43,7 @@ Current prototype includes:
 - compact always-visible FPS/Time/Mem line; enemy energy now lives only in the dedicated F5 enemy-AI panel;
 - F4 detailed text debug status;
 - a separate compact F5 enemy-AI debug panel positioned immediately left of the right-side HUD, using font size 13 and showing AI game time, enemy energy, current production phase, herbivore cap, normalized average adult-herbivore satiety, the active hunger gate, latest action, and compact population totals;
-- F3 grid/debug overlay with selected-creature flag status and assigned flag target;
+- F3 grid/debug overlay with selected-creature flag status and assigned flag target from the matching player or enemy flag system;
 - water, mountain, and tree terrain;
 - a reversible DryGround overlay with three visual variants: it blocks movement and grass, clears after three rain hits, and reopens naturally through adjacent mature-grass spread timers;
 - free observer camera constrained to the map and to a 0.3–0.7 zoom range;
@@ -171,7 +171,7 @@ Current minimap rules:
 - enemy-faction marker colours are selected separately from the player palette; enemy herbivores use a high-contrast gold marker with a dark one-pixel shadow, and enemy species resources provide a UI-only fallback during incomplete ownership reconstruction; the right-side table separately counts player and enemy herbivores, predators, egg eaters, eggs, and total living creatures;
 - a bright rectangular frame shows the current camera viewport and changes size with camera zoom;
 - left-clicking the minimap moves the observer camera to the selected world position;
-- the right-side `BASE` and `ENEMY` buttons center the observer camera on the player and enemy bases through their stable runtime groups;
+- the right-side `BASE` and `ENEMY` buttons find the player and enemy bases through stable runtime groups and center each base in the world area left of the HUD by offsetting the camera with half of the actual side-panel width at the current zoom;
 - number keys `1`–`4` switch simulation speed to `x1`, `x2`, `x3`, and `x5`; the matching right-side speed button updates at the same time;
 - base terrain stays static during a session; a DryGround overlay may be cleared by its third rain hit, then the minimap rebuilds; a separate overlay redraws the camera frame and 6x6 creature triangle markers during play;
 - eggs, faction bases, and world events are not shown yet.

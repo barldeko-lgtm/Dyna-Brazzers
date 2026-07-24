@@ -725,7 +725,12 @@ func focus_camera_on_faction_base(base_group: StringName) -> void:
 	if nature_menu_ui != null and nature_menu_ui.has_method("cancel_all_targeting"):
 		nature_menu_ui.call("cancel_all_targeting")
 
-	camera.global_position = faction_base.global_position
+	var safe_zoom_x := maxf(camera.zoom.x, 0.001)
+	var side_panel_half_width_world := maxf(size.x, 0.0) * 0.5 / safe_zoom_x
+	camera.global_position = faction_base.global_position + Vector2(
+		side_panel_half_width_world,
+		0.0
+	)
 	has_minimap_camera_state = false
 	minimap_entity_refresh_timer = 0.0
 	update_minimap_camera_view(true)

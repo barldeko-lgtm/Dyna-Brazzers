@@ -72,7 +72,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 
 - `scripts/ui/start_screen.gd` — startup menu, slot loading, and runtime-built Music/Sounds settings controls.
 - `scripts/ui/creature_stats_ui.gd` — script owned by the root `PanelContainer` of `creature_info_panel.tscn`; handles creature information, hover, selection, and the lightning click bridge.
-- `scripts/ui/player_ui.gd` — script on `player_hud.tscn`'s right-side panel; handles interactive terrain minimap generation, high-contrast shadowed diet/faction markers with an enemy-resource fallback for minimap presentation, separate player/enemy creature and egg counters, camera viewport display/click navigation, `BASE`/`ENEMY` camera focus through faction-base groups, time buttons plus `1`–`4` speed shortcuts, and egg-controller bootstrap.
+- `scripts/ui/player_ui.gd` — script on `player_hud.tscn`'s right-side panel; handles interactive terrain minimap generation, high-contrast shadowed diet/faction markers with an enemy-resource fallback for minimap presentation, separate player/enemy creature and egg counters, camera viewport display/click navigation, `BASE`/`ENEMY` camera focus through faction-base groups with right-HUD centering compensation, time buttons plus `1`–`4` speed shortcuts, and egg-controller bootstrap.
 - `scripts/ui/player_egg_creation_ui.gd` — runtime egg submenu presentation, button availability, and base purchase requests using the player species catalog; nested host controls come from the nature-menu API.
 - `scripts/flags/player_flag_system.gd` — compact flag facade for gameplay-scene attachment, placed-flag data, visual synchronization, and stable save/debug entry points.
 - `scripts/flags/player_flag_system_with_catalog.gd` — active `PlayerFlags` autoload layer that supplies player-catalog menu entries and placement revisions, then delegates UI and creature assignment to dedicated services.
@@ -95,7 +95,7 @@ Implemented behaviour belongs in `docs/current-state.md`; fragile contracts belo
 - `scripts/save/save_system_with_flags.gd` — save extension for creature/egg factions, flag revisions, player species flags, and in-game audio settings.
 - `scripts/save/save_system_with_enemy.gd` — final active save layer that adds optional enemy energy, strategic-AI elapsed time/turn/timer state, and legacy egg-production cursor/timer fields while the old producer remains disabled.
 - `scripts/debug/performance_stats.gd` — runtime counters and F8 CSV logging, including separate player-flag scan, path-request, and path-failure columns.
-- `scripts/debug/grid_debug_overlay.gd` — F3 visualization of terrain, occupancy, footprints, paths, and the selected creature's current flag state/target.
+- `scripts/debug/grid_debug_overlay.gd` — F3 visualization of terrain, occupancy, footprints, paths, and the selected creature's current player- or enemy-flag state/target, chosen from runtime faction ownership.
 - `scripts/effects/` — effect playback and target-preview scripts.
 
 ## Save files
