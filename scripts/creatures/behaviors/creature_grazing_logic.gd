@@ -1,6 +1,6 @@
 extends RefCounted
 
-const GRAZING_DISTANCE_COST_PER_TILE: float = 2.0
+const GRAZING_DISTANCE_COST_PER_TILE: float = 3.0
 const GRAZING_PATH_CANDIDATE_LIMIT: int = 10
 const GRAZING_FULL_RECHECK_INTERVAL: float = 5.0
 const GRAZING_PATH_LIMIT_NEAR: int = 80
@@ -73,7 +73,7 @@ static func _refresh_cached_pasture(
 
 	if not world_grid.is_tile_inside_map(pasture_anchor) or not world_grid.is_tile_inside_map(
 		bottom_right
-	):
+):
 		_remove_cached_pasture(cache, pasture_anchor)
 		return
 
@@ -306,7 +306,7 @@ func can_start_eating_here() -> bool:
 # continue the same queue without restarting work.
 #
 # Final score:
-# total food value under the footprint - actual route steps * 2.
+# total food value under the footprint - actual route steps * 3.
 func try_acquire_grazing_target(include_current_target: bool = false) -> void:
 	PerformanceStats.add_counter("grazing_acquire_requests")
 

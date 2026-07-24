@@ -55,6 +55,8 @@ Rules:
 
 If a task touches movement, blocked tiles, map dimensions, camera bounds, grass placement, either faction base, corpse passability, or pathing, inspect these files together.
 
+Herbivore pasture choice uses the final score `total food value under the footprint - actual route steps * 3`; keep the same distance cost in shortlist rescoring, current-target comparison, search upper bounds, and the reached-route score.
+
 ## Faction bases
 
 Main files:
@@ -97,7 +99,7 @@ Enemy-specific flow:
 - `enemy_base.gd` exposes `create_enemy_egg()` as a thin wrapper over the same safe common placement method;
 - `enemy_egg_production_controller.gd` remains instantiated for save compatibility, but `automatic_production_enabled = false`, so its old five-second round-robin timer stays stopped;
 - `enemy_ai_controller.gd` runs the active four-second strategic turn: it builds a derived population/satiety snapshot, fills a completed-minute herbivore cap clamped to 10–60 with a projected 3:1 stegosaurus/triceratops mix only while normalized average adult-herbivore satiety is at least 40%, skips the turn below that threshold while projected herbivores remain below the cap, and at or above the cap ignores satiety while running the current predator task (two projected raptors, first projected tyrannosaurus, first projected pterodactyl, then successful tyrannosaurus/pterodactyl purchases alternating) and attempting one purchase;
-- enemy energy, the disabled legacy round-robin scaffold, and active strategic production live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`; egg-eater priorities, attack plans, flags, and spells remain future work.
+- enemy energy starts at 3000 for a fresh session; loaded saves restore their stored enemy-energy value; the disabled legacy round-robin scaffold and active strategic production live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`; egg-eater priorities, attack plans, flags, and spells remain future work.
 
 Rules:
 
@@ -502,7 +504,7 @@ Rules:
 - keep edible-grass count and total food value in one cache shared by all herbivores; divide anchors into 8x8 sectors and refresh only the four anchors overlapping a changed grass tile;
 - never cache creature occupancy or movement reservations: validate those live for each candidate and creature;
 - use a cheap preliminary score only to create a ten-anchor shortlist;
-- run one breadth-first route wave for the whole shortlist, continuing the same queue through expansion thresholds 80, 150, and 300 instead of restarting work per candidate; reject blocked or unreachable entries and calculate the final score as `total food value - actual route steps * 2`;
+- run one breadth-first route wave for the whole shortlist, continuing the same queue through expansion thresholds 80, 150, and 300 instead of restarting work per candidate; reject blocked or unreachable entries and calculate the final score as `total food value - actual route steps * 3`;
 - allow lower-stage edible grass as fallback when its reachable route makes it the better final choice;
 - validate only the current target and queued route every two seconds without new pathfinding while the route stays clear; compare the ten-candidate alternative shortlist every five seconds, keep exact score ties on the current target, and stop comparison when the remaining cheap upper bounds cannot beat the current winner;
 - preserve the generic uncached world-grid candidate scan as compatibility fallback for any future species whose footprint is not 2x2;
