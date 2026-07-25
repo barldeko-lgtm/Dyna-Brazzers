@@ -1,13 +1,14 @@
-extends Node
+extends Node2D
 class_name EnemySpellController
 
 # Enemy spell decisions stay separate from population production. The first
 # spell listens to the four-second enemy-AI snapshot and casts shared world rain
 # only when adult enemy herbivore satiety falls below the snapshot threshold.
 #
-# Rain targeting intentionally starts small: it ignores DryGround, distance, and
-# young-grass growth. It scores only how many unique grass cells mature grass can
-# create immediately after one 5x5 rain cast.
+# Rain targeting intentionally starts small: it ignores DryGround, herd distance,
+# and young-grass growth. It searches only the visible map-clipped contour around
+# the enemy base and scores how many unique grass cells mature grass can create
+# immediately after one 5x5 rain cast.
 const MATURE_GRASS_STAGE := 3
 const INITIALIZATION_RETRY_FRAMES := 12
 const INVALID_TILE := Vector2i(2147483647, 2147483647)
@@ -20,11 +21,23 @@ const CARDINAL_OFFSETS: Array[Vector2i] = [
 
 @export var rain_energy_cost := 50.0
 @export var minimum_predicted_new_grass := 1
+@export var rain_search_radius_tiles := 30
+@export var rain_area_frame_duration_seconds := 4.0
+@export var search_area_frame_color := Color(1.0, 0.48, 0.12, 0.82)
+@export var rain_area_frame_color := Color(0.20, 0.78, 1.0, 0.95)
+@export var search_area_frame_line_width := 8.0
+@export var rain_area_frame_line_width := 10.0
 
 var world_grid: Node = null
 var nature_effects: Node = null
 var enemy_ai: Node = null
 var enemy_energy: Node = null
+var enemy_base: Node2D = null
+
+var search_area_bounds := Rect2i()
+var has_search_area_bounds := false
+var visible_rain_frame_tile := INVALID_TILE
+var rain_frame_remaining_seconds := 0.0
 
 var last_action_text := "ожидание первого решения по спеллам"
 var last_rain_target_tile := INVALID_TILE
@@ -35,6 +48,7 @@ var last_productive_grass_count := 0
 var last_unique_spawn_target_count := 0
 var last_candidate_center_count := 0
 var last_best_predicted_new_grass := 0
+var last_actual_new_grass := 0
 var last_search_duration_usec := 0
 var max_search_duration_usec := 0
 var total_search_count := 0
@@ -45,7 +59,75 @@ var total_apply_count := 0
 
 func _ready() -> void:
 	add_to_group("enemy_spell_controller")
+	process_mode = Node.PROCESS_MODE_PAUSABLE
+	z_index = 500
 	call_deferred("_initialize_runtime")
+
+
+func _process(delta: float) -> void:
+	if not has_search_area_bounds:
+		_refresh_runtime_references()
+		if _refresh_search_area_bounds():
+			queue_redraw()
+
+	if rain_frame_remaining_seconds <= 0.0:
+		return
+
+	# The result outline uses real seconds while gameplay is running, but this
+	# PAUSABLE node receives no process ticks while the in-game menu pauses the
+	# SceneTree. Dividing by time_scale keeps 1x/2x/4x simulation speeds from
+	# shortening the four-second inspection window.
+	var safe_time_scale := maxf(Engine.time_scale, 0.0001)
+	rain_frame_remaining_seconds = maxf(
+		rain_frame_remaining_seconds - delta / safe_time_scale,
+		0.0
+	)
+
+	if rain_frame_remaining_seconds > 0.0:
+		return
+
+	visible_rain_frame_tile = INVALID_TILE
+	queue_redraw()
+
+
+func _draw() -> void:
+	if has_search_area_bounds:
+		var search_rect := _tile_bounds_to_local_rect(search_area_bounds)
+
+		if search_rect.size.x > 0.0 and search_rect.size.y > 0.0:
+			draw_rect(
+				search_rect,
+				search_area_frame_color,
+				false,
+				maxf(search_area_frame_line_width, 1.0),
+				true
+			)
+
+	if (
+		visible_rain_frame_tile == INVALID_TILE
+		or rain_frame_remaining_seconds <= 0.0
+	):
+		return
+
+	var rain_radius := _get_rain_radius_tiles()
+	if rain_radius <= 0:
+		return
+
+	var rain_size := rain_radius * 2 + 1
+	var rain_bounds := Rect2i(
+		visible_rain_frame_tile - Vector2i(rain_radius, rain_radius),
+		Vector2i(rain_size, rain_size)
+	)
+	var rain_rect := _tile_bounds_to_local_rect(rain_bounds)
+
+	if rain_rect.size.x > 0.0 and rain_rect.size.y > 0.0:
+		draw_rect(
+			rain_rect,
+			rain_area_frame_color,
+			false,
+			maxf(rain_area_frame_line_width, 1.0),
+			true
+		)
 
 
 func _exit_tree() -> void:
@@ -57,6 +139,8 @@ func _initialize_runtime() -> void:
 		_refresh_runtime_references()
 
 		if _connect_enemy_ai():
+			_refresh_search_area_bounds()
+			queue_redraw()
 			return
 
 		await get_tree().process_frame
@@ -117,6 +201,10 @@ func _try_cast_rain_for_hungry_herd() -> bool:
 		last_action_text = "дождь отложен: мировая система эффектов не найдена"
 		return false
 
+	if not _refresh_search_area_bounds():
+		last_action_text = "дождь отложен: область вокруг базы не найдена"
+		return false
+
 	if (
 		enemy_energy == null
 		or not enemy_energy.has_method("can_spend")
@@ -161,9 +249,12 @@ func _try_cast_rain_for_hungry_herd() -> bool:
 		last_action_text = "дождь отложен: энку не удалось списать"
 		return false
 
+	var grass_count_before := _get_registered_grass_count()
 	var apply_start_usec := Time.get_ticks_usec()
 	var rain_applied := bool(nature_effects.call("apply_rain", target_tile))
 	_finish_apply_measurement(apply_start_usec)
+	var grass_count_after := _get_registered_grass_count()
+	last_actual_new_grass = maxi(grass_count_after - grass_count_before, 0)
 
 	if not rain_applied:
 		enemy_energy.call("add_energy", safe_cost)
@@ -172,14 +263,24 @@ func _try_cast_rain_for_hungry_herd() -> bool:
 		return false
 
 	last_rain_target_tile = target_tile
-	last_action_text = "дождь: %s, ожидается новой травы %d" % [
+	_show_rain_area_frame(target_tile)
+	last_action_text = "дождь: %s, прогноз +%d / реально +%d" % [
 		_format_tile(target_tile),
-		last_best_predicted_new_grass
+		last_best_predicted_new_grass,
+		last_actual_new_grass
 	]
 	PerformanceStats.add_counter("enemy_rain_casts")
 	PerformanceStats.add_counter(
 		"enemy_rain_predicted_new_grass",
 		last_best_predicted_new_grass
+	)
+	PerformanceStats.add_counter(
+		"enemy_rain_actual_new_grass",
+		last_actual_new_grass
+	)
+	PerformanceStats.add_counter(
+		"enemy_rain_prediction_gap",
+		last_best_predicted_new_grass - last_actual_new_grass
 	)
 	return true
 
@@ -212,6 +313,10 @@ func _find_best_immediate_spread_target() -> Dictionary:
 			continue
 
 		var grass_tile: Vector2i = grass_tile_variant
+
+		if not _is_tile_inside_search_area(grass_tile):
+			continue
+
 		var grass := grass_registry.get(grass_tile, null) as Node
 
 		if not _is_mature_grass(grass):
@@ -376,6 +481,8 @@ func _get_immediate_spawn_tiles(grass_tile: Vector2i) -> Array[Vector2i]:
 
 		if not bool(world_grid.call("is_tile_inside_map", target_tile)):
 			continue
+		if not _is_tile_inside_search_area(target_tile):
+			continue
 		if bool(world_grid.call("has_grass_at_tile", target_tile)):
 			continue
 		if not bool(world_grid.call("can_host_grass", target_tile)):
@@ -395,7 +502,10 @@ func _append_source_centers(
 		for center_x in range(grass_tile.x - rain_radius, grass_tile.x + rain_radius + 1):
 			var center_tile := Vector2i(center_x, center_y)
 
-			if bool(world_grid.call("is_tile_inside_map", center_tile)):
+			if (
+				bool(world_grid.call("is_tile_inside_map", center_tile))
+				and _is_rain_center_inside_search_area(center_tile, rain_radius)
+			):
 				covered_centers[center_tile] = true
 
 
@@ -417,6 +527,128 @@ func _is_better_candidate(
 		return candidate_tile.y < best_tile.y
 
 	return candidate_tile.x < best_tile.x
+
+
+func _refresh_search_area_bounds() -> bool:
+	if world_grid == null or not is_instance_valid(world_grid):
+		has_search_area_bounds = false
+		return false
+
+	if enemy_base == null or not is_instance_valid(enemy_base):
+		enemy_base = world_grid.get_node_or_null("EnemyBase") as Node2D
+
+	if enemy_base == null:
+		has_search_area_bounds = false
+		return false
+
+	var anchor_variant: Variant = enemy_base.get("anchor_tile")
+	var footprint_variant: Variant = enemy_base.get("footprint_size")
+	var map_min_variant: Variant = world_grid.get("map_min")
+	var map_max_variant: Variant = world_grid.get("map_max")
+
+	if not (anchor_variant is Vector2i and footprint_variant is Vector2i):
+		has_search_area_bounds = false
+		return false
+	if not (map_min_variant is Vector2i and map_max_variant is Vector2i):
+		has_search_area_bounds = false
+		return false
+
+	var anchor_tile: Vector2i = anchor_variant
+	var footprint_size: Vector2i = footprint_variant
+	var map_min: Vector2i = map_min_variant
+	var map_max: Vector2i = map_max_variant
+	var radius := maxi(rain_search_radius_tiles, 0)
+	var min_tile := anchor_tile - Vector2i(radius, radius)
+	var max_tile := (
+		anchor_tile
+		+ Vector2i(maxi(footprint_size.x, 1), maxi(footprint_size.y, 1))
+		- Vector2i.ONE
+		+ Vector2i(radius, radius)
+	)
+	min_tile = Vector2i(maxi(min_tile.x, map_min.x), maxi(min_tile.y, map_min.y))
+	max_tile = Vector2i(mini(max_tile.x, map_max.x), mini(max_tile.y, map_max.y))
+
+	if min_tile.x > max_tile.x or min_tile.y > max_tile.y:
+		has_search_area_bounds = false
+		return false
+
+	var next_bounds := Rect2i(min_tile, max_tile - min_tile + Vector2i.ONE)
+	var bounds_changed := not has_search_area_bounds or next_bounds != search_area_bounds
+	search_area_bounds = next_bounds
+	has_search_area_bounds = true
+
+	if bounds_changed:
+		queue_redraw()
+
+	return true
+
+
+func _is_tile_inside_search_area(tile: Vector2i) -> bool:
+	return has_search_area_bounds and search_area_bounds.has_point(tile)
+
+
+func _is_rain_center_inside_search_area(center_tile: Vector2i, rain_radius: int) -> bool:
+	if not has_search_area_bounds:
+		return false
+
+	var safe_radius := maxi(rain_radius, 0)
+	var min_allowed := search_area_bounds.position
+	var max_allowed := search_area_bounds.position + search_area_bounds.size - Vector2i.ONE
+	return (
+		center_tile.x - safe_radius >= min_allowed.x
+		and center_tile.y - safe_radius >= min_allowed.y
+		and center_tile.x + safe_radius <= max_allowed.x
+		and center_tile.y + safe_radius <= max_allowed.y
+	)
+
+
+func _show_rain_area_frame(target_tile: Vector2i) -> void:
+	visible_rain_frame_tile = target_tile
+	rain_frame_remaining_seconds = maxf(rain_area_frame_duration_seconds, 0.0)
+	queue_redraw()
+
+
+func _tile_bounds_to_local_rect(tile_bounds: Rect2i) -> Rect2:
+	if (
+		world_grid == null
+		or not is_instance_valid(world_grid)
+		or tile_bounds.size.x <= 0
+		or tile_bounds.size.y <= 0
+		or not world_grid.has_method("map_to_world_center")
+	):
+		return Rect2()
+
+	var min_tile := tile_bounds.position
+	var max_tile := tile_bounds.position + tile_bounds.size - Vector2i.ONE
+	var min_center_global: Vector2 = world_grid.call("map_to_world_center", min_tile)
+	var max_center_global: Vector2 = world_grid.call("map_to_world_center", max_tile)
+	var min_center := to_local(min_center_global)
+	var max_center := to_local(max_center_global)
+	var tile_size_variant: Variant = world_grid.get("tile_size")
+	var tile_size_pixels := Vector2(128.0, 128.0)
+
+	if tile_size_variant is Vector2i:
+		var tile_size_grid: Vector2i = tile_size_variant
+		tile_size_pixels = Vector2(tile_size_grid)
+
+	var left := minf(min_center.x, max_center.x) - tile_size_pixels.x * 0.5
+	var top := minf(min_center.y, max_center.y) - tile_size_pixels.y * 0.5
+	var right := maxf(min_center.x, max_center.x) + tile_size_pixels.x * 0.5
+	var bottom := maxf(min_center.y, max_center.y) + tile_size_pixels.y * 0.5
+	return Rect2(Vector2(left, top), Vector2(right - left, bottom - top))
+
+
+func _get_registered_grass_count() -> int:
+	if world_grid == null or not is_instance_valid(world_grid):
+		return 0
+
+	var grass_registry_variant: Variant = world_grid.get("grass_by_tile")
+
+	if not (grass_registry_variant is Dictionary):
+		return 0
+
+	var grass_registry: Dictionary = grass_registry_variant as Dictionary
+	return grass_registry.size()
 
 
 func _get_rain_radius_tiles() -> int:
@@ -444,6 +676,10 @@ func _refresh_runtime_references() -> void:
 	if enemy_energy == null or not is_instance_valid(enemy_energy):
 		enemy_energy = get_tree().get_first_node_in_group("enemy_energy")
 
+	if enemy_base == null or not is_instance_valid(enemy_base):
+		if world_grid != null and is_instance_valid(world_grid):
+			enemy_base = world_grid.get_node_or_null("EnemyBase") as Node2D
+
 
 func _reset_last_search_stats() -> void:
 	last_rain_target_tile = INVALID_TILE
@@ -454,6 +690,7 @@ func _reset_last_search_stats() -> void:
 	last_unique_spawn_target_count = 0
 	last_candidate_center_count = 0
 	last_best_predicted_new_grass = 0
+	last_actual_new_grass = 0
 	last_search_duration_usec = 0
 	last_apply_duration_usec = 0
 
@@ -516,12 +753,16 @@ func get_rain_debug_data() -> Dictionary:
 		"unique_spawn_target_count": last_unique_spawn_target_count,
 		"candidate_center_count": last_candidate_center_count,
 		"best_predicted_new_grass": last_best_predicted_new_grass,
+		"actual_new_grass": last_actual_new_grass,
+		"prediction_gap": last_best_predicted_new_grass - last_actual_new_grass,
 		"search_duration_msec": get_last_search_duration_msec(),
 		"max_search_duration_msec": get_max_search_duration_msec(),
 		"total_search_count": total_search_count,
 		"apply_duration_msec": float(last_apply_duration_usec) / 1000.0,
 		"max_apply_duration_msec": float(max_apply_duration_usec) / 1000.0,
-		"total_apply_count": total_apply_count
+		"total_apply_count": total_apply_count,
+		"search_radius_tiles": maxi(rain_search_radius_tiles, 0),
+		"rain_frame_duration_seconds": maxf(rain_area_frame_duration_seconds, 0.0)
 	}
 
 

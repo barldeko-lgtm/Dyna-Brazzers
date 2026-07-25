@@ -154,10 +154,18 @@ func _append_rain_debug_lines(lines: Array[String]) -> void:
 		int(rain_data.get("spread_ready_grass_count", 0)),
 		int(rain_data.get("productive_grass_count", 0))
 	])
-	lines.append("Новых клеток %d | центров 5x5: %d | лучший результат: +%d" % [
+	lines.append("Новых клеток %d | центров 5x5: %d" % [
 		int(rain_data.get("unique_spawn_target_count", 0)),
-		int(rain_data.get("candidate_center_count", 0)),
-		int(rain_data.get("best_predicted_new_grass", 0))
+		int(rain_data.get("candidate_center_count", 0))
+	])
+	lines.append("Результат: прогноз +%d | реально +%d | разница %d" % [
+		int(rain_data.get("best_predicted_new_grass", 0)),
+		int(rain_data.get("actual_new_grass", 0)),
+		int(rain_data.get("prediction_gap", 0))
+	])
+	lines.append("Зона поиска: ±%d тайлов от базы | рамка дождя: %.1f сек" % [
+		int(rain_data.get("search_radius_tiles", 0)),
+		float(rain_data.get("rain_frame_duration_seconds", 0.0))
 	])
 	lines.append("Применение: %.3f мс | максимум %.3f мс | запусков %d" % [
 		float(rain_data.get("apply_duration_msec", 0.0)),

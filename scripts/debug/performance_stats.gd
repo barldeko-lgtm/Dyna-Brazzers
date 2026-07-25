@@ -47,6 +47,8 @@ const CSV_HEADER_COLUMNS := [
 	"enemy_rain_unique_spawn_targets_per_sec",
 	"enemy_rain_candidate_centers_per_sec",
 	"enemy_rain_best_spread_max",
+	"enemy_rain_actual_new_grass_per_sec",
+	"enemy_rain_prediction_gap_per_sec",
 	"enemy_rain_apply_calls_per_sec",
 	"enemy_rain_apply_time_ms_per_sec",
 	"enemy_rain_apply_max_ms",
@@ -276,6 +278,8 @@ func append_csv_sample() -> void:
 	row.append(str(get_rate("enemy_rain_unique_spawn_targets")))
 	row.append(str(get_rate("enemy_rain_candidate_centers")))
 	row.append(str(roundi(get_last_max_value("enemy_rain_best_spread_max"))))
+	row.append(str(get_rate("enemy_rain_actual_new_grass")))
+	row.append(str(get_rate("enemy_rain_prediction_gap")))
 	row.append(str(get_rate("enemy_rain_apply_calls")))
 	row.append(format_float(get_rate_float("enemy_rain_apply_usec") / 1000.0, 3))
 	row.append(format_float(get_last_max_value("enemy_rain_apply_max_usec") / 1000.0, 3))
