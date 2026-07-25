@@ -1,14 +1,15 @@
-[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=11 format=3]
+[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/creatures/creature_species_data.gd" id="1_species_script"]
-[ext_resource type="Texture2D" path="res://assets/sprites/creatures/tyrannosaurus/tyrannosaurus_down.png" id="2_down"]
-[ext_resource type="Texture2D" path="res://assets/sprites/creatures/tyrannosaurus/tyrannosaurus_up.png" id="3_up"]
-[ext_resource type="Texture2D" path="res://assets/sprites/creatures/tyrannosaurus/tyrannosaurus_right.png" id="4_right"]
-[ext_resource type="Texture2D" path="res://assets/sprites/creatures/tyrannosaurus/tyrannosaurus_up_right.png" id="5_up_right"]
-[ext_resource type="Texture2D" path="res://assets/sprites/creatures/tyrannosaurus/tyrannosaurus_down_right.png" id="6_down_right"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/tyrannosaurus/tyrannosaurus_down.png" id="2_down"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/tyrannosaurus/tyrannosaurus_up.png" id="3_up"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/tyrannosaurus/tyrannosaurus_right.png" id="4_right"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/tyrannosaurus/tyrannosaurus_up_right.png" id="5_up_right"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/tyrannosaurus/tyrannosaurus_down_right.png" id="6_down_right"]
 [ext_resource type="PackedScene" path="res://scenes/resources/egg.tscn" id="7_egg_scene"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/tyrannosaurus/tyrannosaurus_egg_stage_1.png" id="8_egg_stage_1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/tyrannosaurus/tyrannosaurus_egg_stage_2.png" id="9_egg_stage_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/tyrannosaurus/tyrannosaurus_idle.png" id="10_idle"]
 
 [resource]
 script = ExtResource("1_species_script")
@@ -22,6 +23,7 @@ up_texture = ExtResource("3_up")
 right_texture = ExtResource("4_right")
 up_right_texture = ExtResource("5_up_right")
 down_right_texture = ExtResource("6_down_right")
+idle_texture = ExtResource("10_idle")
 corpse_lifetime = 3.0
 speed = 160.0
 max_health = 160.0

@@ -158,7 +158,8 @@ Current enemy resources:
 
 - exist separately under `data/species/enemy/`;
 - currently mirror the corresponding player balance values;
-- reuse existing directional and egg textures;
+- use faction-specific directional sprites under `assets/sprites/creatures/enemy/<species>/`;
+- currently reuse player egg textures;
 - intentionally omit walk/eat animation frame resources, so static directional poses are used.
 
 Old saves without faction fields restore missing ownership as player. Unknown non-empty faction ids normalize to neutral.
@@ -229,13 +230,15 @@ When adult enemy herbivore satiety is below the configured threshold and energy 
 - ignores isolated DryGround because grass cannot expand into it directly;
 - scores each center with controller-owned weights for unique immediate new-grass cells and adjacent DryGround at zero, one, or two prior rain hits, with more advanced DryGround progress valued more highly;
 - counts each unique immediate new-grass cell once even when several mature sources could create it;
-- still ignores young-grass growth, herd distance, and recovery value beyond the current DryGround hit state;
+- collects valid adult enemy herbivores once per rain search and builds a bounded local demand map around their logical footprints;
+- measures herbivore distance to the edge of the candidate rain area, applies near/middle/far demand weights, and multiplies the ecological score by a clamped controller-owned demand coefficient;
+- still ignores young-grass growth and recovery value beyond the current DryGround hit state;
 - spends energy only after a positive target is found;
 - refunds the cost if the shared rain application still fails.
 
 The persistent orange contour shows the current search boundary. A blue outline shows the latest successful rain area for its configured diagnostic duration. That duration uses real time but pauses with the in-game menu.
 
-F5 displays read-only enemy-AI and rain diagnostics, including the selected new-grass, DryGround-bucket, and total-score breakdown. F8 can record performance samples including search workload, prediction versus actual new grass, selected DryGround value, total target score, and application timing.
+F5 displays compact read-only enemy-AI and rain diagnostics, including the selected new-grass, DryGround buckets, nearby-herbivore demand, multiplier, and total-score breakdown. F8 can record performance samples including search workload, prediction versus actual new grass, selected DryGround value, demand multiplier, total target score, and application timing.
 
 ### Enemy rally objectives
 

@@ -124,7 +124,7 @@ Rules:
 - all current creatures keep the shared logical footprint; do not duplicate it in catalogs;
 - living player energy uses only player-faction creatures present in `PlayerSpeciesCatalog`;
 - living enemy energy uses only enemy-faction creatures present in `EnemySpeciesCatalog`;
-- enemy resources may replace art/stats through `.tres` references without branching common behaviour code;
+- enemy resources select faction-specific directional sprites under `assets/sprites/creatures/enemy/<species>/` through `.tres` references; current egg textures remain shared with player resources;
 - stable enemy resource paths matter once saves contain enemy creatures.
 
 ## Enemy runtime bootstrap
@@ -206,7 +206,10 @@ Current target-search contract:
 - ignore isolated DryGround because cardinal grass spreading cannot reach it directly;
 - obtain partial DryGround progress through the world-grid public `get_dry_ground_rain_hit_data()` API rather than maintaining competing state;
 - sum controller-owned weights for unique immediate new grass and adjacent DryGround at zero, one, or two prior rain hits; keep those tunable weights in `enemy_spell_controller.gd`;
-- still ignore young-grass growth, herd distance, and recovery value beyond the current DryGround hit state.
+- collect eligible adult enemy herbivore footprints once per rain search from the stable `creatures` group, using faction, enemy-catalog resource, and herbivore-diet validation;
+- build only a bounded demand map around those footprints, measure distance to the edge of each candidate rain area, and use controller-owned near/middle/far weights;
+- multiply the ecological base score by a clamped controller-owned herbivore-demand coefficient; candidates with no nearby herbivore demand remain valid at the configured baseline multiplier;
+- still ignore young-grass growth and recovery value beyond the current DryGround hit state.
 
 Diagnostics:
 
@@ -215,7 +218,7 @@ Diagnostics:
 - the blue contour uses real elapsed time but its remaining duration pauses with the in-game menu;
 - simulation speed must not shorten the diagnostic duration;
 - F5 reads public `enemy_ai` data and `enemy_spell_controller.get_rain_debug_data()` only;
-- F5 may display selected immediate-grass count, DryGround hit buckets, DryGround score, and total target score;
+- F5 may display selected immediate-grass count, DryGround hit buckets, eligible/nearby herbivore demand, demand multiplier, base score, and total target score;
 - F5 must not mutate enemy state or make decisions;
 - F8 may record search counts/workload, search/application timing, predicted/actual new grass, selected DryGround value, total target score, and cast rate.
 

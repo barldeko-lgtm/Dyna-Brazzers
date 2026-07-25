@@ -53,7 +53,7 @@ func refresh_debug_text() -> void:
 	var enemy_ai := get_tree().get_first_node_in_group("enemy_ai")
 
 	if enemy_ai == null or not enemy_ai.has_method("get_population_snapshot"):
-		debug_label.text = "Enemy AI — F5\nКонтроллер ИИ не найден."
+		debug_label.text = "Контроллер ИИ не найден."
 		return
 
 	var snapshot_variant: Variant = enemy_ai.call("get_population_snapshot")
@@ -95,7 +95,6 @@ func refresh_debug_text() -> void:
 		herbivore_cap = maxi(int(enemy_ai.call("get_current_herbivore_cap")), 0)
 
 	var lines: Array[String] = []
-	lines.append("Enemy AI — F5")
 	lines.append("Ход: %d | следующий через %.1f сек" % [turn_index, time_until_next_turn])
 	lines.append("Время ИИ: %s | энка: %d" % [
 		_format_elapsed_time(elapsed_simulation_seconds),
@@ -125,13 +124,10 @@ func refresh_debug_text() -> void:
 		]
 	)
 	_append_rain_debug_lines(lines)
-	lines.append("")
-	lines.append("Яйца уже входят в расчёт популяции.")
 	debug_label.text = "\n".join(lines)
 
 
 func _append_rain_debug_lines(lines: Array[String]) -> void:
-	lines.append("")
 	var spell_controller := get_tree().get_first_node_in_group("enemy_spell_controller")
 
 	if spell_controller == null or not spell_controller.has_method("get_rain_debug_data"):
@@ -164,8 +160,20 @@ func _append_rain_debug_lines(lines: Array[String]) -> void:
 		int(rain_data.get("best_dry_ground_one_hit_count", 0)),
 		int(rain_data.get("best_dry_ground_two_hit_count", 0))
 	])
-	lines.append("Оценка: %d = трава %d×%d + Dry %d | веса Dry %d/%d/%d" % [
-		int(rain_data.get("best_total_score", 0)),
+	lines.append("Дино для спроса: %d | в цели %d/%d/%d тайлов: %d/%d/%d | спрос %.2f" % [
+		int(rain_data.get("eligible_herbivore_count", 0)),
+		int(rain_data.get("herbivore_near_distance_tiles", 3)),
+		int(rain_data.get("herbivore_medium_distance_tiles", 6)),
+		int(rain_data.get("herbivore_far_distance_tiles", 10)),
+		int(rain_data.get("best_near_herbivore_count", 0)),
+		int(rain_data.get("best_medium_herbivore_count", 0)),
+		int(rain_data.get("best_far_herbivore_count", 0)),
+		float(rain_data.get("best_herbivore_demand", 0.0))
+	])
+	lines.append("Оценка: %.1f = база %d × %.2f | трава %d×%d + Dry %d | веса Dry %d/%d/%d" % [
+		float(rain_data.get("best_total_score", 0.0)),
+		int(rain_data.get("best_base_score", 0)),
+		float(rain_data.get("best_demand_multiplier", 0.5)),
 		int(rain_data.get("best_predicted_new_grass", 0)),
 		int(rain_data.get("new_grass_score", 10)),
 		int(rain_data.get("best_dry_ground_score", 0)),

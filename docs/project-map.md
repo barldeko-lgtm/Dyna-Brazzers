@@ -164,7 +164,8 @@ Audio:
 - `assets/audio/sfx/earthquake_cast.wav`
 - `assets/audio/ui/button_click.wav`
 
-Creature visuals live under `assets/sprites/creatures/<species>/`.
+Player creature visuals live under `assets/sprites/creatures/<species>/`.
+Enemy directional visuals live under `assets/sprites/creatures/enemy/<species>/`; their `.tres` resources select them while current egg textures remain shared with player resources.
 
 ## Save files
 

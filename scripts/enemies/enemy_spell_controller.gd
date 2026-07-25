@@ -7,8 +7,12 @@ class_name EnemySpellController
 #
 # Rain targeting stays local to the visible map-clipped contour around the enemy
 # base. It scores immediate unique grass spread plus DryGround recovery, but only
-# when that DryGround is cardinally adjacent to existing grass. Isolated desert,
-# herd distance, and young-grass growth are intentionally ignored for now.
+# when that DryGround is cardinally adjacent to existing grass. The ecological
+# score is then adjusted by nearby adult enemy-herbivore demand. Isolated desert
+# and young-grass growth remain intentionally ignored.
+const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
+const ENEMY_SPECIES_CATALOG := preload("res://scripts/catalogs/enemy_species_catalog.gd")
+
 const MATURE_GRASS_STAGE := 3
 const INITIALIZATION_RETRY_FRAMES := 12
 const INVALID_TILE := Vector2i(2147483647, 2147483647)
@@ -25,6 +29,14 @@ const CARDINAL_OFFSETS: Array[Vector2i] = [
 @export var dry_ground_zero_hit_score := 5
 @export var dry_ground_one_hit_score := 7
 @export var dry_ground_two_hit_score := 9
+@export var empty_area_score_multiplier := 0.5
+@export var herbivore_demand_multiplier_step := 0.2
+@export var maximum_herbivore_score_multiplier := 2.0
+@export var herbivore_near_distance_tiles := 3
+@export var herbivore_medium_distance_tiles := 6
+@export var herbivore_far_distance_tiles := 10
+@export_range(0.0, 1.0, 0.05) var herbivore_medium_demand_weight := 0.5
+@export_range(0.0, 1.0, 0.05) var herbivore_far_demand_weight := 0.25
 @export var rain_search_radius_tiles := 30
 @export var rain_area_frame_duration_seconds := 4.0
 @export var search_area_frame_color := Color(1.0, 0.48, 0.12, 0.82)
@@ -57,7 +69,14 @@ var last_best_dry_ground_zero_hit_count := 0
 var last_best_dry_ground_one_hit_count := 0
 var last_best_dry_ground_two_hit_count := 0
 var last_best_dry_ground_score := 0
-var last_best_total_score := 0
+var last_eligible_herbivore_count := 0
+var last_best_near_herbivore_count := 0
+var last_best_medium_herbivore_count := 0
+var last_best_far_herbivore_count := 0
+var last_best_herbivore_demand := 0.0
+var last_best_demand_multiplier := 0.5
+var last_best_base_score := 0
+var last_best_total_score := 0.0
 var last_actual_new_grass := 0
 var last_search_duration_usec := 0
 var max_search_duration_usec := 0
@@ -275,13 +294,13 @@ func _try_cast_rain_for_hungry_herd() -> bool:
 	last_rain_target_tile = target_tile
 	_show_rain_area_frame(target_tile)
 	last_action_text = (
-		"дождь: %s, балл %d = трава %d×%d + Dry %d; прогноз +%d / реально +%d"
+		"дождь: %s, балл %.1f = база %d × %.2f; спрос %.2f; прогноз +%d / реально +%d"
 		% [
 			_format_tile(target_tile),
 			last_best_total_score,
-			last_best_predicted_new_grass,
-			maxi(new_grass_score, 0),
-			last_best_dry_ground_score,
+			last_best_base_score,
+			last_best_demand_multiplier,
+			last_best_herbivore_demand,
 			last_best_predicted_new_grass,
 			last_actual_new_grass
 		]
@@ -315,7 +334,18 @@ func _try_cast_rain_for_hungry_herd() -> bool:
 		"enemy_rain_selected_dry_ground_score",
 		last_best_dry_ground_score
 	)
-	PerformanceStats.add_counter("enemy_rain_selected_total_score", last_best_total_score)
+	PerformanceStats.add_counter(
+		"enemy_rain_selected_total_score",
+		roundi(last_best_total_score)
+	)
+	PerformanceStats.add_counter(
+		"enemy_rain_selected_eligible_herbivores",
+		last_eligible_herbivore_count
+	)
+	PerformanceStats.set_max_value(
+		"enemy_rain_selected_demand_multiplier_max",
+		last_best_demand_multiplier
+	)
 	return true
 
 
@@ -470,13 +500,23 @@ func _find_best_rain_target() -> Dictionary:
 			candidate_centers[center_variant] = true
 
 	last_candidate_center_count = candidate_centers.size()
+	var herbivore_footprints := _collect_eligible_enemy_herbivore_footprints()
+	last_eligible_herbivore_count = herbivore_footprints.size()
+	var herbivore_demand_by_center := _build_herbivore_demand_map(
+		herbivore_footprints,
+		candidate_centers,
+		rain_radius
+	)
 	var best_center := INVALID_TILE
-	var best_total_score := -1
+	var best_total_score := -1.0
+	var best_base_score := 0
 	var best_predicted_new_grass := 0
 	var best_dry_ground_zero_hit_count := 0
 	var best_dry_ground_one_hit_count := 0
 	var best_dry_ground_two_hit_count := 0
 	var best_dry_ground_score := 0
+	var best_herbivore_demand := 0.0
+	var best_demand_multiplier := _get_herbivore_demand_multiplier(0.0)
 	var safe_new_grass_score := maxi(new_grass_score, 0)
 
 	for center_variant: Variant in candidate_centers.keys():
@@ -486,7 +526,10 @@ func _find_best_rain_target() -> Dictionary:
 		var center_tile: Vector2i = center_variant
 		var predicted_new_grass := int(candidate_new_grass.get(center_tile, 0))
 		var dry_score := int(candidate_dry_ground_score.get(center_tile, 0))
-		var total_score := predicted_new_grass * safe_new_grass_score + dry_score
+		var base_score := predicted_new_grass * safe_new_grass_score + dry_score
+		var herbivore_demand := float(herbivore_demand_by_center.get(center_tile, 0.0))
+		var demand_multiplier := _get_herbivore_demand_multiplier(herbivore_demand)
+		var total_score := float(base_score) * demand_multiplier
 
 		if _is_better_candidate(
 			center_tile,
@@ -496,6 +539,7 @@ func _find_best_rain_target() -> Dictionary:
 		):
 			best_center = center_tile
 			best_total_score = total_score
+			best_base_score = base_score
 			best_predicted_new_grass = predicted_new_grass
 			best_dry_ground_zero_hit_count = int(
 				candidate_dry_ground_zero_hit.get(center_tile, 0)
@@ -507,18 +551,31 @@ func _find_best_rain_target() -> Dictionary:
 				candidate_dry_ground_two_hit.get(center_tile, 0)
 			)
 			best_dry_ground_score = dry_score
+			best_herbivore_demand = herbivore_demand
+			best_demand_multiplier = demand_multiplier
 
+	var best_demand_breakdown := _get_herbivore_demand_breakdown(
+		best_center,
+		herbivore_footprints,
+		rain_radius
+	)
 	last_best_predicted_new_grass = best_predicted_new_grass
 	last_best_dry_ground_zero_hit_count = best_dry_ground_zero_hit_count
 	last_best_dry_ground_one_hit_count = best_dry_ground_one_hit_count
 	last_best_dry_ground_two_hit_count = best_dry_ground_two_hit_count
 	last_best_dry_ground_score = best_dry_ground_score
-	last_best_total_score = maxi(best_total_score, 0)
+	last_best_near_herbivore_count = int(best_demand_breakdown.get("near", 0))
+	last_best_medium_herbivore_count = int(best_demand_breakdown.get("medium", 0))
+	last_best_far_herbivore_count = int(best_demand_breakdown.get("far", 0))
+	last_best_herbivore_demand = best_herbivore_demand
+	last_best_demand_multiplier = best_demand_multiplier
+	last_best_base_score = best_base_score
+	last_best_total_score = maxf(best_total_score, 0.0)
 	_finish_search_measurement(search_start_usec)
 
 	if (
 		best_center == INVALID_TILE
-		or best_total_score < maxi(minimum_rain_target_score, 1)
+		or best_total_score < float(maxi(minimum_rain_target_score, 1))
 	):
 		return result
 
@@ -529,6 +586,12 @@ func _find_best_rain_target() -> Dictionary:
 		"dry_ground_one_hit_count": best_dry_ground_one_hit_count,
 		"dry_ground_two_hit_count": best_dry_ground_two_hit_count,
 		"dry_ground_score": best_dry_ground_score,
+		"near_herbivore_count": last_best_near_herbivore_count,
+		"medium_herbivore_count": last_best_medium_herbivore_count,
+		"far_herbivore_count": last_best_far_herbivore_count,
+		"herbivore_demand": best_herbivore_demand,
+		"demand_multiplier": best_demand_multiplier,
+		"base_score": best_base_score,
 		"total_score": best_total_score
 	}
 
@@ -568,7 +631,11 @@ func _finish_search_measurement(search_start_usec: int) -> void:
 	)
 	PerformanceStats.add_counter(
 		"enemy_rain_best_total_score",
-		last_best_total_score
+		roundi(last_best_total_score)
+	)
+	PerformanceStats.add_counter(
+		"enemy_rain_eligible_herbivores",
+		last_eligible_herbivore_count
 	)
 	PerformanceStats.set_max_value(
 		"enemy_rain_search_max_usec",
@@ -581,6 +648,10 @@ func _finish_search_measurement(search_start_usec: int) -> void:
 	PerformanceStats.set_max_value(
 		"enemy_rain_best_total_score_max",
 		last_best_total_score
+	)
+	PerformanceStats.set_max_value(
+		"enemy_rain_demand_multiplier_max",
+		last_best_demand_multiplier
 	)
 
 
@@ -692,6 +763,181 @@ func _get_dry_ground_score_for_hits(rain_hits: int) -> int:
 			return maxi(dry_ground_zero_hit_score, 0)
 
 
+func _collect_eligible_enemy_herbivore_footprints() -> Array[Rect2i]:
+	var footprints: Array[Rect2i] = []
+
+	for creature_variant: Variant in get_tree().get_nodes_in_group("creatures"):
+		var creature := creature_variant as Node
+
+		if not _is_eligible_enemy_herbivore(creature):
+			continue
+
+		var anchor_variant: Variant = creature.get("anchor_tile")
+		var footprint_variant: Variant = creature.get("footprint_size")
+
+		if not (anchor_variant is Vector2i and footprint_variant is Vector2i):
+			continue
+
+		var anchor_tile: Vector2i = anchor_variant
+		var footprint_size: Vector2i = footprint_variant
+		footprints.append(Rect2i(
+			anchor_tile,
+			Vector2i(maxi(footprint_size.x, 1), maxi(footprint_size.y, 1))
+		))
+
+	return footprints
+
+
+func _is_eligible_enemy_herbivore(creature: Node) -> bool:
+	if (
+		creature == null
+		or not is_instance_valid(creature)
+		or creature.is_queued_for_deletion()
+		or CREATURE_FACTION.get_id(creature) != CREATURE_FACTION.ENEMY
+	):
+		return false
+
+	var species_data := creature.get("species_data") as CreatureSpeciesData
+
+	if species_data == null or not species_data.is_herbivore():
+		return false
+
+	return ENEMY_SPECIES_CATALOG.get_species_data(species_data.species_id) == species_data
+
+
+func _build_herbivore_demand_map(
+	herbivore_footprints: Array[Rect2i],
+	candidate_centers: Dictionary,
+	rain_radius: int
+) -> Dictionary:
+	var demand_by_center: Dictionary = {}
+	var far_distance := _get_far_herbivore_distance_tiles()
+	var safe_rain_radius := maxi(rain_radius, 0)
+	var expansion := safe_rain_radius + far_distance
+
+	for footprint: Rect2i in herbivore_footprints:
+		var footprint_max := footprint.position + footprint.size - Vector2i.ONE
+
+		for center_y in range(
+			footprint.position.y - expansion,
+			footprint_max.y + expansion + 1
+		):
+			for center_x in range(
+				footprint.position.x - expansion,
+				footprint_max.x + expansion + 1
+			):
+				var center_tile := Vector2i(center_x, center_y)
+
+				if not candidate_centers.has(center_tile):
+					continue
+
+				var distance := _get_distance_from_footprint_to_rain_area(
+					footprint,
+					center_tile,
+					safe_rain_radius
+				)
+				var demand_weight := _get_herbivore_demand_weight(distance)
+
+				if demand_weight <= 0.0:
+					continue
+
+				demand_by_center[center_tile] = float(
+					demand_by_center.get(center_tile, 0.0)
+				) + demand_weight
+
+	return demand_by_center
+
+
+func _get_herbivore_demand_breakdown(
+	center_tile: Vector2i,
+	herbivore_footprints: Array[Rect2i],
+	rain_radius: int
+) -> Dictionary:
+	var breakdown := {
+		"near": 0,
+		"medium": 0,
+		"far": 0
+	}
+
+	if center_tile == INVALID_TILE:
+		return breakdown
+
+	var near_distance := _get_near_herbivore_distance_tiles()
+	var medium_distance := _get_medium_herbivore_distance_tiles()
+	var far_distance := _get_far_herbivore_distance_tiles()
+
+	for footprint: Rect2i in herbivore_footprints:
+		var distance := _get_distance_from_footprint_to_rain_area(
+			footprint,
+			center_tile,
+			rain_radius
+		)
+
+		if distance <= near_distance:
+			breakdown["near"] = int(breakdown["near"]) + 1
+		elif distance <= medium_distance:
+			breakdown["medium"] = int(breakdown["medium"]) + 1
+		elif distance <= far_distance:
+			breakdown["far"] = int(breakdown["far"]) + 1
+
+	return breakdown
+
+
+func _get_distance_from_footprint_to_rain_area(
+	footprint: Rect2i,
+	center_tile: Vector2i,
+	rain_radius: int
+) -> int:
+	var safe_radius := maxi(rain_radius, 0)
+	var rain_min := center_tile - Vector2i(safe_radius, safe_radius)
+	var rain_max := center_tile + Vector2i(safe_radius, safe_radius)
+	var footprint_min := footprint.position
+	var footprint_max := footprint.position + footprint.size - Vector2i.ONE
+	var gap_x := maxi(
+		maxi(footprint_min.x - rain_max.x, rain_min.x - footprint_max.x),
+		0
+	)
+	var gap_y := maxi(
+		maxi(footprint_min.y - rain_max.y, rain_min.y - footprint_max.y),
+		0
+	)
+	return maxi(gap_x, gap_y)
+
+
+func _get_herbivore_demand_weight(distance_tiles: int) -> float:
+	if distance_tiles <= _get_near_herbivore_distance_tiles():
+		return 1.0
+	if distance_tiles <= _get_medium_herbivore_distance_tiles():
+		return clampf(herbivore_medium_demand_weight, 0.0, 1.0)
+	if distance_tiles <= _get_far_herbivore_distance_tiles():
+		return clampf(herbivore_far_demand_weight, 0.0, 1.0)
+
+	return 0.0
+
+
+func _get_herbivore_demand_multiplier(weighted_demand: float) -> float:
+	var base_multiplier := maxf(empty_area_score_multiplier, 0.0)
+	var maximum_multiplier := maxf(maximum_herbivore_score_multiplier, base_multiplier)
+	return clampf(
+		base_multiplier
+		+ maxf(herbivore_demand_multiplier_step, 0.0) * maxf(weighted_demand, 0.0),
+		base_multiplier,
+		maximum_multiplier
+	)
+
+
+func _get_near_herbivore_distance_tiles() -> int:
+	return maxi(herbivore_near_distance_tiles, 0)
+
+
+func _get_medium_herbivore_distance_tiles() -> int:
+	return maxi(herbivore_medium_distance_tiles, _get_near_herbivore_distance_tiles())
+
+
+func _get_far_herbivore_distance_tiles() -> int:
+	return maxi(herbivore_far_distance_tiles, _get_medium_herbivore_distance_tiles())
+
+
 func _append_covering_centers(
 	covered_centers: Dictionary,
 	covered_tile: Vector2i,
@@ -710,14 +956,12 @@ func _append_covering_centers(
 
 func _is_better_candidate(
 	candidate_tile: Vector2i,
-	candidate_score: int,
+	candidate_score: float,
 	best_tile: Vector2i,
-	best_score: int
+	best_score: float
 ) -> bool:
-	if candidate_score > best_score:
-		return true
-	if candidate_score < best_score:
-		return false
+	if not is_equal_approx(candidate_score, best_score):
+		return candidate_score > best_score
 	if best_tile == INVALID_TILE:
 		return true
 
@@ -894,7 +1138,14 @@ func _reset_last_search_stats() -> void:
 	last_best_dry_ground_one_hit_count = 0
 	last_best_dry_ground_two_hit_count = 0
 	last_best_dry_ground_score = 0
-	last_best_total_score = 0
+	last_eligible_herbivore_count = 0
+	last_best_near_herbivore_count = 0
+	last_best_medium_herbivore_count = 0
+	last_best_far_herbivore_count = 0
+	last_best_herbivore_demand = 0.0
+	last_best_demand_multiplier = _get_herbivore_demand_multiplier(0.0)
+	last_best_base_score = 0
+	last_best_total_score = 0.0
 	last_actual_new_grass = 0
 	last_search_duration_usec = 0
 	last_apply_duration_usec = 0
@@ -963,11 +1214,27 @@ func get_rain_debug_data() -> Dictionary:
 		"best_dry_ground_one_hit_count": last_best_dry_ground_one_hit_count,
 		"best_dry_ground_two_hit_count": last_best_dry_ground_two_hit_count,
 		"best_dry_ground_score": last_best_dry_ground_score,
+		"eligible_herbivore_count": last_eligible_herbivore_count,
+		"best_near_herbivore_count": last_best_near_herbivore_count,
+		"best_medium_herbivore_count": last_best_medium_herbivore_count,
+		"best_far_herbivore_count": last_best_far_herbivore_count,
+		"best_herbivore_demand": last_best_herbivore_demand,
+		"best_demand_multiplier": last_best_demand_multiplier,
+		"best_base_score": last_best_base_score,
 		"best_total_score": last_best_total_score,
 		"new_grass_score": maxi(new_grass_score, 0),
 		"dry_ground_zero_hit_score": maxi(dry_ground_zero_hit_score, 0),
 		"dry_ground_one_hit_score": maxi(dry_ground_one_hit_score, 0),
 		"dry_ground_two_hit_score": maxi(dry_ground_two_hit_score, 0),
+		"empty_area_score_multiplier": maxf(empty_area_score_multiplier, 0.0),
+		"herbivore_demand_multiplier_step": maxf(herbivore_demand_multiplier_step, 0.0),
+		"maximum_herbivore_score_multiplier": maxf(
+			maximum_herbivore_score_multiplier,
+			maxf(empty_area_score_multiplier, 0.0)
+		),
+		"herbivore_near_distance_tiles": _get_near_herbivore_distance_tiles(),
+		"herbivore_medium_distance_tiles": _get_medium_herbivore_distance_tiles(),
+		"herbivore_far_distance_tiles": _get_far_herbivore_distance_tiles(),
 		"actual_new_grass": last_actual_new_grass,
 		"prediction_gap": last_best_predicted_new_grass - last_actual_new_grass,
 		"search_duration_msec": get_last_search_duration_msec(),
