@@ -89,8 +89,11 @@ func apply_rain(center_tile: Vector2i) -> bool:
 
 	var checked_tiles := 0
 	var affected_grass := 0
+	var grass_snapshot: Array[Node] = []
 
-	# Let mature grass attempt to spread while DryGround is still blocking its cells.
+	# Capture the grass that existed at the start of the cast before any mature
+	# source can create new grass. Newborn grass must not receive the same rain a
+	# second time merely because its tile appears later in the 5x5 scan order.
 	for y in range(center_tile.y - rain_radius_tiles, center_tile.y + rain_radius_tiles + 1):
 		for x in range(center_tile.x - rain_radius_tiles, center_tile.x + rain_radius_tiles + 1):
 			checked_tiles += 1
@@ -104,8 +107,18 @@ func apply_rain(center_tile: Vector2i) -> bool:
 			if not is_instance_valid(grass) or not grass.has_method("apply_rain"):
 				continue
 
-			if grass.call("apply_rain"):
-				affected_grass += 1
+			grass_snapshot.append(grass)
+
+	# Let only the pre-cast snapshot react while DryGround is still blocking its
+	# cells. Grass spawned by these calls remains at stage 1 until a later event.
+	for grass: Node in grass_snapshot:
+		if not is_instance_valid(grass) or grass.is_queued_for_deletion():
+			continue
+		if not grass.has_method("apply_rain"):
+			continue
+
+		if grass.call("apply_rain"):
+			affected_grass += 1
 
 	var dry_ground_result: Dictionary = {}
 

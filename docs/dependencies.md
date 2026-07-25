@@ -593,6 +593,7 @@ Main files:
 Rules:
 
 - `player_nature_ui.gd` owns player rain targeting and preview, `enemy_spell_controller.gd` owns automatic enemy rain decisions and cost handling, and `nature_effects_system.gd` remains the single owner of successful rain gameplay and cast VFX;
+- `nature_effects_system.gd` must collect the valid grass nodes present in the cast area before calling any grass `apply_rain()` method; grass spawned during that cast must not enter the same snapshot or advance beyond stage 1 from that cast;
 - the visual effect must not apply grass changes itself;
 - playback remains independent of `Engine.time_scale`;
 - preserve real alpha transparency;
