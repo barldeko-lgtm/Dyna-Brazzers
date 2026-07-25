@@ -1,6 +1,7 @@
 extends RefCounted
 
 const Duel = preload("res://scripts/combat/duel.gd")
+const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const TARGET_RECHECK_INTERVAL := 2.0
 const TARGET_SWITCH_ADVANTAGE_STEPS := 2
 const TARGET_CANDIDATE_LIMIT := 3
@@ -187,11 +188,24 @@ func _has_valid_hunt_target() -> bool:
 		if pending_opponent != null and pending_opponent != creature:
 			return false
 
-	if target_prey.has_method("get_is_predator"):
-		return not bool(target_prey.get_is_predator())
+	return _is_allowed_prey_by_diet_and_faction(target_prey)
 
-	var target_species := target_prey.get("species_data") as CreatureSpeciesData
-	return target_species != null and not target_species.is_predator()
+
+func _is_allowed_prey_by_diet_and_faction(candidate: Node) -> bool:
+	var candidate_species := candidate.get("species_data") as CreatureSpeciesData
+
+	if candidate_species == null:
+		return false
+
+	if candidate_species.is_predator() or candidate_species.is_egg_eater():
+		var hunter_faction := CREATURE_FACTION.get_id(creature)
+		var candidate_faction := CREATURE_FACTION.get_id(candidate)
+		return (
+			(hunter_faction == CREATURE_FACTION.PLAYER and candidate_faction == CREATURE_FACTION.ENEMY)
+			or (hunter_faction == CREATURE_FACTION.ENEMY and candidate_faction == CREATURE_FACTION.PLAYER)
+		)
+
+	return true
 
 
 func _is_prey_claimed_by_other_hunter(prey: Node) -> bool:
@@ -494,11 +508,7 @@ func is_valid_prey(candidate: Node) -> bool:
 	if _is_prey_claimed_by_other_hunter(candidate):
 		return false
 
-	if candidate.has_method("get_is_predator"):
-		return not bool(candidate.call("get_is_predator"))
-
-	var candidate_species := candidate.get("species_data") as CreatureSpeciesData
-	return candidate_species != null and not candidate_species.is_predator()
+	return _is_allowed_prey_by_diet_and_faction(candidate)
 
 
 func is_prey_in_duel_range(prey: Node) -> bool:
@@ -527,7 +537,11 @@ func _resolve_pending_duel(prey: Node) -> void:
 		creature.cancel_pending_duel()
 		return
 
-	if not prey.has_method("can_be_hunted") or not bool(prey.can_be_hunted()):
+	if (
+		not prey.has_method("can_be_hunted")
+		or not bool(prey.can_be_hunted())
+		or not _is_allowed_prey_by_diet_and_faction(prey)
+	):
 		_cancel_duel_settlement(prey)
 		return
 
@@ -752,7 +766,11 @@ func start_duel_with(opponent: Node) -> Duel:
 	if not creature.can_fight():
 		return null
 
-	if not opponent.has_method("can_be_hunted") or not opponent.can_be_hunted():
+	if (
+		not opponent.has_method("can_be_hunted")
+		or not opponent.can_be_hunted()
+		or not _is_allowed_prey_by_diet_and_faction(opponent)
+	):
 		return null
 
 	if not is_prey_in_duel_range(opponent):

@@ -108,7 +108,7 @@ Occupancy and movement reservations are checked live and are not stored in the p
 
 ### Predators and egg eaters
 
-Predators compare a small nearest-prey set by reachable route length, reserve only the final combat engagement, and use shared movement and duel systems.
+Predators compare a small nearest-prey set by reachable route length, reserve only the final combat engagement, and use shared movement and duel systems. Herbivores remain valid prey under the existing rules. Predators and egg eaters may be hunted only across the player/enemy faction boundary; same-faction predators and egg eaters are rejected during target selection, target revalidation, pending-duel settlement, and duel start.
 
 Egg eaters are a separate diet category. They target edible egg stages, use route logic similar to predators, consume eggs instead of starting duels, and let hunger override indirect flag movement.
 

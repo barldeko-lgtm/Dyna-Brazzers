@@ -299,6 +299,8 @@ Predator rules:
 
 - compare a small nearest available prey set by actual reachable approach routes;
 - valid approaches overlap a footprint side; full corner-only diagonals remain invalid;
+- keep the existing herbivore prey eligibility; predators and egg eaters are valid prey only across the player/enemy faction boundary;
+- same-faction predators and egg eaters must be rejected during acquisition, target revalidation, pending-duel settlement, and duel start;
 - prey may be pursued by several hunters, but final combat engagement is exclusive;
 - hunters losing engagement must release the target and search again through normal predator logic.
 
