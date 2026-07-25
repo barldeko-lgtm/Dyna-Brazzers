@@ -224,16 +224,18 @@ The disabled legacy round-robin producer remains instantiated only for backward-
 When adult enemy herbivore satiety is below the configured threshold and energy is available, it:
 
 - searches only the map-clipped area around the enemy base;
-- considers mature grass whose spread attempt remains available;
-- builds rain centers only around useful grass;
-- scores candidates by unique immediately spawnable grass cells;
-- ignores DryGround value, young-grass growth, herd distance, and long-term recovery in the current first pass;
+- preserves immediate-spread candidates from mature grass whose spread attempt remains available;
+- also builds candidates from DryGround only when that DryGround has cardinally adjacent existing grass;
+- ignores isolated DryGround because grass cannot expand into it directly;
+- scores each center with controller-owned weights for unique immediate new-grass cells and adjacent DryGround at zero, one, or two prior rain hits, with more advanced DryGround progress valued more highly;
+- counts each unique immediate new-grass cell once even when several mature sources could create it;
+- still ignores young-grass growth, herd distance, and recovery value beyond the current DryGround hit state;
 - spends energy only after a positive target is found;
 - refunds the cost if the shared rain application still fails.
 
 The persistent orange contour shows the current search boundary. A blue outline shows the latest successful rain area for its configured diagnostic duration. That duration uses real time but pauses with the in-game menu.
 
-F5 displays read-only enemy-AI and rain diagnostics. F8 can record performance samples including search workload, prediction versus actual new grass, and application timing.
+F5 displays read-only enemy-AI and rain diagnostics, including the selected new-grass, DryGround-bucket, and total-score breakdown. F8 can record performance samples including search workload, prediction versus actual new grass, selected DryGround value, total target score, and application timing.
 
 ### Enemy rally objectives
 

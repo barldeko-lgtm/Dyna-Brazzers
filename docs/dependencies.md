@@ -197,13 +197,16 @@ Trigger and cost rules:
 Current target-search contract:
 
 - resolve the search contour from the current enemy-base footprint, the controller's configured search radius, and map bounds;
-- reject grass sources and future grass cells outside the contour;
+- reject grass sources, relevant DryGround, and future grass cells outside the contour;
 - reject centers whose complete shared rain area would cross the contour;
-- scan registered mature grass only;
-- require an unused spread attempt;
-- use the same `can_host_grass()` and `has_grass_at_tile()` rules as real spreading;
-- count each unique immediately spawnable cell once;
-- ignore DryGround value, young-grass growth, herd distance, and long-term recovery in the current first pass.
+- preserve registered mature-grass candidates only when their spread attempt remains unused;
+- use the same `can_host_grass()` and `has_grass_at_tile()` rules as real immediate spreading;
+- count each unique immediately spawnable cell once even when several mature sources could create it;
+- allow DryGround to create candidates and contribute score only when at least one cardinal neighbouring tile contains existing grass;
+- ignore isolated DryGround because cardinal grass spreading cannot reach it directly;
+- obtain partial DryGround progress through the world-grid public `get_dry_ground_rain_hit_data()` API rather than maintaining competing state;
+- sum controller-owned weights for unique immediate new grass and adjacent DryGround at zero, one, or two prior rain hits; keep those tunable weights in `enemy_spell_controller.gd`;
+- still ignore young-grass growth, herd distance, and recovery value beyond the current DryGround hit state.
 
 Diagnostics:
 
@@ -212,8 +215,9 @@ Diagnostics:
 - the blue contour uses real elapsed time but its remaining duration pauses with the in-game menu;
 - simulation speed must not shorten the diagnostic duration;
 - F5 reads public `enemy_ai` data and `enemy_spell_controller.get_rain_debug_data()` only;
+- F5 may display selected immediate-grass count, DryGround hit buckets, DryGround score, and total target score;
 - F5 must not mutate enemy state or make decisions;
-- F8 may record search counts/workload, search/application timing, predicted/actual new grass, and cast rate.
+- F8 may record search counts/workload, search/application timing, predicted/actual new grass, selected DryGround value, total target score, and cast rate.
 
 ## Grass lifecycle and shared rain
 

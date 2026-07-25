@@ -158,6 +158,21 @@ func _append_rain_debug_lines(lines: Array[String]) -> void:
 		int(rain_data.get("unique_spawn_target_count", 0)),
 		int(rain_data.get("candidate_center_count", 0))
 	])
+	lines.append("DryGround у травы: всего %d | в цели 0/3 %d, 1/3 %d, 2/3 %d" % [
+		int(rain_data.get("adjacent_dry_ground_count", 0)),
+		int(rain_data.get("best_dry_ground_zero_hit_count", 0)),
+		int(rain_data.get("best_dry_ground_one_hit_count", 0)),
+		int(rain_data.get("best_dry_ground_two_hit_count", 0))
+	])
+	lines.append("Оценка: %d = трава %d×%d + Dry %d | веса Dry %d/%d/%d" % [
+		int(rain_data.get("best_total_score", 0)),
+		int(rain_data.get("best_predicted_new_grass", 0)),
+		int(rain_data.get("new_grass_score", 10)),
+		int(rain_data.get("best_dry_ground_score", 0)),
+		int(rain_data.get("dry_ground_zero_hit_score", 5)),
+		int(rain_data.get("dry_ground_one_hit_score", 7)),
+		int(rain_data.get("dry_ground_two_hit_score", 9))
+	])
 	lines.append("Результат: прогноз +%d | реально +%d | разница %d" % [
 		int(rain_data.get("best_predicted_new_grass", 0)),
 		int(rain_data.get("actual_new_grass", 0)),

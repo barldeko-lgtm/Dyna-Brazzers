@@ -5,10 +5,10 @@ class_name EnemySpellController
 # spell listens to the four-second enemy-AI snapshot and casts shared world rain
 # only when adult enemy herbivore satiety falls below the snapshot threshold.
 #
-# Rain targeting intentionally starts small: it ignores DryGround, herd distance,
-# and young-grass growth. It searches only the visible map-clipped contour around
-# the enemy base and scores how many unique grass cells mature grass can create
-# immediately after one 5x5 rain cast.
+# Rain targeting stays local to the visible map-clipped contour around the enemy
+# base. It scores immediate unique grass spread plus DryGround recovery, but only
+# when that DryGround is cardinally adjacent to existing grass. Isolated desert,
+# herd distance, and young-grass growth are intentionally ignored for now.
 const MATURE_GRASS_STAGE := 3
 const INITIALIZATION_RETRY_FRAMES := 12
 const INVALID_TILE := Vector2i(2147483647, 2147483647)
@@ -20,7 +20,11 @@ const CARDINAL_OFFSETS: Array[Vector2i] = [
 ]
 
 @export var rain_energy_cost := 50.0
-@export var minimum_predicted_new_grass := 1
+@export var minimum_rain_target_score := 1
+@export var new_grass_score := 10
+@export var dry_ground_zero_hit_score := 5
+@export var dry_ground_one_hit_score := 7
+@export var dry_ground_two_hit_score := 9
 @export var rain_search_radius_tiles := 30
 @export var rain_area_frame_duration_seconds := 4.0
 @export var search_area_frame_color := Color(1.0, 0.48, 0.12, 0.82)
@@ -46,8 +50,14 @@ var last_mature_grass_count := 0
 var last_spread_ready_grass_count := 0
 var last_productive_grass_count := 0
 var last_unique_spawn_target_count := 0
+var last_adjacent_dry_ground_count := 0
 var last_candidate_center_count := 0
 var last_best_predicted_new_grass := 0
+var last_best_dry_ground_zero_hit_count := 0
+var last_best_dry_ground_one_hit_count := 0
+var last_best_dry_ground_two_hit_count := 0
+var last_best_dry_ground_score := 0
+var last_best_total_score := 0
 var last_actual_new_grass := 0
 var last_search_duration_usec := 0
 var max_search_duration_usec := 0
@@ -222,10 +232,10 @@ func _try_cast_rain_for_hungry_herd() -> bool:
 		PerformanceStats.add_counter("enemy_rain_wait_energy")
 		return false
 
-	var target_data := _find_best_immediate_spread_target()
+	var target_data := _find_best_rain_target()
 
 	if target_data.is_empty():
-		last_action_text = "дождь отложен: зрелая трава не может размножиться"
+		last_action_text = "дождь отложен: рядом с травой нет полезной цели"
 		PerformanceStats.add_counter("enemy_rain_no_target")
 		return false
 
@@ -264,11 +274,18 @@ func _try_cast_rain_for_hungry_herd() -> bool:
 
 	last_rain_target_tile = target_tile
 	_show_rain_area_frame(target_tile)
-	last_action_text = "дождь: %s, прогноз +%d / реально +%d" % [
-		_format_tile(target_tile),
-		last_best_predicted_new_grass,
-		last_actual_new_grass
-	]
+	last_action_text = (
+		"дождь: %s, балл %d = трава %d×%d + Dry %d; прогноз +%d / реально +%d"
+		% [
+			_format_tile(target_tile),
+			last_best_total_score,
+			last_best_predicted_new_grass,
+			maxi(new_grass_score, 0),
+			last_best_dry_ground_score,
+			last_best_predicted_new_grass,
+			last_actual_new_grass
+		]
+	)
 	PerformanceStats.add_counter("enemy_rain_casts")
 	PerformanceStats.add_counter(
 		"enemy_rain_predicted_new_grass",
@@ -282,14 +299,31 @@ func _try_cast_rain_for_hungry_herd() -> bool:
 		"enemy_rain_prediction_gap",
 		last_best_predicted_new_grass - last_actual_new_grass
 	)
+	PerformanceStats.add_counter(
+		"enemy_rain_selected_dry_ground_zero_hit",
+		last_best_dry_ground_zero_hit_count
+	)
+	PerformanceStats.add_counter(
+		"enemy_rain_selected_dry_ground_one_hit",
+		last_best_dry_ground_one_hit_count
+	)
+	PerformanceStats.add_counter(
+		"enemy_rain_selected_dry_ground_two_hit",
+		last_best_dry_ground_two_hit_count
+	)
+	PerformanceStats.add_counter(
+		"enemy_rain_selected_dry_ground_score",
+		last_best_dry_ground_score
+	)
+	PerformanceStats.add_counter("enemy_rain_selected_total_score", last_best_total_score)
 	return true
 
 
-func _find_best_immediate_spread_target() -> Dictionary:
+func _find_best_rain_target() -> Dictionary:
 	var search_start_usec := Time.get_ticks_usec()
 	var result: Dictionary = {}
 
-	if not _can_scan_grass_registry():
+	if not _can_scan_rain_target_data():
 		_finish_search_measurement(search_start_usec)
 		return result
 
@@ -303,9 +337,8 @@ func _find_best_immediate_spread_target() -> Dictionary:
 	var grass_registry: Dictionary = grass_registry_variant as Dictionary
 	var source_tiles_by_spawn_target: Dictionary = {}
 
-	# First map each unique cell that could receive new grass to the mature grass
-	# sources capable of creating it. A target can have several sources, but it
-	# must count only once in a candidate rain score.
+	# Map each unique cell that can receive new grass to all mature sources able
+	# to create it. The future cell counts once even when several sources share it.
 	for grass_tile_variant: Variant in grass_registry.keys():
 		last_grass_entries_scanned += 1
 
@@ -323,6 +356,7 @@ func _find_best_immediate_spread_target() -> Dictionary:
 			continue
 
 		last_mature_grass_count += 1
+
 		if bool(grass.get("has_tried_to_spread")):
 			continue
 
@@ -342,14 +376,20 @@ func _find_best_immediate_spread_target() -> Dictionary:
 
 			if source_set_variant is Dictionary:
 				source_set = source_set_variant as Dictionary
+
 			source_set[grass_tile] = true
 			source_tiles_by_spawn_target[spawn_tile] = source_set
 
 	last_unique_spawn_target_count = source_tiles_by_spawn_target.size()
-	var candidate_scores: Dictionary = {}
 
-	# For each unique future grass cell, find all rain centers that cover at least
-	# one of its mature sources, then add exactly one point to those centers.
+	var candidate_new_grass: Dictionary = {}
+	var candidate_dry_ground_score: Dictionary = {}
+	var candidate_dry_ground_zero_hit: Dictionary = {}
+	var candidate_dry_ground_one_hit: Dictionary = {}
+	var candidate_dry_ground_two_hit: Dictionary = {}
+
+	# Each unique future grass cell adds its weight once to every center that
+	# covers at least one mature source capable of creating that cell.
 	for source_set_variant: Variant in source_tiles_by_spawn_target.values():
 		if not (source_set_variant is Dictionary):
 			continue
@@ -359,46 +399,137 @@ func _find_best_immediate_spread_target() -> Dictionary:
 
 		for source_tile_variant: Variant in source_set.keys():
 			if source_tile_variant is Vector2i:
-				_append_source_centers(covered_centers, source_tile_variant, rain_radius)
+				_append_covering_centers(
+					covered_centers,
+					source_tile_variant,
+					rain_radius
+				)
 
 		for center_variant: Variant in covered_centers.keys():
 			if center_variant is Vector2i:
-				candidate_scores[center_variant] = int(
-					candidate_scores.get(center_variant, 0)
+				candidate_new_grass[center_variant] = int(
+					candidate_new_grass.get(center_variant, 0)
 				) + 1
 
-	last_candidate_center_count = candidate_scores.size()
-	var best_center := INVALID_TILE
-	var best_predicted_new_grass := 0
+	# DryGround is useful only when grass can eventually occupy it. Therefore an
+	# isolated desert cell is ignored, while a cardinal grass neighbour makes it
+	# eligible even when no immediate spread is currently possible.
+	var dry_ground_hit_lookup := _get_dry_ground_hit_lookup()
+	var search_min := search_area_bounds.position
+	var search_max := (
+		search_area_bounds.position
+		+ search_area_bounds.size
+		- Vector2i.ONE
+	)
 
-	for center_variant: Variant in candidate_scores.keys():
+	for tile_y in range(search_min.y, search_max.y + 1):
+		for tile_x in range(search_min.x, search_max.x + 1):
+			var dry_tile := Vector2i(tile_x, tile_y)
+
+			if not bool(world_grid.call("has_dry_ground_at_tile", dry_tile)):
+				continue
+			if not _has_cardinal_grass_neighbor(dry_tile):
+				continue
+
+			last_adjacent_dry_ground_count += 1
+			var rain_hits := clampi(int(dry_ground_hit_lookup.get(dry_tile, 0)), 0, 2)
+			var dry_weight := _get_dry_ground_score_for_hits(rain_hits)
+			var dry_covered_centers: Dictionary = {}
+			_append_covering_centers(dry_covered_centers, dry_tile, rain_radius)
+
+			for center_variant: Variant in dry_covered_centers.keys():
+				if not (center_variant is Vector2i):
+					continue
+
+				candidate_dry_ground_score[center_variant] = int(
+					candidate_dry_ground_score.get(center_variant, 0)
+				) + dry_weight
+
+				match rain_hits:
+					0:
+						candidate_dry_ground_zero_hit[center_variant] = int(
+							candidate_dry_ground_zero_hit.get(center_variant, 0)
+						) + 1
+					1:
+						candidate_dry_ground_one_hit[center_variant] = int(
+							candidate_dry_ground_one_hit.get(center_variant, 0)
+						) + 1
+					2:
+						candidate_dry_ground_two_hit[center_variant] = int(
+							candidate_dry_ground_two_hit.get(center_variant, 0)
+						) + 1
+
+	var candidate_centers: Dictionary = {}
+
+	for center_variant: Variant in candidate_new_grass.keys():
+		if center_variant is Vector2i:
+			candidate_centers[center_variant] = true
+
+	for center_variant: Variant in candidate_dry_ground_score.keys():
+		if center_variant is Vector2i:
+			candidate_centers[center_variant] = true
+
+	last_candidate_center_count = candidate_centers.size()
+	var best_center := INVALID_TILE
+	var best_total_score := -1
+	var best_predicted_new_grass := 0
+	var best_dry_ground_zero_hit_count := 0
+	var best_dry_ground_one_hit_count := 0
+	var best_dry_ground_two_hit_count := 0
+	var best_dry_ground_score := 0
+	var safe_new_grass_score := maxi(new_grass_score, 0)
+
+	for center_variant: Variant in candidate_centers.keys():
 		if not (center_variant is Vector2i):
 			continue
 
 		var center_tile: Vector2i = center_variant
-		var predicted_new_grass := int(candidate_scores.get(center_tile, 0))
+		var predicted_new_grass := int(candidate_new_grass.get(center_tile, 0))
+		var dry_score := int(candidate_dry_ground_score.get(center_tile, 0))
+		var total_score := predicted_new_grass * safe_new_grass_score + dry_score
 
 		if _is_better_candidate(
 			center_tile,
-			predicted_new_grass,
+			total_score,
 			best_center,
-			best_predicted_new_grass
+			best_total_score
 		):
 			best_center = center_tile
+			best_total_score = total_score
 			best_predicted_new_grass = predicted_new_grass
+			best_dry_ground_zero_hit_count = int(
+				candidate_dry_ground_zero_hit.get(center_tile, 0)
+			)
+			best_dry_ground_one_hit_count = int(
+				candidate_dry_ground_one_hit.get(center_tile, 0)
+			)
+			best_dry_ground_two_hit_count = int(
+				candidate_dry_ground_two_hit.get(center_tile, 0)
+			)
+			best_dry_ground_score = dry_score
 
 	last_best_predicted_new_grass = best_predicted_new_grass
+	last_best_dry_ground_zero_hit_count = best_dry_ground_zero_hit_count
+	last_best_dry_ground_one_hit_count = best_dry_ground_one_hit_count
+	last_best_dry_ground_two_hit_count = best_dry_ground_two_hit_count
+	last_best_dry_ground_score = best_dry_ground_score
+	last_best_total_score = maxi(best_total_score, 0)
 	_finish_search_measurement(search_start_usec)
 
 	if (
 		best_center == INVALID_TILE
-		or best_predicted_new_grass < maxi(minimum_predicted_new_grass, 1)
+		or best_total_score < maxi(minimum_rain_target_score, 1)
 	):
 		return result
 
 	return {
 		"tile": best_center,
-		"predicted_new_grass": best_predicted_new_grass
+		"predicted_new_grass": best_predicted_new_grass,
+		"dry_ground_zero_hit_count": best_dry_ground_zero_hit_count,
+		"dry_ground_one_hit_count": best_dry_ground_one_hit_count,
+		"dry_ground_two_hit_count": best_dry_ground_two_hit_count,
+		"dry_ground_score": best_dry_ground_score,
+		"total_score": best_total_score
 	}
 
 
@@ -427,6 +558,18 @@ func _finish_search_measurement(search_start_usec: int) -> void:
 		"enemy_rain_candidate_centers",
 		last_candidate_center_count
 	)
+	PerformanceStats.add_counter(
+		"enemy_rain_adjacent_dry_ground",
+		last_adjacent_dry_ground_count
+	)
+	PerformanceStats.add_counter(
+		"enemy_rain_best_dry_ground_score",
+		last_best_dry_ground_score
+	)
+	PerformanceStats.add_counter(
+		"enemy_rain_best_total_score",
+		last_best_total_score
+	)
 	PerformanceStats.set_max_value(
 		"enemy_rain_search_max_usec",
 		last_search_duration_usec
@@ -434,6 +577,10 @@ func _finish_search_measurement(search_start_usec: int) -> void:
 	PerformanceStats.set_max_value(
 		"enemy_rain_best_spread_max",
 		last_best_predicted_new_grass
+	)
+	PerformanceStats.set_max_value(
+		"enemy_rain_best_total_score_max",
+		last_best_total_score
 	)
 
 
@@ -450,7 +597,7 @@ func _finish_apply_measurement(apply_start_usec: int) -> void:
 	)
 
 
-func _can_scan_grass_registry() -> bool:
+func _can_scan_rain_target_data() -> bool:
 	if world_grid == null or not is_instance_valid(world_grid):
 		return false
 	if not world_grid.has_method("is_tile_inside_map"):
@@ -458,6 +605,10 @@ func _can_scan_grass_registry() -> bool:
 	if not world_grid.has_method("can_host_grass"):
 		return false
 	if not world_grid.has_method("has_grass_at_tile"):
+		return false
+	if not world_grid.has_method("has_dry_ground_at_tile"):
+		return false
+	if not world_grid.has_method("get_dry_ground_rain_hit_data"):
 		return false
 
 	var grass_registry_variant: Variant = world_grid.get("grass_by_tile")
@@ -493,13 +644,61 @@ func _get_immediate_spawn_tiles(grass_tile: Vector2i) -> Array[Vector2i]:
 	return spawn_tiles
 
 
-func _append_source_centers(
+func _has_cardinal_grass_neighbor(tile: Vector2i) -> bool:
+	for offset: Vector2i in CARDINAL_OFFSETS:
+		var neighbor_tile := tile + offset
+
+		if not bool(world_grid.call("is_tile_inside_map", neighbor_tile)):
+			continue
+		if bool(world_grid.call("has_grass_at_tile", neighbor_tile)):
+			return true
+
+	return false
+
+
+func _get_dry_ground_hit_lookup() -> Dictionary:
+	var hit_lookup: Dictionary = {}
+	var hit_data_variant: Variant = world_grid.call("get_dry_ground_rain_hit_data")
+
+	if not (hit_data_variant is Array):
+		return hit_lookup
+
+	var hit_data: Array = hit_data_variant as Array
+
+	for record_variant: Variant in hit_data:
+		if not (record_variant is Dictionary):
+			continue
+
+		var record: Dictionary = record_variant as Dictionary
+		var tile := Vector2i(
+			int(record.get("x", 0)),
+			int(record.get("y", 0))
+		)
+		var hits := clampi(int(record.get("hits", 0)), 0, 2)
+
+		if hits > 0 and bool(world_grid.call("has_dry_ground_at_tile", tile)):
+			hit_lookup[tile] = hits
+
+	return hit_lookup
+
+
+func _get_dry_ground_score_for_hits(rain_hits: int) -> int:
+	match clampi(rain_hits, 0, 2):
+		1:
+			return maxi(dry_ground_one_hit_score, 0)
+		2:
+			return maxi(dry_ground_two_hit_score, 0)
+		_:
+			return maxi(dry_ground_zero_hit_score, 0)
+
+
+func _append_covering_centers(
 	covered_centers: Dictionary,
-	grass_tile: Vector2i,
+	covered_tile: Vector2i,
 	rain_radius: int
 ) -> void:
-	for center_y in range(grass_tile.y - rain_radius, grass_tile.y + rain_radius + 1):
-		for center_x in range(grass_tile.x - rain_radius, grass_tile.x + rain_radius + 1):
+	for center_y in range(covered_tile.y - rain_radius, covered_tile.y + rain_radius + 1):
+		for center_x in range(covered_tile.x - rain_radius, covered_tile.x + rain_radius + 1):
 			var center_tile := Vector2i(center_x, center_y)
 
 			if (
@@ -688,8 +887,14 @@ func _reset_last_search_stats() -> void:
 	last_spread_ready_grass_count = 0
 	last_productive_grass_count = 0
 	last_unique_spawn_target_count = 0
+	last_adjacent_dry_ground_count = 0
 	last_candidate_center_count = 0
 	last_best_predicted_new_grass = 0
+	last_best_dry_ground_zero_hit_count = 0
+	last_best_dry_ground_one_hit_count = 0
+	last_best_dry_ground_two_hit_count = 0
+	last_best_dry_ground_score = 0
+	last_best_total_score = 0
 	last_actual_new_grass = 0
 	last_search_duration_usec = 0
 	last_apply_duration_usec = 0
@@ -751,8 +956,18 @@ func get_rain_debug_data() -> Dictionary:
 		"spread_ready_grass_count": last_spread_ready_grass_count,
 		"productive_grass_count": last_productive_grass_count,
 		"unique_spawn_target_count": last_unique_spawn_target_count,
+		"adjacent_dry_ground_count": last_adjacent_dry_ground_count,
 		"candidate_center_count": last_candidate_center_count,
 		"best_predicted_new_grass": last_best_predicted_new_grass,
+		"best_dry_ground_zero_hit_count": last_best_dry_ground_zero_hit_count,
+		"best_dry_ground_one_hit_count": last_best_dry_ground_one_hit_count,
+		"best_dry_ground_two_hit_count": last_best_dry_ground_two_hit_count,
+		"best_dry_ground_score": last_best_dry_ground_score,
+		"best_total_score": last_best_total_score,
+		"new_grass_score": maxi(new_grass_score, 0),
+		"dry_ground_zero_hit_score": maxi(dry_ground_zero_hit_score, 0),
+		"dry_ground_one_hit_score": maxi(dry_ground_one_hit_score, 0),
+		"dry_ground_two_hit_score": maxi(dry_ground_two_hit_score, 0),
 		"actual_new_grass": last_actual_new_grass,
 		"prediction_gap": last_best_predicted_new_grass - last_actual_new_grass,
 		"search_duration_msec": get_last_search_duration_msec(),
