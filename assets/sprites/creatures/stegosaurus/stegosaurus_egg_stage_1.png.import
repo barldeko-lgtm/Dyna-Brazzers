@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://xo383h5td8nr"
-path="res://.godot/imported/egg_stage_2.png-19ceb59f8862de127764556e07c3730a.ctex"
+uid="uid://me0sj06h5dk1"
+path="res://.godot/imported/stegosaurus_egg_stage_1.png-98eb47b65c6400beabb641d2643e0874.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/creatures/eggs/egg_stage_2.png"
-dest_files=["res://.godot/imported/egg_stage_2.png-19ceb59f8862de127764556e07c3730a.ctex"]
+source_file="res://assets/sprites/creatures/stegosaurus/stegosaurus_egg_stage_1.png"
+dest_files=["res://.godot/imported/stegosaurus_egg_stage_1.png-98eb47b65c6400beabb641d2643e0874.ctex"]
 
 [params]
 

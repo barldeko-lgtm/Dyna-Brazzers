@@ -166,6 +166,7 @@ Audio:
 
 Player creature visuals live under `assets/sprites/creatures/<species>/`.
 Enemy directional visuals live under `assets/sprites/creatures/enemy/<species>/`; their `.tres` resources select them while current egg textures remain shared with player resources.
+Generic egg fallback textures live under `assets/sprites/eggs/`; species-specific stage textures stay beside that species' player visuals.
 
 ## Save files
 

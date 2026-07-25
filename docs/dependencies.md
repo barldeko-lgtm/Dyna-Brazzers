@@ -358,6 +358,7 @@ Rules:
 - all species/factions use the shared egg scene and lifecycle;
 - incubation timing lives only in `egg.gd`;
 - species resources may define egg textures and hatchling biology, never separate timing;
+- generic fallback egg textures live under `assets/sprites/eggs/`; species-specific stage pairs live beside their player visuals and are selected by the resource;
 - store both stage texture references in species resources when custom visuals exist;
 - preserve shared scene defaults when custom textures are absent;
 - faction and species data must be assigned before adding a created egg to the tree;

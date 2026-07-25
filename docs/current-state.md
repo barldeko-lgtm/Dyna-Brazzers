@@ -170,7 +170,7 @@ Only living catalog-supported player creatures generate player energy. Only livi
 
 All species and factions use the shared egg scene and lifecycle. Egg timing is defined only in `scripts/resources/egg.gd`; species resources provide visuals and hatchling biology, not incubation timing.
 
-Every current species has two-stage egg textures stored in its species resource. Missing custom textures fall back to the shared egg scene defaults.
+The shared egg scene keeps generic fallback textures under `assets/sprites/eggs/`. Every current species resource selects its own two-stage egg textures; missing custom textures fall back to those shared defaults.
 
 Faction inheritance rules:
 
