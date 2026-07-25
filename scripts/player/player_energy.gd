@@ -9,7 +9,7 @@ const DEAD_CREATURE_STATE := 6
 const ENERGY_TICK_INTERVAL := 1.0
 
 @export var max_energy := 9999.0
-@export var starting_energy := 2000.0
+@export var starting_energy := 1000.0
 
 var current_energy := 0.0
 var current_income_per_second := 0.0
