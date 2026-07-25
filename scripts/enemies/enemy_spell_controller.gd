@@ -29,11 +29,18 @@ var enemy_energy: Node = null
 var last_action_text := "ожидание первого решения по спеллам"
 var last_rain_target_tile := INVALID_TILE
 var last_grass_entries_scanned := 0
+var last_mature_grass_count := 0
+var last_spread_ready_grass_count := 0
 var last_productive_grass_count := 0
 var last_unique_spawn_target_count := 0
 var last_candidate_center_count := 0
 var last_best_predicted_new_grass := 0
 var last_search_duration_usec := 0
+var max_search_duration_usec := 0
+var total_search_count := 0
+var last_apply_duration_usec := 0
+var max_apply_duration_usec := 0
+var total_apply_count := 0
 
 
 func _ready() -> void:
@@ -154,7 +161,11 @@ func _try_cast_rain_for_hungry_herd() -> bool:
 		last_action_text = "дождь отложен: энку не удалось списать"
 		return false
 
-	if not bool(nature_effects.call("apply_rain", target_tile)):
+	var apply_start_usec := Time.get_ticks_usec()
+	var rain_applied := bool(nature_effects.call("apply_rain", target_tile))
+	_finish_apply_measurement(apply_start_usec)
+
+	if not rain_applied:
 		enemy_energy.call("add_energy", safe_cost)
 		last_action_text = "дождь не сработал: энка возвращена"
 		PerformanceStats.add_counter("enemy_rain_failed_refunded")
@@ -178,13 +189,13 @@ func _find_best_immediate_spread_target() -> Dictionary:
 	var result: Dictionary = {}
 
 	if not _can_scan_grass_registry():
-		last_search_duration_usec = maxi(Time.get_ticks_usec() - search_start_usec, 0)
+		_finish_search_measurement(search_start_usec)
 		return result
 
 	var rain_radius := _get_rain_radius_tiles()
 
 	if rain_radius <= 0:
-		last_search_duration_usec = maxi(Time.get_ticks_usec() - search_start_usec, 0)
+		_finish_search_measurement(search_start_usec)
 		return result
 
 	var grass_registry_variant: Variant = world_grid.get("grass_by_tile")
@@ -203,9 +214,14 @@ func _find_best_immediate_spread_target() -> Dictionary:
 		var grass_tile: Vector2i = grass_tile_variant
 		var grass := grass_registry.get(grass_tile, null) as Node
 
-		if not _is_productive_mature_grass(grass):
+		if not _is_mature_grass(grass):
 			continue
 
+		last_mature_grass_count += 1
+		if bool(grass.get("has_tried_to_spread")):
+			continue
+
+		last_spread_ready_grass_count += 1
 		var immediate_spawn_tiles := _get_immediate_spawn_tiles(grass_tile)
 
 		if immediate_spawn_tiles.is_empty():
@@ -267,17 +283,7 @@ func _find_best_immediate_spread_target() -> Dictionary:
 			best_predicted_new_grass = predicted_new_grass
 
 	last_best_predicted_new_grass = best_predicted_new_grass
-	last_search_duration_usec = maxi(Time.get_ticks_usec() - search_start_usec, 0)
-
-	PerformanceStats.add_counter("enemy_rain_grass_scanned", last_grass_entries_scanned)
-	PerformanceStats.add_counter(
-		"enemy_rain_productive_grass",
-		last_productive_grass_count
-	)
-	PerformanceStats.add_counter(
-		"enemy_rain_candidate_centers",
-		last_candidate_center_count
-	)
+	_finish_search_measurement(search_start_usec)
 
 	if (
 		best_center == INVALID_TILE
@@ -289,6 +295,54 @@ func _find_best_immediate_spread_target() -> Dictionary:
 		"tile": best_center,
 		"predicted_new_grass": best_predicted_new_grass
 	}
+
+
+func _finish_search_measurement(search_start_usec: int) -> void:
+	last_search_duration_usec = maxi(Time.get_ticks_usec() - search_start_usec, 0)
+	max_search_duration_usec = maxi(max_search_duration_usec, last_search_duration_usec)
+	total_search_count += 1
+
+	PerformanceStats.add_counter("enemy_rain_searches")
+	PerformanceStats.add_counter("enemy_rain_search_usec", last_search_duration_usec)
+	PerformanceStats.add_counter("enemy_rain_grass_scanned", last_grass_entries_scanned)
+	PerformanceStats.add_counter("enemy_rain_mature_grass", last_mature_grass_count)
+	PerformanceStats.add_counter(
+		"enemy_rain_spread_ready_grass",
+		last_spread_ready_grass_count
+	)
+	PerformanceStats.add_counter(
+		"enemy_rain_productive_grass",
+		last_productive_grass_count
+	)
+	PerformanceStats.add_counter(
+		"enemy_rain_unique_spawn_targets",
+		last_unique_spawn_target_count
+	)
+	PerformanceStats.add_counter(
+		"enemy_rain_candidate_centers",
+		last_candidate_center_count
+	)
+	PerformanceStats.set_max_value(
+		"enemy_rain_search_max_usec",
+		last_search_duration_usec
+	)
+	PerformanceStats.set_max_value(
+		"enemy_rain_best_spread_max",
+		last_best_predicted_new_grass
+	)
+
+
+func _finish_apply_measurement(apply_start_usec: int) -> void:
+	last_apply_duration_usec = maxi(Time.get_ticks_usec() - apply_start_usec, 0)
+	max_apply_duration_usec = maxi(max_apply_duration_usec, last_apply_duration_usec)
+	total_apply_count += 1
+
+	PerformanceStats.add_counter("enemy_rain_apply_calls")
+	PerformanceStats.add_counter("enemy_rain_apply_usec", last_apply_duration_usec)
+	PerformanceStats.set_max_value(
+		"enemy_rain_apply_max_usec",
+		last_apply_duration_usec
+	)
 
 
 func _can_scan_grass_registry() -> bool:
@@ -305,13 +359,12 @@ func _can_scan_grass_registry() -> bool:
 	return grass_registry_variant is Dictionary
 
 
-func _is_productive_mature_grass(grass: Node) -> bool:
+func _is_mature_grass(grass: Node) -> bool:
 	return (
 		grass != null
 		and is_instance_valid(grass)
 		and not grass.is_queued_for_deletion()
 		and int(grass.get("current_stage")) == MATURE_GRASS_STAGE
-		and not bool(grass.get("has_tried_to_spread"))
 	)
 
 
@@ -395,11 +448,14 @@ func _refresh_runtime_references() -> void:
 func _reset_last_search_stats() -> void:
 	last_rain_target_tile = INVALID_TILE
 	last_grass_entries_scanned = 0
+	last_mature_grass_count = 0
+	last_spread_ready_grass_count = 0
 	last_productive_grass_count = 0
 	last_unique_spawn_target_count = 0
 	last_candidate_center_count = 0
 	last_best_predicted_new_grass = 0
 	last_search_duration_usec = 0
+	last_apply_duration_usec = 0
 
 
 func get_last_action_text() -> String:
@@ -412,6 +468,14 @@ func get_last_rain_target_tile() -> Vector2i:
 
 func get_last_grass_entries_scanned() -> int:
 	return last_grass_entries_scanned
+
+
+func get_last_mature_grass_count() -> int:
+	return last_mature_grass_count
+
+
+func get_last_spread_ready_grass_count() -> int:
+	return last_spread_ready_grass_count
 
 
 func get_last_productive_grass_count() -> int:
@@ -432,6 +496,33 @@ func get_last_best_predicted_new_grass() -> int:
 
 func get_last_search_duration_msec() -> float:
 	return float(last_search_duration_usec) / 1000.0
+
+
+func get_max_search_duration_msec() -> float:
+	return float(max_search_duration_usec) / 1000.0
+
+
+func get_total_search_count() -> int:
+	return total_search_count
+
+
+func get_rain_debug_data() -> Dictionary:
+	return {
+		"action_text": last_action_text,
+		"grass_entries_scanned": last_grass_entries_scanned,
+		"mature_grass_count": last_mature_grass_count,
+		"spread_ready_grass_count": last_spread_ready_grass_count,
+		"productive_grass_count": last_productive_grass_count,
+		"unique_spawn_target_count": last_unique_spawn_target_count,
+		"candidate_center_count": last_candidate_center_count,
+		"best_predicted_new_grass": last_best_predicted_new_grass,
+		"search_duration_msec": get_last_search_duration_msec(),
+		"max_search_duration_msec": get_max_search_duration_msec(),
+		"total_search_count": total_search_count,
+		"apply_duration_msec": float(last_apply_duration_usec) / 1000.0,
+		"max_apply_duration_msec": float(max_apply_duration_usec) / 1000.0,
+		"total_apply_count": total_apply_count
+	}
 
 
 func get_rain_energy_cost() -> float:

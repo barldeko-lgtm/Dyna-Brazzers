@@ -124,9 +124,46 @@ func refresh_debug_text() -> void:
 			int(snapshot.get("egg_count", 0))
 		]
 	)
+	_append_rain_debug_lines(lines)
 	lines.append("")
 	lines.append("Яйца уже входят в расчёт популяции.")
 	debug_label.text = "\n".join(lines)
+
+
+func _append_rain_debug_lines(lines: Array[String]) -> void:
+	lines.append("")
+	var spell_controller := get_tree().get_first_node_in_group("enemy_spell_controller")
+
+	if spell_controller == null or not spell_controller.has_method("get_rain_debug_data"):
+		lines.append("Дождь: контроллер спеллов не найден")
+		return
+
+	var debug_variant: Variant = spell_controller.call("get_rain_debug_data")
+	var rain_data: Dictionary = debug_variant if debug_variant is Dictionary else {}
+	lines.append("Дождь: %s" % str(rain_data.get("action_text", "ожидание")))
+	lines.append("Поиск: %.3f мс | максимум %.3f мс | запусков %d" % [
+		float(rain_data.get("search_duration_msec", 0.0)),
+		float(rain_data.get("max_search_duration_msec", 0.0)),
+		int(rain_data.get("total_search_count", 0))
+	])
+	lines.append("Трава: %d просмотрено | зрелой %d" % [
+		int(rain_data.get("grass_entries_scanned", 0)),
+		int(rain_data.get("mature_grass_count", 0))
+	])
+	lines.append("Готовой к размножению %d | полезной %d" % [
+		int(rain_data.get("spread_ready_grass_count", 0)),
+		int(rain_data.get("productive_grass_count", 0))
+	])
+	lines.append("Новых клеток %d | центров 5x5: %d | лучший результат: +%d" % [
+		int(rain_data.get("unique_spawn_target_count", 0)),
+		int(rain_data.get("candidate_center_count", 0)),
+		int(rain_data.get("best_predicted_new_grass", 0))
+	])
+	lines.append("Применение: %.3f мс | максимум %.3f мс | запусков %d" % [
+		float(rain_data.get("apply_duration_msec", 0.0)),
+		float(rain_data.get("max_apply_duration_msec", 0.0)),
+		int(rain_data.get("total_apply_count", 0))
+	])
 
 
 func _format_production_phase(phase: String) -> String:

@@ -103,7 +103,7 @@ Enemy-specific flow:
 - `enemy_base.gd` exposes `create_enemy_egg()` as a thin wrapper over the same safe common placement method;
 - `enemy_egg_production_controller.gd` remains instantiated for save compatibility, but `automatic_production_enabled = false`, so its old five-second round-robin timer stays stopped;
 - `enemy_ai_controller.gd` runs the active four-second strategic turn: it builds a derived population/satiety snapshot, fills a completed-minute herbivore cap clamped to 10–60 with a projected 3:1 stegosaurus/triceratops mix only while normalized average adult-herbivore satiety is at least 40%, skips the turn below that threshold while projected herbivores remain below the cap, and at or above the cap ignores satiety while running the current predator task (two projected raptors, first projected tyrannosaurus, first projected pterodactyl, then successful tyrannosaurus/pterodactyl purchases alternating) and attempting one purchase;
-- `enemy_spell_controller.gd` listens to `enemy_ai_controller.gd`'s completed snapshot but does not own population choices. Whenever adult enemy herbivore average satiety is below the snapshot threshold, it may make one rain search and cast independently of whether the production phase skipped or created a predator egg;
+- `enemy_spell_controller.gd` listens to `enemy_ai_controller.gd`'s completed snapshot but does not own population choices. Whenever adult enemy herbivore average satiety is below the snapshot threshold, it may make one rain search and cast independently of whether the production phase skipped or created a predator egg; each actual target search publishes its latest workload/result plus search/application durations, session maxima, and total run counts without changing spell decisions;
 - enemy energy starts at 3000 for a fresh session; loaded saves restore their stored enemy-energy value; the disabled legacy round-robin scaffold and active strategic production live in dedicated scripts under `scripts/enemies/`, never in `FactionBase`;
 - `enemy_flag_system.gd` creates three persistent runtime rally objectives at the player base for enemy tyrannosauruses, pterodactyls, and egg eaters. It reuses the shared indirect-order assignment/path flow, never owns movement or survival logic, and does not change the current production roster; egg-eater production, dynamic attack planning, additional spells, and base-damage logic remain future work.
 
@@ -147,11 +147,11 @@ Current UI scripts:
 - `res://scripts/flags/player_flag_target_allocator.gd` — 11x11 target selection, pasture preference, reservations, and retry rotation;
 - `res://scripts/flags/player_flag_visual.gd` — non-blocking world-space flag and influence-area rendering;
 - `res://scripts/ui/debug_status_ui.gd` — compact FPS/Time/Mem line and general F4 detailed debug text;
-- `res://scripts/debug/enemy_ai_debug_overlay.gd` — separate F5-only display of the latest `enemy_ai` snapshot;
+- `res://scripts/debug/enemy_ai_debug_overlay.gd` — separate F5-only display of the latest `enemy_ai` snapshot plus read-only public diagnostics from `enemy_spell_controller`;
 - `res://scripts/ui/player_nature_ui.gd` — spell buttons, targeting, previews, and the stable access API for nested nature-menu controls;
 - `res://scripts/player/player_energy.gd` — session energy reserve, spending API, and catalog-defined income from living player-faction dinosaurs;
 - `res://scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, earthquake, grass effects, DryGround clearing, adjacent mature-grass timer restarts, and spell VFX application;
-- `res://scripts/debug/performance_stats.gd` — F8 CSV performance logging, including separate flag scan/path counters;
+- `res://scripts/debug/performance_stats.gd` — F8 CSV performance logging, including separate flag scan/path counters and sampled enemy-rain search workload plus search/application timing columns;
 - `res://scripts/debug/grid_debug_overlay.gd` — F3 grid/debug overlay with selected-creature flag status and assigned flag destination.
 
 Expected gameplay scene wiring:
@@ -168,7 +168,7 @@ Rules:
 - do not put counters or speed controls back into `creature_stats_ui.gd`;
 - do not put detailed debug text back into `creature_stats_ui.gd`;
 - F3 grid overlay, F4 general text debug, and F5 enemy-AI debug are separate systems; F3 may query `PlayerFlags` for player creatures and the runtime `enemy_flag_system` for enemy creatures through their public debug-data methods, but must not own flag behaviour;
-- F5 may read only the public `enemy_ai` snapshot/timing/energy/cap/satiety fields and methods and must not make strategic decisions or mutate enemy state; its satiety line should identify the value as enemy-only and show the included adult-enemy-herbivore count for verification;
+- F5 may read only the public `enemy_ai` snapshot/timing/energy/cap/satiety fields and the public `enemy_spell_controller.get_rain_debug_data()` result; it must not make strategic decisions or mutate enemy state. Its satiety line should identify the value as enemy-only and show the included adult-enemy-herbivore count, while rain lines remain diagnostic-only;
 - the F5 panel must remain anchored at the top-right with its right edge at least 16 pixels left of the 300-pixel gameplay HUD, so it never covers the minimap;
 - minimap creature markers must remain readable over every terrain colour; enemy herbivores use the high-contrast enemy colour plus the shared one-pixel marker shadow, and enemy-resource detection may be used only as a presentation fallback when ownership metadata is temporarily absent;
 - creature selection must remain compatible with nature-power targeting;
@@ -313,7 +313,7 @@ Rules:
 - the HUD counts player and enemy creatures/eggs separately by faction; total columns count living creatures and exclude eggs;
 - creature and egg faction ids are optional save fields, so old version-1 saves remain valid and restore missing values as player;
 - a removed or otherwise unknown non-empty faction id restores as neutral;
-- `PerformanceStats` writes `flag_creatures_scanned_per_sec`, `flag_path_requests_per_sec`, and `flag_path_failures_per_sec` to new F8 CSV logs;
+- `PerformanceStats` writes `flag_creatures_scanned_per_sec`, `flag_path_requests_per_sec`, and `flag_path_failures_per_sec` to new F8 CSV logs; it also appends enemy-rain search count, total milliseconds per real second, maximum single-search milliseconds, scanned/spread-ready/productive grass, unique spawn targets, candidate centers, best predicted spread, rain-application timing, and cast rate;
 - do not introduce a fourth faction id without an explicit architecture change and matching save/UI/combat review.
 
 ## Startup scene

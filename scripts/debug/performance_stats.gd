@@ -36,13 +36,29 @@ const CSV_HEADER_COLUMNS := [
 	"grazing_candidate_unreachable_per_sec",
 	"flag_creatures_scanned_per_sec",
 	"flag_path_requests_per_sec",
-	"flag_path_failures_per_sec"
+	"flag_path_failures_per_sec",
+	"enemy_rain_searches_per_sec",
+	"enemy_rain_search_time_ms_per_sec",
+	"enemy_rain_search_max_ms",
+	"enemy_rain_grass_scanned_per_sec",
+	"enemy_rain_mature_grass_per_sec",
+	"enemy_rain_spread_ready_grass_per_sec",
+	"enemy_rain_productive_grass_per_sec",
+	"enemy_rain_unique_spawn_targets_per_sec",
+	"enemy_rain_candidate_centers_per_sec",
+	"enemy_rain_best_spread_max",
+	"enemy_rain_apply_calls_per_sec",
+	"enemy_rain_apply_time_ms_per_sec",
+	"enemy_rain_apply_max_ms",
+	"enemy_rain_casts_per_sec"
 ]
 
 var start_ticks_msec := 0
 var sample_start_ticks_msec := 0
 var current_counters: Dictionary = {}
 var last_rates: Dictionary = {}
+var current_max_values: Dictionary = {}
+var last_max_values: Dictionary = {}
 
 var csv_recording_enabled := false
 var csv_file: FileAccess = null
@@ -78,10 +94,13 @@ func _process(_delta: float) -> void:
 	for key in current_counters.keys():
 		last_rates[key] = float(current_counters[key]) / elapsed_seconds
 
+	last_max_values = current_max_values.duplicate()
+
 	if csv_recording_enabled:
 		append_csv_sample()
 
 	current_counters.clear()
+	current_max_values.clear()
 	sample_start_ticks_msec = now
 
 
@@ -93,7 +112,26 @@ func add_counter(counter_name: String, amount: int = 1) -> void:
 
 
 func get_rate(counter_name: String) -> int:
-	return int(round(float(last_rates.get(counter_name, 0.0))))
+	return int(round(get_rate_float(counter_name)))
+
+
+func get_rate_float(counter_name: String) -> float:
+	return float(last_rates.get(counter_name, 0.0))
+
+
+func set_max_value(value_name: String, value: float) -> void:
+	if not current_max_values.has(value_name):
+		current_max_values[value_name] = value
+		return
+
+	current_max_values[value_name] = maxf(
+		float(current_max_values.get(value_name, value)),
+		value
+	)
+
+
+func get_last_max_value(value_name: String) -> float:
+	return float(last_max_values.get(value_name, 0.0))
 
 
 func get_elapsed_seconds() -> float:
@@ -228,6 +266,20 @@ func append_csv_sample() -> void:
 	row.append(str(get_rate("flag_creatures_scanned")))
 	row.append(str(get_rate("flag_path_requests")))
 	row.append(str(get_rate("flag_path_failures")))
+	row.append(str(get_rate("enemy_rain_searches")))
+	row.append(format_float(get_rate_float("enemy_rain_search_usec") / 1000.0, 3))
+	row.append(format_float(get_last_max_value("enemy_rain_search_max_usec") / 1000.0, 3))
+	row.append(str(get_rate("enemy_rain_grass_scanned")))
+	row.append(str(get_rate("enemy_rain_mature_grass")))
+	row.append(str(get_rate("enemy_rain_spread_ready_grass")))
+	row.append(str(get_rate("enemy_rain_productive_grass")))
+	row.append(str(get_rate("enemy_rain_unique_spawn_targets")))
+	row.append(str(get_rate("enemy_rain_candidate_centers")))
+	row.append(str(roundi(get_last_max_value("enemy_rain_best_spread_max"))))
+	row.append(str(get_rate("enemy_rain_apply_calls")))
+	row.append(format_float(get_rate_float("enemy_rain_apply_usec") / 1000.0, 3))
+	row.append(format_float(get_last_max_value("enemy_rain_apply_max_usec") / 1000.0, 3))
+	row.append(str(get_rate("enemy_rain_casts")))
 
 	csv_file.store_line(",".join(row))
 	csv_file.flush()
