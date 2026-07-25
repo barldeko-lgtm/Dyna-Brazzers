@@ -158,8 +158,7 @@ Current enemy resources:
 
 - exist separately under `data/species/enemy/`;
 - currently mirror the corresponding player balance values;
-- use faction-specific directional sprites under `assets/sprites/creatures/enemy/<species>/`;
-- currently reuse player egg textures;
+- use faction-specific directional and egg sprites under `assets/sprites/creatures/enemy/<species>/`;
 - intentionally omit walk/eat animation frame resources, so static directional poses are used.
 
 Old saves without faction fields restore missing ownership as player. Unknown non-empty faction ids normalize to neutral.

@@ -124,7 +124,7 @@ Rules:
 - all current creatures keep the shared logical footprint; do not duplicate it in catalogs;
 - living player energy uses only player-faction creatures present in `PlayerSpeciesCatalog`;
 - living enemy energy uses only enemy-faction creatures present in `EnemySpeciesCatalog`;
-- enemy resources select faction-specific directional sprites under `assets/sprites/creatures/enemy/<species>/` through `.tres` references; current egg textures remain shared with player resources;
+- enemy resources select faction-specific directional and egg sprites under `assets/sprites/creatures/enemy/<species>/` through `.tres` references;
 - stable enemy resource paths matter once saves contain enemy creatures.
 
 ## Enemy runtime bootstrap
