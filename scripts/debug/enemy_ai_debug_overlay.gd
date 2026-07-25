@@ -170,10 +170,12 @@ func _append_rain_debug_lines(lines: Array[String]) -> void:
 		int(rain_data.get("best_far_herbivore_count", 0)),
 		float(rain_data.get("best_herbivore_demand", 0.0))
 	])
-	lines.append("Оценка: %.1f = база %d × %.2f | трава %d×%d + Dry %d | веса Dry %d/%d/%d" % [
+	lines.append("Оценка: %.1f = база %d × спрос %.2f × близость %.3f (%d т.) | трава %d×%d + Dry %d | веса Dry %d/%d/%d" % [
 		float(rain_data.get("best_total_score", 0.0)),
 		int(rain_data.get("best_base_score", 0)),
 		float(rain_data.get("best_demand_multiplier", 0.5)),
+		float(rain_data.get("best_base_proximity_multiplier", 1.0)),
+		int(rain_data.get("best_base_distance_tiles", 20)),
 		int(rain_data.get("best_predicted_new_grass", 0)),
 		int(rain_data.get("new_grass_score", 10)),
 		int(rain_data.get("best_dry_ground_score", 0)),

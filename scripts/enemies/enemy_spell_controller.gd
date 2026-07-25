@@ -37,7 +37,9 @@ const CARDINAL_OFFSETS: Array[Vector2i] = [
 @export var herbivore_far_distance_tiles := 10
 @export_range(0.0, 1.0, 0.05) var herbivore_medium_demand_weight := 0.5
 @export_range(0.0, 1.0, 0.05) var herbivore_far_demand_weight := 0.25
-@export var rain_search_radius_tiles := 30
+@export var rain_search_radius_tiles := 20
+@export var base_proximity_reference_distance_tiles := 20
+@export var base_proximity_multiplier_step := 0.005
 @export var rain_area_frame_duration_seconds := 4.0
 @export var search_area_frame_color := Color(1.0, 0.48, 0.12, 0.82)
 @export var rain_area_frame_color := Color(0.20, 0.78, 1.0, 0.95)
@@ -75,6 +77,8 @@ var last_best_medium_herbivore_count := 0
 var last_best_far_herbivore_count := 0
 var last_best_herbivore_demand := 0.0
 var last_best_demand_multiplier := 0.5
+var last_best_base_distance_tiles := 20
+var last_best_base_proximity_multiplier := 1.0
 var last_best_base_score := 0
 var last_best_total_score := 0.0
 var last_actual_new_grass := 0
@@ -294,13 +298,13 @@ func _try_cast_rain_for_hungry_herd() -> bool:
 	last_rain_target_tile = target_tile
 	_show_rain_area_frame(target_tile)
 	last_action_text = (
-		"дождь: %s, балл %.1f = база %d × %.2f; спрос %.2f; прогноз +%d / реально +%d"
+		"дождь: %s, балл %.1f = база %d × спрос %.2f × близость %.3f; прогноз +%d / реально +%d"
 		% [
 			_format_tile(target_tile),
 			last_best_total_score,
 			last_best_base_score,
 			last_best_demand_multiplier,
-			last_best_herbivore_demand,
+			last_best_base_proximity_multiplier,
 			last_best_predicted_new_grass,
 			last_actual_new_grass
 		]
@@ -517,6 +521,8 @@ func _find_best_rain_target() -> Dictionary:
 	var best_dry_ground_score := 0
 	var best_herbivore_demand := 0.0
 	var best_demand_multiplier := _get_herbivore_demand_multiplier(0.0)
+	var best_base_distance_tiles := _get_base_proximity_reference_distance_tiles()
+	var best_base_proximity_multiplier := 1.0
 	var safe_new_grass_score := maxi(new_grass_score, 0)
 
 	for center_variant: Variant in candidate_centers.keys():
@@ -529,7 +535,18 @@ func _find_best_rain_target() -> Dictionary:
 		var base_score := predicted_new_grass * safe_new_grass_score + dry_score
 		var herbivore_demand := float(herbivore_demand_by_center.get(center_tile, 0.0))
 		var demand_multiplier := _get_herbivore_demand_multiplier(herbivore_demand)
-		var total_score := float(base_score) * demand_multiplier
+		var base_distance_tiles := _get_distance_from_rain_area_to_enemy_base(
+			center_tile,
+			rain_radius
+		)
+		var base_proximity_multiplier := _get_base_proximity_multiplier(
+			base_distance_tiles
+		)
+		var total_score := (
+			float(base_score)
+			* demand_multiplier
+			* base_proximity_multiplier
+		)
 
 		if _is_better_candidate(
 			center_tile,
@@ -553,6 +570,8 @@ func _find_best_rain_target() -> Dictionary:
 			best_dry_ground_score = dry_score
 			best_herbivore_demand = herbivore_demand
 			best_demand_multiplier = demand_multiplier
+			best_base_distance_tiles = base_distance_tiles
+			best_base_proximity_multiplier = base_proximity_multiplier
 
 	var best_demand_breakdown := _get_herbivore_demand_breakdown(
 		best_center,
@@ -569,6 +588,8 @@ func _find_best_rain_target() -> Dictionary:
 	last_best_far_herbivore_count = int(best_demand_breakdown.get("far", 0))
 	last_best_herbivore_demand = best_herbivore_demand
 	last_best_demand_multiplier = best_demand_multiplier
+	last_best_base_distance_tiles = best_base_distance_tiles
+	last_best_base_proximity_multiplier = best_base_proximity_multiplier
 	last_best_base_score = best_base_score
 	last_best_total_score = maxf(best_total_score, 0.0)
 	_finish_search_measurement(search_start_usec)
@@ -591,6 +612,8 @@ func _find_best_rain_target() -> Dictionary:
 		"far_herbivore_count": last_best_far_herbivore_count,
 		"herbivore_demand": best_herbivore_demand,
 		"demand_multiplier": best_demand_multiplier,
+		"base_distance_tiles": best_base_distance_tiles,
+		"base_proximity_multiplier": best_base_proximity_multiplier,
 		"base_score": best_base_score,
 		"total_score": best_total_score
 	}
@@ -938,6 +961,46 @@ func _get_far_herbivore_distance_tiles() -> int:
 	return maxi(herbivore_far_distance_tiles, _get_medium_herbivore_distance_tiles())
 
 
+func _get_distance_from_rain_area_to_enemy_base(
+	center_tile: Vector2i,
+	rain_radius: int
+) -> int:
+	if enemy_base == null or not is_instance_valid(enemy_base):
+		return _get_base_proximity_reference_distance_tiles()
+
+	var anchor_variant: Variant = enemy_base.get("anchor_tile")
+	var footprint_variant: Variant = enemy_base.get("footprint_size")
+
+	if not (anchor_variant is Vector2i and footprint_variant is Vector2i):
+		return _get_base_proximity_reference_distance_tiles()
+
+	var anchor_tile: Vector2i = anchor_variant
+	var footprint_size: Vector2i = footprint_variant
+	var base_footprint := Rect2i(
+		anchor_tile,
+		Vector2i(maxi(footprint_size.x, 1), maxi(footprint_size.y, 1))
+	)
+	return _get_distance_from_footprint_to_rain_area(
+		base_footprint,
+		center_tile,
+		rain_radius
+	)
+
+
+func _get_base_proximity_multiplier(distance_tiles: int) -> float:
+	var reference_distance := _get_base_proximity_reference_distance_tiles()
+	var clamped_distance := clampi(distance_tiles, 0, reference_distance)
+	return (
+		1.0
+		+ float(reference_distance - clamped_distance)
+		* maxf(base_proximity_multiplier_step, 0.0)
+	)
+
+
+func _get_base_proximity_reference_distance_tiles() -> int:
+	return maxi(base_proximity_reference_distance_tiles, 0)
+
+
 func _append_covering_centers(
 	covered_centers: Dictionary,
 	covered_tile: Vector2i,
@@ -1144,6 +1207,8 @@ func _reset_last_search_stats() -> void:
 	last_best_far_herbivore_count = 0
 	last_best_herbivore_demand = 0.0
 	last_best_demand_multiplier = _get_herbivore_demand_multiplier(0.0)
+	last_best_base_distance_tiles = _get_base_proximity_reference_distance_tiles()
+	last_best_base_proximity_multiplier = 1.0
 	last_best_base_score = 0
 	last_best_total_score = 0.0
 	last_actual_new_grass = 0
@@ -1220,6 +1285,8 @@ func get_rain_debug_data() -> Dictionary:
 		"best_far_herbivore_count": last_best_far_herbivore_count,
 		"best_herbivore_demand": last_best_herbivore_demand,
 		"best_demand_multiplier": last_best_demand_multiplier,
+		"best_base_distance_tiles": last_best_base_distance_tiles,
+		"best_base_proximity_multiplier": last_best_base_proximity_multiplier,
 		"best_base_score": last_best_base_score,
 		"best_total_score": last_best_total_score,
 		"new_grass_score": maxi(new_grass_score, 0),
@@ -1235,6 +1302,8 @@ func get_rain_debug_data() -> Dictionary:
 		"herbivore_near_distance_tiles": _get_near_herbivore_distance_tiles(),
 		"herbivore_medium_distance_tiles": _get_medium_herbivore_distance_tiles(),
 		"herbivore_far_distance_tiles": _get_far_herbivore_distance_tiles(),
+		"base_proximity_reference_distance_tiles": _get_base_proximity_reference_distance_tiles(),
+		"base_proximity_multiplier_step": maxf(base_proximity_multiplier_step, 0.0),
 		"actual_new_grass": last_actual_new_grass,
 		"prediction_gap": last_best_predicted_new_grass - last_actual_new_grass,
 		"search_duration_msec": get_last_search_duration_msec(),

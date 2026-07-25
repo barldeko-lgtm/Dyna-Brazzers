@@ -209,6 +209,7 @@ Current target-search contract:
 - collect eligible adult enemy herbivore footprints once per rain search from the stable `creatures` group, using faction, enemy-catalog resource, and herbivore-diet validation;
 - build only a bounded demand map around those footprints, measure distance to the edge of each candidate rain area, and use controller-owned near/middle/far weights;
 - multiply the ecological base score by a clamped controller-owned herbivore-demand coefficient; candidates with no nearby herbivore demand remain valid at the configured baseline multiplier;
+- multiply that result by a separate controller-owned base-proximity coefficient computed from the distance between the full rain area and the enemy-base footprint; the coefficient must remain neutral at the configured reference distance and rise only toward the base;
 - still ignore young-grass growth and recovery value beyond the current DryGround hit state.
 
 Diagnostics:
@@ -218,7 +219,7 @@ Diagnostics:
 - the blue contour uses real elapsed time but its remaining duration pauses with the in-game menu;
 - simulation speed must not shorten the diagnostic duration;
 - F5 reads public `enemy_ai` data and `enemy_spell_controller.get_rain_debug_data()` only;
-- F5 may display selected immediate-grass count, DryGround hit buckets, eligible/nearby herbivore demand, demand multiplier, base score, and total target score;
+- F5 may display selected immediate-grass count, DryGround hit buckets, eligible/nearby herbivore demand, herd multiplier, base distance/proximity multiplier, base score, and total target score;
 - F5 must not mutate enemy state or make decisions;
 - F8 may record search counts/workload, search/application timing, predicted/actual new grass, selected DryGround value, total target score, and cast rate.
 
