@@ -27,6 +27,8 @@ enum PredatorRole {
 @export var predator_target_radius := 8
 @export var defensive_hunt_radius := 0
 @export var strategic_hunt_threshold := 0.0
+@export var strategic_hunt_radius := 0
+@export var strategic_hunt_overrides_flag := false
 
 # Visuals.
 @export var down_texture: Texture2D

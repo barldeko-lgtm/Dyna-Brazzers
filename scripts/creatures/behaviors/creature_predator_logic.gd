@@ -212,7 +212,10 @@ func _get_desired_hunt_mode() -> HuntMode:
 
 
 func _strategic_hunt_is_preempted() -> bool:
-	if _has_active_flag_commitment():
+	if (
+		_has_active_flag_commitment()
+		and not creature.species_data.strategic_hunt_overrides_flag
+	):
 		return true
 
 	return (
@@ -519,6 +522,12 @@ func _remaining_route_steps() -> int:
 func _get_active_target_radius() -> int:
 	if hunt_mode == HuntMode.DEFENSE and creature.species_data.is_defensive_predator():
 		return maxi(int(creature.species_data.defensive_hunt_radius), 0)
+
+	if hunt_mode == HuntMode.STRATEGIC and creature.species_data.is_attacking_predator():
+		var strategic_radius := maxi(int(creature.species_data.strategic_hunt_radius), 0)
+
+		if strategic_radius > 0:
+			return strategic_radius
 
 	return maxi(int(creature.species_data.predator_target_radius), 0)
 
