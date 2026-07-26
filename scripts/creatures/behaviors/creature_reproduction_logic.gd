@@ -97,8 +97,6 @@ func spawn_egg_at_pending_anchor() -> bool:
 	if creature.species_data.egg_stage_2_texture != null:
 		new_egg.set("stage_2_texture", creature.species_data.egg_stage_2_texture)
 
-	new_egg.set("hatch_health", creature.species_data.hatchling_health)
-	new_egg.set("hatch_hunger", creature.species_data.hatchling_hunger)
 	new_egg.set("hatch_creature_scene", load(creature.scene_file_path) as PackedScene)
 
 	var egg_world_position: Vector2 = creature.world_grid.anchor_to_world_position(creature.pending_egg_anchor, EGG_STAGE_1_FOOTPRINT)

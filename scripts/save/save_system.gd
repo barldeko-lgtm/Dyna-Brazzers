@@ -745,9 +745,7 @@ func _collect_egg_data() -> Array[Dictionary]:
 			"stage": int(egg_node.get("current_stage")),
 			"stage_1_time_left": stage_1_timer.time_left if stage_1_timer != null else 0.0,
 			"retry_time_left": retry_timer.time_left if retry_timer != null else 0.0,
-			"hatch_time_left": hatch_timer.time_left if hatch_timer != null else 0.0,
-			"hatch_health": float(egg_node.get("hatch_health")),
-			"hatch_hunger": float(egg_node.get("hatch_hunger"))
+			"hatch_time_left": hatch_timer.time_left if hatch_timer != null else 0.0
 		})
 
 	return eggs_data
@@ -955,8 +953,6 @@ func _restore_eggs(
 			continue
 
 		egg_node.set("species_id", String(egg_record.get("species_id", "stegosaurus")))
-		egg_node.set("hatch_health", float(egg_record.get("hatch_health", 100.0)))
-		egg_node.set("hatch_hunger", float(egg_record.get("hatch_hunger", 50.0)))
 		egg_node.set("hatch_creature_scene", hatch_creature_scene)
 
 		if not hatch_species_path.is_empty():

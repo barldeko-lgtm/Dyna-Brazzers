@@ -364,6 +364,7 @@ Rules:
 - store both stage texture references in species resources when custom visuals exist;
 - preserve shared scene defaults when custom textures are absent;
 - faction and species data must be assigned before adding a created egg to the tree;
+- hatching derives health and satiety only from the hatch species maximums; do not add per-egg or per-species hatch-stat fields;
 - natural eggs inherit the parent faction;
 - base-created eggs receive the owning base faction;
 - hatchlings inherit the egg faction;

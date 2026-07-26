@@ -34,10 +34,6 @@ const STAGE_1_DURATION := 5.0
 const EXPAND_RETRY_INTERVAL := 1.0
 const STAGE_2_DURATION := 10.0
 
-@export var hatch_health := 100.0
-
-@export var hatch_hunger := 50.0
-
 var current_stage: Stage = Stage.STAGE_1
 
 var world_grid: Node = null
@@ -253,17 +249,20 @@ func spawn_hatched_creature() -> bool:
 	if new_creature == null:
 		return false
 
-	var spawn_health: float = hatch_health
-	var spawn_hunger: float = hatch_hunger
+	var spawn_species := hatch_species_data
 
-	if hatch_species_data != null:
-		new_creature.set("species_data", hatch_species_data)
-		spawn_health = hatch_species_data.max_health
-		spawn_hunger = hatch_species_data.max_hunger
+	if spawn_species == null:
+		spawn_species = new_creature.get("species_data") as CreatureSpeciesData
+
+	if spawn_species == null:
+		new_creature.free()
+		return false
+
+	new_creature.set("species_data", spawn_species)
 
 	# Every creature born from an egg starts fully healthy and fully fed.
-	# The exported fallback values remain available for an incomplete future egg
-	# that has no species data assigned yet.
+	var spawn_health: float = spawn_species.max_health
+	var spawn_hunger: float = spawn_species.max_hunger
 	new_creature.set("health", spawn_health)
 	new_creature.set("hunger", spawn_hunger)
 	new_creature.set("age", 0.0)

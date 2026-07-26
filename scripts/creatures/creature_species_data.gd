@@ -58,8 +58,6 @@ enum DietType {
 @export var egg_stage_1_texture: Texture2D
 @export var egg_stage_2_texture: Texture2D
 @export var egg_laying_duration := 5.0
-@export var hatchling_health := 100.0
-@export var hatchling_hunger := 50.0
 
 # Balance: reproduction gates.
 @export var reproduction_min_health := 30.0
