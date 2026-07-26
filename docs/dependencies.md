@@ -372,6 +372,9 @@ Rules:
 - natural eggs inherit the parent faction;
 - base-created eggs receive the owning base faction;
 - hatchlings inherit the egg faction;
+- reproduction-progress capacity belongs to species data; runtime progress belongs to the creature;
+- satiety controls progress accumulation, while existing health, satiety, and age gates still control laying;
+- only successful egg creation resets progress, and save/load must preserve it;
 - stage changes, blockers, hatching, save/load, egg-eater targeting, and earthquake destruction must not depend on which textures are assigned;
 - earthquake destroys through the egg lifecycle so blockers release normally;
 - do not duplicate `egg.tscn` per species or faction;

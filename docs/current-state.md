@@ -91,6 +91,10 @@ All current creatures use the shared logical footprint. Movement reserves the ne
 
 Survival, food, reproduction, hunting, combat, and death take priority over player or enemy strategic objectives.
 
+### Reproduction
+
+All current species build persistent egg-laying progress from satiety after their minimum-age gate. Zero satiety pauses progress, low satiety advances it at half rate, and satiety at or above the high threshold advances it at full rate. Existing health, satiety, and age gates still control the start of laying. Progress resets only after successful egg creation and is preserved by save/load.
+
 ### Grazing
 
 Herbivores use a shared cached pasture system rather than scanning all grass from scratch for every decision.
