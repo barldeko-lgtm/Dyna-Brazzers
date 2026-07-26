@@ -265,7 +265,7 @@ func _is_allowed_prey_for_current_mode(candidate: Node) -> bool:
 		return false
 
 	if hunt_mode == HuntMode.STRATEGIC:
-		return candidate_species.is_herbivore() and _is_opposing_player_enemy_faction(candidate)
+		return _is_opposing_player_enemy_faction(candidate)
 
 	if hunt_mode == HuntMode.DEFENSE:
 		return _is_opposing_player_enemy_faction(candidate)
