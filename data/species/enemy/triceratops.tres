@@ -23,6 +23,7 @@ right_texture = ExtResource("4_right")
 up_right_texture = ExtResource("5_up_right")
 down_right_texture = ExtResource("6_down_right")
 idle_texture = ExtResource("10_idle")
+walk_animation_fps = 4.0
 corpse_lifetime = 3.0
 speed = 130.0
 max_health = 100.0

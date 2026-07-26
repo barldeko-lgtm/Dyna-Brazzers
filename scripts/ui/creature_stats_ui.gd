@@ -236,6 +236,12 @@ func hide_creature_stats() -> void:
 
 
 func sync_creature_highlights() -> void:
+	if not is_instance_valid(last_hover_highlighted):
+		last_hover_highlighted = null
+
+	if not is_instance_valid(last_selected_highlighted):
+		last_selected_highlighted = null
+
 	var desired_selected: Node = selected_creature if is_instance_valid(selected_creature) else null
 	var desired_hover: Node = hovered_creature if is_instance_valid(hovered_creature) else null
 
