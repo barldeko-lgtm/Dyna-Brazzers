@@ -82,12 +82,13 @@ Player flags:
 - `scripts/flags/player_flag_assignment_service.gd` — eligibility, batching, commitments, retries, completion, and route application.
 - `scripts/flags/player_flag_target_allocator.gd` — destination candidates, pasture preference, reservations, and retry rotation.
 - `scripts/flags/player_flag_visual.gd` — world-space flag and area drawing.
+- `scripts/flags/raptor_guard_policy.gd` — shared player/enemy raptor leash rules.
 
 Enemy objectives:
 
 - `scripts/flags/enemy_flag_system.gd` — runtime persistent rally-objective facade.
 - `scripts/flags/enemy_flag_assignment_service.gd` — enemy faction/resource eligibility and persistent-rally semantics.
-- `scripts/flags/enemy_flag_visual.gd` — shared objective area and visible poles.
+- `scripts/flags/enemy_flag_visual.gd` — player-base attack objective and enemy-base raptor guard drawing.
 
 ## UI, audio, save, and debug scripts
 

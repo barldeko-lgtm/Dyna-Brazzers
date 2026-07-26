@@ -15,32 +15,32 @@ const EMPTY_ENTRY: Dictionary = {}
 const STEGOSAURUS_ENTRY: Dictionary = {
 	"species_data": STEGOSAURUS,
 	"egg_purchase_cost": 350.0,
-	"energy_income_per_second": 0.8
+	"energy_income_per_second": 1.0
 }
 const TRICERATOPS_ENTRY: Dictionary = {
 	"species_data": TRICERATOPS,
 	"egg_purchase_cost": 450.0,
-	"energy_income_per_second": 0.6
+	"energy_income_per_second": 0.8
 }
 const TYRANNOSAURUS_ENTRY: Dictionary = {
 	"species_data": TYRANNOSAURUS,
 	"egg_purchase_cost": 1300.0,
-	"energy_income_per_second": 0.2
+	"energy_income_per_second": 0.3
 }
 const RAPTOR_ENTRY: Dictionary = {
 	"species_data": RAPTOR,
-	"egg_purchase_cost": 1000.0,
-	"energy_income_per_second": 0.2
+	"egg_purchase_cost": 900.0,
+	"energy_income_per_second": 0.3
 }
 const PTERODACTYL_ENTRY: Dictionary = {
 	"species_data": PTERODACTYL,
 	"egg_purchase_cost": 1000.0,
-	"energy_income_per_second": 0.2
+	"energy_income_per_second": 0.3
 }
 const EGG_EATER_ENTRY: Dictionary = {
 	"species_data": EGG_EATER,
 	"egg_purchase_cost": 1200.0,
-	"energy_income_per_second": 0.2
+	"energy_income_per_second": 0.3
 }
 
 const ENTRY_BY_ID: Dictionary = {

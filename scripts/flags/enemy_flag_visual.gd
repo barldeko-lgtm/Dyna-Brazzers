@@ -1,13 +1,13 @@
 extends "res://scripts/flags/player_flag_visual.gd"
 
-# Three enemy species flags share one objective tile at the player base. Draw
-# one common 11x11 area and fan the three poles out so none hides behind another.
+# Attack flags share the player base objective; the raptor guards the enemy base.
 const ENEMY_FLAG_AREA_SIZE := Vector2i(11, 11)
 const DISPLAY_ORDER: Array[StringName] = [
 	&"tyrannosaurus",
 	&"pterodactyl",
 	&"egg_eater"
 ]
+const RAPTOR_ID: StringName = &"raptor"
 const INVALID_ANCHOR := Vector2i(2147483647, 2147483647)
 
 
@@ -20,11 +20,23 @@ func _draw() -> void:
 	if world_grid == null or not is_instance_valid(world_grid):
 		return
 
-	var flag_tile := _get_shared_flag_tile()
+	var attack_flag_tile := _get_shared_flag_tile()
 
-	if flag_tile == INVALID_ANCHOR:
-		return
+	if attack_flag_tile != INVALID_ANCHOR:
+		_draw_attack_objective(attack_flag_tile)
 
+	var raptor_flag_tile := get_raptor_flag_tile()
+
+	if raptor_flag_tile != INVALID_ANCHOR:
+		_draw_flag_area(
+			raptor_flag_tile,
+			RAPTOR_ID,
+			_get_species_color(RAPTOR_ID),
+			false
+		)
+
+
+func _draw_attack_objective(flag_tile: Vector2i) -> void:
 	var tile_size := _get_tile_size()
 	_draw_enemy_area(flag_tile, tile_size)
 	var flag_center_world: Vector2 = world_grid.call("map_to_world_center", flag_tile)
@@ -64,6 +76,11 @@ func _get_shared_flag_tile() -> Vector2i:
 			return tile_variant
 
 	return INVALID_ANCHOR
+
+
+func get_raptor_flag_tile() -> Vector2i:
+	var tile_variant: Variant = flags.get(RAPTOR_ID, INVALID_ANCHOR)
+	return tile_variant if tile_variant is Vector2i else INVALID_ANCHOR
 
 
 func _draw_enemy_area(flag_tile: Vector2i, tile_size: Vector2i) -> void:

@@ -84,7 +84,7 @@ func update_targeting_preview() -> void:
 	var is_valid := bool(owner.call("is_valid_flag_tile", target_tile))
 
 	if flag_visual.has_method("set_preview"):
-		flag_visual.call("set_preview", target_tile, is_valid)
+		flag_visual.call("set_preview", target_tile, is_valid, targeting_species_id)
 
 
 func cancel_targeting() -> void:

@@ -319,6 +319,7 @@ Player main files:
 - `res://scripts/flags/player_flag_assignment_service.gd`
 - `res://scripts/flags/player_flag_target_allocator.gd`
 - `res://scripts/flags/player_flag_visual.gd`
+- `res://scripts/flags/raptor_guard_policy.gd`
 
 Ownership:
 
@@ -334,7 +335,9 @@ Player rules:
 - affect only matching player-faction catalog species;
 - route work remains batched and bounded;
 - temporary autonomous interruptions pause a committed route;
-- entering the area completes the current placement revision;
+- entering the area completes the current placement revision, except for the persistent raptor guard assignment;
+- raptor ordinary-wander candidates must stay within the shared eight-step guard leash;
+- an active raptor hunt outranks guard recall; recall resumes only when no hunt target remains outside the leash;
 - moving/replacing a species flag creates a new revision;
 - changing one species flag must not cancel other species work;
 - active revisions and per-creature completion are optional saved fields;
@@ -346,7 +349,8 @@ Enemy objectives:
 - specialize only faction/resource eligibility and persistent-rally semantics;
 - accept only matching enemy resources for the implemented objective species;
 - remain lower priority than autonomous behaviour;
-- are rebuilt from the player-base position;
+- keep attack objectives at the player base and the raptor guard objective at the enemy base;
+- are rebuilt from both runtime faction-base positions;
 - are not saved as a second source of truth.
 
 ## Egg lifecycle and species visuals

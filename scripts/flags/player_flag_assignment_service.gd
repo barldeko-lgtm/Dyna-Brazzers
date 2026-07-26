@@ -7,6 +7,7 @@ extends RefCounted
 const PLAYER_SPECIES_CATALOG := preload("res://scripts/catalogs/player_species_catalog.gd")
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const TARGET_ALLOCATOR := preload("res://scripts/flags/player_flag_target_allocator.gd")
+const RAPTOR_GUARD_POLICY := preload("res://scripts/flags/raptor_guard_policy.gd")
 
 const FLAG_COMPLETION_REVISION_META := &"player_flag_completed_revision"
 const FLAG_COMMITMENT_REVISION_META := &"player_flag_committed_revision"
@@ -45,6 +46,7 @@ func update() -> void:
 	for creature: Node in owner.get_tree().get_nodes_in_group("creatures"):
 		scanned_creatures += 1
 		var species_id := _get_creature_species_id(creature)
+		var uses_guard_leash := RAPTOR_GUARD_POLICY.is_guard_raptor(creature)
 
 		if species_id == StringName() or not bool(owner.call("has_flag", species_id)):
 			_clear_flag_commitment(creature)
@@ -52,7 +54,7 @@ func update() -> void:
 			_release_creature_target(creature)
 			continue
 
-		if _has_completed_current_flag(creature, species_id):
+		if not uses_guard_leash and _has_completed_current_flag(creature, species_id):
 			_clear_flag_commitment(creature)
 			target_allocator.call("clear_retry_choice", creature)
 			_release_creature_target(creature)
@@ -68,7 +70,16 @@ func update() -> void:
 		var footprint: Vector2i = footprint_variant
 		var anchor: Vector2i = anchor_variant
 
-		if bool(target_allocator.call(
+		if uses_guard_leash and _is_guard_anchor_inside_leash(species_id, anchor):
+			_settle_guard_inside_leash(creature, species_id)
+			continue
+
+		if uses_guard_leash and _guard_hunt_has_priority(creature):
+			_remove_pending_route_request(creature)
+			_release_creature_target(creature)
+			continue
+
+		if not uses_guard_leash and bool(target_allocator.call(
 			"is_footprint_inside_flag_area",
 			species_id,
 			anchor,
@@ -201,6 +212,7 @@ func _process_pending_route_requests(max_requests: int) -> void:
 			continue
 
 		var species_id := _get_creature_species_id(creature)
+		var uses_guard_leash := RAPTOR_GUARD_POLICY.is_guard_raptor(creature)
 
 		if species_id == StringName() or not bool(owner.call("has_flag", species_id)):
 			_clear_flag_commitment(creature)
@@ -208,7 +220,7 @@ func _process_pending_route_requests(max_requests: int) -> void:
 			_release_creature_target(creature)
 			continue
 
-		if _has_completed_current_flag(creature, species_id):
+		if not uses_guard_leash and _has_completed_current_flag(creature, species_id):
 			_clear_flag_commitment(creature)
 			target_allocator.call("clear_retry_choice", creature)
 			_release_creature_target(creature)
@@ -235,7 +247,16 @@ func _process_pending_route_requests(max_requests: int) -> void:
 		var footprint: Vector2i = footprint_variant
 		var anchor: Vector2i = anchor_variant
 
-		if bool(target_allocator.call(
+		if uses_guard_leash and _is_guard_anchor_inside_leash(species_id, anchor):
+			_settle_guard_inside_leash(creature, species_id)
+			continue
+
+		if uses_guard_leash and _guard_hunt_has_priority(creature):
+			_remove_pending_route_request(creature)
+			_release_creature_target(creature)
+			continue
+
+		if not uses_guard_leash and bool(target_allocator.call(
 			"is_footprint_inside_flag_area",
 			species_id,
 			anchor,
@@ -410,11 +431,37 @@ func _hunger_overrides_flag(creature: Node) -> bool:
 	return float(creature.get("hunger")) <= species_data.hunger_search_threshold
 
 
+func _is_guard_anchor_inside_leash(species_id: StringName, anchor: Vector2i) -> bool:
+	var flag_tile_variant: Variant = owner.call("get_flag_tile", species_id)
+
+	if not (flag_tile_variant is Vector2i):
+		return false
+
+	return RAPTOR_GUARD_POLICY.is_anchor_within_leash(flag_tile_variant, anchor)
+
+
+func _guard_hunt_has_priority(creature: Node) -> bool:
+	return creature.has_method("is_hunting") and bool(creature.call("is_hunting"))
+
+
+func _settle_guard_inside_leash(creature: Node, species_id: StringName) -> void:
+	_mark_flag_committed(creature, species_id)
+
+	if creature.has_meta(FLAG_COMPLETION_REVISION_META):
+		creature.remove_meta(FLAG_COMPLETION_REVISION_META)
+
+	target_allocator.call("clear_retry_choice", creature)
+	_release_creature_target(creature)
+
+
 func _get_flag_revision(species_id: StringName) -> int:
 	return max(int(owner.call("get_flag_revision", species_id)), 1)
 
 
 func _has_completed_current_flag(creature: Node, species_id: StringName) -> bool:
+	if RAPTOR_GUARD_POLICY.is_guard_raptor(creature):
+		return false
+
 	return int(creature.get_meta(FLAG_COMPLETION_REVISION_META, -1)) == _get_flag_revision(species_id)
 
 

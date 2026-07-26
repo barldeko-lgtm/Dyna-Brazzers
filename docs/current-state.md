@@ -247,14 +247,14 @@ F5 displays compact read-only enemy-AI and rain diagnostics, including the selec
 
 ### Enemy rally objectives
 
-The enemy currently has persistent rally objectives for tyrannosaurus, pterodactyl, and egg eater at the player base.
+The enemy has persistent attack objectives for tyrannosaurus, pterodactyl, and egg eater at the player base, plus a raptor guard objective at the enemy base.
 
 They:
 
 - accept only explicitly enemy-owned creatures using matching enemy resources;
 - reuse shared player-flag routing and target-allocation plumbing;
 - remain lower priority than autonomous survival and combat;
-- are rebuilt from the runtime player-base position on new game and load;
+- are rebuilt from the runtime faction-base positions on new game and load;
 - are not serialized.
 
 The current strategic producer does not yet create egg-eater eggs.
@@ -272,7 +272,8 @@ Player flags are soft, non-blocking movement preferences:
 - route work is batched and bounded;
 - when the next flag-route step is physically occupied, the movement controller immediately tries to rebuild a route from the creature's current tile to the same destination; the queued route is discarded only when no alternate route is found;
 - temporary higher-priority behaviour pauses a committed flag route rather than discarding it;
-- entering the area completes the current placement revision;
+- entering the area completes the current placement revision, except for the persistent raptor guard assignment;
+- player and enemy raptors keep ordinary wandering within eight tile steps of their guard flag; active hunt chains may leave the leash, and an idle raptor outside it receives a return route;
 - moving a species flag creates a new revision and makes that species eligible again;
 - active flag revisions and per-creature completion are saved.
 

@@ -4,6 +4,7 @@ extends Node2D
 # The visual never blocks tiles and has no gameplay authority of its own.
 
 const FLAG_AREA_SIZE := Vector2i(11, 11)
+const RAPTOR_GUARD_AREA_SIZE := Vector2i(17, 17)
 const DEFAULT_TILE_SIZE := Vector2i(128, 128)
 
 var world_grid: Node = null
@@ -11,6 +12,7 @@ var flags: Dictionary = {}
 var preview_active := false
 var preview_tile := Vector2i.ZERO
 var preview_valid := false
+var preview_species_id := StringName()
 
 
 func _ready() -> void:
@@ -28,10 +30,15 @@ func set_flags(new_flags: Dictionary) -> void:
 	queue_redraw()
 
 
-func set_preview(tile: Vector2i, is_valid: bool) -> void:
+func set_preview(
+	tile: Vector2i,
+	is_valid: bool,
+	species_id: StringName = StringName()
+) -> void:
 	preview_active = true
 	preview_tile = tile
 	preview_valid = is_valid
+	preview_species_id = species_id
 	queue_redraw()
 
 
@@ -58,18 +65,19 @@ func _draw() -> void:
 		var preview_color := (
 			Color(0.5, 1.0, 0.45, 1.0) if preview_valid else Color(1.0, 0.3, 0.25, 1.0)
 		)
-		_draw_flag_area(preview_tile, StringName(), preview_color, true)
+		_draw_flag_area(preview_tile, preview_species_id, preview_color, true)
 
 
 func _draw_flag_area(
 	flag_tile: Vector2i, species_id: StringName, base_color: Color, is_preview: bool
 ) -> void:
 	var tile_size := _get_tile_size()
-	var area_min := flag_tile - Vector2i(FLAG_AREA_SIZE.x / 2, FLAG_AREA_SIZE.y / 2)
+	var area_size := get_flag_area_size(species_id)
+	var area_min := flag_tile - Vector2i(area_size.x / 2, area_size.y / 2)
 	var area_min_world: Vector2 = world_grid.call("map_to_world_center", area_min)
 	var top_left_world := area_min_world - Vector2(tile_size) * 0.5
 	var area_pixel_size := Vector2(
-		float(FLAG_AREA_SIZE.x * tile_size.x), float(FLAG_AREA_SIZE.y * tile_size.y)
+		float(area_size.x * tile_size.x), float(area_size.y * tile_size.y)
 	)
 	var area_rect := Rect2(to_local(top_left_world), area_pixel_size)
 	var fill_alpha := 0.035 if not is_preview else 0.055
@@ -80,6 +88,10 @@ func _draw_flag_area(
 
 	var flag_center_world: Vector2 = world_grid.call("map_to_world_center", flag_tile)
 	_draw_flag(to_local(flag_center_world), tile_size, species_id, base_color, is_preview)
+
+
+func get_flag_area_size(species_id: StringName) -> Vector2i:
+	return RAPTOR_GUARD_AREA_SIZE if species_id == &"raptor" else FLAG_AREA_SIZE
 
 
 func _draw_flag(

@@ -6,6 +6,7 @@ extends RefCounted
 
 const INDIRECT_ORDER_STATE_TIMER := 30.0
 const INDIRECT_ORDER_REPATH_TILE_CAP := 1800
+const RAPTOR_GUARD_POLICY := preload("res://scripts/flags/raptor_guard_policy.gd")
 
 var creature: Node
 var state_idle: int
@@ -75,8 +76,15 @@ func choose_random_wander_step() -> void:
 	var neighbors: Array[Vector2i] = []
 
 	for neighbor_variant: Variant in neighbors_variant:
-		if neighbor_variant is Vector2i:
-			neighbors.append(neighbor_variant)
+		if not (neighbor_variant is Vector2i):
+			continue
+
+		var neighbor: Vector2i = neighbor_variant
+
+		if not RAPTOR_GUARD_POLICY.is_wander_anchor_allowed(creature, neighbor):
+			continue
+
+		neighbors.append(neighbor)
 
 	if neighbors.is_empty():
 		return

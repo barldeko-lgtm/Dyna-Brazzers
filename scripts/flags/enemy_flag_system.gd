@@ -1,12 +1,11 @@
 extends Node
 
-# Static enemy attack objectives. Tyrannosauruses, pterodactyls and egg eaters
-# use the same indirect-order plumbing as player flags, but the targets are not
-# player-editable and are rebuilt at the player base whenever a session starts.
+# Static enemy objectives rebuilt from the two faction bases each session.
 const ENEMY_FLAG_VISUAL_SCRIPT := preload("res://scripts/flags/enemy_flag_visual.gd")
 const ENEMY_FLAG_ASSIGNMENT_SERVICE := preload("res://scripts/flags/enemy_flag_assignment_service.gd")
 
 const TYRANNOSAURUS_ID: StringName = &"tyrannosaurus"
+const RAPTOR_ID: StringName = &"raptor"
 const PTERODACTYL_ID: StringName = &"pterodactyl"
 const EGG_EATER_ID: StringName = &"egg_eater"
 const TARGET_SPECIES_IDS: Array[StringName] = [
@@ -31,7 +30,7 @@ func _ready() -> void:
 	add_to_group("enemy_flag_system")
 	world_grid = get_parent()
 	assignment_service = ENEMY_FLAG_ASSIGNMENT_SERVICE.new(self)
-	call_deferred("_initialize_at_player_base")
+	call_deferred("_initialize_objectives")
 
 
 func _physics_process(delta: float) -> void:
@@ -52,21 +51,20 @@ func _exit_tree() -> void:
 		assignment_service.call("clear_runtime", true)
 
 
-func _initialize_at_player_base() -> void:
+func _initialize_objectives() -> void:
 	for _attempt in range(INITIALIZATION_RETRY_FRAMES):
 		if world_grid == null or not is_instance_valid(world_grid):
 			world_grid = get_tree().get_first_node_in_group("world_grid")
 
 		var player_base := _find_player_base()
+		var enemy_base := _find_enemy_base()
 
-		if world_grid != null and player_base != null:
-			var flag_tile := _get_player_base_flag_tile(player_base)
+		if world_grid != null and player_base != null and enemy_base != null:
+			var player_flag_tile := _get_base_flag_tile(player_base)
+			var enemy_flag_tile := _get_base_flag_tile(enemy_base)
 
-			if flag_tile != INVALID_ANCHOR:
-				for species_id: StringName in TARGET_SPECIES_IDS:
-					flags[species_id] = flag_tile
-					flag_revisions[species_id] = 1
-
+			if player_flag_tile != INVALID_ANCHOR and enemy_flag_tile != INVALID_ANCHOR:
+				configure_objective_tiles(player_flag_tile, enemy_flag_tile)
 				_ensure_flag_visual()
 				_sync_flag_visual()
 				initialized = true
@@ -75,7 +73,22 @@ func _initialize_at_player_base() -> void:
 
 		await get_tree().process_frame
 
-	push_warning("EnemyAttackFlags: player base or world grid was not found.")
+	push_warning("EnemyFlags: faction bases or world grid were not found.")
+
+
+func configure_objective_tiles(
+	player_base_tile: Vector2i,
+	enemy_base_tile: Vector2i
+) -> void:
+	flags.clear()
+	flag_revisions.clear()
+
+	for species_id: StringName in TARGET_SPECIES_IDS:
+		flags[species_id] = player_base_tile
+		flag_revisions[species_id] = 1
+
+	flags[RAPTOR_ID] = enemy_base_tile
+	flag_revisions[RAPTOR_ID] = 1
 
 
 func _find_player_base() -> Node:
@@ -88,9 +101,19 @@ func _find_player_base() -> Node:
 	return get_tree().get_first_node_in_group("player_base")
 
 
-func _get_player_base_flag_tile(player_base: Node) -> Vector2i:
-	var anchor_variant: Variant = player_base.get("anchor_tile")
-	var footprint_variant: Variant = player_base.get("footprint_size")
+func _find_enemy_base() -> Node:
+	if world_grid != null and is_instance_valid(world_grid):
+		var local_enemy_base := world_grid.get_node_or_null("EnemyBase")
+
+		if local_enemy_base != null:
+			return local_enemy_base
+
+	return get_tree().get_first_node_in_group("enemy_base")
+
+
+func _get_base_flag_tile(faction_base: Node) -> Vector2i:
+	var anchor_variant: Variant = faction_base.get("anchor_tile")
+	var footprint_variant: Variant = faction_base.get("footprint_size")
 
 	if not (anchor_variant is Vector2i):
 		return INVALID_ANCHOR
