@@ -6,6 +6,14 @@ const TARGET_RECHECK_INTERVAL := 2.0
 const TARGET_SWITCH_ADVANTAGE_STEPS := 2
 const TARGET_CANDIDATE_LIMIT := 3
 const APPROACH_RECHECK_DISTANCE := 4
+const PLAYER_FLAG_COMMITMENT_META := &"player_flag_committed_revision"
+const ENEMY_FLAG_COMMITMENT_META := &"enemy_flag_committed_revision"
+
+enum HuntMode {
+	NONE,
+	STRATEGIC,
+	HUNGER
+}
 
 var creature: Node
 var target_prey: Node = null
@@ -14,6 +22,7 @@ var approach_recheck_done := false
 var locked_approach_anchor := Vector2i.ZERO
 var has_locked_approach := false
 var has_hunt_route := false
+var hunt_mode: HuntMode = HuntMode.NONE
 
 
 func _init(owner_creature: Node) -> void:
@@ -34,6 +43,7 @@ func get_hunt_target() -> Node:
 
 func cancel_hunt_target() -> void:
 	_clear_hunt_target()
+	hunt_mode = HuntMode.NONE
 
 
 func should_hold_at_locked_approach() -> bool:
@@ -79,10 +89,7 @@ func update_predator_behavior(delta: float) -> void:
 
 	if not creature.species_data.is_predator() or creature.world_grid == null:
 		_clear_hunt_target()
-		return
-
-	if creature.hunger > creature.species_data.hunger_search_threshold:
-		_clear_hunt_target()
+		hunt_mode = HuntMode.NONE
 		return
 
 	if (
@@ -92,6 +99,21 @@ func update_predator_behavior(delta: float) -> void:
 		or creature.state == creature.State.COMBAT
 	):
 		return
+
+	var desired_mode := _get_desired_hunt_mode()
+
+	if desired_mode == HuntMode.NONE:
+		_clear_hunt_target()
+		hunt_mode = HuntMode.NONE
+		return
+
+	if desired_mode == HuntMode.STRATEGIC and _strategic_hunt_is_preempted():
+		_cancel_strategic_hunt(_has_active_flag_commitment())
+		return
+
+	if hunt_mode != desired_mode:
+		_clear_hunt_target()
+		hunt_mode = desired_mode
 
 	var pending_prey: Node = creature.get_pending_duel_opponent()
 
@@ -172,6 +194,47 @@ func update_predator_behavior(delta: float) -> void:
 	creature.start_next_path_step_if_needed()
 
 
+func _get_desired_hunt_mode() -> HuntMode:
+	if creature.hunger <= creature.species_data.hunger_search_threshold:
+		return HuntMode.HUNGER
+
+	if (
+		creature.species_data.is_attacking_predator()
+		and creature.hunger <= creature.species_data.strategic_hunt_threshold
+	):
+		return HuntMode.STRATEGIC
+
+	return HuntMode.NONE
+
+
+func _strategic_hunt_is_preempted() -> bool:
+	if _has_active_flag_commitment():
+		return true
+
+	return (
+		creature.reproduction_logic != null
+		and creature.reproduction_logic.has_method("has_reproduction_priority_over_strategic_hunt")
+		and bool(creature.reproduction_logic.call("has_reproduction_priority_over_strategic_hunt"))
+	)
+
+
+func _has_active_flag_commitment() -> bool:
+	return (
+		creature.has_meta(PLAYER_FLAG_COMMITMENT_META)
+		or creature.has_meta(ENEMY_FLAG_COMMITMENT_META)
+	)
+
+
+func _cancel_strategic_hunt(preserve_current_route: bool) -> void:
+	var pending_prey: Node = creature.get_pending_duel_opponent()
+
+	if pending_prey != null:
+		_cancel_duel_settlement(pending_prey)
+
+	_clear_hunt_target(preserve_current_route)
+	hunt_mode = HuntMode.NONE
+
+
 func _has_valid_hunt_target() -> bool:
 	if not is_instance_valid(target_prey):
 		return false
@@ -188,24 +251,49 @@ func _has_valid_hunt_target() -> bool:
 		if pending_opponent != null and pending_opponent != creature:
 			return false
 
-	return _is_allowed_prey_by_diet_and_faction(target_prey)
+	return _is_allowed_prey_for_current_mode(target_prey)
 
 
-func _is_allowed_prey_by_diet_and_faction(candidate: Node) -> bool:
+func _is_allowed_prey_for_current_mode(candidate: Node) -> bool:
 	var candidate_species := candidate.get("species_data") as CreatureSpeciesData
 
 	if candidate_species == null:
 		return false
 
+	if hunt_mode == HuntMode.STRATEGIC:
+		return candidate_species.is_herbivore() and _is_opposing_player_enemy_faction(candidate)
+
+	if hunt_mode == HuntMode.HUNGER and creature.species_data.is_attacking_predator():
+		return not _is_same_species_and_faction(candidate, candidate_species)
+
+	if hunt_mode != HuntMode.HUNGER:
+		return false
+
+	# The defender/standard path keeps the existing faction rule until the
+	# dedicated raptor defense behaviour is designed.
 	if candidate_species.is_predator() or candidate_species.is_egg_eater():
-		var hunter_faction := CREATURE_FACTION.get_id(creature)
-		var candidate_faction := CREATURE_FACTION.get_id(candidate)
-		return (
-			(hunter_faction == CREATURE_FACTION.PLAYER and candidate_faction == CREATURE_FACTION.ENEMY)
-			or (hunter_faction == CREATURE_FACTION.ENEMY and candidate_faction == CREATURE_FACTION.PLAYER)
-		)
+		return _is_opposing_player_enemy_faction(candidate)
 
 	return true
+
+
+func _is_opposing_player_enemy_faction(candidate: Node) -> bool:
+	var hunter_faction := CREATURE_FACTION.get_id(creature)
+	var candidate_faction := CREATURE_FACTION.get_id(candidate)
+	return (
+		(hunter_faction == CREATURE_FACTION.PLAYER and candidate_faction == CREATURE_FACTION.ENEMY)
+		or (hunter_faction == CREATURE_FACTION.ENEMY and candidate_faction == CREATURE_FACTION.PLAYER)
+	)
+
+
+func _is_same_species_and_faction(
+	candidate: Node,
+	candidate_species: CreatureSpeciesData
+) -> bool:
+	return (
+		StringName(creature.species_data.species_id) == StringName(candidate_species.species_id)
+		and CREATURE_FACTION.get_id(creature) == CREATURE_FACTION.get_id(candidate)
+	)
 
 
 func _is_prey_claimed_by_other_hunter(prey: Node) -> bool:
@@ -250,7 +338,7 @@ func _begin_target_engagement() -> bool:
 	return _is_target_engaged_by_creature()
 
 
-func _clear_hunt_target() -> void:
+func _clear_hunt_target(preserve_current_route: bool = false) -> void:
 	if is_instance_valid(target_prey) and target_prey.has_method("cancel_combat_engagement"):
 		target_prey.cancel_combat_engagement(creature)
 
@@ -260,7 +348,7 @@ func _clear_hunt_target() -> void:
 	locked_approach_anchor = Vector2i.ZERO
 	has_locked_approach = false
 
-	if has_hunt_route:
+	if has_hunt_route and not preserve_current_route:
 		_clear_predator_route()
 
 	has_hunt_route = false
@@ -508,7 +596,7 @@ func is_valid_prey(candidate: Node) -> bool:
 	if _is_prey_claimed_by_other_hunter(candidate):
 		return false
 
-	return _is_allowed_prey_by_diet_and_faction(candidate)
+	return _is_allowed_prey_for_current_mode(candidate)
 
 
 func is_prey_in_duel_range(prey: Node) -> bool:
@@ -540,7 +628,7 @@ func _resolve_pending_duel(prey: Node) -> void:
 	if (
 		not prey.has_method("can_be_hunted")
 		or not bool(prey.can_be_hunted())
-		or not _is_allowed_prey_by_diet_and_faction(prey)
+		or not _is_allowed_prey_for_current_mode(prey)
 	):
 		_cancel_duel_settlement(prey)
 		return
@@ -769,7 +857,7 @@ func start_duel_with(opponent: Node) -> Duel:
 	if (
 		not opponent.has_method("can_be_hunted")
 		or not opponent.can_be_hunted()
-		or not _is_allowed_prey_by_diet_and_faction(opponent)
+		or not _is_allowed_prey_for_current_mode(opponent)
 	):
 		return null
 

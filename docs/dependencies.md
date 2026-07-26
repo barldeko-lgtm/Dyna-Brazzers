@@ -124,7 +124,7 @@ Rules:
 - all current creatures keep the shared logical footprint; do not duplicate it in catalogs;
 - living player energy uses only player-faction creatures present in `PlayerSpeciesCatalog`;
 - living enemy energy uses only enemy-faction creatures present in `EnemySpeciesCatalog`;
-- enemy resources select faction-specific directional and egg sprites under `assets/sprites/creatures/enemy/<species>/` through `.tres` references;
+- enemy resources select faction-specific directional sprites under `assets/sprites/creatures/enemy/<species>/` through `.tres` references; current egg textures remain shared with player resources;
 - stable enemy resource paths matter once saves contain enemy creatures.
 
 ## Enemy runtime bootstrap
@@ -299,8 +299,11 @@ Predator rules:
 
 - compare a small nearest available prey set by actual reachable approach routes;
 - valid approaches overlap a footprint side; full corner-only diagonals remain invalid;
-- keep the existing herbivore prey eligibility; predators and egg eaters are valid prey only across the player/enemy faction boundary;
-- same-faction predators and egg eaters must be rejected during acquisition, target revalidation, pending-duel settlement, and duel start;
+- predator role, normal hunger threshold, and optional strategic-hunt threshold belong to `CreatureSpeciesData` resources;
+- attacker-role strategic hunting targets only opposing player/enemy herbivores and remains below reproduction eligibility and active player/enemy flag commitments;
+- attacker-role survival hunting may cross faction and diet boundaries but must always reject the same biological species of the hunter's own faction;
+- defender/standard predators retain the previous herbivore eligibility and player/enemy-only rule for predator or egg-eater prey until a dedicated defender policy replaces it;
+- apply the active mode's prey rule consistently during acquisition, target revalidation, pending-duel settlement, and duel start;
 - prey may be pursued by several hunters, but final combat engagement is exclusive;
 - hunters losing engagement must release the target and search again through normal predator logic.
 
@@ -364,7 +367,6 @@ Rules:
 - store both stage texture references in species resources when custom visuals exist;
 - preserve shared scene defaults when custom textures are absent;
 - faction and species data must be assigned before adding a created egg to the tree;
-- hatching derives health and satiety only from the hatch species maximums; do not add per-egg or per-species hatch-stat fields;
 - natural eggs inherit the parent faction;
 - base-created eggs receive the owning base faction;
 - hatchlings inherit the egg faction;

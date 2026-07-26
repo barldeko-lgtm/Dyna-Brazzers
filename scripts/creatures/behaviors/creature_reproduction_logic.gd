@@ -25,24 +25,31 @@ func update_reproduction_behavior() -> void:
 	if creature.is_moving:
 		return
 
-	if creature.reproduction_cooldown_remaining > 0.0:
+	if not has_reproduction_priority_over_strategic_hunt():
 		return
 
-	if creature.health <= creature.species_data.reproduction_min_health:
-		return
+	creature.enter_laying_egg(get_egg_spawn_anchor())
 
-	if creature.hunger <= creature.species_data.reproduction_min_hunger:
-		return
 
-	if creature.age <= creature.species_data.reproduction_min_age:
-		return
+func has_reproduction_priority_over_strategic_hunt() -> bool:
+	if creature.world_grid == null or creature.species_data == null:
+		return false
 
-	var egg_anchor := get_egg_spawn_anchor()
+	if (
+		creature.state == creature.State.DEAD
+		or creature.state == creature.State.EATING
+		or creature.state == creature.State.LAYING_EGG
+		or creature.state == creature.State.COMBAT
+	):
+		return false
 
-	if egg_anchor == INVALID_ANCHOR:
-		return
-
-	creature.enter_laying_egg(egg_anchor)
+	return (
+		creature.reproduction_cooldown_remaining <= 0.0
+		and creature.health > creature.species_data.reproduction_min_health
+		and creature.hunger > creature.species_data.reproduction_min_hunger
+		and creature.age > creature.species_data.reproduction_min_age
+		and get_egg_spawn_anchor() != INVALID_ANCHOR
+	)
 
 
 func on_egg_laying_timer_timeout() -> void:

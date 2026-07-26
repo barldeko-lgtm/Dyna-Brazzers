@@ -16,8 +16,16 @@ enum DietType {
 	EGG_EATER
 }
 
+enum PredatorRole {
+	STANDARD,
+	ATTACKER,
+	DEFENDER
+}
+
 @export var diet_type: DietType = DietType.HERBIVORE
+@export var predator_role: PredatorRole = PredatorRole.STANDARD
 @export var predator_target_radius := 8
+@export var strategic_hunt_threshold := 0.0
 
 # Visuals.
 @export var down_texture: Texture2D
@@ -72,6 +80,14 @@ func is_herbivore() -> bool:
 
 func is_predator() -> bool:
 	return diet_type == DietType.PREDATOR
+
+
+func is_attacking_predator() -> bool:
+	return is_predator() and predator_role == PredatorRole.ATTACKER
+
+
+func is_defensive_predator() -> bool:
+	return is_predator() and predator_role == PredatorRole.DEFENDER
 
 
 func is_egg_eater() -> bool:

@@ -108,7 +108,7 @@ Occupancy and movement reservations are checked live and are not stored in the p
 
 ### Predators and egg eaters
 
-Predators compare a small nearest-prey set by reachable route length, reserve only the final combat engagement, and use shared movement and duel systems. Herbivores remain valid prey under the existing rules. Predators and egg eaters may be hunted only across the player/enemy faction boundary; same-faction predators and egg eaters are rejected during target selection, target revalidation, pending-duel settlement, and duel start.
+Predators compare a small nearest-prey set by reachable route length, reserve only the final combat engagement, and use shared movement and duel systems. Predator role and thresholds are species data. Tyrannosaurus and pterodactyl are attacker-role predators: above their normal hunger threshold they may run a lower-priority strategic hunt that targets only herbivores of the opposing player/enemy faction; reproduction eligibility and an active player/enemy flag commitment cancel that strategic hunt. At or below the normal hunger threshold, attacker-role predators use survival hunting across factions and diet categories, except that they never attack the same biological species of their own faction. Raptors are marked as defender-role predators but retain the previous standard hunger targeting until their dedicated defensive behaviour is implemented.
 
 Egg eaters are a separate diet category. They target edible egg stages, use route logic similar to predators, consume eggs instead of starting duels, and let hunger override indirect flag movement.
 
@@ -158,7 +158,8 @@ Current enemy resources:
 
 - exist separately under `data/species/enemy/`;
 - currently mirror the corresponding player balance values;
-- use faction-specific directional and egg sprites under `assets/sprites/creatures/enemy/<species>/`;
+- use faction-specific directional sprites under `assets/sprites/creatures/enemy/<species>/`;
+- currently reuse player egg textures;
 - intentionally omit walk/eat animation frame resources, so static directional poses are used.
 
 Old saves without faction fields restore missing ownership as player. Unknown non-empty faction ids normalize to neutral.
