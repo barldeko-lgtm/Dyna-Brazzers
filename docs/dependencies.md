@@ -288,6 +288,7 @@ Rules:
 - `creature.gd` remains the external public facade for route/state transitions;
 - `creature_movement_controller.gd` owns every queued-route mutation and grid-step execution;
 - reserve the next footprint atomically before smooth movement;
+- when the next footprint of an indirect-order route is occupied, rebuild immediately from the current anchor toward the route's existing final destination; clear the route only if that bounded rebuild also fails;
 - arrival converts a reservation into normal occupancy;
 - cancellation, failure, death, and removal release reservations;
 - autonomous behaviour and flag code must use movement-controller/creature public APIs rather than mutate `current_path` or FSM fields;

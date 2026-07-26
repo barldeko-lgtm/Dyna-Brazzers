@@ -126,6 +126,7 @@ var movement_target_position := Vector2.ZERO
 var is_moving := false
 
 var reproduction_cooldown_remaining := 0.0
+var reproduction_progress := 0.0
 
 var pending_egg_anchor := Vector2i.ZERO
 var current_duel: Duel = null
@@ -264,6 +265,7 @@ func _physics_process(delta: float) -> void:
 	update_hunger(delta)
 	update_health(delta)
 	update_reproduction_cooldown(delta)
+	update_reproduction_progress(delta)
 	update_predator_path_retry_cooldown(delta)
 
 	if check_health_death():
@@ -357,6 +359,11 @@ func update_reproduction_cooldown(delta: float) -> void:
 		return
 
 	reproduction_cooldown_remaining = max(reproduction_cooldown_remaining - delta, 0.0)
+
+
+func update_reproduction_progress(delta: float) -> void:
+	if reproduction_logic != null:
+		reproduction_logic.update_reproduction_progress(delta)
 
 
 func update_predator_path_retry_cooldown(delta: float) -> void:
@@ -967,3 +974,28 @@ func get_hunger_percent() -> float:
 		return 0.0
 
 	return clamp((hunger / species_data.max_hunger) * 100.0, 0.0, 100.0)
+
+
+func uses_reproduction_progress() -> bool:
+	return (
+		species_data != null
+		and species_data.reproduction_progress_max > 0.0
+	)
+
+
+func get_reproduction_progress_percent() -> float:
+	if not uses_reproduction_progress():
+		return 0.0
+
+	return clamp(
+		(reproduction_progress / species_data.reproduction_progress_max) * 100.0,
+		0.0,
+		100.0
+	)
+
+
+func get_reproduction_egg_texture() -> Texture2D:
+	if species_data == null:
+		return null
+
+	return species_data.egg_stage_2_texture

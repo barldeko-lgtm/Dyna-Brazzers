@@ -667,7 +667,8 @@ func _collect_creature_data() -> Array[Dictionary]:
 			"age_tick_elapsed": float(creature_node.get("age_tick_elapsed")),
 			"reproduction_cooldown": float(
 				creature_node.get("reproduction_cooldown_remaining")
-			)
+			),
+			"reproduction_progress": float(creature_node.get("reproduction_progress"))
 		})
 
 	return creatures_data
@@ -1088,6 +1089,14 @@ func _restore_creatures(
 		creature_node.set(
 			"reproduction_cooldown_remaining",
 			float(creature_record.get("reproduction_cooldown", 0.0))
+		)
+		creature_node.set(
+			"reproduction_progress",
+			clampf(
+				float(creature_record.get("reproduction_progress", 0.0)),
+				0.0,
+				float(species_data.get("reproduction_progress_max"))
+			)
 		)
 
 

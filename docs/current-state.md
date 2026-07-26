@@ -266,6 +266,7 @@ Player flags are soft, non-blocking movement preferences:
 - herbivores prefer useful grass destinations; other species use valid free destinations;
 - target reservations prevent creatures from repeatedly choosing the same footprint;
 - route work is batched and bounded;
+- when the next flag-route step is physically occupied, the movement controller immediately tries to rebuild a route from the creature's current tile to the same destination; the queued route is discarded only when no alternate route is found;
 - temporary higher-priority behaviour pauses a committed flag route rather than discarding it;
 - entering the area completes the current placement revision;
 - moving a species flag creates a new revision and makes that species eligible again;

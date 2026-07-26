@@ -28,9 +28,9 @@ enum Stage {
 
 @export var stage_4_texture: Texture2D
 
-@export var growth_time := 8.0
+@export var growth_time := 9.0
 
-@export var spread_delay := 45.0
+@export var spread_delay := 90.0
 
 @export var start_stage: Stage = Stage.STAGE_1
 

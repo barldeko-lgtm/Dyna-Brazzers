@@ -73,6 +73,7 @@ enum PredatorRole {
 @export var reproduction_min_hunger := 70.0
 @export var reproduction_min_age := 3.0
 @export var reproduction_cooldown := 20.0
+@export var reproduction_progress_max := 0.0
 
 
 func is_herbivore() -> bool:

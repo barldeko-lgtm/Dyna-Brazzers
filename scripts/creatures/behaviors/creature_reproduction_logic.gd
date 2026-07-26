@@ -3,6 +3,9 @@ extends RefCounted
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const EGG_STAGE_1_FOOTPRINT := Vector2i(1, 2)
 const INVALID_ANCHOR := Vector2i(2147483647, 2147483647)
+const LOW_SATIETY_LIMIT := 50.0
+const LOW_SATIETY_PROGRESS_RATE := 0.5
+const HIGH_SATIETY_PROGRESS_RATE := 1.0
 
 var creature: Node
 
@@ -34,6 +37,29 @@ func update_reproduction_behavior() -> void:
 	creature.enter_laying_egg(get_egg_spawn_anchor())
 
 
+func update_reproduction_progress(delta: float) -> void:
+	if creature.species_data == null:
+		return
+
+	var progress_max: float = creature.species_data.reproduction_progress_max
+
+	if progress_max <= 0.0 or creature.age <= creature.species_data.reproduction_min_age:
+		return
+
+	if creature.hunger <= 0.0 or creature.reproduction_progress >= progress_max:
+		return
+
+	var progress_rate := HIGH_SATIETY_PROGRESS_RATE
+
+	if creature.hunger < LOW_SATIETY_LIMIT:
+		progress_rate = LOW_SATIETY_PROGRESS_RATE
+
+	creature.reproduction_progress = min(
+		creature.reproduction_progress + progress_rate * delta,
+		progress_max
+	)
+
+
 func has_reproduction_priority_over_strategic_hunt() -> bool:
 	if creature.world_grid == null or creature.species_data == null:
 		return false
@@ -45,6 +71,15 @@ func has_reproduction_priority_over_strategic_hunt() -> bool:
 		or creature.state == creature.State.COMBAT
 	):
 		return false
+
+	if creature.species_data.reproduction_progress_max > 0.0:
+		return (
+			creature.reproduction_progress >= creature.species_data.reproduction_progress_max
+			and creature.health > creature.species_data.reproduction_min_health
+			and creature.hunger > creature.species_data.reproduction_min_hunger
+			and creature.age > creature.species_data.reproduction_min_age
+			and get_egg_spawn_anchor() != INVALID_ANCHOR
+		)
 
 	return (
 		creature.reproduction_cooldown_remaining <= 0.0
@@ -61,7 +96,10 @@ func on_egg_laying_timer_timeout() -> void:
 		return
 
 	if spawn_egg_at_pending_anchor():
-		creature.reproduction_cooldown_remaining = creature.species_data.reproduction_cooldown
+		if creature.species_data.reproduction_progress_max > 0.0:
+			creature.reproduction_progress = 0.0
+		else:
+			creature.reproduction_cooldown_remaining = creature.species_data.reproduction_cooldown
 
 	if creature.hunger <= creature.species_data.hunger_search_threshold:
 		if creature.has_method("enter_hungry_behavior"):

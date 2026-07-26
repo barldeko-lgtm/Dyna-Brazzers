@@ -5,11 +5,13 @@ extends RefCounted
 # internals, keeping callers insulated from future creature.gd changes.
 
 const INDIRECT_ORDER_STATE_TIMER := 30.0
+const INDIRECT_ORDER_REPATH_TILE_CAP := 1800
 
 var creature: Node
 var state_idle: int
 var state_walk: int
 var state_seek_food: int
+var is_following_indirect_order_route := false
 
 
 func _init(owner: Node, idle_state: int, walk_state: int, seek_food_state: int) -> void:
@@ -48,12 +50,14 @@ func update_walk(delta: float) -> void:
 		if creature.has_method("should_hold_at_locked_approach") and bool(creature.should_hold_at_locked_approach()):
 			return
 
+		is_following_indirect_order_route = false
 		choose_random_wander_step()
 
 	start_next_path_step_if_needed()
 
 
 func choose_random_wander_step() -> void:
+	is_following_indirect_order_route = false
 	var world_grid: Node = creature.get("world_grid")
 
 	if world_grid == null:
@@ -93,10 +97,12 @@ func get_navigation_anchor() -> Vector2i:
 # Internal autonomous behaviours such as predator hunting replace only queued
 # steps here. An already active smooth step and its reservation are preserved.
 func replace_behavior_route(path: Array) -> void:
+	is_following_indirect_order_route = false
 	creature.set("current_path", _normalize_route(path))
 
 
 func clear_behavior_route() -> void:
+	is_following_indirect_order_route = false
 	_clear_queued_path()
 
 
@@ -141,6 +147,9 @@ func start_next_path_step_if_needed() -> void:
 	if not bool(world_grid.call(
 		"reserve_movement_destination", creature, next_anchor, footprint
 	)):
+		if _try_rebuild_blocked_indirect_order_route(current_path, world_grid, footprint):
+			return
+
 		clear_path()
 		return
 
@@ -223,6 +232,7 @@ func advance_movement(delta: float) -> void:
 
 
 func clear_path() -> void:
+	is_following_indirect_order_route = false
 	var world_grid: Node = creature.get("world_grid")
 
 	if world_grid != null:
@@ -255,6 +265,7 @@ func apply_indirect_order_route(path: Array) -> bool:
 		return false
 
 	if bool(creature.get("is_moving")):
+		is_following_indirect_order_route = true
 		creature.set("current_path", normalized_path)
 		creature.set("state_timer", INDIRECT_ORDER_STATE_TIMER)
 		return true
@@ -263,6 +274,7 @@ func apply_indirect_order_route(path: Array) -> bool:
 		return false
 
 	creature.call("enter_walk")
+	is_following_indirect_order_route = true
 	creature.set("state_timer", INDIRECT_ORDER_STATE_TIMER)
 	creature.set("current_path", normalized_path)
 	start_next_path_step_if_needed()
@@ -270,6 +282,7 @@ func apply_indirect_order_route(path: Array) -> bool:
 
 
 func pause_indirect_order_for_food() -> void:
+	is_following_indirect_order_route = false
 	_clear_queued_path()
 	creature.set("has_grazing_target", false)
 	creature.set("food_recheck_timer", 0.0)
@@ -293,6 +306,7 @@ func cancel_indirect_order_route() -> void:
 	if not can_accept_indirect_order():
 		return
 
+	is_following_indirect_order_route = false
 	_clear_queued_path()
 
 	if bool(creature.get("is_moving")):
@@ -301,6 +315,45 @@ func cancel_indirect_order_route() -> void:
 
 	if creature.has_method("enter_walk"):
 		creature.call("enter_walk")
+
+
+func _try_rebuild_blocked_indirect_order_route(
+	current_path: Array,
+	world_grid: Node,
+	footprint: Vector2i
+) -> bool:
+	if not is_following_indirect_order_route or current_path.is_empty():
+		return false
+
+	var final_anchor_variant: Variant = current_path[current_path.size() - 1]
+
+	if not (final_anchor_variant is Vector2i):
+		return false
+
+	var current_anchor_variant: Variant = creature.get("anchor_tile")
+
+	if not (current_anchor_variant is Vector2i):
+		return false
+
+	var rebuilt_path_variant: Variant = world_grid.call(
+		"find_path",
+		current_anchor_variant,
+		final_anchor_variant,
+		footprint,
+		creature,
+		INDIRECT_ORDER_REPATH_TILE_CAP
+	)
+
+	if not (rebuilt_path_variant is Array):
+		return false
+
+	var rebuilt_path := _normalize_route(rebuilt_path_variant as Array)
+
+	if rebuilt_path.is_empty():
+		return false
+
+	creature.set("current_path", rebuilt_path)
+	return true
 
 
 func _normalize_route(path: Array) -> Array[Vector2i]:

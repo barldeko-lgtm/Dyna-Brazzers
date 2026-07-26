@@ -21,6 +21,10 @@ var health_bar: ProgressBar
 var health_percent_label: Label
 var hunger_bar: ProgressBar
 var hunger_percent_label: Label
+var reproduction_row: HBoxContainer
+var reproduction_bar: ProgressBar
+var reproduction_percent_label: Label
+var reproduction_icon: TextureRect
 
 var current_creature: Node = null
 var hovered_creature: Node = null
@@ -64,9 +68,17 @@ func configure_compact_stats_layout() -> void:
 	hunger_bar = hunger_row_data["bar"] as ProgressBar
 	hunger_percent_label = hunger_row_data["label"] as Label
 
+	var reproduction_row_data := create_stat_row(null, legacy_hunger_bar)
+	reproduction_row = reproduction_row_data["row"] as HBoxContainer
+	reproduction_bar = reproduction_row_data["bar"] as ProgressBar
+	reproduction_percent_label = reproduction_row_data["label"] as Label
+	reproduction_icon = reproduction_row_data["icon"] as TextureRect
+	apply_reproduction_bar_style(reproduction_bar)
+
 	stats_vbox.move_child(health_row, 0)
 	stats_vbox.move_child(hunger_row, 1)
-	stats_vbox.move_child(age_label, 2)
+	stats_vbox.move_child(reproduction_row, 2)
+	stats_vbox.move_child(age_label, 3)
 
 
 func create_stat_row(icon_texture: Texture2D, template_bar: ProgressBar) -> Dictionary:
@@ -112,7 +124,17 @@ func create_stat_row(icon_texture: Texture2D, template_bar: ProgressBar) -> Dict
 	percent_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(percent_label)
 
-	return {"row": row, "bar": bar, "label": percent_label}
+	return {"row": row, "bar": bar, "label": percent_label, "icon": icon}
+
+
+func apply_reproduction_bar_style(bar: ProgressBar) -> void:
+	var fill_style := bar.get_theme_stylebox("fill").duplicate() as StyleBoxFlat
+
+	if fill_style == null:
+		return
+
+	fill_style.bg_color = Color(0.94, 0.68, 0.2, 1.0)
+	bar.add_theme_stylebox_override("fill", fill_style)
 
 
 func apply_panel_style() -> void:
@@ -261,6 +283,23 @@ func update_stats_text() -> void:
 
 	hunger_bar.value = hunger_percent
 	hunger_percent_label.text = "%d%%" % int(round(hunger_percent))
+
+	var show_reproduction_progress := (
+		current_creature.has_method("uses_reproduction_progress")
+		and bool(current_creature.call("uses_reproduction_progress"))
+	)
+	reproduction_row.visible = show_reproduction_progress
+	panel.custom_minimum_size.y = 159.0 if show_reproduction_progress else 122.0
+
+	if show_reproduction_progress:
+		var reproduction_percent := float(
+			current_creature.call("get_reproduction_progress_percent")
+		)
+		reproduction_bar.value = reproduction_percent
+		reproduction_percent_label.text = "%d%%" % int(round(reproduction_percent))
+		reproduction_icon.texture = current_creature.call(
+			"get_reproduction_egg_texture"
+		) as Texture2D
 
 
 # Compatibility hook for creature click input.
