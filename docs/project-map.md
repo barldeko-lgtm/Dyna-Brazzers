@@ -16,7 +16,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 
 ## Main scenes
 
-- `scenes/ui/start_screen.tscn` — startup menu, load slots, settings, and exit.
+- `scenes/ui/start_screen.tscn` — startup menu, level selection, load slots, settings, and exit.
 - `scenes/main/main.tscn` — small gameplay compositor for camera, HUD, simulation root, world, and debug overlays.
 - `scenes/ui/player_hud.tscn` — gameplay HUD, minimap, counters, and nature-menu instance.
 - `scenes/ui/creature_info_panel.tscn` — selected/hovered creature information.
@@ -39,7 +39,8 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 
 - `scripts/world/world_grid.gd` — terrain queries, DryGround state, walkability, pathfinding, grass registry, footprints, blockers, creature occupancy, and movement reservations.
 - `scripts/world/start_map_world_grid.gd` — start-map bootstrap; creates both bases, enemy runtime controllers, enemy rally objectives, energy nodes, and world bounds.
-- `scripts/world/start_map_layout.gd` — creates initial terrain only when the Ground TileMap is empty.
+- `scripts/world/start_map_layout.gd` — preserves authored level 1 and builds registered pixel-map levels before world-grid initialization.
+- `scripts/world/pixel_map_parser.gd` — exact-color map decoding and 2x2 base/tree marker validation.
 - `scripts/world/faction_base.gd` — shared base blocker, scaling, faction assignment, and nearby egg placement.
 - `scripts/world/player_base.gd` — player wrapper exposing `create_player_egg()`.
 - `scripts/world/enemy_base.gd` — enemy wrapper exposing `create_enemy_egg()`.
@@ -92,7 +93,7 @@ Enemy objectives:
 
 ## UI, audio, save, and debug scripts
 
-- `scripts/ui/start_screen.gd` — startup UI, slot loading, and settings.
+- `scripts/ui/start_screen.gd` — startup UI, level selection, slot loading, and settings.
 - `scripts/ui/player_ui.gd` — minimap, counters, base focus, time controls, and egg-controller bootstrap.
 - `scripts/ui/creature_stats_ui.gd` — creature information, selection state, and lightning-target bridge.
 - `scripts/ui/player_egg_creation_ui.gd` — player egg submenu and purchases.
@@ -102,7 +103,7 @@ Enemy objectives:
 - `scripts/debug/enemy_ai_debug_overlay.gd` — read-only F5 enemy strategy/rain panel.
 - `scripts/debug/performance_stats.gd` — runtime counters and F8 CSV recording.
 - `scripts/audio/audio_manager.gd` — global music, one-shot sounds, UI clicks, bus setup, fades, and settings.
-- `scripts/save/save_system.gd` — base slot persistence and reconstruction.
+- `scripts/save/save_system.gd` — level routing, base slot persistence, and reconstruction.
 - `scripts/save/save_system_with_flags.gd` — faction, player-flag, completion, and audio-setting extensions.
 - `scripts/save/save_system_with_enemy.gd` — active final save layer for enemy energy and strategic timing/legacy state.
 - `scripts/effects/` — target previews and one-shot effect playback.
@@ -134,6 +135,7 @@ Enemy and player variants share biological `species_id` values but use distinct 
 Terrain:
 
 - `assets/maps/start_map_layout.png` — map-layout reference, not runtime terrain input.
+- `assets/maps/level_2_map.png` — exact-color 70x50 runtime layout for level 2.
 - `assets/sprites/terrain/ground.png`
 - `assets/sprites/terrain/water_tiles_independent.png`
 - `assets/sprites/terrain/mountain_tiles_independent.png`

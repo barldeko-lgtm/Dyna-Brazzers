@@ -1,6 +1,5 @@
 extends Control
 
-const GAME_SCENE_PATH: String = "res://scenes/main/main.tscn"
 const SLOT_COUNT: int = 3
 
 @onready var menu_vbox: VBoxContainer = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer
@@ -8,6 +7,10 @@ const SLOT_COUNT: int = 3
 @onready var load_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadButton
 @onready var menu_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/MenuButton
 @onready var exit_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/ExitButton
+@onready var level_select_title: Label = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelSelectTitle
+@onready var level_1_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/Level1Button
+@onready var level_2_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/Level2Button
+@onready var level_back_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelBackButton
 @onready var load_slot_1_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadSlot1Button
 @onready var load_slot_2_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadSlot2Button
 @onready var load_slot_3_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadSlot3Button
@@ -15,6 +18,7 @@ const SLOT_COUNT: int = 3
 @onready var status_label: Label = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/StatusLabel
 
 var load_slot_buttons: Array[Button] = []
+var level_selection_controls: Array[Control] = []
 var settings_controls: Array[Control] = []
 var music_volume_label: Label = null
 var music_volume_slider: HSlider = null
@@ -29,11 +33,20 @@ func _ready() -> void:
 		load_slot_2_button,
 		load_slot_3_button
 	]
+	level_selection_controls = [
+		level_select_title,
+		level_1_button,
+		level_2_button,
+		level_back_button
+	]
 
 	menu_button.text = "Настройки"
 	_create_audio_settings_controls()
 
 	new_game_button.pressed.connect(_on_new_game_pressed)
+	level_1_button.pressed.connect(_on_level_1_pressed)
+	level_2_button.pressed.connect(_on_level_2_pressed)
+	level_back_button.pressed.connect(_on_level_back_pressed)
 	load_button.pressed.connect(_on_load_pressed)
 	menu_button.pressed.connect(_on_menu_pressed)
 	exit_button.pressed.connect(_on_exit_pressed)
@@ -52,10 +65,26 @@ func _ready() -> void:
 
 
 func _on_new_game_pressed() -> void:
-	var error: Error = get_tree().change_scene_to_file(GAME_SCENE_PATH)
+	_show_level_selection()
+
+
+func _on_level_1_pressed() -> void:
+	var error: Error = SaveSystem.start_new_game(1)
 
 	if error != OK:
 		status_label.text = "Не удалось запустить новую игру."
+
+
+func _on_level_2_pressed() -> void:
+	var error: Error = SaveSystem.start_new_game(2)
+
+	if error != OK:
+		status_label.text = "Не удалось запустить новую игру."
+
+
+func _on_level_back_pressed() -> void:
+	_show_main_buttons()
+	new_game_button.grab_focus()
 
 
 func _on_load_pressed() -> void:
@@ -120,8 +149,26 @@ func _show_main_buttons() -> void:
 		slot_button.visible = false
 
 	load_back_button.visible = false
+	_set_level_selection_visible(false)
 	_set_settings_controls_visible(false)
 	status_label.text = ""
+
+
+func _show_level_selection() -> void:
+	new_game_button.visible = false
+	load_button.visible = false
+	menu_button.visible = false
+	exit_button.visible = false
+	load_back_button.visible = false
+	status_label.visible = true
+	status_label.text = "Выберите уровень."
+
+	for slot_button: Button in load_slot_buttons:
+		slot_button.visible = false
+
+	_set_settings_controls_visible(false)
+	_set_level_selection_visible(true)
+	level_1_button.grab_focus()
 
 
 func _show_load_slots() -> void:
@@ -130,6 +177,7 @@ func _show_load_slots() -> void:
 	menu_button.visible = false
 	exit_button.visible = false
 	status_label.visible = true
+	_set_level_selection_visible(false)
 	_set_settings_controls_visible(false)
 
 	var has_any_save: bool = false
@@ -164,6 +212,7 @@ func _show_audio_settings() -> void:
 	exit_button.visible = false
 	load_back_button.visible = false
 	status_label.visible = false
+	_set_level_selection_visible(false)
 
 	for slot_button: Button in load_slot_buttons:
 		slot_button.visible = false
@@ -292,4 +341,9 @@ func _update_volume_label(label: Label, prefix: String, value: float) -> void:
 
 func _set_settings_controls_visible(should_show: bool) -> void:
 	for control: Control in settings_controls:
+		control.visible = should_show
+
+
+func _set_level_selection_visible(should_show: bool) -> void:
+	for control: Control in level_selection_controls:
 		control.visible = should_show

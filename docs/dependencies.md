@@ -34,7 +34,7 @@ Main files:
 Runtime order:
 
 1. `world.tscn` supplies the authored Ground TileMap, containers, markers, and world grid.
-2. `start_map_layout.gd` creates initial terrain only when Ground is empty.
+2. `start_map_layout.gd` preserves authored level 1 or builds the selected pixel-map level before grid initialization.
 3. The world grid initializes terrain, grass lookup, occupancy, blockers, and pathfinding.
 4. `start_map_world_grid.gd` places the player base, enemy base, energy nodes, enemy controllers, and enemy rally objectives.
 5. The camera reads authored bounds and the start marker.
@@ -48,7 +48,10 @@ Stable terrain source ids:
 
 Rules:
 
-- never clear or rebuild a non-empty authored map during startup;
+- never clear or rebuild the authored level-1 map during startup;
+- a registered pixel-map level may replace runtime Ground/DryGround only before world-grid initialization;
+- pixel-map colors are exact; unknown colors must fail with pixel coordinates rather than default to ground;
+- base and tree markers must form complete 2x2 blocks; the left base marker belongs to the player;
 - never hand-generate or replace serialized `tile_map_data`;
 - preserve terrain source ids unless a deliberate migration updates every dependent system;
 - keep authored grass, egg/creature containers, camera marker, and base spawn regions on valid terrain;
@@ -477,9 +480,10 @@ Main files:
 Startup flow:
 
 1. `project.godot` starts `start_screen.tscn`.
-2. New Game opens `main.tscn`.
-3. `main.tscn` instances the active world.
-4. Load delegates slot validation/reconstruction to `SaveSystem`.
+2. New Game opens level selection.
+3. `SaveSystem` maps both available level ids to `main.tscn`; the active id selects the world layout before initialization.
+4. `main.tscn` instances the active world.
+5. Load delegates slot validation, level routing, and reconstruction to `SaveSystem`.
 
 Stable slot paths:
 
@@ -496,23 +500,25 @@ Save ownership:
 Loading order:
 
 1. validate the slot before changing the active scene;
-2. ensure gameplay is active and pause reconstruction;
-3. clear dynamic creature, egg, and grass nodes;
-4. restore DryGround deltas;
-5. restore grass and timer state;
-6. restore eggs and blockers;
-7. restore creatures and mutable stats from exact resource paths;
-8. preserve already spawned static faction bases;
-9. restore energies, camera, and simulation speed;
-10. reapply factions and player flag state;
-11. restore enemy strategic timing/legacy compatibility state;
-12. leave the legacy producer disabled and rebuild derived snapshots/objectives from runtime state.
+2. resolve the saved level id and activate its registered gameplay scene;
+3. pause reconstruction;
+4. clear dynamic creature, egg, and grass nodes;
+5. restore DryGround deltas;
+6. restore grass and timer state;
+7. restore eggs and blockers;
+8. restore creatures and mutable stats from exact resource paths;
+9. preserve already spawned static faction bases;
+10. restore energies, camera, and simulation speed;
+11. reapply factions and player flag state;
+12. restore enemy strategic timing/legacy compatibility state;
+13. leave the legacy producer disabled and rebuild derived snapshots/objectives from runtime state.
 
 Rules:
 
 - save writes must validate a temporary JSON before replacing the live slot and retain recoverable backup state;
 - invalid slots remain visible but cannot be loaded;
 - missing optional faction/flag/enemy fields must not invalidate old saves;
+- missing `level_id` defaults to level 1; an unavailable saved level must fail before scene replacement;
 - missing faction defaults to player; unknown non-empty faction becomes neutral;
 - static terrain and faction bases are not dynamic save entities;
 - temporary corpses and rain diagnostic contours are not saved;

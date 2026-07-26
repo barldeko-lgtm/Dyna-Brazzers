@@ -22,7 +22,7 @@ Dyna is an early Godot 4.7 autonomous 2D ecosystem simulation.
 
 Implemented foundations include:
 
-- one editable tile-based world with ground, water, mountains, trees, and a reversible DryGround overlay;
+- two selectable tile-based level layouts sharing one world scene and gameplay stack;
 - one fixed player nature base and one fixed enemy base;
 - six current species: stegosaurus, triceratops, tyrannosaurus, raptor, pterodactyl, and egg eater;
 - shared player/enemy creature biology with separate resource variants and runtime faction ownership;
@@ -53,6 +53,8 @@ Do not turn Dyna into a standard RTS or create enemy-only copies of common creat
 
 The active world is `scenes/world/world.tscn`.
 
+Level 1 preserves the authored 85x85 TileMap. Level 2 is built at runtime from `assets/maps/level_2_map.png`, where one exact-color pixel is one tile. The supplied 70x50 layout defines terrain, DryGround, grass, complete 2x2 trees, and two 2x2 base footprints with the player base on the left.
+
 The current map uses stable TileSet source ids:
 
 - `0` — ground;
@@ -62,7 +64,7 @@ The current map uses stable TileSet source ids:
 
 Water, mountains, trees, faction-base footprints, and occupied DryGround cells are unavailable to normal movement and grass placement.
 
-`start_map_layout.gd` creates the initial terrain only when the authored Ground TileMap is empty. Once the map contains cells, Godot-authored TileMap data is preserved and must not be regenerated manually.
+`start_map_layout.gd` preserves the authored level-1 TileMap. For level 2 it replaces only the runtime Ground/DryGround layout before world-grid initialization and rebuilds map-defined grass and base markers.
 
 Trees are TileMap terrain, not separate resource nodes. Each visual tree is assembled from normal terrain tiles and all occupied cells are blocked.
 
@@ -321,7 +323,7 @@ Audio settings are stored in `user://audio_settings.cfg`, independently from gam
 
 `project.godot` starts `scenes/ui/start_screen.tscn`.
 
-The startup screen provides New Game, three-slot Load, Settings, and Exit. The in-game `MENU` button provides Save, Load, Settings, Main Menu, Close Game, and Back.
+The startup screen provides New Game, three-slot Load, Settings, and Exit. New Game opens level selection for the authored level 1 and pixel-map level 2. The in-game `MENU` button provides Save, Load, Settings, Main Menu, Close Game, and Back.
 
 Opening the in-game menu pauses simulation. Closing it restores the previously selected simulation speed.
 
@@ -336,6 +338,7 @@ Saved dynamic state includes:
 - DryGround cleared cells and partial rain progress;
 - camera state;
 - simulation speed;
+- active level id;
 - save timestamp.
 
 Static terrain, the two faction bases, derived enemy population snapshots, enemy rally-objective positions, temporary rain diagnostics, and corpses are not serialized.

@@ -162,6 +162,58 @@ theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
 text = "Выход"
 
+[node name="LevelSelectTitle" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(290, 42)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_font_sizes/font_size = 24
+text = "Выбор уровня"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Level1Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(290, 58)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("ButtonNormal")
+theme_override_styles/hover = SubResource("ButtonHover")
+theme_override_styles/pressed = SubResource("ButtonPressed")
+theme_override_styles/focus = SubResource("ButtonFocus")
+text = "Уровень 1 — Текущая карта"
+
+[node name="Level2Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(290, 58)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("ButtonNormal")
+theme_override_styles/hover = SubResource("ButtonHover")
+theme_override_styles/pressed = SubResource("ButtonPressed")
+theme_override_styles/focus = SubResource("ButtonFocus")
+text = "Уровень 2 — Новая карта"
+
+[node name="LevelBackButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(290, 52)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
+theme_override_font_sizes/font_size = 21
+theme_override_styles/normal = SubResource("ButtonNormal")
+theme_override_styles/hover = SubResource("ButtonHover")
+theme_override_styles/pressed = SubResource("ButtonPressed")
+theme_override_styles/focus = SubResource("ButtonFocus")
+text = "Назад"
+
 [node name="LoadSlot1Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(290, 52)

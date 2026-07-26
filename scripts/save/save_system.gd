@@ -4,6 +4,11 @@ const GAME_SCENE_PATH: String = "res://scenes/main/main.tscn"
 const START_SCREEN_SCENE_PATH: String = "res://scenes/ui/start_screen.tscn"
 const SAVE_VERSION: int = 1
 const SLOT_COUNT: int = 3
+const DEFAULT_LEVEL_ID: int = 1
+const LEVEL_SCENE_PATHS: Dictionary = {
+	1: GAME_SCENE_PATH,
+	2: GAME_SCENE_PATH
+}
 
 const CONTENT_ROOT_PATH: NodePath = NodePath(
 	"UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer"
@@ -30,6 +35,7 @@ var menu_open: bool = false
 var menu_previous_time_scale: float = 1.0
 var current_slot_mode: String = ""
 var status_message: String = ""
+var current_level_id: int = DEFAULT_LEVEL_ID
 
 
 func _ready() -> void:
@@ -51,7 +57,9 @@ func _process(_delta: float) -> void:
 	attached_scene_id = current_scene_id
 	_detach_menu_references()
 
-	if current_scene.scene_file_path == GAME_SCENE_PATH:
+	if not get_level_scene_path(current_level_id).is_empty() and (
+		current_scene.scene_file_path == get_level_scene_path(current_level_id)
+	):
 		call_deferred("_attach_to_game_scene", current_scene)
 
 
@@ -226,6 +234,7 @@ func _reset_active_game_session() -> void:
 	current_slot_mode = ""
 	status_message = ""
 	attached_scene_id = 0
+	current_level_id = DEFAULT_LEVEL_ID
 
 	menu_button = null
 	main_menu_grid = null
@@ -527,6 +536,7 @@ func _is_valid_save_data(save_data: Dictionary) -> bool:
 	var camera: Variant = save_data.get("camera", null)
 	var player_energy: Variant = save_data.get("player_energy", null)
 	var time_scale: Variant = save_data.get("time_scale", null)
+	var level_id: Variant = save_data.get("level_id", DEFAULT_LEVEL_ID)
 
 	return (
 		creatures is Array
@@ -535,7 +545,39 @@ func _is_valid_save_data(save_data: Dictionary) -> bool:
 		and camera is Dictionary
 		and (player_energy is int or player_energy is float)
 		and (time_scale is int or time_scale is float)
+		and (level_id is int or level_id is float)
+		and int(level_id) >= 1
 	)
+
+
+func get_level_scene_path(level_id: int) -> String:
+	return String(LEVEL_SCENE_PATHS.get(level_id, ""))
+
+
+func get_saved_level_id(save_data: Dictionary) -> int:
+	var level_id: Variant = save_data.get("level_id", DEFAULT_LEVEL_ID)
+
+	if not (level_id is int or level_id is float):
+		return DEFAULT_LEVEL_ID
+
+	return maxi(int(level_id), 1)
+
+
+func start_new_game(level_id: int) -> Error:
+	var level_scene_path: String = get_level_scene_path(level_id)
+
+	if level_scene_path.is_empty():
+		return ERR_DOES_NOT_EXIST
+
+	var previous_level_id: int = current_level_id
+	current_level_id = level_id
+	Engine.time_scale = 1.0
+	var scene_error: Error = get_tree().change_scene_to_file(level_scene_path)
+
+	if scene_error != OK:
+		current_level_id = previous_level_id
+
+	return scene_error
 
 
 func load_game(slot_index: int) -> bool:
@@ -548,16 +590,33 @@ func load_game(slot_index: int) -> bool:
 		push_error("SaveSystem: slot %d is missing or invalid." % slot_index)
 		return false
 
+	var saved_level_id: int = get_saved_level_id(save_data)
+	var level_scene_path: String = get_level_scene_path(saved_level_id)
+
+	if level_scene_path.is_empty():
+		push_error("SaveSystem: level %d is unavailable." % saved_level_id)
+		return false
+
 	var current_scene: Node = get_tree().current_scene
 
-	if current_scene == null or current_scene.scene_file_path != GAME_SCENE_PATH:
-		var scene_error: Error = get_tree().change_scene_to_file(GAME_SCENE_PATH)
+	if (
+		current_scene == null
+		or current_scene.scene_file_path != level_scene_path
+		or current_level_id != saved_level_id
+	):
+		var previous_level_id: int = current_level_id
+		current_level_id = saved_level_id
+		var scene_error: Error = get_tree().change_scene_to_file(level_scene_path)
 
 		if scene_error != OK:
+			current_level_id = previous_level_id
 			return false
 
 		await get_tree().process_frame
 		await get_tree().process_frame
+
+	else:
+		current_level_id = saved_level_id
 
 	return await _apply_save_data(save_data)
 
@@ -575,6 +634,7 @@ func _collect_save_data() -> Dictionary:
 	var save_data: Dictionary = {
 		"version": SAVE_VERSION,
 		"saved_at": int(Time.get_unix_time_from_system()),
+		"level_id": current_level_id,
 		"time_scale": saved_time_scale,
 		"camera": _collect_camera_data(),
 		"player_energy": _collect_player_energy(),
