@@ -12,6 +12,7 @@ const ENEMY_FLAG_COMMITMENT_META := &"enemy_flag_committed_revision"
 enum HuntMode {
 	NONE,
 	STRATEGIC,
+	DEFENSE,
 	HUNGER
 }
 
@@ -198,6 +199,9 @@ func _get_desired_hunt_mode() -> HuntMode:
 	if creature.hunger <= creature.species_data.hunger_search_threshold:
 		return HuntMode.HUNGER
 
+	if creature.species_data.is_defensive_predator():
+		return HuntMode.DEFENSE
+
 	if (
 		creature.species_data.is_attacking_predator()
 		and creature.hunger <= creature.species_data.strategic_hunt_threshold
@@ -263,14 +267,24 @@ func _is_allowed_prey_for_current_mode(candidate: Node) -> bool:
 	if hunt_mode == HuntMode.STRATEGIC:
 		return candidate_species.is_herbivore() and _is_opposing_player_enemy_faction(candidate)
 
+	if hunt_mode == HuntMode.DEFENSE:
+		return _is_opposing_player_enemy_faction(candidate)
+
 	if hunt_mode == HuntMode.HUNGER and creature.species_data.is_attacking_predator():
 		return not _is_same_species_and_faction(candidate, candidate_species)
+
+	if hunt_mode == HuntMode.HUNGER and creature.species_data.is_defensive_predator():
+		if candidate_species.is_herbivore():
+			return true
+
+		if candidate_species.is_predator() or candidate_species.is_egg_eater():
+			return not _is_same_faction(candidate)
+
+		return false
 
 	if hunt_mode != HuntMode.HUNGER:
 		return false
 
-	# The defender/standard path keeps the existing faction rule until the
-	# dedicated raptor defense behaviour is designed.
 	if candidate_species.is_predator() or candidate_species.is_egg_eater():
 		return _is_opposing_player_enemy_faction(candidate)
 
@@ -284,6 +298,10 @@ func _is_opposing_player_enemy_faction(candidate: Node) -> bool:
 		(hunter_faction == CREATURE_FACTION.PLAYER and candidate_faction == CREATURE_FACTION.ENEMY)
 		or (hunter_faction == CREATURE_FACTION.ENEMY and candidate_faction == CREATURE_FACTION.PLAYER)
 	)
+
+
+func _is_same_faction(candidate: Node) -> bool:
+	return CREATURE_FACTION.get_id(creature) == CREATURE_FACTION.get_id(candidate)
 
 
 func _is_same_species_and_faction(
@@ -498,6 +516,13 @@ func _remaining_route_steps() -> int:
 	return 1 if creature.is_moving else 0
 
 
+func _get_active_target_radius() -> int:
+	if hunt_mode == HuntMode.DEFENSE and creature.species_data.is_defensive_predator():
+		return maxi(int(creature.species_data.defensive_hunt_radius), 0)
+
+	return maxi(int(creature.species_data.predator_target_radius), 0)
+
+
 func find_nearest_prey() -> Node:
 	var candidates := find_nearest_prey_candidates(1)
 	return candidates[0] if not candidates.is_empty() else null
@@ -517,6 +542,7 @@ func find_nearest_prey_candidates(
 	var ranked_candidates: Array[Dictionary] = []
 	var candidate_checks := 0
 	var origin_anchor: Vector2i = creature.get_navigation_anchor()
+	var active_target_radius := _get_active_target_radius()
 
 	for candidate_variant: Variant in creature.world_grid.creature_anchors.keys():
 		candidate_checks += 1
@@ -538,7 +564,7 @@ func find_nearest_prey_candidates(
 			candidate_anchor
 		))
 
-		if distance > creature.species_data.predator_target_radius:
+		if distance > active_target_radius:
 			continue
 
 		_insert_ranked_prey_candidate(

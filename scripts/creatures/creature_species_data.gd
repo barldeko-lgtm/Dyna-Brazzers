@@ -25,6 +25,7 @@ enum PredatorRole {
 @export var diet_type: DietType = DietType.HERBIVORE
 @export var predator_role: PredatorRole = PredatorRole.STANDARD
 @export var predator_target_radius := 8
+@export var defensive_hunt_radius := 0
 @export var strategic_hunt_threshold := 0.0
 
 # Visuals.

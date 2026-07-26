@@ -25,6 +25,9 @@ func update_reproduction_behavior() -> void:
 	if creature.is_moving:
 		return
 
+	if creature.has_method("is_hunting") and bool(creature.call("is_hunting")):
+		return
+
 	if not has_reproduction_priority_over_strategic_hunt():
 		return
 

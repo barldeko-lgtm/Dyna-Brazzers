@@ -299,10 +299,11 @@ Predator rules:
 
 - compare a small nearest available prey set by actual reachable approach routes;
 - valid approaches overlap a footprint side; full corner-only diagonals remain invalid;
-- predator role, normal hunger threshold, and optional strategic-hunt threshold belong to `CreatureSpeciesData` resources;
+- predator role, normal hunger threshold, optional strategic-hunt threshold, normal hunt radius, and optional defender guard radius belong to `CreatureSpeciesData` resources;
 - attacker-role strategic hunting targets only opposing player/enemy herbivores and remains below reproduction eligibility and active player/enemy flag commitments;
 - attacker-role survival hunting may cross faction and diet boundaries but must always reject the same biological species of the hunter's own faction;
-- defender/standard predators retain the previous herbivore eligibility and player/enemy-only rule for predator or egg-eater prey until a dedicated defender policy replaces it;
+- defender guard hunting repeatedly scans only its guard radius for opposing player/enemy creatures and outranks indirect flag routes and eligibility to begin reproduction once a target is found; an egg laying already in progress remains uninterrupted;
+- defender survival hunting uses the normal predator radius, accepts herbivores regardless of faction, and rejects same-faction predators and egg eaters;
 - apply the active mode's prey rule consistently during acquisition, target revalidation, pending-duel settlement, and duel start;
 - prey may be pursued by several hunters, but final combat engagement is exclusive;
 - hunters losing engagement must release the target and search again through normal predator logic.
