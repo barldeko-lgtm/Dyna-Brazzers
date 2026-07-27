@@ -231,13 +231,15 @@ The disabled legacy round-robin producer remains instantiated only for backward-
 
 ### Enemy combat-spell reserve
 
-`enemy_spell_controller.gd` owns a separate time-charged reserve for future offensive spells. It is not part of ordinary enemy energy, so accumulating or spending it never blocks strategic egg production.
+`enemy_spell_controller.gd` owns a separate reserve for future offensive spells. Match time increases only its storage capacity; it does not create reserve energy. The capacity opens at the ten-minute mark, grows by the configured early amount on each full minute through 20:00, grows by the configured late amount from 21:00 onward, and stops at the configured maximum.
 
-The reserve remains at zero through the first ten simulation minutes. Its first minute tick occurs at 11:00, it gains the configured early amount on each full minute through 20:00, and from 21:00 onward it gains the configured late amount. Charging stops at the configured maximum.
+Actual reserve energy comes only from living enemy-creature income. `enemy_energy.gd` keeps the gross income calculation; after the ten-minute unlock, when gross income meets the configured threshold and reserve space remains, the configured share is deposited into the combat reserve and the remainder enters ordinary enemy energy. Below the threshold, before unlock, or while the reserve is full, all income enters ordinary energy.
 
-Future combat spells must check this reserve only. After a successful combat spell, its cost is subtracted and the remaining reserve cannot fall below the configured post-cast floor. A failed target or failed shared effect spends nothing. The current rain spell remains an economic support spell: it continues to use ordinary enemy energy and never changes the combat reserve.
+Future combat spells must check this reserve only. After a successful combat spell, its cost is subtracted and the remaining reserve cannot fall below the configured post-cast floor. A failed target or failed shared effect spends nothing.
 
-The exact reserve and next scheduled minute tick are saved. Older saves without reserve data reconstruct the uninterrupted amount from the restored enemy-AI simulation clock.
+Rain remains an economic support spell. It spends ordinary enemy energy whenever that store can cover the complete cost. Otherwise it may pay the complete cost from the combat reserve; the two stores are never combined for one cast. Rain spending changes only the stored reserve amount, never its capacity, and a failed application refunds the same store that paid.
+
+The exact reserve amount, capacity, and next capacity tick are saved. Saves from the earlier time-charged prototype discard its artificial stored amount, rebuild only capacity from restored enemy-AI time, and resume filling from real creature income.
 
 ### Enemy rain
 
@@ -368,7 +370,7 @@ Saved dynamic state includes:
 - eggs, species data, blockers, and faction;
 - player and enemy energy;
 - player flag placements/revisions and per-creature completion;
-- enemy strategic timing state and combat-spell reserve;
+- enemy strategic timing state plus combat-reserve amount, capacity, and capacity schedule;
 - match elapsed simulation time and result state;
 - DryGround cleared cells and partial rain progress;
 - camera state;

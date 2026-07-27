@@ -195,22 +195,25 @@ Main files:
 
 Combat-reserve rules:
 
-- `EnemySpellController` owns a separate combat-spell reserve; ordinary enemy energy remains fully independent for egg production and rain;
-- reserve progression uses the restored enemy-AI simulation clock, advances only on full configured minute ticks after the opening lock, and remains capped at its configured maximum;
-- the early rate applies through the 20:00 tick and the late rate starts with the 21:00 tick;
-- future combat spells must require sufficient reserve before attempting a cast and call `spend_combat_reserve_after_success()` only after the shared effect succeeds;
-- successful spending subtracts the exact combat-spell cost but clamps the remainder to the configured minimum post-cast reserve; failed targeting/application spends nothing;
-- rain must continue to use ordinary enemy energy and must never spend, reset, or otherwise mutate combat reserve;
-- save exact reserve plus the next scheduled tick minute; old saves without this state rebuild uninterrupted charging from restored enemy-AI elapsed time;
-- F5 may read reserve state through the existing public spell-controller diagnostics but must not mutate it.
+- `EnemySpellController` owns the combat-reserve amount and its time-based capacity; elapsed time may grow capacity but must never create stored reserve energy;
+- capacity opens on the configured ten-minute tick, the early capacity gain applies through the 20:00 tick, the late gain starts with the 21:00 tick, and capacity remains capped at the configured maximum;
+- `EnemyEnergy` remains the authority for gross creature income and diverts the configured share only when gross income meets the configured threshold and the reserve has free capacity;
+- before unlock, below the income threshold, or while capacity is full, all gross creature income goes to ordinary enemy energy;
+- `deposit_combat_reserve_income()` returns the amount actually accepted so `EnemyEnergy` can send every unaccepted fraction to ordinary energy without creating or losing income;
+- future combat spells must require sufficient stored reserve before attempting a cast and call `spend_combat_reserve_after_success()` only after the shared effect succeeds;
+- successful combat-spell spending subtracts the exact cost but clamps the remainder to the configured minimum post-cast reserve; failed targeting/application spends nothing;
+- rain first uses ordinary energy when it can cover the complete cost, otherwise it may use the complete cost from stored reserve; never split one rain payment across both stores;
+- reserve-funded rain subtracts the exact rain cost without applying the combat-spell post-cast floor and never changes capacity; failed application refunds the same payment source;
+- save exact stored reserve, exact capacity, and the next capacity tick; old time-charged-prototype saves discard artificial stored energy and rebuild capacity only;
+- F5 may read reserve, capacity, gross income, split threshold/share, and last accepted deposit through public diagnostics but must not mutate them.
 
 Trigger and cost rules:
 
 - enemy rain may run only from a completed AI snapshot that reports eligible adult enemy herbivores below the configured satiety threshold;
-- check affordability before scanning the grass registry;
+- check full-cost affordability from ordinary energy first and reserve second before scanning the grass registry;
 - keep target search and spell cost ownership in `EnemySpellController`;
 - require a positive target and `can_apply_rain()` before spending;
-- refund the exact cost if shared `apply_rain()` still fails.
+- refund the exact cost to the same ordinary/reserve store if shared `apply_rain()` still fails.
 
 Current target-search contract:
 
@@ -542,7 +545,7 @@ Save ownership:
 
 - `save_system.gd` — base slot validation, temporary-write/backup safety, and reconstruction;
 - `save_system_with_flags.gd` — faction, player-flag, completion, and audio-related extensions;
-- `save_system_with_enemy.gd` — enemy energy, combat-reserve state, strategic/legacy enemy state, and match-end timing/result state.
+- `save_system_with_enemy.gd` — enemy energy, combat-reserve amount/capacity state, strategic/legacy enemy state, and match-end timing/result state.
 
 Loading order:
 
@@ -557,7 +560,7 @@ Loading order:
 9. preserve already spawned static faction bases;
 10. restore energies, camera, and simulation speed;
 11. reapply factions and player flag state;
-12. restore enemy strategic timing/legacy compatibility state, then restore the combat reserve against that clock;
+12. restore enemy strategic timing/legacy compatibility state, then restore combat-reserve capacity/amount against that clock;
 13. restore match-end elapsed time/result state after entity reconstruction;
 14. leave the legacy producer disabled and rebuild derived snapshots/objectives from runtime state.
 

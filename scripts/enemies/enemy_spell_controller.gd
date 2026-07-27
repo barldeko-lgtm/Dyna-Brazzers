@@ -15,6 +15,10 @@ const ENEMY_SPECIES_CATALOG := preload("res://scripts/catalogs/enemy_species_cat
 
 const MATURE_GRASS_STAGE := 3
 const INITIALIZATION_RETRY_FRAMES := 12
+const COMBAT_RESERVE_SAVE_VERSION := 2
+const RAIN_PAYMENT_NONE := &"none"
+const RAIN_PAYMENT_ORDINARY := &"ordinary"
+const RAIN_PAYMENT_RESERVE := &"reserve"
 const INVALID_TILE := Vector2i(2147483647, 2147483647)
 const CARDINAL_OFFSETS: Array[Vector2i] = [
 	Vector2i.RIGHT,
@@ -46,12 +50,12 @@ const CARDINAL_OFFSETS: Array[Vector2i] = [
 @export var search_area_frame_line_width := 8.0
 @export var rain_area_frame_line_width := 10.0
 
-# Combat spells use a separate time-charged reserve. Ordinary enemy energy stays
-# fully available to egg production and the existing emergency rain spell.
+# Match time grows only the reserve capacity. Actual reserve energy is diverted
+# from real enemy-creature income by EnemyEnergy and never appears from time alone.
 @export var combat_reserve_unlock_minutes := 10
 @export var combat_reserve_late_rate_after_minutes := 20
-@export var combat_reserve_gain_per_minute := 100.0
-@export var combat_reserve_late_gain_per_minute := 200.0
+@export var combat_reserve_capacity_gain_per_minute := 100.0
+@export var combat_reserve_capacity_late_gain_per_minute := 200.0
 @export var combat_reserve_maximum := 3000.0
 @export var combat_reserve_minimum_after_cast := 500.0
 
@@ -62,7 +66,9 @@ var enemy_energy: Node = null
 var enemy_base: Node2D = null
 
 var combat_reserve := 0.0
-var next_combat_reserve_tick_minute := 0
+var combat_reserve_capacity := 0.0
+var next_combat_reserve_capacity_tick_minute := 0
+var last_combat_reserve_income_deposit := 0.0
 
 var search_area_bounds := Rect2i()
 var has_search_area_bounds := false
@@ -111,7 +117,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	_update_combat_reserve_from_match_time()
+	_update_combat_reserve_capacity_from_match_time()
 
 	if not has_search_area_bounds:
 		_refresh_runtime_references()
@@ -187,7 +193,7 @@ func _initialize_runtime() -> void:
 		_refresh_runtime_references()
 
 		if _connect_enemy_ai():
-			_update_combat_reserve_from_match_time()
+			_update_combat_reserve_capacity_from_match_time()
 			_refresh_search_area_bounds()
 			queue_redraw()
 			return
@@ -264,10 +270,12 @@ func _try_cast_rain_for_hungry_herd() -> bool:
 		return false
 
 	var safe_cost := maxf(rain_energy_cost, 0.0)
+	var rain_payment_source := _get_rain_payment_source(safe_cost)
 
-	# Do not perform the grass scan when the spell cannot be afforded.
-	if not bool(enemy_energy.call("can_spend", safe_cost)):
-		last_action_text = "дождь отложен: не хватает энки"
+	# Ordinary energy has priority. The reserve is a full-cost fallback only; the
+	# two stores are never combined for one rain cast.
+	if rain_payment_source == RAIN_PAYMENT_NONE:
+		last_action_text = "дождь отложен: не хватает обычной энки и резерва"
 		PerformanceStats.add_counter("enemy_rain_wait_energy")
 		return false
 
@@ -294,8 +302,8 @@ func _try_cast_rain_for_hungry_herd() -> bool:
 		last_action_text = "дождь отложен: выбранная область больше не подходит"
 		return false
 
-	if not bool(enemy_energy.call("spend", safe_cost)):
-		last_action_text = "дождь отложен: энку не удалось списать"
+	if not _spend_rain_energy(rain_payment_source, safe_cost):
+		last_action_text = "дождь отложен: источник оплаты изменился"
 		return false
 
 	var grass_count_before := _get_registered_grass_count()
@@ -306,16 +314,17 @@ func _try_cast_rain_for_hungry_herd() -> bool:
 	last_actual_new_grass = maxi(grass_count_after - grass_count_before, 0)
 
 	if not rain_applied:
-		enemy_energy.call("add_energy", safe_cost)
-		last_action_text = "дождь не сработал: энка возвращена"
+		_refund_rain_energy(rain_payment_source, safe_cost)
+		last_action_text = "дождь не сработал: энка возвращена в источник оплаты"
 		PerformanceStats.add_counter("enemy_rain_failed_refunded")
 		return false
 
 	last_rain_target_tile = target_tile
 	_show_rain_area_frame(target_tile)
 	last_action_text = (
-		"дождь: %s, балл %.1f = база %d × спрос %.2f × близость %.3f; прогноз +%d / реально +%d"
+		"дождь (%s): %s, балл %.1f = база %d × спрос %.2f × близость %.3f; прогноз +%d / реально +%d"
 		% [
+			_format_rain_payment_source(rain_payment_source),
 			_format_tile(target_tile),
 			last_best_total_score,
 			last_best_base_score,
@@ -1203,23 +1212,83 @@ func _refresh_runtime_references() -> void:
 			enemy_base = world_grid.get_node_or_null("EnemyBase") as Node2D
 
 
+func _get_rain_payment_source(amount: float) -> StringName:
+	var safe_cost := maxf(amount, 0.0)
+
+	if (
+		enemy_energy != null
+		and is_instance_valid(enemy_energy)
+		and enemy_energy.has_method("can_spend")
+		and bool(enemy_energy.call("can_spend", safe_cost))
+	):
+		return RAIN_PAYMENT_ORDINARY
+
+	if can_spend_combat_reserve(safe_cost):
+		return RAIN_PAYMENT_RESERVE
+
+	return RAIN_PAYMENT_NONE
+
+
+func _spend_rain_energy(payment_source: StringName, amount: float) -> bool:
+	var safe_cost := maxf(amount, 0.0)
+
+	match payment_source:
+		RAIN_PAYMENT_ORDINARY:
+			return (
+				enemy_energy != null
+				and is_instance_valid(enemy_energy)
+				and enemy_energy.has_method("spend")
+				and bool(enemy_energy.call("spend", safe_cost))
+			)
+		RAIN_PAYMENT_RESERVE:
+			if not can_spend_combat_reserve(safe_cost):
+				return false
+			combat_reserve = maxf(combat_reserve - safe_cost, 0.0)
+			PerformanceStats.add_counter("enemy_rain_reserve_spent", roundi(safe_cost))
+			return true
+
+	return false
+
+
+func _refund_rain_energy(payment_source: StringName, amount: float) -> void:
+	var safe_amount := maxf(amount, 0.0)
+
+	match payment_source:
+		RAIN_PAYMENT_ORDINARY:
+			if enemy_energy != null and enemy_energy.has_method("add_energy"):
+				enemy_energy.call("add_energy", safe_amount)
+		RAIN_PAYMENT_RESERVE:
+			combat_reserve = minf(
+				combat_reserve + safe_amount,
+				_get_combat_reserve_capacity()
+			)
+
+
+func _format_rain_payment_source(payment_source: StringName) -> String:
+	if payment_source == RAIN_PAYMENT_RESERVE:
+		return "резерв"
+	return "обычная энка"
+
+
 func _reset_combat_reserve_for_new_session() -> void:
 	combat_reserve = 0.0
-	next_combat_reserve_tick_minute = _get_first_combat_reserve_tick_minute()
+	combat_reserve_capacity = 0.0
+	next_combat_reserve_capacity_tick_minute = _get_first_combat_reserve_capacity_tick_minute()
+	last_combat_reserve_income_deposit = 0.0
 
 
-func _update_combat_reserve_from_match_time() -> void:
+func _update_combat_reserve_capacity_from_match_time() -> void:
 	if enemy_ai == null or not is_instance_valid(enemy_ai):
 		_refresh_runtime_references()
 
-	_advance_combat_reserve_to_elapsed(_get_enemy_elapsed_simulation_seconds())
+	_advance_combat_reserve_capacity_to_elapsed(_get_enemy_elapsed_simulation_seconds())
 
 
-func _advance_combat_reserve_to_elapsed(elapsed_simulation_seconds: float) -> void:
-	var first_tick_minute := _get_first_combat_reserve_tick_minute()
+func _advance_combat_reserve_capacity_to_elapsed(elapsed_simulation_seconds: float) -> void:
+	var first_tick_minute := _get_first_combat_reserve_capacity_tick_minute()
 
-	if next_combat_reserve_tick_minute < first_tick_minute:
-		next_combat_reserve_tick_minute = first_tick_minute
+	if next_combat_reserve_capacity_tick_minute < first_tick_minute:
+		next_combat_reserve_capacity_tick_minute = first_tick_minute
 
 	var elapsed_full_minutes := maxi(
 		int(floor(maxf(elapsed_simulation_seconds, 0.0) / 60.0)),
@@ -1227,12 +1296,17 @@ func _advance_combat_reserve_to_elapsed(elapsed_simulation_seconds: float) -> vo
 	)
 	var safe_maximum := _get_combat_reserve_maximum()
 
-	while next_combat_reserve_tick_minute <= elapsed_full_minutes:
-		var gain := _get_combat_reserve_gain_for_tick(
-			next_combat_reserve_tick_minute
+	while next_combat_reserve_capacity_tick_minute <= elapsed_full_minutes:
+		var gain := _get_combat_reserve_capacity_gain_for_tick(
+			next_combat_reserve_capacity_tick_minute
 		)
-		combat_reserve = minf(combat_reserve + gain, safe_maximum)
-		next_combat_reserve_tick_minute += 1
+		combat_reserve_capacity = minf(
+			combat_reserve_capacity + gain,
+			safe_maximum
+		)
+		next_combat_reserve_capacity_tick_minute += 1
+
+	combat_reserve = minf(combat_reserve, combat_reserve_capacity)
 
 
 func _get_enemy_elapsed_simulation_seconds() -> float:
@@ -1249,24 +1323,32 @@ func _get_enemy_elapsed_simulation_seconds() -> float:
 	return 0.0
 
 
-func _get_first_combat_reserve_tick_minute() -> int:
-	return maxi(combat_reserve_unlock_minutes, 0) + 1
+func _get_first_combat_reserve_capacity_tick_minute() -> int:
+	return maxi(combat_reserve_unlock_minutes, 0)
 
 
-func _get_combat_reserve_gain_for_tick(tick_minute: int) -> float:
+func _get_combat_reserve_capacity_gain_for_tick(tick_minute: int) -> float:
 	var late_rate_after := maxi(
 		combat_reserve_late_rate_after_minutes,
 		maxi(combat_reserve_unlock_minutes, 0)
 	)
 
 	if tick_minute > late_rate_after:
-		return maxf(combat_reserve_late_gain_per_minute, 0.0)
+		return maxf(combat_reserve_capacity_late_gain_per_minute, 0.0)
 
-	return maxf(combat_reserve_gain_per_minute, 0.0)
+	return maxf(combat_reserve_capacity_gain_per_minute, 0.0)
 
 
 func _get_combat_reserve_maximum() -> float:
 	return maxf(combat_reserve_maximum, 0.0)
+
+
+func _get_combat_reserve_capacity() -> float:
+	return clampf(
+		combat_reserve_capacity,
+		0.0,
+		_get_combat_reserve_maximum()
+	)
 
 
 func _get_combat_reserve_minimum_after_cast() -> float:
@@ -1278,44 +1360,80 @@ func _get_combat_reserve_minimum_after_cast() -> float:
 
 
 func get_save_data() -> Dictionary:
-	_update_combat_reserve_from_match_time()
+	_update_combat_reserve_capacity_from_match_time()
 	return {
+		"combat_reserve_save_version": COMBAT_RESERVE_SAVE_VERSION,
 		"combat_reserve": get_combat_reserve(),
-		"next_combat_reserve_tick_minute": next_combat_reserve_tick_minute
+		"combat_reserve_capacity": get_combat_reserve_capacity(),
+		"next_combat_reserve_capacity_tick_minute": next_combat_reserve_capacity_tick_minute
 	}
 
 
 func restore_save_data(saved_data: Dictionary) -> void:
 	_refresh_runtime_references()
 	var elapsed_simulation_seconds := _get_enemy_elapsed_simulation_seconds()
+	var saved_version := int(saved_data.get("combat_reserve_save_version", 0))
 
-	if saved_data.has("combat_reserve"):
-		combat_reserve = clampf(
-			float(saved_data.get("combat_reserve", 0.0)),
+	_reset_combat_reserve_for_new_session()
+
+	if saved_version >= COMBAT_RESERVE_SAVE_VERSION:
+		combat_reserve_capacity = clampf(
+			float(saved_data.get("combat_reserve_capacity", 0.0)),
 			0.0,
 			_get_combat_reserve_maximum()
 		)
 		var default_next_tick := maxi(
 			int(floor(elapsed_simulation_seconds / 60.0)) + 1,
-			_get_first_combat_reserve_tick_minute()
+			_get_first_combat_reserve_capacity_tick_minute()
 		)
-		next_combat_reserve_tick_minute = maxi(
+		next_combat_reserve_capacity_tick_minute = maxi(
 			int(saved_data.get(
-				"next_combat_reserve_tick_minute",
+				"next_combat_reserve_capacity_tick_minute",
 				default_next_tick
 			)),
-			_get_first_combat_reserve_tick_minute()
+			_get_first_combat_reserve_capacity_tick_minute()
+		)
+		_advance_combat_reserve_capacity_to_elapsed(elapsed_simulation_seconds)
+		combat_reserve = clampf(
+			float(saved_data.get("combat_reserve", 0.0)),
+			0.0,
+			_get_combat_reserve_capacity()
 		)
 	else:
-		# Saves made before the reserve existed receive the amount that normal
-		# uninterrupted charging would have produced by their restored AI time.
-		_reset_combat_reserve_for_new_session()
+		# The previous reserve prototype created energy from elapsed time. Its saved
+		# amount is intentionally discarded; only the capacity is rebuilt.
+		_advance_combat_reserve_capacity_to_elapsed(elapsed_simulation_seconds)
+		combat_reserve = 0.0
 
-	_advance_combat_reserve_to_elapsed(elapsed_simulation_seconds)
+
+func deposit_combat_reserve_income(amount: float) -> float:
+	_update_combat_reserve_capacity_from_match_time()
+	last_combat_reserve_income_deposit = 0.0
+	var safe_amount := maxf(amount, 0.0)
+	var available_space := maxf(
+		_get_combat_reserve_capacity() - combat_reserve,
+		0.0
+	)
+
+	if safe_amount <= 0.0 or available_space <= 0.0:
+		return 0.0
+
+	last_combat_reserve_income_deposit = minf(safe_amount, available_space)
+	combat_reserve += last_combat_reserve_income_deposit
+	PerformanceStats.add_counter(
+		"enemy_combat_reserve_income",
+		roundi(last_combat_reserve_income_deposit)
+	)
+	return last_combat_reserve_income_deposit
 
 
 func get_combat_reserve() -> float:
-	return clampf(combat_reserve, 0.0, _get_combat_reserve_maximum())
+	return clampf(combat_reserve, 0.0, _get_combat_reserve_capacity())
+
+
+func get_combat_reserve_capacity() -> float:
+	_update_combat_reserve_capacity_from_match_time()
+	return _get_combat_reserve_capacity()
 
 
 func get_combat_reserve_maximum() -> float:
@@ -1326,21 +1444,23 @@ func get_combat_reserve_minimum_after_cast() -> float:
 	return _get_combat_reserve_minimum_after_cast()
 
 
-func get_next_combat_reserve_tick_minute() -> int:
+func get_next_combat_reserve_capacity_tick_minute() -> int:
 	return maxi(
-		next_combat_reserve_tick_minute,
-		_get_first_combat_reserve_tick_minute()
+		next_combat_reserve_capacity_tick_minute,
+		_get_first_combat_reserve_capacity_tick_minute()
 	)
 
 
-func get_next_combat_reserve_gain() -> float:
-	return _get_combat_reserve_gain_for_tick(
-		get_next_combat_reserve_tick_minute()
+func get_next_combat_reserve_capacity_gain() -> float:
+	return _get_combat_reserve_capacity_gain_for_tick(
+		get_next_combat_reserve_capacity_tick_minute()
 	)
 
 
-func get_seconds_until_next_combat_reserve_tick() -> float:
-	var next_tick_seconds := float(get_next_combat_reserve_tick_minute()) * 60.0
+func get_seconds_until_next_combat_reserve_capacity_tick() -> float:
+	var next_tick_seconds := float(
+		get_next_combat_reserve_capacity_tick_minute()
+	) * 60.0
 	return maxf(next_tick_seconds - _get_enemy_elapsed_simulation_seconds(), 0.0)
 
 
@@ -1351,7 +1471,7 @@ func is_combat_reserve_unlocked() -> bool:
 
 
 func can_spend_combat_reserve(amount: float) -> bool:
-	_update_combat_reserve_from_match_time()
+	_update_combat_reserve_capacity_from_match_time()
 	var safe_cost := maxf(amount, 0.0)
 	return combat_reserve + 0.001 >= safe_cost
 
@@ -1370,7 +1490,7 @@ func spend_combat_reserve_after_success(amount: float) -> bool:
 			_get_combat_reserve_minimum_after_cast()
 		),
 		0.0,
-		_get_combat_reserve_maximum()
+		_get_combat_reserve_capacity()
 	)
 	PerformanceStats.add_counter("enemy_combat_reserve_spent", roundi(safe_cost))
 	PerformanceStats.add_counter("enemy_combat_spell_casts")
@@ -1454,17 +1574,33 @@ func get_total_search_count() -> int:
 	return total_search_count
 
 
+func _get_enemy_energy_debug_value(method_name: StringName) -> float:
+	if (
+		enemy_energy != null
+		and is_instance_valid(enemy_energy)
+		and enemy_energy.has_method(method_name)
+	):
+		return maxf(float(enemy_energy.call(method_name)), 0.0)
+	return 0.0
+
+
 func get_rain_debug_data() -> Dictionary:
-	_update_combat_reserve_from_match_time()
+	_update_combat_reserve_capacity_from_match_time()
 	return {
 		"action_text": last_action_text,
 		"combat_reserve": get_combat_reserve(),
+		"combat_reserve_capacity": get_combat_reserve_capacity(),
 		"combat_reserve_maximum": get_combat_reserve_maximum(),
 		"combat_reserve_minimum_after_cast": get_combat_reserve_minimum_after_cast(),
 		"combat_reserve_unlocked": is_combat_reserve_unlocked(),
-		"combat_reserve_next_tick_minute": get_next_combat_reserve_tick_minute(),
-		"combat_reserve_next_gain": get_next_combat_reserve_gain(),
-		"combat_reserve_seconds_until_next_tick": get_seconds_until_next_combat_reserve_tick(),
+		"combat_reserve_next_capacity_tick_minute": get_next_combat_reserve_capacity_tick_minute(),
+		"combat_reserve_next_capacity_gain": get_next_combat_reserve_capacity_gain(),
+		"combat_reserve_seconds_until_next_capacity_tick": get_seconds_until_next_combat_reserve_capacity_tick(),
+		"combat_reserve_last_income_deposit": last_combat_reserve_income_deposit,
+		"enemy_income_per_second": _get_enemy_energy_debug_value("get_income_per_second"),
+		"combat_reserve_income_threshold_per_second": _get_enemy_energy_debug_value("get_combat_reserve_income_threshold_per_second"),
+		"combat_reserve_income_share": _get_enemy_energy_debug_value("get_combat_reserve_income_share"),
+		"enemy_last_income_to_ordinary_energy": _get_enemy_energy_debug_value("get_last_income_to_ordinary_energy"),
 		"grass_entries_scanned": last_grass_entries_scanned,
 		"mature_grass_count": last_mature_grass_count,
 		"spread_ready_grass_count": last_spread_ready_grass_count,

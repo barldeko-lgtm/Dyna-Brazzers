@@ -142,23 +142,50 @@ func _append_rain_debug_lines(lines: Array[String]) -> void:
 	var debug_variant: Variant = spell_controller.call("get_rain_debug_data")
 	var rain_data: Dictionary = debug_variant if debug_variant is Dictionary else {}
 	var reserve_value := float(rain_data.get("combat_reserve", 0.0))
+	var reserve_capacity := float(rain_data.get("combat_reserve_capacity", 0.0))
 	var reserve_maximum := float(rain_data.get("combat_reserve_maximum", 3000.0))
-	var reserve_status := "накопление после 10:00"
+	var reserve_status := "лимит откроется в 10:00"
 
-	if reserve_value + 0.001 >= reserve_maximum:
-		reserve_status = "максимум"
+	if reserve_capacity + 0.001 >= reserve_maximum:
+		reserve_status = "лимит максимум"
 	elif bool(rain_data.get("combat_reserve_unlocked", false)):
-		reserve_status = "+%d через %s" % [
-			roundi(float(rain_data.get("combat_reserve_next_gain", 0.0))),
+		reserve_status = "лимит +%d через %s" % [
+			roundi(float(rain_data.get("combat_reserve_next_capacity_gain", 0.0))),
 			_format_elapsed_time(
-				float(rain_data.get("combat_reserve_seconds_until_next_tick", 0.0))
+				float(rain_data.get("combat_reserve_seconds_until_next_capacity_tick", 0.0))
 			)
 		]
 
-	lines.append("Боевой резерв: %d / %d | %s" % [
+	lines.append("Боевой резерв: %d / %d (макс. %d) | %s" % [
 		roundi(reserve_value),
+		roundi(reserve_capacity),
 		roundi(reserve_maximum),
 		reserve_status
+	])
+	var enemy_income := float(rain_data.get("enemy_income_per_second", 0.0))
+	var income_threshold := float(
+		rain_data.get("combat_reserve_income_threshold_per_second", 10.0)
+	)
+	var income_share_percent := float(rain_data.get("combat_reserve_income_share", 0.10)) * 100.0
+	var last_reserve_income := float(
+		rain_data.get("combat_reserve_last_income_deposit", 0.0)
+	)
+	var reserve_income_status := "ниже порога"
+
+	if reserve_capacity <= 0.0:
+		reserve_income_status = "резерв закрыт"
+	elif reserve_value + 0.001 >= reserve_capacity:
+		reserve_income_status = "резерв заполнен"
+	elif enemy_income + 0.001 >= income_threshold:
+		reserve_income_status = "%.0f%% в резерв, последний тик +%.1f" % [
+			income_share_percent,
+			last_reserve_income
+		]
+
+	lines.append("Доход врага: +%.1f/с | порог +%.1f/с | %s" % [
+		enemy_income,
+		income_threshold,
+		reserve_income_status
 	])
 	lines.append("Дождь: %s" % str(rain_data.get("action_text", "ожидание")))
 	lines.append("Поиск: %.3f мс | максимум %.3f мс | запусков %d" % [

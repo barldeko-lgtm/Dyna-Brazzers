@@ -76,7 +76,8 @@ func _apply_save_data(save_data: Dictionary) -> bool:
 			enemy_spells_data = (enemy_spells_data_variant as Dictionary).duplicate(true)
 
 		# An empty dictionary is intentional for old saves: the spell controller
-		# rebuilds the reserve from the already restored enemy-AI clock.
+		# rebuilds only the time-based reserve capacity. Actual reserve energy starts
+		# at zero because it must come from real creature income.
 		enemy_spells.call("restore_save_data", enemy_spells_data)
 
 
