@@ -294,7 +294,7 @@ func can_accept_indirect_order() -> bool:
 	return current_state == state_idle or current_state == state_walk
 
 func has_indirect_order_route_in_progress() -> bool:
-	return get_remaining_route_steps() > 0
+	return is_following_indirect_order_route and get_remaining_route_steps() > 0
 
 func apply_indirect_order_route(path: Array) -> bool:
 	var normalized_path := _normalize_route(path)

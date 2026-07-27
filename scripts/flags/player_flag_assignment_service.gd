@@ -74,7 +74,9 @@ func update() -> void:
 			_settle_guard_inside_leash(creature, species_id)
 			continue
 
-		if uses_guard_leash and _guard_hunt_has_priority(creature):
+		if _active_hunt_has_priority(creature):
+			# Hunting owns current_path. Release only the allocated flag footprint;
+			# the revision commitment remains so the route is rebuilt afterwards.
 			_remove_pending_route_request(creature)
 			_release_creature_target(creature)
 			continue
@@ -226,6 +228,11 @@ func _process_pending_route_requests(max_requests: int) -> void:
 			_release_creature_target(creature)
 			continue
 
+		if not uses_guard_leash and _active_hunt_has_priority(creature):
+			_remove_pending_route_request(creature)
+			_release_creature_target(creature)
+			continue
+
 		if _hunger_overrides_flag(creature):
 			_drop_flag_route_for_hunger(creature)
 			continue
@@ -251,7 +258,7 @@ func _process_pending_route_requests(max_requests: int) -> void:
 			_settle_guard_inside_leash(creature, species_id)
 			continue
 
-		if uses_guard_leash and _guard_hunt_has_priority(creature):
+		if uses_guard_leash and _active_hunt_has_priority(creature):
 			_remove_pending_route_request(creature)
 			_release_creature_target(creature)
 			continue
@@ -440,7 +447,7 @@ func _is_guard_anchor_inside_leash(species_id: StringName, anchor: Vector2i) -> 
 	return RAPTOR_GUARD_POLICY.is_anchor_within_leash(flag_tile_variant, anchor)
 
 
-func _guard_hunt_has_priority(creature: Node) -> bool:
+func _active_hunt_has_priority(creature: Node) -> bool:
 	return creature.has_method("is_hunting") and bool(creature.call("is_hunting"))
 
 
@@ -544,6 +551,8 @@ func _resolve_debug_status(
 
 	if _has_completed_current_flag(creature, species_id):
 		status = "флаг выполнен"
+	elif _active_hunt_has_priority(creature):
+		status = "охотится, приказ сохранён" if committed else "охотится"
 	elif (
 		footprint_variant is Vector2i
 		and anchor_variant is Vector2i
