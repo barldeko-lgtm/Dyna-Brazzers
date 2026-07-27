@@ -31,7 +31,7 @@ Implemented foundations include:
 - player energy, enemy energy, player egg purchases, and enemy strategic egg production;
 - species-specific player flags and persistent enemy rally objectives;
 - an automatic enemy rain controller with target scoring and performance diagnostics;
-- startup, in-game menu, three save slots, settings, global audio, minimap, HUD, and debug overlays.
+- startup, in-game menu, three save slots, settings, global audio, minimap, HUD, debug overlays, and elimination-based victory/defeat results.
 
 Roadmap block `0.5 — Visuals and game interface` is complete. Work from the later creature, player-expansion, and enemy blocks is partially implemented. `docs/design_roadmap.md` remains the design roadmap and must not be edited unless explicitly requested.
 
@@ -118,7 +118,7 @@ Occupancy and movement reservations are checked live and are not stored in the p
 
 Predators compare a small nearest-prey set by reachable route length, reserve only the final combat engagement, and use shared movement and duel systems. Predator role, thresholds, and mode-specific search radii are species data. Tyrannosaurus and pterodactyl are attacker-role predators: above their normal hunger threshold and at or below their strategic threshold they scan a shorter strategic radius for any creature of the opposing player/enemy faction, including herbivores, predators, and egg eaters. Until a target is found they may continue an indirect flag route; acquiring a strategic target replaces that route, while reproduction eligibility remains higher priority. At or below the normal hunger threshold, attacker-role predators switch to their wider survival hunt across factions and diet categories, except that they never attack the same biological species of their own faction. Raptors are defender-role predators: while not critically hungry they repeatedly scan a smaller guard radius for any opposing-faction creature, and a detected enemy hunt overrides indirect flag travel and prevents a new egg laying from starting. An egg laying already in progress remains uninterrupted. At or below the raptor hunger threshold, the wider survival hunt accepts herbivores of any faction while still rejecting same-faction predators and egg eaters.
 
-Egg eaters are a separate diet category. From 90 to above 25 satiety they scan radius 20 for opposing-faction edible eggs, continuing an indirect flag route until a target is found. An acquired target overrides the flag. At or below 25 satiety hunger overrides the flag even without a target, and they may eat any available egg except one matching both their species and faction. Player and enemy variants share this rule.
+Egg eaters are a separate diet category. From 90 to above 25 satiety they scan radius 20 for opposing-faction eggs, continuing an indirect flag route until a reachable target is found. At or below 25 satiety hunger overrides the flag even without a target, and they accept any egg except one matching both their species and faction. They shortlist three nearby eggs, compare real routes across every valid side approach, track stage-one eggs from safe non-blocking waiting cells, and consume only stage two. Player and enemy variants share this rule.
 
 ### Death and visuals
 
@@ -288,13 +288,28 @@ Player flags are soft, non-blocking movement preferences:
 
 Enemy and neutral creatures ignore player flags.
 
+## Match end
+
+The match-end controller tracks simulation time independently of real time. During the first two simulation minutes elimination checks are disabled, so a fresh session cannot end before either side has created its opening population. Pausing the simulation also pauses this grace period, while faster simulation speeds advance it proportionally.
+
+After the grace period:
+
+- the player wins when the enemy has no living creatures and no eggs;
+- the player loses when the player faction has no living creatures and no eggs;
+- corpses, queued-for-deletion entities, neutral creatures, energy, and faction bases do not keep a side alive.
+
+A finished match sets simulation speed to zero and shows a full-screen result overlay with a victory or defeat heading, one short result message, the total simulation-time duration, and a single `В главное меню` button. There is no draw result and no continue-observing option.
+
+Match elapsed time and any already-finished result are saved. Older saves without match-end data reuse the persisted enemy-AI simulation clock instead of receiving a new two-minute grace period.
+
 ## UI and diagnostics
 
 The gameplay UI is split into dedicated scenes:
 
 - `player_hud.tscn`;
 - `creature_info_panel.tscn`;
-- `nature_menu.tscn`.
+- `nature_menu.tscn`;
+- `game_result_overlay.tscn`.
 
 Dynamic save, flag, egg, and time-control menus resolve the nature panel through the stable `player_nature_ui` group API rather than deep scene paths.
 
@@ -344,6 +359,7 @@ Saved dynamic state includes:
 - player and enemy energy;
 - player flag placements/revisions and per-creature completion;
 - enemy strategic timing state;
+- match elapsed simulation time and result state;
 - DryGround cleared cells and partial rain progress;
 - camera state;
 - simulation speed;
@@ -360,7 +376,6 @@ Returning to Main Menu unloads the active session without deleting save files. S
 Not implemented yet:
 
 - final enemy-specific creature animations;
-- egg-eater production in the active enemy strategy;
 - additional enemy spells;
 - dynamic enemy attack planning and base damage;
 - dynamic enemy rally placement;

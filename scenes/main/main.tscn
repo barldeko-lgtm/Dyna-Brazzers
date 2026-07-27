@@ -5,6 +5,8 @@
 [ext_resource type="PackedScene" path="res://scenes/debug/grid_debug_overlay.tscn" id="4_grid_debug_overlay"]
 [ext_resource type="PackedScene" path="res://scenes/ui/player_hud.tscn" id="5_player_hud"]
 [ext_resource type="PackedScene" path="res://scenes/debug/enemy_ai_debug_overlay.tscn" id="6_enemy_ai_debug_overlay"]
+[ext_resource type="Script" path="res://scripts/gameplay/game_end_controller.gd" id="7_game_end_controller"]
+[ext_resource type="PackedScene" path="res://scenes/ui/game_result_overlay.tscn" id="8_game_result_overlay"]
 
 [node name="Main" type="Node2D" unique_id=1646183539]
 
@@ -14,7 +16,13 @@ script = ExtResource("1_iuonh")
 
 [node name="UI" parent="." unique_id=288994034 instance=ExtResource("5_player_hud")]
 
+[node name="GameResultOverlay" parent="." instance=ExtResource("8_game_result_overlay")]
+
 [node name="Simulation" type="Node" parent="." unique_id=1909221079]
+
+[node name="GameEndController" type="Node" parent="Simulation"]
+script = ExtResource("7_game_end_controller")
+result_overlay_path = NodePath("../../GameResultOverlay")
 
 [node name="World" parent="." unique_id=800246024 instance=ExtResource("1_hyk8p")]
 

@@ -318,6 +318,8 @@ Predator rules:
 - egg eaters in strategic mode continue an indirect flag route until an opposing-faction egg is acquired, then the target overrides the flag;
 - egg eaters at the normal hunger threshold suspend the flag even without a target and accept all eggs except the same species of their own faction;
 - apply egg-eater faction rules during both acquisition and target revalidation, and reject eggs queued for deletion;
+- shortlist at most three egg targets by cheap distance, then select by real reachable route across all valid side approaches;
+- stage-one eggs are trackable but not edible; waiting footprints must preserve both possible stage-two expansions and repath after the transition;
 - apply the active mode's prey rule consistently during acquisition, target revalidation, pending-duel settlement, and duel start;
 - prey may be pursued by several hunters, but final combat engagement is exclusive;
 - hunters losing engagement must release the target and search again through normal predator logic.
@@ -405,6 +407,7 @@ Main scenes:
 - `res://scenes/ui/player_hud.tscn`
 - `res://scenes/ui/creature_info_panel.tscn`
 - `res://scenes/ui/nature_menu.tscn`
+- `res://scenes/ui/game_result_overlay.tscn`
 
 Stable wiring:
 
@@ -425,6 +428,30 @@ Rules:
 - base-focus buttons find bases through stable groups, not deep scene paths;
 - time shortcuts must use `player_ui.gd`'s existing speed-application path so engine speed and button state stay synchronized;
 - preserve stable root instance names used by existing diagnostics and integrations.
+
+## Match end and result UI
+
+Main files:
+
+- `res://scripts/gameplay/game_end_controller.gd`
+- `res://scripts/ui/game_result_overlay.gd`
+- `res://scenes/ui/game_result_overlay.tscn`
+- `res://scenes/main/main.tscn`
+- `res://scripts/save/save_system_with_enemy.gd`
+
+Rules:
+
+- the match-end controller owns elapsed simulation time, the opening grace period, population checks, and the one-time transition to victory or defeat;
+- check only stable `creatures` and `eggs` groups, reject invalid or queued-for-deletion nodes, reject dead creature state, and use `CreatureFaction` as ownership authority;
+- a faction remains alive while at least one living creature or one egg of that faction exists; bases, energy, corpses, neutral entities, and future purchasing ability do not count;
+- elimination checks remain disabled for the controller-owned opening grace period and run on a bounded interval rather than every frame;
+- the grace period and displayed match duration use simulation-scaled delta, so pause stops them and speed controls advance them proportionally;
+- the current implementation exposes only victory and defeat; do not invent a draw branch or continue-observing flow;
+- finishing the match sets `Engine.time_scale` to zero, shows the result overlay once, and leaves only the public main-menu action available;
+- the result overlay owns presentation and emits `main_menu_requested`; it must not count populations or decide the result;
+- `SaveSystem` persists controller elapsed time/result through the final enemy save layer and exposes the public result-to-main-menu bridge;
+- old saves without `game_end` data fall back to `enemy_ai.elapsed_simulation_seconds`, avoiding a renewed grace period after loading;
+- loading active match state must resume checks only after normal entity reconstruction; loading a finished state must restore the paused result overlay.
 
 ## Creature visuals and interaction
 
@@ -504,7 +531,7 @@ Save ownership:
 
 - `save_system.gd` — base slot validation, temporary-write/backup safety, and reconstruction;
 - `save_system_with_flags.gd` — faction, player-flag, completion, and audio-related extensions;
-- `save_system_with_enemy.gd` — enemy energy and strategic/legacy enemy state.
+- `save_system_with_enemy.gd` — enemy energy, strategic/legacy enemy state, and match-end timing/result state.
 
 Loading order:
 
@@ -520,13 +547,14 @@ Loading order:
 10. restore energies, camera, and simulation speed;
 11. reapply factions and player flag state;
 12. restore enemy strategic timing/legacy compatibility state;
-13. leave the legacy producer disabled and rebuild derived snapshots/objectives from runtime state.
+13. restore match-end elapsed time/result state after entity reconstruction;
+14. leave the legacy producer disabled and rebuild derived snapshots/objectives from runtime state.
 
 Rules:
 
 - save writes must validate a temporary JSON before replacing the live slot and retain recoverable backup state;
 - invalid slots remain visible but cannot be loaded;
-- missing optional faction/flag/enemy fields must not invalidate old saves;
+- missing optional faction/flag/enemy/match-end fields must not invalidate old saves;
 - slot labels derive `М1`/`М2` from `level_id`; new saves store `saved_at_utc_offset_minutes` so their timestamp remains in the originating computer-local time, while old saves fall back to the current system UTC offset;
 - missing `level_id` defaults to level 1; an unavailable saved level must fail before scene replacement;
 - missing faction defaults to player; unknown non-empty faction becomes neutral;

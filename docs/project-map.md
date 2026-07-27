@@ -17,10 +17,11 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 ## Main scenes
 
 - `scenes/ui/start_screen.tscn` — startup menu, level selection, load slots, settings, and exit.
-- `scenes/main/main.tscn` — small gameplay compositor for camera, HUD, simulation root, world, and debug overlays.
+- `scenes/main/main.tscn` — small gameplay compositor for camera, HUD, match-end controller/result overlay, simulation root, world, and debug overlays.
 - `scenes/ui/player_hud.tscn` — gameplay HUD, minimap, counters, and nature-menu instance.
 - `scenes/ui/creature_info_panel.tscn` — selected/hovered creature information.
 - `scenes/ui/nature_menu.tscn` — player energy, spells, time controls, and host area for runtime submenus.
+- `scenes/ui/game_result_overlay.tscn` — full-screen victory/defeat result presentation and main-menu action.
 - `scenes/world/world.tscn` — active authored world, terrain, DryGround, initial grass, creature/egg containers, and world grid.
 - `scenes/world/player_base.tscn` — fixed player nature base.
 - `scenes/world/enemy_base.tscn` — fixed enemy base.
@@ -63,7 +64,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/resources/grass.gd` — grass lifecycle, food value, spreading, registry sync, and nature-power reactions.
 - `scripts/resources/egg.gd` — egg lifecycle, expansion/blocker state, hatching, and edible/destruction API.
 
-## Catalogs, energy, and enemy strategy
+## Catalogs, energy, enemy strategy, and match flow
 
 - `scripts/catalogs/player_species_catalog.gd` — ordered player roster, egg economy, player income, and flag presentation.
 - `scripts/catalogs/enemy_species_catalog.gd` — enemy resource roster and enemy economy values.
@@ -72,6 +73,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/enemies/enemy_egg_production_controller.gd` — disabled legacy producer retained only for save compatibility.
 - `scripts/enemies/enemy_ai_controller.gd` — periodic enemy population/satiety snapshot and egg-production decisions.
 - `scripts/enemies/enemy_spell_controller.gd` — enemy spell triggers, rain target search/cost, world-space diagnostic contours, and public F5/F8 data.
+- `scripts/gameplay/game_end_controller.gd` — simulation-time grace period, faction population checks, victory/defeat transition, duration tracking, and save API.
 
 ## Flag systems
 
@@ -98,6 +100,7 @@ Enemy objectives:
 - `scripts/ui/creature_stats_ui.gd` — creature information, selection state, and lightning-target bridge.
 - `scripts/ui/player_egg_creation_ui.gd` — player egg submenu and purchases.
 - `scripts/ui/player_nature_ui.gd` — spell buttons, targeting/previews, named menu controls, and stable nested-UI access API.
+- `scripts/ui/game_result_overlay.gd` — victory/defeat presentation and `main_menu_requested` signal.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/status line and F4 text diagnostics.
 - `scripts/debug/grid_debug_overlay.gd` — F3 terrain/occupancy/path/flag diagnostics.
 - `scripts/debug/enemy_ai_debug_overlay.gd` — read-only F5 enemy strategy/rain panel.
@@ -105,7 +108,7 @@ Enemy objectives:
 - `scripts/audio/audio_manager.gd` — global music, one-shot sounds, UI clicks, bus setup, fades, and settings.
 - `scripts/save/save_system.gd` — level routing, base slot persistence, and reconstruction.
 - `scripts/save/save_system_with_flags.gd` — faction, player-flag, completion, and audio-setting extensions.
-- `scripts/save/save_system_with_enemy.gd` — active final save layer for enemy energy and strategic timing/legacy state.
+- `scripts/save/save_system_with_enemy.gd` — active final save layer for enemy energy, strategic timing/legacy state, match-end state, and result-to-main-menu bridge.
 - `scripts/effects/` — target previews and one-shot effect playback.
 
 ## Data resources

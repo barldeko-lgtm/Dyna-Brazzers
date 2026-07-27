@@ -85,6 +85,10 @@ func can_be_eaten() -> bool:
 	return current_stage == Stage.STAGE_2
 
 
+func can_be_tracked_by_egg_eater() -> bool:
+	return not is_queued_for_deletion()
+
+
 func consume() -> bool:
 	if not can_be_eaten():
 		return false

@@ -9,6 +9,7 @@ func _collect_save_data() -> Dictionary:
 	var enemy_energy := get_tree().get_first_node_in_group("enemy_energy")
 	var enemy_production := get_tree().get_first_node_in_group("enemy_egg_production")
 	var enemy_ai := get_tree().get_first_node_in_group("enemy_ai")
+	var game_end_controller := get_tree().get_first_node_in_group("game_end_controller")
 
 	if enemy_energy != null and enemy_energy.has_method("get_energy"):
 		save_data["enemy_energy"] = float(enemy_energy.call("get_energy"))
@@ -18,6 +19,9 @@ func _collect_save_data() -> Dictionary:
 
 	if enemy_ai != null and enemy_ai.has_method("get_save_data"):
 		save_data["enemy_ai"] = enemy_ai.call("get_save_data")
+
+	if game_end_controller != null and game_end_controller.has_method("get_save_data"):
+		save_data["game_end"] = game_end_controller.call("get_save_data")
 
 	return save_data
 
@@ -31,6 +35,7 @@ func _apply_save_data(save_data: Dictionary) -> bool:
 	var enemy_energy := get_tree().get_first_node_in_group("enemy_energy")
 	var enemy_production := get_tree().get_first_node_in_group("enemy_egg_production")
 	var enemy_ai := get_tree().get_first_node_in_group("enemy_ai")
+	var game_end_controller := get_tree().get_first_node_in_group("game_end_controller")
 
 	if enemy_energy != null and enemy_energy.has_method("restore_energy"):
 		var restored_energy := float(
@@ -58,4 +63,31 @@ func _apply_save_data(save_data: Dictionary) -> bool:
 			save_data.get("enemy_ai", {}) as Dictionary
 		)
 
+	if game_end_controller != null and game_end_controller.has_method("restore_save_data"):
+		var game_end_data_variant: Variant = save_data.get("game_end", null)
+		var game_end_data: Dictionary = {}
+
+		if game_end_data_variant is Dictionary:
+			game_end_data = (game_end_data_variant as Dictionary).duplicate(true)
+
+		if not game_end_data.has("elapsed_simulation_seconds"):
+			# Saves created before match-end tracking reuse the already persisted enemy-AI
+			# simulation clock, avoiding a fresh two-minute grace period after loading.
+			var enemy_ai_data_variant: Variant = save_data.get("enemy_ai", null)
+			if enemy_ai_data_variant is Dictionary:
+				game_end_data["elapsed_simulation_seconds"] = float(
+					(enemy_ai_data_variant as Dictionary).get(
+						"elapsed_simulation_seconds",
+						0.0
+					)
+				)
+
+		game_end_controller.call("restore_save_data", game_end_data)
+
 	return true
+
+
+# Stable public bridge used by the result overlay. The inherited menu transition
+# already resets the active session and restores normal time before scene change.
+func return_to_main_menu_from_result() -> void:
+	_on_main_menu_pressed()

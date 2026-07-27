@@ -1,0 +1,86 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/game_result_overlay.gd" id="1_game_result_overlay"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_result_panel"]
+bg_color = Color(0.018, 0.028, 0.055, 0.98)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.22, 0.34, 0.55, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.7)
+shadow_size = 12
+
+[node name="GameResultOverlay" type="CanvasLayer"]
+visible = false
+layer = 100
+script = ExtResource("1_game_result_overlay")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
+color = Color(0, 0, 0, 0.72)
+mouse_filter = 0
+
+[node name="CenterContainer" type="CenterContainer" parent="Dimmer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ResultPanel" type="PanelContainer" parent="Dimmer/CenterContainer"]
+custom_minimum_size = Vector2(560, 280)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_result_panel")
+
+[node name="MarginContainer" type="MarginContainer" parent="Dimmer/CenterContainer/ResultPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 34
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 34
+theme_override_constants/margin_bottom = 28
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Dimmer/CenterContainer/ResultPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="Dimmer/CenterContainer/ResultPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "ПОБЕДА"
+horizontal_alignment = 1
+
+[node name="MessageLabel" type="Label" parent="Dimmer/CenterContainer/ResultPanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(490, 52)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.88, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "Отличная работа — враг полностью уничтожен!"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="TimeLabel" type="Label" parent="Dimmer/CenterContainer/ResultPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 21
+text = "Время партии: 00:00"
+horizontal_alignment = 1
+
+[node name="MainMenuButton" type="Button" parent="Dimmer/CenterContainer/ResultPanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(280, 50)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 19
+text = "В главное меню"
