@@ -229,6 +229,16 @@ Current production behaviour:
 
 The disabled legacy round-robin producer remains instantiated only for backward-compatible saved cursor/timer data and must stay disabled.
 
+### Enemy combat-spell reserve
+
+`enemy_spell_controller.gd` owns a separate time-charged reserve for future offensive spells. It is not part of ordinary enemy energy, so accumulating or spending it never blocks strategic egg production.
+
+The reserve remains at zero through the first ten simulation minutes. Its first minute tick occurs at 11:00, it gains the configured early amount on each full minute through 20:00, and from 21:00 onward it gains the configured late amount. Charging stops at the configured maximum.
+
+Future combat spells must check this reserve only. After a successful combat spell, its cost is subtracted and the remaining reserve cannot fall below the configured post-cast floor. A failed target or failed shared effect spends nothing. The current rain spell remains an economic support spell: it continues to use ordinary enemy energy and never changes the combat reserve.
+
+The exact reserve and next scheduled minute tick are saved. Older saves without reserve data reconstruct the uninterrupted amount from the restored enemy-AI simulation clock.
+
 ### Enemy rain
 
 `enemy_spell_controller.gd` listens to the completed AI snapshot but does not own population decisions.
@@ -328,7 +338,7 @@ Debug systems remain separate:
 
 - F3 — world grid, paths, occupancy, and selected-creature flag information;
 - F4 — general text diagnostics;
-- F5 — enemy strategic AI and enemy rain diagnostics;
+- F5 — enemy strategic AI, combat reserve, and enemy rain diagnostics;
 - F8 — performance CSV recording.
 
 Debug UI reads public state but must not make strategic decisions or mutate simulation state.
@@ -358,7 +368,7 @@ Saved dynamic state includes:
 - eggs, species data, blockers, and faction;
 - player and enemy energy;
 - player flag placements/revisions and per-creature completion;
-- enemy strategic timing state;
+- enemy strategic timing state and combat-spell reserve;
 - match elapsed simulation time and result state;
 - DryGround cleared cells and partial rain progress;
 - camera state;

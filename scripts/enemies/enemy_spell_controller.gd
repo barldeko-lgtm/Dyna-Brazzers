@@ -46,11 +46,23 @@ const CARDINAL_OFFSETS: Array[Vector2i] = [
 @export var search_area_frame_line_width := 8.0
 @export var rain_area_frame_line_width := 10.0
 
+# Combat spells use a separate time-charged reserve. Ordinary enemy energy stays
+# fully available to egg production and the existing emergency rain spell.
+@export var combat_reserve_unlock_minutes := 10
+@export var combat_reserve_late_rate_after_minutes := 20
+@export var combat_reserve_gain_per_minute := 100.0
+@export var combat_reserve_late_gain_per_minute := 200.0
+@export var combat_reserve_maximum := 3000.0
+@export var combat_reserve_minimum_after_cast := 500.0
+
 var world_grid: Node = null
 var nature_effects: Node = null
 var enemy_ai: Node = null
 var enemy_energy: Node = null
 var enemy_base: Node2D = null
+
+var combat_reserve := 0.0
+var next_combat_reserve_tick_minute := 0
 
 var search_area_bounds := Rect2i()
 var has_search_area_bounds := false
@@ -92,12 +104,15 @@ var total_apply_count := 0
 
 func _ready() -> void:
 	add_to_group("enemy_spell_controller")
+	_reset_combat_reserve_for_new_session()
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 	z_index = 500
 	call_deferred("_initialize_runtime")
 
 
 func _process(delta: float) -> void:
+	_update_combat_reserve_from_match_time()
+
 	if not has_search_area_bounds:
 		_refresh_runtime_references()
 		if _refresh_search_area_bounds():
@@ -172,6 +187,7 @@ func _initialize_runtime() -> void:
 		_refresh_runtime_references()
 
 		if _connect_enemy_ai():
+			_update_combat_reserve_from_match_time()
 			_refresh_search_area_bounds()
 			queue_redraw()
 			return
@@ -1187,6 +1203,180 @@ func _refresh_runtime_references() -> void:
 			enemy_base = world_grid.get_node_or_null("EnemyBase") as Node2D
 
 
+func _reset_combat_reserve_for_new_session() -> void:
+	combat_reserve = 0.0
+	next_combat_reserve_tick_minute = _get_first_combat_reserve_tick_minute()
+
+
+func _update_combat_reserve_from_match_time() -> void:
+	if enemy_ai == null or not is_instance_valid(enemy_ai):
+		_refresh_runtime_references()
+
+	_advance_combat_reserve_to_elapsed(_get_enemy_elapsed_simulation_seconds())
+
+
+func _advance_combat_reserve_to_elapsed(elapsed_simulation_seconds: float) -> void:
+	var first_tick_minute := _get_first_combat_reserve_tick_minute()
+
+	if next_combat_reserve_tick_minute < first_tick_minute:
+		next_combat_reserve_tick_minute = first_tick_minute
+
+	var elapsed_full_minutes := maxi(
+		int(floor(maxf(elapsed_simulation_seconds, 0.0) / 60.0)),
+		0
+	)
+	var safe_maximum := _get_combat_reserve_maximum()
+
+	while next_combat_reserve_tick_minute <= elapsed_full_minutes:
+		var gain := _get_combat_reserve_gain_for_tick(
+			next_combat_reserve_tick_minute
+		)
+		combat_reserve = minf(combat_reserve + gain, safe_maximum)
+		next_combat_reserve_tick_minute += 1
+
+
+func _get_enemy_elapsed_simulation_seconds() -> float:
+	if (
+		enemy_ai != null
+		and is_instance_valid(enemy_ai)
+		and enemy_ai.has_method("get_elapsed_simulation_seconds")
+	):
+		return maxf(
+			float(enemy_ai.call("get_elapsed_simulation_seconds")),
+			0.0
+		)
+
+	return 0.0
+
+
+func _get_first_combat_reserve_tick_minute() -> int:
+	return maxi(combat_reserve_unlock_minutes, 0) + 1
+
+
+func _get_combat_reserve_gain_for_tick(tick_minute: int) -> float:
+	var late_rate_after := maxi(
+		combat_reserve_late_rate_after_minutes,
+		maxi(combat_reserve_unlock_minutes, 0)
+	)
+
+	if tick_minute > late_rate_after:
+		return maxf(combat_reserve_late_gain_per_minute, 0.0)
+
+	return maxf(combat_reserve_gain_per_minute, 0.0)
+
+
+func _get_combat_reserve_maximum() -> float:
+	return maxf(combat_reserve_maximum, 0.0)
+
+
+func _get_combat_reserve_minimum_after_cast() -> float:
+	return clampf(
+		combat_reserve_minimum_after_cast,
+		0.0,
+		_get_combat_reserve_maximum()
+	)
+
+
+func get_save_data() -> Dictionary:
+	_update_combat_reserve_from_match_time()
+	return {
+		"combat_reserve": get_combat_reserve(),
+		"next_combat_reserve_tick_minute": next_combat_reserve_tick_minute
+	}
+
+
+func restore_save_data(saved_data: Dictionary) -> void:
+	_refresh_runtime_references()
+	var elapsed_simulation_seconds := _get_enemy_elapsed_simulation_seconds()
+
+	if saved_data.has("combat_reserve"):
+		combat_reserve = clampf(
+			float(saved_data.get("combat_reserve", 0.0)),
+			0.0,
+			_get_combat_reserve_maximum()
+		)
+		var default_next_tick := maxi(
+			int(floor(elapsed_simulation_seconds / 60.0)) + 1,
+			_get_first_combat_reserve_tick_minute()
+		)
+		next_combat_reserve_tick_minute = maxi(
+			int(saved_data.get(
+				"next_combat_reserve_tick_minute",
+				default_next_tick
+			)),
+			_get_first_combat_reserve_tick_minute()
+		)
+	else:
+		# Saves made before the reserve existed receive the amount that normal
+		# uninterrupted charging would have produced by their restored AI time.
+		_reset_combat_reserve_for_new_session()
+
+	_advance_combat_reserve_to_elapsed(elapsed_simulation_seconds)
+
+
+func get_combat_reserve() -> float:
+	return clampf(combat_reserve, 0.0, _get_combat_reserve_maximum())
+
+
+func get_combat_reserve_maximum() -> float:
+	return _get_combat_reserve_maximum()
+
+
+func get_combat_reserve_minimum_after_cast() -> float:
+	return _get_combat_reserve_minimum_after_cast()
+
+
+func get_next_combat_reserve_tick_minute() -> int:
+	return maxi(
+		next_combat_reserve_tick_minute,
+		_get_first_combat_reserve_tick_minute()
+	)
+
+
+func get_next_combat_reserve_gain() -> float:
+	return _get_combat_reserve_gain_for_tick(
+		get_next_combat_reserve_tick_minute()
+	)
+
+
+func get_seconds_until_next_combat_reserve_tick() -> float:
+	var next_tick_seconds := float(get_next_combat_reserve_tick_minute()) * 60.0
+	return maxf(next_tick_seconds - _get_enemy_elapsed_simulation_seconds(), 0.0)
+
+
+func is_combat_reserve_unlocked() -> bool:
+	return _get_enemy_elapsed_simulation_seconds() >= (
+		float(maxi(combat_reserve_unlock_minutes, 0)) * 60.0
+	)
+
+
+func can_spend_combat_reserve(amount: float) -> bool:
+	_update_combat_reserve_from_match_time()
+	var safe_cost := maxf(amount, 0.0)
+	return combat_reserve + 0.001 >= safe_cost
+
+
+# Call this only after a combat spell has applied successfully. A failed target
+# or failed shared effect must leave the reserve untouched.
+func spend_combat_reserve_after_success(amount: float) -> bool:
+	var safe_cost := maxf(amount, 0.0)
+
+	if safe_cost <= 0.0 or not can_spend_combat_reserve(safe_cost):
+		return false
+
+	combat_reserve = clampf(
+		maxf(
+			combat_reserve - safe_cost,
+			_get_combat_reserve_minimum_after_cast()
+		),
+		0.0,
+		_get_combat_reserve_maximum()
+	)
+	PerformanceStats.add_counter("enemy_combat_reserve_spent", roundi(safe_cost))
+	PerformanceStats.add_counter("enemy_combat_spell_casts")
+	return true
+
+
 func _reset_last_search_stats() -> void:
 	last_rain_target_tile = INVALID_TILE
 	last_grass_entries_scanned = 0
@@ -1265,8 +1455,16 @@ func get_total_search_count() -> int:
 
 
 func get_rain_debug_data() -> Dictionary:
+	_update_combat_reserve_from_match_time()
 	return {
 		"action_text": last_action_text,
+		"combat_reserve": get_combat_reserve(),
+		"combat_reserve_maximum": get_combat_reserve_maximum(),
+		"combat_reserve_minimum_after_cast": get_combat_reserve_minimum_after_cast(),
+		"combat_reserve_unlocked": is_combat_reserve_unlocked(),
+		"combat_reserve_next_tick_minute": get_next_combat_reserve_tick_minute(),
+		"combat_reserve_next_gain": get_next_combat_reserve_gain(),
+		"combat_reserve_seconds_until_next_tick": get_seconds_until_next_combat_reserve_tick(),
 		"grass_entries_scanned": last_grass_entries_scanned,
 		"mature_grass_count": last_mature_grass_count,
 		"spread_ready_grass_count": last_spread_ready_grass_count,

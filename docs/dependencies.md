@@ -193,6 +193,17 @@ Main files:
 - `res://scripts/debug/enemy_ai_debug_overlay.gd`
 - `res://scripts/debug/performance_stats.gd`
 
+Combat-reserve rules:
+
+- `EnemySpellController` owns a separate combat-spell reserve; ordinary enemy energy remains fully independent for egg production and rain;
+- reserve progression uses the restored enemy-AI simulation clock, advances only on full configured minute ticks after the opening lock, and remains capped at its configured maximum;
+- the early rate applies through the 20:00 tick and the late rate starts with the 21:00 tick;
+- future combat spells must require sufficient reserve before attempting a cast and call `spend_combat_reserve_after_success()` only after the shared effect succeeds;
+- successful spending subtracts the exact combat-spell cost but clamps the remainder to the configured minimum post-cast reserve; failed targeting/application spends nothing;
+- rain must continue to use ordinary enemy energy and must never spend, reset, or otherwise mutate combat reserve;
+- save exact reserve plus the next scheduled tick minute; old saves without this state rebuild uninterrupted charging from restored enemy-AI elapsed time;
+- F5 may read reserve state through the existing public spell-controller diagnostics but must not mutate it.
+
 Trigger and cost rules:
 
 - enemy rain may run only from a completed AI snapshot that reports eligible adult enemy herbivores below the configured satiety threshold;
@@ -225,7 +236,7 @@ Diagnostics:
 - their drawing must not alter targeting, terrain, occupancy, or spell cost;
 - the blue contour uses real elapsed time but its remaining duration pauses with the in-game menu;
 - simulation speed must not shorten the diagnostic duration;
-- F5 reads public `enemy_ai` data and `enemy_spell_controller.get_rain_debug_data()` only;
+- F5 reads public `enemy_ai` data and `enemy_spell_controller.get_rain_debug_data()` only, including read-only combat-reserve fields;
 - F5 may display selected immediate-grass count, DryGround hit buckets, eligible/nearby herbivore demand, herd multiplier, base distance/proximity multiplier, base score, and total target score;
 - F5 must not mutate enemy state or make decisions;
 - F8 may record search counts/workload, search/application timing, predicted/actual new grass, selected DryGround value, total target score, and cast rate.
@@ -531,7 +542,7 @@ Save ownership:
 
 - `save_system.gd` — base slot validation, temporary-write/backup safety, and reconstruction;
 - `save_system_with_flags.gd` — faction, player-flag, completion, and audio-related extensions;
-- `save_system_with_enemy.gd` — enemy energy, strategic/legacy enemy state, and match-end timing/result state.
+- `save_system_with_enemy.gd` — enemy energy, combat-reserve state, strategic/legacy enemy state, and match-end timing/result state.
 
 Loading order:
 
@@ -546,7 +557,7 @@ Loading order:
 9. preserve already spawned static faction bases;
 10. restore energies, camera, and simulation speed;
 11. reapply factions and player flag state;
-12. restore enemy strategic timing/legacy compatibility state;
+12. restore enemy strategic timing/legacy compatibility state, then restore the combat reserve against that clock;
 13. restore match-end elapsed time/result state after entity reconstruction;
 14. leave the legacy producer disabled and rebuild derived snapshots/objectives from runtime state.
 
@@ -554,7 +565,7 @@ Rules:
 
 - save writes must validate a temporary JSON before replacing the live slot and retain recoverable backup state;
 - invalid slots remain visible but cannot be loaded;
-- missing optional faction/flag/enemy/match-end fields must not invalidate old saves;
+- missing optional faction/flag/enemy/combat-reserve/match-end fields must not invalidate old saves;
 - slot labels derive `М1`/`М2` from `level_id`; new saves store `saved_at_utc_offset_minutes` so their timestamp remains in the originating computer-local time, while old saves fall back to the current system UTC offset;
 - missing `level_id` defaults to level 1; an unavailable saved level must fail before scene replacement;
 - missing faction defaults to player; unknown non-empty faction becomes neutral;

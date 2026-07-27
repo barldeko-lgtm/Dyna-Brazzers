@@ -141,6 +141,25 @@ func _append_rain_debug_lines(lines: Array[String]) -> void:
 
 	var debug_variant: Variant = spell_controller.call("get_rain_debug_data")
 	var rain_data: Dictionary = debug_variant if debug_variant is Dictionary else {}
+	var reserve_value := float(rain_data.get("combat_reserve", 0.0))
+	var reserve_maximum := float(rain_data.get("combat_reserve_maximum", 3000.0))
+	var reserve_status := "накопление после 10:00"
+
+	if reserve_value + 0.001 >= reserve_maximum:
+		reserve_status = "максимум"
+	elif bool(rain_data.get("combat_reserve_unlocked", false)):
+		reserve_status = "+%d через %s" % [
+			roundi(float(rain_data.get("combat_reserve_next_gain", 0.0))),
+			_format_elapsed_time(
+				float(rain_data.get("combat_reserve_seconds_until_next_tick", 0.0))
+			)
+		]
+
+	lines.append("Боевой резерв: %d / %d | %s" % [
+		roundi(reserve_value),
+		roundi(reserve_maximum),
+		reserve_status
+	])
 	lines.append("Дождь: %s" % str(rain_data.get("action_text", "ожидание")))
 	lines.append("Поиск: %.3f мс | максимум %.3f мс | запусков %d" % [
 		float(rain_data.get("search_duration_msec", 0.0)),

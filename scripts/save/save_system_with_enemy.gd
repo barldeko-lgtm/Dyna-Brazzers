@@ -9,6 +9,7 @@ func _collect_save_data() -> Dictionary:
 	var enemy_energy := get_tree().get_first_node_in_group("enemy_energy")
 	var enemy_production := get_tree().get_first_node_in_group("enemy_egg_production")
 	var enemy_ai := get_tree().get_first_node_in_group("enemy_ai")
+	var enemy_spells := get_tree().get_first_node_in_group("enemy_spell_controller")
 	var game_end_controller := get_tree().get_first_node_in_group("game_end_controller")
 
 	if enemy_energy != null and enemy_energy.has_method("get_energy"):
@@ -19,6 +20,9 @@ func _collect_save_data() -> Dictionary:
 
 	if enemy_ai != null and enemy_ai.has_method("get_save_data"):
 		save_data["enemy_ai"] = enemy_ai.call("get_save_data")
+
+	if enemy_spells != null and enemy_spells.has_method("get_save_data"):
+		save_data["enemy_spells"] = enemy_spells.call("get_save_data")
 
 	if game_end_controller != null and game_end_controller.has_method("get_save_data"):
 		save_data["game_end"] = game_end_controller.call("get_save_data")
@@ -35,6 +39,7 @@ func _apply_save_data(save_data: Dictionary) -> bool:
 	var enemy_energy := get_tree().get_first_node_in_group("enemy_energy")
 	var enemy_production := get_tree().get_first_node_in_group("enemy_egg_production")
 	var enemy_ai := get_tree().get_first_node_in_group("enemy_ai")
+	var enemy_spells := get_tree().get_first_node_in_group("enemy_spell_controller")
 	var game_end_controller := get_tree().get_first_node_in_group("game_end_controller")
 
 	if enemy_energy != null and enemy_energy.has_method("restore_energy"):
@@ -62,6 +67,18 @@ func _apply_save_data(save_data: Dictionary) -> bool:
 			"restore_save_data",
 			save_data.get("enemy_ai", {}) as Dictionary
 		)
+
+	if enemy_spells != null and enemy_spells.has_method("restore_save_data"):
+		var enemy_spells_data_variant: Variant = save_data.get("enemy_spells", null)
+		var enemy_spells_data: Dictionary = {}
+
+		if enemy_spells_data_variant is Dictionary:
+			enemy_spells_data = (enemy_spells_data_variant as Dictionary).duplicate(true)
+
+		# An empty dictionary is intentional for old saves: the spell controller
+		# rebuilds the reserve from the already restored enemy-AI clock.
+		enemy_spells.call("restore_save_data", enemy_spells_data)
+
 
 	if game_end_controller != null and game_end_controller.has_method("restore_save_data"):
 		var game_end_data_variant: Variant = save_data.get("game_end", null)

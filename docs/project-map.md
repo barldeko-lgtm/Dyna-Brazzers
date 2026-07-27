@@ -72,7 +72,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/enemies/enemy_energy.gd` — enemy reserve and income from eligible living enemy creatures.
 - `scripts/enemies/enemy_egg_production_controller.gd` — disabled legacy producer retained only for save compatibility.
 - `scripts/enemies/enemy_ai_controller.gd` — periodic enemy population/satiety snapshot and egg-production decisions.
-- `scripts/enemies/enemy_spell_controller.gd` — enemy spell triggers, rain target search/cost, world-space diagnostic contours, and public F5/F8 data.
+- `scripts/enemies/enemy_spell_controller.gd` — enemy spell triggers, separate combat-spell reserve, rain target search/cost, world-space diagnostic contours, save API, and public F5/F8 data.
 - `scripts/gameplay/game_end_controller.gd` — simulation-time grace period, faction population checks, victory/defeat transition, duration tracking, and save API.
 
 ## Flag systems
@@ -108,7 +108,7 @@ Enemy objectives:
 - `scripts/audio/audio_manager.gd` — global music, one-shot sounds, UI clicks, bus setup, fades, and settings.
 - `scripts/save/save_system.gd` — level routing, base slot persistence, and reconstruction.
 - `scripts/save/save_system_with_flags.gd` — faction, player-flag, completion, and audio-setting extensions.
-- `scripts/save/save_system_with_enemy.gd` — active final save layer for enemy energy, strategic timing/legacy state, match-end state, and result-to-main-menu bridge.
+- `scripts/save/save_system_with_enemy.gd` — active final save layer for enemy energy, combat reserve, strategic timing/legacy state, match-end state, and result-to-main-menu bridge.
 - `scripts/effects/` — target previews and one-shot effect playback.
 
 ## Data resources
