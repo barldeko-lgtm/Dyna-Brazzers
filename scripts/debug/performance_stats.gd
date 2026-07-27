@@ -52,7 +52,9 @@ const CSV_HEADER_COLUMNS := [
 	"enemy_rain_apply_calls_per_sec",
 	"enemy_rain_apply_time_ms_per_sec",
 	"enemy_rain_apply_max_ms",
-	"enemy_rain_casts_per_sec"
+	"enemy_rain_casts_per_sec",
+	"f3_mode",
+	"focused_path_steps"
 ]
 
 var start_ticks_msec := 0
@@ -242,6 +244,16 @@ func append_csv_sample() -> void:
 		grass_count = world_grid.grass_by_tile.size()
 		creature_count = world_grid.creature_anchors.size()
 
+	var f3_mode := "off"
+	var focused_path_steps := 0
+	var grid_debug := get_tree().get_first_node_in_group("grid_debug_overlay")
+
+	if grid_debug != null and is_instance_valid(grid_debug):
+		if grid_debug.has_method("get_debug_mode_name"):
+			f3_mode = String(grid_debug.call("get_debug_mode_name"))
+		if grid_debug.has_method("get_focused_path_steps"):
+			focused_path_steps = int(grid_debug.call("get_focused_path_steps"))
+
 	var row: Array[String] = []
 	row.append(format_float(get_elapsed_seconds(), 2))
 	row.append(str(Engine.get_frames_per_second()))
@@ -284,6 +296,8 @@ func append_csv_sample() -> void:
 	row.append(format_float(get_rate_float("enemy_rain_apply_usec") / 1000.0, 3))
 	row.append(format_float(get_last_max_value("enemy_rain_apply_max_usec") / 1000.0, 3))
 	row.append(str(get_rate("enemy_rain_casts")))
+	row.append(f3_mode)
+	row.append(str(focused_path_steps))
 
 	csv_file.store_line(",".join(row))
 	csv_file.flush()

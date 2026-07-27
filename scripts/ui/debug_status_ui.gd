@@ -73,7 +73,7 @@ func build_debug_status_text() -> String:
 
 
 func build_compact_status_line() -> String:
-	var elapsed_text := format_elapsed_time(simulation_elapsed_seconds)
+	var elapsed_text := format_elapsed_time(_get_game_elapsed_seconds())
 	var memory_mb := PerformanceStats.get_static_memory_mb()
 
 	return "FPS: %d | Time: %s | Mem: %.1f MB" % [
@@ -81,6 +81,15 @@ func build_compact_status_line() -> String:
 		elapsed_text,
 		memory_mb
 	]
+
+
+func _get_game_elapsed_seconds() -> float:
+	var enemy_ai := get_tree().get_first_node_in_group("enemy_ai")
+
+	if enemy_ai != null and enemy_ai.has_method("get_elapsed_simulation_seconds"):
+		return maxf(float(enemy_ai.call("get_elapsed_simulation_seconds")), 0.0)
+
+	return maxf(simulation_elapsed_seconds, 0.0)
 
 
 func get_mouse_world_position(mouse_screen: Vector2) -> Vector2:

@@ -315,6 +315,9 @@ Predator rules:
 - attacker-role survival hunting may cross faction and diet boundaries but must always reject the same biological species of the hunter's own faction;
 - defender guard hunting repeatedly scans only its guard radius for opposing player/enemy creatures and outranks indirect flag routes and eligibility to begin reproduction once a target is found; an egg laying already in progress remains uninterrupted;
 - defender survival hunting uses the normal predator radius, accepts herbivores regardless of faction, and rejects same-faction predators and egg eaters;
+- egg eaters in strategic mode continue an indirect flag route until an opposing-faction egg is acquired, then the target overrides the flag;
+- egg eaters at the normal hunger threshold suspend the flag even without a target and accept all eggs except the same species of their own faction;
+- apply egg-eater faction rules during both acquisition and target revalidation, and reject eggs queued for deletion;
 - apply the active mode's prey rule consistently during acquisition, target revalidation, pending-duel settlement, and duel start;
 - prey may be pursued by several hunters, but final combat engagement is exclusive;
 - hunters losing engagement must release the target and search again through normal predator logic.

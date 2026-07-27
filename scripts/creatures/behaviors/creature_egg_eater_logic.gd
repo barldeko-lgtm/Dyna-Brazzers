@@ -1,8 +1,15 @@
 extends RefCounted
 
+const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const INVALID_ANCHOR := Vector2i(2147483647, 2147483647)
 const FOOD_SEARCH_INTERVAL := 0.5
 const RETARGET_DISTANCE_ADVANTAGE := 2.0
+
+enum EggHuntMode {
+	NONE,
+	STRATEGIC,
+	HUNGER
+}
 
 var creature: Node
 var search_cooldown_remaining := 0.0
@@ -13,11 +20,15 @@ func _init(owner_creature: Node) -> void:
 	creature = owner_creature
 
 
+func is_hunting() -> bool:
+	return target_egg != null and is_valid_egg_target(target_egg)
+
+
 func update_egg_eater_behavior() -> void:
 	if not creature.is_egg_eater() or creature.world_grid == null:
 		return
 
-	if creature.hunger > creature.species_data.hunger_search_threshold:
+	if _get_hunt_mode() == EggHuntMode.NONE:
 		# A satiated egg eater has no food task. Keep any independent route,
 		# including a species-flag route, and only forget a stale egg target.
 		target_egg = null
@@ -85,7 +96,7 @@ func find_nearest_edible_egg() -> Node:
 		var egg_anchor: Vector2i = candidate.get("anchor_tile")
 		var distance := float(max(abs(egg_anchor.x - creature.anchor_tile.x), abs(egg_anchor.y - creature.anchor_tile.y)))
 
-		if distance > float(creature.species_data.predator_target_radius):
+		if distance > float(_get_active_target_radius()):
 			continue
 
 		if distance < best_distance:
@@ -117,14 +128,57 @@ func get_egg_distance(egg: Node) -> float:
 
 
 func is_valid_egg_target(candidate: Node) -> bool:
-	if candidate == null or not is_instance_valid(candidate):
+	if (
+		candidate == null
+		or not is_instance_valid(candidate)
+		or candidate.is_queued_for_deletion()
+	):
 		return false
 
 	if not candidate.has_method("can_be_eaten") or not candidate.can_be_eaten():
 		return false
 
-	var candidate_species_id := String(candidate.get("species_id"))
-	return candidate_species_id != creature.species_data.species_id
+	var hunt_mode := _get_hunt_mode()
+
+	if hunt_mode == EggHuntMode.NONE:
+		return false
+
+	var creature_faction := CREATURE_FACTION.get_id(creature)
+	var candidate_faction := CREATURE_FACTION.get_id(candidate)
+
+	if hunt_mode == EggHuntMode.STRATEGIC:
+		return (
+			(creature_faction == CREATURE_FACTION.PLAYER and candidate_faction == CREATURE_FACTION.ENEMY)
+			or (creature_faction == CREATURE_FACTION.ENEMY and candidate_faction == CREATURE_FACTION.PLAYER)
+		)
+
+	var same_species: bool = (
+		String(candidate.get("species_id")) == String(creature.species_data.species_id)
+	)
+	return not (same_species and candidate_faction == creature_faction)
+
+
+func _get_hunt_mode() -> EggHuntMode:
+	if creature.hunger <= creature.species_data.hunger_search_threshold:
+		return EggHuntMode.HUNGER
+
+	if creature.hunger <= creature.species_data.strategic_hunt_threshold:
+		return EggHuntMode.STRATEGIC
+
+	return EggHuntMode.NONE
+
+
+func _get_active_target_radius() -> int:
+	if _get_hunt_mode() == EggHuntMode.STRATEGIC:
+		var strategic_radius := maxi(
+			int(creature.species_data.strategic_hunt_radius),
+			0
+		)
+
+		if strategic_radius > 0:
+			return strategic_radius
+
+	return maxi(int(creature.species_data.predator_target_radius), 0)
 
 
 func is_egg_in_eating_range(egg: Node) -> bool:

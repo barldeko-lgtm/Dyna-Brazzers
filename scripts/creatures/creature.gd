@@ -378,7 +378,10 @@ func update_predator_behavior(delta: float) -> void:
 
 
 func is_hunting() -> bool:
-	return predator_logic != null and predator_logic.is_hunting()
+	return (
+		(predator_logic != null and predator_logic.is_hunting())
+		or (egg_eater_logic != null and egg_eater_logic.is_hunting())
+	)
 
 
 func get_hunt_target() -> Node:

@@ -1,6 +1,9 @@
 extends Node2D
 
 const TOGGLE_KEY := KEY_F3
+const LIGHT_UPDATE_FRAME_INTERVAL := 6
+const FULL_UPDATE_FRAME_INTERVAL := 3
+const VISIBLE_TILE_MARGIN := 1
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const BLOCKED_TERRAIN_FILL := Color(0.9, 0.2, 0.2, 0.16)
 const BLOCKED_TERRAIN_OUTLINE := Color(0.95, 0.35, 0.35, 0.6)
@@ -22,66 +25,121 @@ const FLAG_TARGET_OUTLINE := Color(1.0, 0.5, 1.0, 0.95)
 const PATH_COLOR := Color(0.2, 0.7, 1.0, 0.95)
 const PATH_POINT_COLOR := Color(0.35, 0.82, 1.0, 0.95)
 
-var debug_enabled := false
+enum DebugMode {
+	OFF,
+	LIGHT,
+	FULL
+}
+
+var debug_mode := DebugMode.OFF
+var frames_since_refresh := 0
 
 @onready var info_panel: PanelContainer = $DebugCanvas/DebugInfoPanel
 @onready var info_label: Label = $DebugCanvas/DebugInfoPanel/MarginContainer/DebugInfoLabel
 
 
 func _ready() -> void:
+	add_to_group("grid_debug_overlay")
 	_refresh_visibility()
 
 
 func _process(_delta: float) -> void:
-	if not debug_enabled:
+	if debug_mode == DebugMode.OFF:
 		return
 
-	info_label.text = _build_debug_text()
-	queue_redraw()
+	frames_since_refresh += 1
+
+	if frames_since_refresh < _get_update_frame_interval():
+		return
+
+	frames_since_refresh = 0
+	_refresh_debug_view()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey):
 		return
 
-	if not event.pressed or event.echo:
+	if not event.pressed or event.echo or event.keycode != TOGGLE_KEY:
 		return
 
-	if event.keycode != TOGGLE_KEY:
-		return
+	var requested_mode := DebugMode.FULL if event.alt_pressed else DebugMode.LIGHT
 
-	debug_enabled = not debug_enabled
-	_refresh_visibility()
-	queue_redraw()
+	if debug_mode == requested_mode:
+		_set_debug_mode(DebugMode.OFF)
+	else:
+		_set_debug_mode(requested_mode)
+
 	get_viewport().set_input_as_handled()
 
 
 func _draw() -> void:
-	if not debug_enabled:
+	if debug_mode == DebugMode.OFF:
 		return
 
 	var world_grid := _find_world_grid()
 	if world_grid == null:
 		return
 
-	_draw_blocked_terrain(world_grid)
-	_draw_grass(world_grid)
-	_draw_occupied_tiles(world_grid)
+	if debug_mode == DebugMode.FULL:
+		var visible_tiles := _get_visible_tile_bounds(world_grid)
+		_draw_blocked_terrain(world_grid, visible_tiles)
+		_draw_grass(world_grid, visible_tiles)
+		_draw_occupied_tiles(world_grid, visible_tiles)
+
 	_draw_selected_creature_debug(world_grid)
 
 
+func _set_debug_mode(new_mode: int) -> void:
+	debug_mode = new_mode
+	frames_since_refresh = 0
+	_refresh_visibility()
+
+	if debug_mode == DebugMode.OFF:
+		return
+
+	_refresh_debug_view()
+
+
+func _refresh_debug_view() -> void:
+	if debug_mode == DebugMode.OFF:
+		return
+
+	info_label.text = _build_debug_text()
+	queue_redraw()
+
+
 func _refresh_visibility() -> void:
-	visible = debug_enabled
+	var debug_visible := debug_mode != DebugMode.OFF
+	visible = debug_visible
+
 	if info_panel != null:
-		info_panel.visible = debug_enabled
+		info_panel.visible = debug_visible
+
+
+func _get_update_frame_interval() -> int:
+	if debug_mode == DebugMode.FULL:
+		return FULL_UPDATE_FRAME_INTERVAL
+
+	return LIGHT_UPDATE_FRAME_INTERVAL
+
+
+func get_debug_mode_name() -> String:
+	match debug_mode:
+		DebugMode.LIGHT:
+			return "light"
+		DebugMode.FULL:
+			return "full"
+		_:
+			return "off"
+
+
+func get_focused_path_steps() -> int:
+	return _get_creature_path_steps(_get_focus_creature())
 
 
 func _find_world_grid() -> Node:
-	var nodes := get_tree().get_nodes_in_group("world_grid")
-	if nodes.is_empty():
-		return null
-
-	return nodes[0]
+	return get_tree().get_first_node_in_group("world_grid")
 
 
 func _get_focus_creature() -> Node:
@@ -136,33 +194,38 @@ func _get_flag_debug_data(creature: Node) -> Dictionary:
 
 func _build_debug_text() -> String:
 	var world_grid := _find_world_grid()
+	var mode_title := "LIGHT" if debug_mode == DebugMode.LIGHT else "FULL"
+	var shortcut_title := "F3" if debug_mode == DebugMode.LIGHT else "Alt+F3"
+
 	if world_grid == null:
-		return "Grid Debug [F3]\nworld_grid: missing"
+		return "Grid Debug [%s] — %s\nworld_grid: missing" % [shortcut_title, mode_title]
 
 	var creature := _get_focus_creature()
 	var lines: Array[String] = []
-	lines.append("Grid Debug [F3]")
-	lines.append(
-		"grass: %d | occupied: %d" % [
-			world_grid.grass_by_tile.size(), world_grid.occupied_by_tile.size()
-		]
-	)
-	lines.append("blocked terrain: %d" % _count_blocked_tiles(world_grid))
+	lines.append("Grid Debug [%s] — %s" % [shortcut_title, mode_title])
+
+	if debug_mode == DebugMode.FULL:
+		var visible_tiles := _get_visible_tile_bounds(world_grid)
+		lines.append(
+			"grass: %d | occupied: %d | visible: %dx%d" % [
+				world_grid.grass_by_tile.size(),
+				world_grid.occupied_by_tile.size(),
+				visible_tiles.size.x,
+				visible_tiles.size.y
+			]
+		)
 
 	if not is_instance_valid(creature):
 		lines.append("focus: none")
 		lines.append("select or hover a creature")
 		return "\n".join(lines)
 
-	var path_length := 0
-	if creature.get("current_path") != null:
-		path_length = creature.current_path.size()
-
 	lines.append(
 		"focus: %s | %s" % [
 			creature.get_creature_name(), _get_display_state_name(creature)
 		]
 	)
+
 	var flag_debug := _get_flag_debug_data(creature)
 	var flag_label := (
 		"enemy flag" if String(flag_debug.get("flag_system", "player")) == "enemy" else "flag"
@@ -185,38 +248,88 @@ func _build_debug_text() -> String:
 	lines.append("pending: %s" % _format_tile(creature.pending_anchor_tile))
 	lines.append("footprint: %dx%d" % [creature.footprint_size.x, creature.footprint_size.y])
 	lines.append("target: %s" % _format_tile(creature.grazing_target_anchor))
+
 	var hunt_target := _get_hunt_target(creature)
 	if is_instance_valid(hunt_target):
 		lines.append("hunt target: %s" % hunt_target.get_creature_name())
+
 	lines.append(
-		"path steps: %d | moving: %s" % [path_length, str(bool(creature.is_moving))]
+		"path steps: %d | moving: %s" % [
+			_get_creature_path_steps(creature), str(bool(creature.is_moving))
+		]
 	)
 	return "\n".join(lines)
 
 
-func _draw_blocked_terrain(world_grid: Node) -> void:
-	for y in range(world_grid.map_min.y, world_grid.map_max.y + 1):
-		for x in range(world_grid.map_min.x, world_grid.map_max.x + 1):
+func _get_visible_tile_bounds(world_grid: Node) -> Rect2i:
+	var full_bounds := Rect2i(
+		world_grid.map_min,
+		world_grid.map_max - world_grid.map_min + Vector2i.ONE
+	)
+	var camera := get_viewport().get_camera_2d()
+
+	if camera == null:
+		return full_bounds
+
+	var viewport_size := get_viewport_rect().size
+	var camera_zoom := camera.zoom
+	var safe_zoom := Vector2(
+		maxf(absf(camera_zoom.x), 0.001),
+		maxf(absf(camera_zoom.y), 0.001)
+	)
+	var half_extent := Vector2(
+		viewport_size.x / safe_zoom.x,
+		viewport_size.y / safe_zoom.y
+	) * 0.5
+	var center := camera.get_screen_center_position()
+	var min_variant: Variant = world_grid.world_to_map_tile(center - half_extent)
+	var max_variant: Variant = world_grid.world_to_map_tile(center + half_extent)
+
+	if not (min_variant is Vector2i) or not (max_variant is Vector2i):
+		return full_bounds
+
+	var min_tile: Vector2i = min_variant - Vector2i.ONE * VISIBLE_TILE_MARGIN
+	var max_tile: Vector2i = max_variant + Vector2i.ONE * VISIBLE_TILE_MARGIN
+	min_tile.x = clampi(min_tile.x, world_grid.map_min.x, world_grid.map_max.x)
+	min_tile.y = clampi(min_tile.y, world_grid.map_min.y, world_grid.map_max.y)
+	max_tile.x = clampi(max_tile.x, world_grid.map_min.x, world_grid.map_max.x)
+	max_tile.y = clampi(max_tile.y, world_grid.map_min.y, world_grid.map_max.y)
+
+	if max_tile.x < min_tile.x or max_tile.y < min_tile.y:
+		return full_bounds
+
+	return Rect2i(min_tile, max_tile - min_tile + Vector2i.ONE)
+
+
+func _draw_blocked_terrain(world_grid: Node, tile_bounds: Rect2i) -> void:
+	for y in range(tile_bounds.position.y, tile_bounds.end.y):
+		for x in range(tile_bounds.position.x, tile_bounds.end.x):
 			var tile := Vector2i(x, y)
-			if not world_grid.is_tile_blocked_terrain(tile):
+			if world_grid.is_tile_blocked_terrain(tile):
+				_draw_tile(tile, world_grid, BLOCKED_TERRAIN_FILL, BLOCKED_TERRAIN_OUTLINE)
+
+
+func _draw_grass(world_grid: Node, tile_bounds: Rect2i) -> void:
+	for y in range(tile_bounds.position.y, tile_bounds.end.y):
+		for x in range(tile_bounds.position.x, tile_bounds.end.x):
+			var tile := Vector2i(x, y)
+			if not world_grid.grass_by_tile.has(tile):
 				continue
 
-			_draw_tile(tile, world_grid, BLOCKED_TERRAIN_FILL, BLOCKED_TERRAIN_OUTLINE)
+			var grass: Node = world_grid.grass_by_tile[tile]
+			var fill := GRASS_STAGE_1_FILL
+			if is_instance_valid(grass) and grass.get("current_stage") == 1:
+				fill = GRASS_STAGE_2_FILL
+
+			_draw_tile(tile, world_grid, fill, GRASS_OUTLINE)
 
 
-func _draw_grass(world_grid: Node) -> void:
-	for tile in world_grid.grass_by_tile.keys():
-		var grass: Node = world_grid.grass_by_tile[tile]
-		var fill := GRASS_STAGE_1_FILL
-		if is_instance_valid(grass) and grass.get("current_stage") == 1:
-			fill = GRASS_STAGE_2_FILL
-
-		_draw_tile(tile, world_grid, fill, GRASS_OUTLINE)
-
-
-func _draw_occupied_tiles(world_grid: Node) -> void:
-	for tile in world_grid.occupied_by_tile.keys():
-		_draw_tile(tile, world_grid, OCCUPIED_FILL, OCCUPIED_OUTLINE)
+func _draw_occupied_tiles(world_grid: Node, tile_bounds: Rect2i) -> void:
+	for y in range(tile_bounds.position.y, tile_bounds.end.y):
+		for x in range(tile_bounds.position.x, tile_bounds.end.x):
+			var tile := Vector2i(x, y)
+			if world_grid.occupied_by_tile.has(tile):
+				_draw_tile(tile, world_grid, OCCUPIED_FILL, OCCUPIED_OUTLINE)
 
 
 func _draw_selected_creature_debug(world_grid: Node) -> void:
@@ -270,14 +383,35 @@ func _draw_path(world_grid: Node, creature: Node) -> void:
 			)
 		)
 
-	for anchor in creature.current_path:
-		points.append(world_grid.anchor_to_world_position(anchor, creature.footprint_size))
+	var path_variant: Variant = creature.get("current_path")
+	if path_variant is Array:
+		var path := path_variant as Array
+		for anchor_variant: Variant in path:
+			if anchor_variant is Vector2i:
+				points.append(
+					world_grid.anchor_to_world_position(
+						anchor_variant, creature.footprint_size
+					)
+				)
 
 	if points.size() >= 2:
 		draw_polyline(points, PATH_COLOR, 4.0, true)
 
 	for point in points:
 		draw_circle(point, 7.0, PATH_POINT_COLOR)
+
+
+func _get_creature_path_steps(creature: Node) -> int:
+	if not is_instance_valid(creature):
+		return 0
+
+	var path_variant: Variant = creature.get("current_path")
+	var path_steps := 0
+
+	if path_variant is Array:
+		path_steps = (path_variant as Array).size()
+
+	return path_steps + (1 if bool(creature.get("is_moving")) else 0)
 
 
 func _get_hunt_target(creature: Node) -> Node:
@@ -297,15 +431,6 @@ func _get_tile_rect(tile: Vector2i, world_grid: Node) -> Rect2:
 	var center: Vector2 = world_grid.map_to_world_center(tile)
 	var size := Vector2(world_grid.tile_size)
 	return Rect2(center - size * 0.5, size)
-
-
-func _count_blocked_tiles(world_grid: Node) -> int:
-	var count := 0
-	for y in range(world_grid.map_min.y, world_grid.map_max.y + 1):
-		for x in range(world_grid.map_min.x, world_grid.map_max.x + 1):
-			if world_grid.is_tile_blocked_terrain(Vector2i(x, y)):
-				count += 1
-	return count
 
 
 func _get_state_name(state_value: int) -> String:
