@@ -404,19 +404,36 @@ func _get_slot_button_text(slot_index: int) -> String:
 	if not _is_valid_save_data(metadata):
 		return "Слот %d — повреждён" % slot_index
 
+	return format_slot_metadata(slot_index, metadata)
+
+
+func format_slot_metadata(slot_index: int, metadata: Dictionary) -> String:
+	var level_id: int = get_saved_level_id(metadata)
+	var map_label := "М%d" % level_id
 	var saved_at: int = int(metadata.get("saved_at", 0))
 
 	if saved_at <= 0:
-		return "Слот %d — сохранение" % slot_index
+		return "Слот %d — %s — сохранение" % [slot_index, map_label]
 
-	var date: Dictionary = Time.get_datetime_dict_from_unix_time(saved_at)
+	var offset_variant: Variant = metadata.get("saved_at_utc_offset_minutes", null)
+	var offset_minutes: int
+
+	if offset_variant is int or offset_variant is float:
+		offset_minutes = int(offset_variant)
+	else:
+		var time_zone: Dictionary = Time.get_time_zone_from_system()
+		offset_minutes = int(time_zone.get("bias", 0))
+
+	var local_saved_at: int = saved_at + offset_minutes * 60
+	var date: Dictionary = Time.get_datetime_dict_from_unix_time(local_saved_at)
 	var month: int = int(date.get("month", 0))
 	var day: int = int(date.get("day", 0))
 	var hour: int = int(date.get("hour", 0))
 	var minute: int = int(date.get("minute", 0))
 
-	return "Слот %d — %02d.%02d %02d:%02d" % [
+	return "Слот %d — %s — %02d.%02d %02d:%02d" % [
 		slot_index,
+		map_label,
 		day,
 		month,
 		hour,
@@ -627,6 +644,7 @@ func load_game(slot_index: int) -> bool:
 
 func _collect_save_data() -> Dictionary:
 	var saved_time_scale: float = Engine.time_scale
+	var time_zone: Dictionary = Time.get_time_zone_from_system()
 
 	if menu_open:
 		saved_time_scale = menu_previous_time_scale
@@ -634,6 +652,7 @@ func _collect_save_data() -> Dictionary:
 	var save_data: Dictionary = {
 		"version": SAVE_VERSION,
 		"saved_at": int(Time.get_unix_time_from_system()),
+		"saved_at_utc_offset_minutes": int(time_zone.get("bias", 0)),
 		"level_id": current_level_id,
 		"time_scale": saved_time_scale,
 		"camera": _collect_camera_data(),

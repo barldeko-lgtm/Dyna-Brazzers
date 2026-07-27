@@ -329,6 +329,8 @@ Audio settings are stored in `user://audio_settings.cfg`, independently from gam
 
 The startup screen provides New Game, three-slot Load, Settings, and Exit. The in-game `MENU` button provides Save, Load, Settings, Main Menu, Close Game, and Back.
 
+Valid slot labels show the saved map as `М1`/`М2` and display the save time in the computer-local timezone captured when the save was written. Older saves without a stored UTC offset use the current system timezone.
+
 Opening the in-game menu pauses simulation. Closing it restores the previously selected simulation speed.
 
 Saved dynamic state includes:
@@ -342,7 +344,7 @@ Saved dynamic state includes:
 - DryGround cleared cells and partial rain progress;
 - camera state;
 - simulation speed;
-- save timestamp.
+- save timestamp and the computer UTC offset used for its local-time label.
 
 Static terrain, the two faction bases, derived enemy population snapshots, enemy rally-objective positions, temporary rain diagnostics, and corpses are not serialized.
 

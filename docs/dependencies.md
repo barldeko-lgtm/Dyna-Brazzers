@@ -521,6 +521,7 @@ Rules:
 - save writes must validate a temporary JSON before replacing the live slot and retain recoverable backup state;
 - invalid slots remain visible but cannot be loaded;
 - missing optional faction/flag/enemy fields must not invalidate old saves;
+- slot labels derive `М1`/`М2` from `level_id`; new saves store `saved_at_utc_offset_minutes` so their timestamp remains in the originating computer-local time, while old saves fall back to the current system UTC offset;
 - missing `level_id` defaults to level 1; an unavailable saved level must fail before scene replacement;
 - missing faction defaults to player; unknown non-empty faction becomes neutral;
 - static terrain and faction bases are not dynamic save entities;
