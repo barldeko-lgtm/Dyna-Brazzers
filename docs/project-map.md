@@ -29,7 +29,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scenes/resources/egg.tscn` — shared egg scene.
 - `scenes/creatures/creature.tscn` — shared creature scene.
 - `scenes/debug/grid_debug_overlay.tscn` — F3 world diagnostics.
-- `scenes/debug/enemy_ai_debug_overlay.tscn` — F5 enemy-AI/rain diagnostics.
+- `scenes/debug/enemy_ai_debug_overlay.tscn` — F5 enemy-AI/spell diagnostics.
 - `scenes/effects/lightning_strike_effect.tscn` — lightning effect.
 - `scenes/effects/rain_target_preview.tscn` — player rain preview.
 - `scenes/effects/rain_cast_effect.tscn` — rain cast animation.
@@ -74,7 +74,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/enemies/enemy_energy.gd` — ordinary enemy energy, gross income from eligible living enemy creatures, and threshold-based income splitting into the combat reserve.
 - `scripts/enemies/enemy_egg_production_controller.gd` — disabled legacy producer retained only for save compatibility.
 - `scripts/enemies/enemy_ai_controller.gd` — periodic enemy population/satiety snapshot and egg-production decisions.
-- `scripts/enemies/enemy_spell_controller.gd` — enemy spell triggers, combat-reserve amount/capacity and deposit API, rain payment fallback, target search/cost, world-space diagnostic contours, save API, and public F5/F8 data.
+- `scripts/enemies/enemy_spell_controller.gd` — enemy lightning/rain decisions, combat-reserve amount/capacity and deposit/spending API, rain payment fallback, target search/cost, world-space diagnostic contours, save API, and public F5/F8 data.
 - `scripts/gameplay/game_end_controller.gd` — simulation-time grace period, faction population checks, victory/defeat transition, duration tracking, and save API.
 
 ## Flag systems
@@ -105,7 +105,7 @@ Enemy objectives:
 - `scripts/ui/game_result_overlay.gd` — victory/defeat presentation and `main_menu_requested` signal.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/status line and F4 text diagnostics.
 - `scripts/debug/grid_debug_overlay.gd` — F3 terrain/occupancy/path/flag diagnostics.
-- `scripts/debug/enemy_ai_debug_overlay.gd` — read-only F5 enemy strategy/rain panel.
+- `scripts/debug/enemy_ai_debug_overlay.gd` — read-only F5 enemy strategy/spell panel.
 - `scripts/debug/performance_stats.gd` — runtime counters and F8 CSV recording.
 - `scripts/audio/audio_manager.gd` — global music, one-shot sounds, UI clicks, bus setup, fades, and settings.
 - `scripts/save/save_system.gd` — level routing, base slot persistence, and reconstruction.

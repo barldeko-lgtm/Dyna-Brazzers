@@ -30,7 +30,7 @@ Implemented foundations include:
 - player nature powers: lightning, rain, sun, and earthquake;
 - player energy, enemy energy, player egg purchases, and enemy strategic egg production;
 - species-specific player flags and persistent enemy rally objectives;
-- an automatic enemy rain controller with target scoring and performance diagnostics;
+- automatic enemy priority lightning plus rain targeting, scoring, and performance diagnostics;
 - startup, in-game menu, three save slots, settings, global audio, minimap, HUD, debug overlays, and elimination-based victory/defeat results.
 
 Roadmap block `0.5 — Visuals and game interface` is complete. Work from the later creature, player-expansion, and enemy blocks is partially implemented. `docs/design_roadmap.md` remains the design roadmap and must not be edited unless explicitly requested.
@@ -236,11 +236,19 @@ The disabled legacy round-robin producer remains instantiated only for backward-
 
 Actual reserve energy comes only from living enemy-creature income. `enemy_energy.gd` keeps the gross income calculation; after the ten-minute unlock, when gross income meets the configured threshold and reserve space remains, the configured share is deposited into the combat reserve and the remainder enters ordinary enemy energy. Below the threshold, before unlock, or while the reserve is full, all income enters ordinary energy.
 
-Future combat spells must check this reserve only. After a successful combat spell, its cost is subtracted and the remaining reserve cannot fall below the configured post-cast floor. A failed target or failed shared effect spends nothing.
+Offensive spells check stored reserve energy only. After each successful offensive cast, the exact cost is removed from stored energy, which may fall to zero. The reserve capacity loses the same amount but cannot fall below its configured capacity floor; later minute ticks rebuild that reduced capacity normally. A failed target or failed shared effect changes neither amount nor capacity.
 
-Rain remains an economic support spell. It spends ordinary enemy energy whenever that store can cover the complete cost. Otherwise it may pay the complete cost from the combat reserve; the two stores are never combined for one cast. Rain spending changes only the stored reserve amount, never its capacity, and a failed application refunds the same store that paid.
+Rain remains an economic support spell. It spends ordinary enemy energy whenever that store can cover the complete cost. Otherwise it may pay the complete cost from the combat reserve; the two stores are never combined for one cast. Rain spending changes only stored reserve energy, never capacity, and a failed application refunds the same store that paid.
 
 The exact reserve amount, capacity, and next capacity tick are saved. Saves from the earlier time-charged prototype discard its artificial stored amount, rebuild only capacity from restored enemy-AI time, and resume filling from real creature income.
+
+### Enemy lightning
+
+Enemy lightning is evaluated on completed strategic turns before support rain. It uses the shared world lightning effect and targets only living player tyrannosauruses or egg eaters.
+
+Egg eaters have priority. When the enemy has no living hatched raptor anywhere, a player egg eater inside the configured radius around the enemy base reserves lightning priority. An egg eater at or below one-strike health requires one lightning cost. A healthier egg eater is attacked only when two strikes are sufficient to kill it and two full lightning costs are stored; the controller applies the first strike immediately and the second after the configured simulation-time delay. Passive regeneration during that short delay cannot invalidate the approved kill. Each successful strike separately spends one cost from both stored reserve energy and capacity. If no threatening egg eater is currently killable, the reserve is held instead of being spent on a tyrannosaurus, while support rain may still run.
+
+A player tyrannosaurus is eligible only at or below the configured one-strike health threshold, inside its configured enemy-base radius, and when no living hatched enemy raptor is inside the configured guard radius around that tyrannosaurus. Among eligible tyrannosauruses, lower health wins, then shorter base distance. There is no separate lightning cooldown.
 
 ### Enemy rain
 
@@ -389,7 +397,7 @@ Returning to Main Menu unloads the active session without deleting save files. S
 Not implemented yet:
 
 - final enemy-specific creature animations;
-- additional enemy spells;
+- additional enemy spells beyond lightning and rain;
 - dynamic enemy attack planning and base damage;
 - dynamic enemy rally placement;
 - minimap markers for eggs, faction bases, and world events.

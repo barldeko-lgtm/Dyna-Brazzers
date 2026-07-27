@@ -187,6 +187,7 @@ func _append_rain_debug_lines(lines: Array[String]) -> void:
 		income_threshold,
 		reserve_income_status
 	])
+	lines.append("Молния: %s" % str(rain_data.get("lightning_action_text", "ожидание")))
 	lines.append("Дождь: %s" % str(rain_data.get("action_text", "ожидание")))
 	lines.append("Поиск: %.3f мс | максимум %.3f мс | запусков %d" % [
 		float(rain_data.get("search_duration_msec", 0.0)),

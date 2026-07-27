@@ -183,7 +183,7 @@ Production rules:
 
 The old round-robin producer must remain disabled. Compatibility state may be restored into it, but restore must not restart its timer.
 
-## Enemy spells and rain diagnostics
+## Enemy spells and diagnostics
 
 Main files:
 
@@ -200,12 +200,25 @@ Combat-reserve rules:
 - `EnemyEnergy` remains the authority for gross creature income and diverts the configured share only when gross income meets the configured threshold and the reserve has free capacity;
 - before unlock, below the income threshold, or while capacity is full, all gross creature income goes to ordinary enemy energy;
 - `deposit_combat_reserve_income()` returns the amount actually accepted so `EnemyEnergy` can send every unaccepted fraction to ordinary energy without creating or losing income;
-- future combat spells must require sufficient stored reserve before attempting a cast and call `spend_combat_reserve_after_success()` only after the shared effect succeeds;
-- successful combat-spell spending subtracts the exact cost but clamps the remainder to the configured minimum post-cast reserve; failed targeting/application spends nothing;
+- offensive spells must require sufficient stored reserve before attempting a cast and call `spend_combat_reserve_after_success()` only after each shared effect succeeds;
+- successful offensive spending may reduce stored reserve energy to zero, reduces capacity by the same exact cost, and clamps only capacity to the configured post-cast floor; failed targeting/application changes neither amount nor capacity;
 - rain first uses ordinary energy when it can cover the complete cost, otherwise it may use the complete cost from stored reserve; never split one rain payment across both stores;
 - reserve-funded rain subtracts the exact rain cost without applying the combat-spell post-cast floor and never changes capacity; failed application refunds the same payment source;
 - save exact stored reserve, exact capacity, and the next capacity tick; old time-charged-prototype saves discard artificial stored energy and rebuild capacity only;
 - F5 may read reserve, capacity, gross income, split threshold/share, and last accepted deposit through public diagnostics but must not mutate them.
+
+Lightning target rules:
+
+- evaluate lightning before rain on each completed enemy strategic turn; an active delayed second strike blocks another strategic spell decision;
+- scan only the stable `creatures` group and reject invalid, queued-for-deletion, dead, zero-health, neutral, or enemy-owned targets;
+- hatched living enemy raptors are creature nodes with enemy faction and raptor species id; raptor eggs never count as adults;
+- a threatening player egg eater must be inside the configured enemy-base radius and is considered only when no living enemy raptor exists anywhere;
+- egg eaters reserve target priority over tyrannosauruses: if a threatening egg eater exists but stored reserve cannot fund the number of strikes needed to kill it, do not spend that reserve on a tyrannosaurus;
+- an egg eater at or below one lightning hit uses one strike; a healthier egg eater is eligible only when two hits can kill it, requires two complete costs before the first strike, and receives the second strike after the configured simulation-time delay; passive regeneration during that delay must not invalidate the approved kill;
+- each successful strike spends one lightning cost and reduces capacity through the common offensive-spend API; a strike that cannot be applied spends nothing;
+- a player tyrannosaurus is eligible only at or below the configured health threshold, inside the configured base radius, and with no living enemy raptor inside its configured guard radius;
+- rank eligible tyrannosauruses by lower health first and shorter base distance second; there is no separate lightning cooldown;
+- use `NatureEffectsSystem.can_apply_lightning()` and `apply_lightning()` rather than duplicating damage, VFX, or sound logic.
 
 Trigger and cost rules:
 
