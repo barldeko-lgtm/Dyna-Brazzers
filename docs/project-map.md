@@ -135,7 +135,7 @@ Enemy and player variants share biological `species_id` values but use distinct 
 Terrain:
 
 - `assets/maps/start_map_layout.png` — map-layout reference, not runtime terrain input.
-- `assets/maps/level_2_map.png` — exact-color 70x50 runtime layout for level 2.
+- `assets/maps/level_2_map.png` — exact-color 90x60 runtime layout for level 2.
 - `assets/sprites/terrain/ground.png`
 - `assets/sprites/terrain/water_tiles_independent.png`
 - `assets/sprites/terrain/mountain_tiles_independent.png`

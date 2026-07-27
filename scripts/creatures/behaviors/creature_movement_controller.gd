@@ -5,33 +5,19 @@ extends RefCounted
 # internals, keeping callers insulated from future creature.gd changes.
 
 const INDIRECT_ORDER_STATE_TIMER := 30.0
-const BLOCKED_ROUTE_REPATH_TILE_CAP := 1800
+const INDIRECT_ORDER_REPATH_TILE_CAP := 1800
 const LOCAL_BLOCKED_ROUTE_REJOIN_STEPS := 8
 const LOCAL_BLOCKED_ROUTE_TILE_CAP := 192
-const STATIC_INDIRECT_ORDER_PATH_TILE_CAP := 1800
 const RAPTOR_GUARD_POLICY := preload("res://scripts/flags/raptor_guard_policy.gd")
-
-const DIRECTIONS_8 := [
-	Vector2i.LEFT,
-	Vector2i.RIGHT,
-	Vector2i.UP,
-	Vector2i.DOWN,
-	Vector2i(-1, -1),
-	Vector2i(1, -1),
-	Vector2i(-1, 1),
-	Vector2i(1, 1)
-]
 
 var creature: Node
 var state_idle: int
 var state_walk: int
 var state_seek_food: int
 var is_following_indirect_order_route := false
-var is_following_behavior_route := false
-var is_waiting_for_blocked_route := false
-var blocked_route_anchor := Vector2i.ZERO
-var blocked_route_signature := ""
-
+var is_waiting_for_blocked_indirect_route := false
+var blocked_indirect_route_anchor := Vector2i.ZERO
+var blocked_indirect_route_signature := ""
 
 func _init(owner: Node, idle_state: int, walk_state: int, seek_food_state: int) -> void:
 	creature = owner
@@ -39,14 +25,12 @@ func _init(owner: Node, idle_state: int, walk_state: int, seek_food_state: int) 
 	state_walk = walk_state
 	state_seek_food = seek_food_state
 
-
 func update_idle(delta: float) -> void:
 	var timer := float(creature.get("state_timer")) - delta
 	creature.set("state_timer", timer)
 
 	if timer <= 0.0 and creature.has_method("enter_walk"):
 		creature.call("enter_walk")
-
 
 func update_walk(delta: float) -> void:
 	var timer := float(creature.get("state_timer")) - delta
@@ -56,18 +40,14 @@ func update_walk(delta: float) -> void:
 		return
 
 	var path_variant: Variant = creature.get("current_path")
-	var has_managed_route := (
-		_is_following_repathable_route()
+	var has_indirect_route := (
+		is_following_indirect_order_route
 		and path_variant is Array
 		and not (path_variant as Array).is_empty()
 	)
-	var is_holding_for_hunt := (
-		creature.has_method("is_hunting")
-		and bool(creature.is_hunting())
-	)
 
 	if timer <= 0.0:
-		if has_managed_route or is_holding_for_hunt:
+		if has_indirect_route:
 			creature.set("state_timer", INDIRECT_ORDER_STATE_TIMER)
 		else:
 			if creature.has_method("enter_idle"):
@@ -81,14 +61,15 @@ func update_walk(delta: float) -> void:
 		if creature.has_method("should_hold_at_locked_approach") and bool(creature.should_hold_at_locked_approach()):
 			return
 
-		_reset_route_tracking()
+		_reset_blocked_indirect_route_wait()
+		is_following_indirect_order_route = false
 		choose_random_wander_step()
 
 	start_next_path_step_if_needed()
 
-
 func choose_random_wander_step() -> void:
-	_reset_route_tracking()
+	is_following_indirect_order_route = false
+	_reset_blocked_indirect_route_wait()
 	var world_grid: Node = creature.get("world_grid")
 
 	if world_grid == null:
@@ -123,7 +104,6 @@ func choose_random_wander_step() -> void:
 	var route: Array[Vector2i] = [neighbors[random_index]]
 	creature.set("current_path", route)
 
-
 func get_navigation_anchor() -> Vector2i:
 	var anchor_variant: Variant = creature.get(
 		"pending_anchor_tile" if bool(creature.get("is_moving")) else "anchor_tile"
@@ -131,20 +111,18 @@ func get_navigation_anchor() -> Vector2i:
 
 	return anchor_variant if anchor_variant is Vector2i else Vector2i.ZERO
 
-
 # Internal autonomous behaviours such as predator hunting replace only queued
 # steps here. An already active smooth step and its reservation are preserved.
+
 func replace_behavior_route(path: Array) -> void:
 	is_following_indirect_order_route = false
-	is_following_behavior_route = true
-	_reset_blocked_route_wait()
+	_reset_blocked_indirect_route_wait()
 	creature.set("current_path", _normalize_route(path))
 
-
 func clear_behavior_route() -> void:
-	_reset_route_tracking()
+	is_following_indirect_order_route = false
+	_reset_blocked_indirect_route_wait()
 	_clear_queued_path()
-
 
 func get_queued_route_step_count() -> int:
 	var path_variant: Variant = creature.get("current_path")
@@ -154,10 +132,8 @@ func get_queued_route_step_count() -> int:
 
 	return (path_variant as Array).size()
 
-
 func get_remaining_route_steps() -> int:
 	return get_queued_route_step_count() + (1 if bool(creature.get("is_moving")) else 0)
-
 
 func start_next_path_step_if_needed(allow_rebuild: bool = true) -> void:
 	if bool(creature.get("is_moving")):
@@ -184,37 +160,41 @@ func start_next_path_step_if_needed(allow_rebuild: bool = true) -> void:
 
 	var footprint: Vector2i = creature.get("footprint_size")
 
-	if is_waiting_for_blocked_route:
-		if next_anchor != blocked_route_anchor:
-			_reset_blocked_route_wait()
+	if is_waiting_for_blocked_indirect_route:
+		if not is_following_indirect_order_route or next_anchor != blocked_indirect_route_anchor:
+			_reset_blocked_indirect_route_wait()
 		else:
-			var current_signature := _get_blocked_route_signature(
+			var current_signature := _get_blocked_indirect_route_signature(
 				world_grid,
 				next_anchor,
 				footprint
 			)
 
-			if current_signature == blocked_route_signature:
+			if current_signature == blocked_indirect_route_signature:
 				return
 
-			_reset_blocked_route_wait()
+			_reset_blocked_indirect_route_wait()
 
 	if not bool(world_grid.call(
 		"reserve_movement_destination", creature, next_anchor, footprint
 	)):
-		if allow_rebuild and _try_rebuild_blocked_route(current_path, world_grid, footprint):
-			_reset_blocked_route_wait()
-			start_next_path_step_if_needed(false)
-			return
+		if is_following_indirect_order_route:
+			if allow_rebuild and _try_rebuild_blocked_indirect_order_route(
+				current_path,
+				world_grid,
+				footprint
+			):
+				_reset_blocked_indirect_route_wait()
+				start_next_path_step_if_needed(false)
+				return
 
-		if _is_following_repathable_route():
-			_begin_blocked_route_wait(world_grid, next_anchor, footprint)
+			_begin_blocked_indirect_route_wait(world_grid, next_anchor, footprint)
 			return
 
 		clear_path()
 		return
 
-	_reset_blocked_route_wait()
+	_reset_blocked_indirect_route_wait()
 	current_path.remove_at(0)
 	creature.set("current_path", current_path)
 	creature.set("pending_anchor_tile", next_anchor)
@@ -234,7 +214,6 @@ func start_next_path_step_if_needed(allow_rebuild: bool = true) -> void:
 
 	if creature.has_method("update_sprite_visual"):
 		creature.call("update_sprite_visual")
-
 
 func advance_movement(delta: float) -> void:
 	var body := creature as CharacterBody2D
@@ -292,9 +271,9 @@ func advance_movement(delta: float) -> void:
 	):
 		creature.call("enter_eating")
 
-
 func clear_path() -> void:
-	_reset_route_tracking()
+	is_following_indirect_order_route = false
+	_reset_blocked_indirect_route_wait()
 	var world_grid: Node = creature.get("world_grid")
 
 	if world_grid != null:
@@ -310,15 +289,12 @@ func clear_path() -> void:
 	if body != null:
 		creature.set("movement_target_position", body.global_position)
 
-
 func can_accept_indirect_order() -> bool:
 	var current_state := int(creature.get("state"))
 	return current_state == state_idle or current_state == state_walk
 
-
 func has_indirect_order_route_in_progress() -> bool:
 	return get_remaining_route_steps() > 0
-
 
 func apply_indirect_order_route(path: Array) -> bool:
 	var normalized_path := _normalize_route(path)
@@ -326,12 +302,10 @@ func apply_indirect_order_route(path: Array) -> bool:
 	if normalized_path.is_empty():
 		return false
 
-	normalized_path = _prefer_static_indirect_order_route(normalized_path)
+	_reset_blocked_indirect_route_wait()
 
 	if bool(creature.get("is_moving")):
 		is_following_indirect_order_route = true
-		is_following_behavior_route = false
-		_reset_blocked_route_wait()
 		creature.set("current_path", normalized_path)
 		creature.set("state_timer", INDIRECT_ORDER_STATE_TIMER)
 		return true
@@ -341,16 +315,14 @@ func apply_indirect_order_route(path: Array) -> bool:
 
 	creature.call("enter_walk")
 	is_following_indirect_order_route = true
-	is_following_behavior_route = false
-	_reset_blocked_route_wait()
 	creature.set("state_timer", INDIRECT_ORDER_STATE_TIMER)
 	creature.set("current_path", normalized_path)
 	start_next_path_step_if_needed()
 	return true
 
-
 func pause_indirect_order_for_food() -> void:
-	_reset_route_tracking()
+	is_following_indirect_order_route = false
+	_reset_blocked_indirect_route_wait()
 	_clear_queued_path()
 	creature.set("has_grazing_target", false)
 	creature.set("food_recheck_timer", 0.0)
@@ -369,12 +341,12 @@ func pause_indirect_order_for_food() -> void:
 	if creature.has_method("enter_hungry_behavior"):
 		creature.call("enter_hungry_behavior")
 
-
 func cancel_indirect_order_route() -> void:
 	if not can_accept_indirect_order():
 		return
 
-	_reset_route_tracking()
+	is_following_indirect_order_route = false
+	_reset_blocked_indirect_route_wait()
 	_clear_queued_path()
 
 	if bool(creature.get("is_moving")):
@@ -384,13 +356,12 @@ func cancel_indirect_order_route() -> void:
 	if creature.has_method("enter_walk"):
 		creature.call("enter_walk")
 
-
-func _try_rebuild_blocked_route(
+func _try_rebuild_blocked_indirect_order_route(
 	current_path: Array,
 	world_grid: Node,
 	footprint: Vector2i
 ) -> bool:
-	if not _is_following_repathable_route() or current_path.is_empty():
+	if not is_following_indirect_order_route or current_path.is_empty():
 		return false
 
 	var current_anchor_variant: Variant = creature.get("anchor_tile")
@@ -399,7 +370,7 @@ func _try_rebuild_blocked_route(
 		return false
 
 	var current_anchor: Vector2i = current_anchor_variant
-	var local_route := _find_local_rejoin_route(
+	var local_route := _find_local_indirect_rejoin_route(
 		current_path,
 		world_grid,
 		footprint,
@@ -421,7 +392,7 @@ func _try_rebuild_blocked_route(
 		final_anchor_variant,
 		footprint,
 		creature,
-		BLOCKED_ROUTE_REPATH_TILE_CAP
+		INDIRECT_ORDER_REPATH_TILE_CAP
 	)
 
 	if not (rebuilt_path_variant is Array):
@@ -435,8 +406,7 @@ func _try_rebuild_blocked_route(
 	creature.set("current_path", rebuilt_path)
 	return true
 
-
-func _find_local_rejoin_route(
+func _find_local_indirect_rejoin_route(
 	current_path: Array,
 	world_grid: Node,
 	footprint: Vector2i,
@@ -493,219 +463,20 @@ func _find_local_rejoin_route(
 
 	return []
 
-
-func _prefer_static_indirect_order_route(path: Array[Vector2i]) -> Array[Vector2i]:
-	if path.is_empty():
-		return path
-
-	var world_grid: Node = creature.get("world_grid")
-
-	if world_grid == null:
-		return path
-
-	var final_anchor: Vector2i = path[path.size() - 1]
-	var footprint: Vector2i = creature.get("footprint_size")
-	var static_path := _find_static_path(
-		world_grid,
-		get_navigation_anchor(),
-		final_anchor,
-		footprint,
-		STATIC_INDIRECT_ORDER_PATH_TILE_CAP
-	)
-
-	return static_path if not static_path.is_empty() else path
-
-
-func _find_static_path(
-	world_grid: Node,
-	start_anchor: Vector2i,
-	goal_anchor: Vector2i,
-	footprint: Vector2i,
-	max_expanded_tiles: int
-) -> Array[Vector2i]:
-	if start_anchor == goal_anchor:
-		return []
-
-	if not _can_place_static_footprint(world_grid, goal_anchor, footprint):
-		return []
-
-	var expanded_tiles := 0
-	var open_set: Array[Vector2i] = [start_anchor]
-	var open_lookup := {start_anchor: true}
-	var came_from: Dictionary = {}
-	var g_score := {start_anchor: 0.0}
-	var f_score := {start_anchor: _static_estimate_path_cost(start_anchor, goal_anchor)}
-
-	while not open_set.is_empty():
-		if expanded_tiles >= max_expanded_tiles:
-			break
-
-		var current := _pop_lowest_static_score(open_set, f_score)
-		expanded_tiles += 1
-		open_lookup.erase(current)
-
-		if current == goal_anchor:
-			return _reconstruct_static_path(came_from, current, start_anchor)
-
-		for neighbor in _get_static_neighbors(world_grid, current, footprint):
-			var tentative_g_score := float(g_score.get(current, INF)) + _static_step_cost(
-				current,
-				neighbor
-			)
-
-			if tentative_g_score >= float(g_score.get(neighbor, INF)):
-				continue
-
-			came_from[neighbor] = current
-			g_score[neighbor] = tentative_g_score
-			f_score[neighbor] = tentative_g_score + _static_estimate_path_cost(
-				neighbor,
-				goal_anchor
-			)
-
-			if not open_lookup.has(neighbor):
-				open_set.append(neighbor)
-				open_lookup[neighbor] = true
-
-	return []
-
-
-func _get_static_neighbors(
-	world_grid: Node,
-	anchor: Vector2i,
-	footprint: Vector2i
-) -> Array[Vector2i]:
-	var neighbors: Array[Vector2i] = []
-
-	for direction: Vector2i in DIRECTIONS_8:
-		var candidate := anchor + direction
-
-		if not _can_place_static_footprint(world_grid, candidate, footprint):
-			continue
-
-		if direction.x != 0 and direction.y != 0:
-			var horizontal_candidate := anchor + Vector2i(direction.x, 0)
-			var vertical_candidate := anchor + Vector2i(0, direction.y)
-
-			if not _can_place_static_footprint(world_grid, horizontal_candidate, footprint):
-				continue
-
-			if not _can_place_static_footprint(world_grid, vertical_candidate, footprint):
-				continue
-
-		neighbors.append(candidate)
-
-	return neighbors
-
-
-func _can_place_static_footprint(
-	world_grid: Node,
-	anchor: Vector2i,
-	footprint: Vector2i
-) -> bool:
-	var occupied_variant: Variant = world_grid.get("occupied_by_tile")
-	var blocker_anchors_variant: Variant = world_grid.get("blocker_anchors")
-	var occupied: Dictionary = occupied_variant if occupied_variant is Dictionary else {}
-	var blocker_anchors: Dictionary = (
-		blocker_anchors_variant if blocker_anchors_variant is Dictionary else {}
-	)
-	var footprint_tiles_variant: Variant = world_grid.call(
-		"get_footprint_tiles",
-		anchor,
-		footprint
-	)
-
-	if not (footprint_tiles_variant is Array):
-		return false
-
-	for tile_variant: Variant in footprint_tiles_variant:
-		if not (tile_variant is Vector2i):
-			return false
-
-		var tile: Vector2i = tile_variant
-
-		if not bool(world_grid.call("is_tile_walkable", tile)):
-			return false
-
-		if not occupied.has(tile):
-			continue
-
-		var occupant: Variant = occupied[tile]
-
-		if occupant == creature:
-			continue
-
-		if blocker_anchors.has(occupant):
-			return false
-
-	return true
-
-
-func _pop_lowest_static_score(
-	open_set: Array[Vector2i],
-	f_score: Dictionary
-) -> Vector2i:
-	var best_index := 0
-	var best_score := float(f_score.get(open_set[0], INF))
-
-	for index in range(1, open_set.size()):
-		var candidate_score := float(f_score.get(open_set[index], INF))
-
-		if candidate_score < best_score:
-			best_score = candidate_score
-			best_index = index
-
-	var result := open_set[best_index]
-	open_set.remove_at(best_index)
-	return result
-
-
-func _reconstruct_static_path(
-	came_from: Dictionary,
-	current: Vector2i,
-	start_anchor: Vector2i
-) -> Array[Vector2i]:
-	var path: Array[Vector2i] = [current]
-
-	while came_from.has(current):
-		current = came_from[current]
-
-		if current == start_anchor:
-			break
-
-		path.push_front(current)
-
-	return path
-
-
-func _static_step_cost(from_anchor: Vector2i, to_anchor: Vector2i) -> float:
-	var delta := to_anchor - from_anchor
-	return 1.41421356237 if delta.x != 0 and delta.y != 0 else 1.0
-
-
-func _static_estimate_path_cost(from_anchor: Vector2i, to_anchor: Vector2i) -> float:
-	var dx := abs(to_anchor.x - from_anchor.x)
-	var dy := abs(to_anchor.y - from_anchor.y)
-	var diagonal_steps := mini(dx, dy)
-	var straight_steps := maxi(dx, dy) - diagonal_steps
-	return float(diagonal_steps) * 1.41421356237 + float(straight_steps)
-
-
-func _begin_blocked_route_wait(
+func _begin_blocked_indirect_route_wait(
 	world_grid: Node,
 	next_anchor: Vector2i,
 	footprint: Vector2i
 ) -> void:
-	is_waiting_for_blocked_route = true
-	blocked_route_anchor = next_anchor
-	blocked_route_signature = _get_blocked_route_signature(
+	is_waiting_for_blocked_indirect_route = true
+	blocked_indirect_route_anchor = next_anchor
+	blocked_indirect_route_signature = _get_blocked_indirect_route_signature(
 		world_grid,
 		next_anchor,
 		footprint
 	)
 
-
-func _get_blocked_route_signature(
+func _get_blocked_indirect_route_signature(
 	world_grid: Node,
 	anchor: Vector2i,
 	footprint: Vector2i
@@ -729,19 +500,15 @@ func _get_blocked_route_signature(
 			continue
 
 		var tile: Vector2i = tile_variant
-		var occupied_id := _get_navigation_object_id(occupied.get(tile, null))
-		var reserved_id := _get_navigation_object_id(reserved.get(tile, null))
-		var walkable := 1 if bool(world_grid.call("is_tile_walkable", tile)) else 0
 		parts.append("%d,%d:%d:%d:%d" % [
 			tile.x,
 			tile.y,
-			walkable,
-			occupied_id,
-			reserved_id
+			1 if bool(world_grid.call("is_tile_walkable", tile)) else 0,
+			_get_navigation_object_id(occupied.get(tile, null)),
+			_get_navigation_object_id(reserved.get(tile, null))
 		])
 
 	return "|".join(parts)
-
 
 func _get_navigation_object_id(value: Variant) -> int:
 	if value == creature:
@@ -752,22 +519,10 @@ func _get_navigation_object_id(value: Variant) -> int:
 
 	return 0
 
-
-func _is_following_repathable_route() -> bool:
-	return is_following_indirect_order_route or is_following_behavior_route
-
-
-func _reset_blocked_route_wait() -> void:
-	is_waiting_for_blocked_route = false
-	blocked_route_anchor = Vector2i.ZERO
-	blocked_route_signature = ""
-
-
-func _reset_route_tracking() -> void:
-	is_following_indirect_order_route = false
-	is_following_behavior_route = false
-	_reset_blocked_route_wait()
-
+func _reset_blocked_indirect_route_wait() -> void:
+	is_waiting_for_blocked_indirect_route = false
+	blocked_indirect_route_anchor = Vector2i.ZERO
+	blocked_indirect_route_signature = ""
 
 func _normalize_route(path: Array) -> Array[Vector2i]:
 	var normalized_path: Array[Vector2i] = []
@@ -777,7 +532,6 @@ func _normalize_route(path: Array) -> Array[Vector2i]:
 			normalized_path.append(step_variant)
 
 	return normalized_path
-
 
 func _clear_queued_path() -> void:
 	var path_variant: Variant = creature.get("current_path")

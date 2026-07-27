@@ -6,7 +6,7 @@ Dyna is an early Godot 4.7 prototype of an autonomous dinosaur ecosystem inspire
 
 The current prototype includes:
 
-- an editable 85x85 tile-based world on `TileMapLayer`;
+- two selectable tile-based levels on shared `TileMapLayer` gameplay: authored level 1 (85x85) and pixel-map level 2 (90x60);
 - six species available through player-created eggs: stegosaurus, triceratops, tyrannosaurus, raptor, pterodactyl, and egg eater; fresh games start without adult creatures;
 - grass as the first renewable resource;
 - egg laying, egg stages, and hatching;

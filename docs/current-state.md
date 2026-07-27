@@ -53,7 +53,7 @@ Do not turn Dyna into a standard RTS or create enemy-only copies of common creat
 
 The active world is `scenes/world/world.tscn`.
 
-Level 1 preserves the authored 85x85 TileMap. Level 2 is built at runtime from `assets/maps/level_2_map.png`, where one exact-color pixel is one tile. The supplied 70x50 layout defines terrain, DryGround, grass, complete 2x2 trees, and two 2x2 base footprints with the player base on the left.
+Level 1 preserves the authored 85x85 TileMap. Level 2 is built at runtime from `assets/maps/level_2_map.png`, where one exact-color pixel is one tile. The supplied 90x60 layout defines terrain, DryGround, grass, complete 2x2 trees, and two 2x2 base footprints with the player base on the left.
 
 The current map uses stable TileSet source ids:
 
