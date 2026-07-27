@@ -746,36 +746,43 @@ func _get_world_grid() -> Node:
 
 
 func _get_world_mouse_position() -> Vector2:
-	var camera := get_viewport().get_camera_2d()
+	var camera := get_tree().get_first_node_in_group("game_camera") as Camera2D
+
+	if camera == null:
+		camera = get_viewport().get_camera_2d()
 
 	if camera != null:
+		if camera.has_method("get_game_mouse_world_position"):
+			return camera.call("get_game_mouse_world_position") as Vector2
+
 		return camera.get_global_mouse_position()
 
 	return get_viewport().get_mouse_position()
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if handle_game_viewport_input(event):
+		get_viewport().set_input_as_handled()
+
+
+func handle_game_viewport_input(event: InputEvent) -> bool:
 	if not (event is InputEventMouseButton):
-		return
+		return false
 
 	if not is_targeting_enabled():
-		return
+		return false
 
 	if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 		cancel_all_targeting()
-		get_viewport().set_input_as_handled()
-		return
+		return true
 
 	if rain_targeting_enabled and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		if _try_apply_rain_at_mouse():
-			get_viewport().set_input_as_handled()
-		return
+		return _try_apply_rain_at_mouse()
 
 	if sun_targeting_enabled and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		if _try_apply_sun_at_mouse():
-			get_viewport().set_input_as_handled()
-		return
+		return _try_apply_sun_at_mouse()
 
 	if earthquake_targeting_enabled and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		if _try_apply_earthquake_at_mouse():
-			get_viewport().set_input_as_handled()
+		return _try_apply_earthquake_at_mouse()
+
+	return false

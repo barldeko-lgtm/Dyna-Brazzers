@@ -13,6 +13,7 @@ var start_position_checked: bool = false
 
 
 func _ready() -> void:
+	add_to_group("game_camera")
 	call_deferred("_initialize_camera")
 
 
@@ -74,11 +75,22 @@ func _ensure_world_grid() -> void:
 
 # Wheel zoom.
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			change_zoom(-zoom_step)
-		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			change_zoom(zoom_step)
+	if handle_game_viewport_input(event):
+		get_viewport().set_input_as_handled()
+
+
+func handle_game_viewport_input(event: InputEvent) -> bool:
+	if not (event is InputEventMouseButton) or not event.pressed:
+		return false
+
+	if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		change_zoom(-zoom_step)
+		return true
+	if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		change_zoom(zoom_step)
+		return true
+
+	return false
 
 
 func change_zoom(amount: float) -> void:
@@ -108,7 +120,7 @@ func _clamp_camera_to_world() -> void:
 	if world_bounds.size.x <= 0.0 or world_bounds.size.y <= 0.0:
 		return
 
-	var viewport_size: Vector2 = get_viewport_rect().size
+	var viewport_size: Vector2 = get_game_viewport_size()
 	var safe_zoom_x: float = maxf(zoom.x, 0.001)
 	var safe_zoom_y: float = maxf(zoom.y, 0.001)
 	var half_visible: Vector2 = Vector2(
@@ -131,3 +143,30 @@ func _clamp_camera_to_world() -> void:
 		target_position.y = clampf(target_position.y, minimum_center.y, maximum_center.y)
 
 	global_position = target_position
+
+
+func get_game_viewport_size() -> Vector2:
+	var target_viewport := custom_viewport as Viewport
+
+	if target_viewport == null:
+		target_viewport = get_viewport()
+
+	return target_viewport.get_visible_rect().size
+
+
+func get_game_mouse_world_position() -> Vector2:
+	var target_viewport := custom_viewport as Viewport
+
+	if target_viewport == null:
+		target_viewport = get_viewport()
+
+	return game_screen_to_world(target_viewport.get_mouse_position())
+
+
+func game_screen_to_world(screen_position: Vector2) -> Vector2:
+	var target_viewport := custom_viewport as Viewport
+
+	if target_viewport == null:
+		target_viewport = get_viewport()
+
+	return target_viewport.get_canvas_transform().affine_inverse() * screen_position

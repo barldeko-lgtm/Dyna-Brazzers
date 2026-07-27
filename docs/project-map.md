@@ -17,7 +17,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 ## Main scenes
 
 - `scenes/ui/start_screen.tscn` — startup menu, level selection, load slots, settings, and exit.
-- `scenes/main/main.tscn` — small gameplay compositor for camera, HUD, match-end controller/result overlay, simulation root, world, and debug overlays.
+- `scenes/main/main.tscn` — gameplay compositor with a dedicated world viewport, adaptive right-side HUD, camera, match flow, world, and debug overlays.
 - `scenes/ui/player_hud.tscn` — gameplay HUD, minimap, counters, and nature-menu instance.
 - `scenes/ui/creature_info_panel.tscn` — selected/hovered creature information.
 - `scenes/ui/nature_menu.tscn` — player energy, spells, time controls, and host area for runtime submenus.
@@ -38,6 +38,8 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 
 ## World and camera scripts
 
+- `scripts/main/main.gd` — gameplay viewport sizing, shared-world rendering, and render-layer isolation from the side panel.
+- `scripts/main/game_viewport_input_bridge.gd` — forwards unhandled game-area clicks to root-owned spell and flag targeting.
 - `scripts/world/world_grid.gd` — terrain queries, DryGround state, walkability, pathfinding, grass registry, footprints, blockers, creature occupancy, and movement reservations.
 - `scripts/world/start_map_world_grid.gd` — start-map bootstrap; creates both bases, enemy runtime controllers, enemy rally objectives, energy nodes, and world bounds.
 - `scripts/world/start_map_layout.gd` — preserves authored level 1 and builds registered pixel-map levels before world-grid initialization.

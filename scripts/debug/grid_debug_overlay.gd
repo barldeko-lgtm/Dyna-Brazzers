@@ -266,12 +266,18 @@ func _get_visible_tile_bounds(world_grid: Node) -> Rect2i:
 		world_grid.map_min,
 		world_grid.map_max - world_grid.map_min + Vector2i.ONE
 	)
-	var camera := get_viewport().get_camera_2d()
+	var camera := get_tree().get_first_node_in_group("game_camera") as Camera2D
+
+	if camera == null:
+		camera = get_viewport().get_camera_2d()
 
 	if camera == null:
 		return full_bounds
 
 	var viewport_size := get_viewport_rect().size
+
+	if camera.has_method("get_game_viewport_size"):
+		viewport_size = camera.call("get_game_viewport_size") as Vector2
 	var camera_zoom := camera.zoom
 	var safe_zoom := Vector2(
 		maxf(absf(camera_zoom.x), 0.001),

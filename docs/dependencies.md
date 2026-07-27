@@ -426,6 +426,9 @@ Main scenes:
 Stable wiring:
 
 - `main.tscn/UI` instances `player_hud.tscn`;
+- `main.tscn` renders world-space canvas items through a dedicated gameplay `SubViewport` whose width follows the live left edge of the adaptive right-side panel;
+- the gameplay camera is registered in `game_camera`; camera bounds, minimap framing, save/load, targeting, and debug projections must use its gameplay-viewport API rather than the root viewport size;
+- unhandled game-area clicks reach root-owned spell and flag targeting through `game_viewport_input_bridge.gd`;
 - the HUD instances `CreatureStatsPanel` and `PlayerNaturePanel`;
 - the active world owns `PlayerEnergy`;
 - UI and SaveSystem resolve player energy through the `player_energy` group;

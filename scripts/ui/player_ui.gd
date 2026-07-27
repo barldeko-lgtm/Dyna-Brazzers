@@ -293,6 +293,11 @@ func update_minimap_camera_view(force_update := false) -> void:
 
 
 func find_active_camera() -> Camera2D:
+	var grouped_camera := get_tree().get_first_node_in_group("game_camera") as Camera2D
+
+	if grouped_camera != null:
+		return grouped_camera
+
 	var active_camera := get_viewport().get_camera_2d()
 
 	if active_camera != null:
@@ -463,6 +468,10 @@ func get_triangle_marker_pixels() -> Array[Vector2]:
 
 func get_camera_world_rect(camera: Camera2D) -> Rect2:
 	var viewport_size := camera.get_viewport_rect().size
+
+	if camera.has_method("get_game_viewport_size"):
+		viewport_size = camera.call("get_game_viewport_size") as Vector2
+
 	var safe_zoom := Vector2(maxf(camera.zoom.x, 0.001), maxf(camera.zoom.y, 0.001))
 	var visible_size := viewport_size / safe_zoom
 	return Rect2(camera.global_position - visible_size * 0.5, visible_size)
@@ -725,12 +734,7 @@ func focus_camera_on_faction_base(base_group: StringName) -> void:
 	if nature_menu_ui != null and nature_menu_ui.has_method("cancel_all_targeting"):
 		nature_menu_ui.call("cancel_all_targeting")
 
-	var safe_zoom_x := maxf(camera.zoom.x, 0.001)
-	var side_panel_half_width_world := maxf(size.x, 0.0) * 0.5 / safe_zoom_x
-	camera.global_position = faction_base.global_position + Vector2(
-		side_panel_half_width_world,
-		0.0
-	)
+	camera.global_position = faction_base.global_position
 	has_minimap_camera_state = false
 	minimap_entity_refresh_timer = 0.0
 	update_minimap_camera_view(true)
@@ -786,6 +790,10 @@ func apply_time_speed_by_index(index: int) -> void:
 
 		if button != null:
 			button.set_pressed_no_signal(button_index == index)
+
+
+func reset_time_speed_after_load() -> void:
+	apply_time_speed_by_index(0)
 
 
 func _on_time_speed_button_pressed(index: int) -> void:

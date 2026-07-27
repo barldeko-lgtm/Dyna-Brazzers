@@ -70,6 +70,7 @@ Trees are TileMap terrain, not separate resource nodes. Each visual tree is asse
 
 The observer camera:
 
+- renders the world through a dedicated gameplay viewport ending at the live left edge of the adaptive right-side panel;
 - starts from the authored `CameraStart` marker on a fresh game;
 - restores position and zoom from saves;
 - supports WASD movement and mouse-wheel zoom;

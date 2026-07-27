@@ -62,11 +62,15 @@ func _physics_process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if ui_controller == null:
-		return
-
-	if bool(ui_controller.call("handle_unhandled_input", event)):
+	if handle_game_viewport_input(event):
 		get_viewport().set_input_as_handled()
+
+
+func handle_game_viewport_input(event: InputEvent) -> bool:
+	if ui_controller == null:
+		return false
+
+	return bool(ui_controller.call("handle_unhandled_input", event))
 
 
 func _refresh_scene_attachment() -> void:
@@ -189,9 +193,15 @@ func get_world_grid() -> Node:
 
 
 func get_flag_mouse_world_position() -> Vector2:
-	var camera := get_viewport().get_camera_2d()
+	var camera := get_tree().get_first_node_in_group("game_camera") as Camera2D
+
+	if camera == null:
+		camera = get_viewport().get_camera_2d()
 
 	if camera != null:
+		if camera.has_method("get_game_mouse_world_position"):
+			return camera.call("get_game_mouse_world_position") as Vector2
+
 		return camera.get_global_mouse_position()
 
 	return get_viewport().get_mouse_position()

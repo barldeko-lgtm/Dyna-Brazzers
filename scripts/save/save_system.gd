@@ -635,7 +635,21 @@ func load_game(slot_index: int) -> bool:
 	else:
 		current_level_id = saved_level_id
 
-	return await _apply_save_data(save_data)
+	var load_succeeded: bool = await _apply_save_data(save_data)
+
+	if load_succeeded:
+		_reset_loaded_time_speed()
+
+	return load_succeeded
+
+
+func _reset_loaded_time_speed() -> void:
+	Engine.time_scale = 1.0
+	menu_previous_time_scale = 1.0
+	var player_ui := get_tree().get_first_node_in_group("player_ui")
+
+	if player_ui != null and player_ui.has_method("reset_time_speed_after_load"):
+		player_ui.call("reset_time_speed_after_load")
 
 
 # ---------------------------------------------------------------------------
@@ -668,7 +682,7 @@ func _collect_save_data() -> Dictionary:
 
 
 func _collect_camera_data() -> Dictionary:
-	var camera: Camera2D = get_viewport().get_camera_2d()
+	var camera := _get_game_camera()
 
 	if camera == null:
 		return {}
@@ -1192,7 +1206,7 @@ func _restore_camera(camera_data: Dictionary) -> void:
 	if camera_data.is_empty():
 		return
 
-	var camera: Camera2D = get_viewport().get_camera_2d()
+	var camera := _get_game_camera()
 
 	if camera == null:
 		return
@@ -1205,3 +1219,12 @@ func _restore_camera(camera_data: Dictionary) -> void:
 		float(camera_data.get("zoom_x", 1.0)),
 		float(camera_data.get("zoom_y", 1.0))
 	)
+
+
+func _get_game_camera() -> Camera2D:
+	var camera := get_tree().get_first_node_in_group("game_camera") as Camera2D
+
+	if camera != null:
+		return camera
+
+	return get_viewport().get_camera_2d()

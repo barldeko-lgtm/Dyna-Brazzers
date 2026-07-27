@@ -97,12 +97,21 @@ func get_mouse_world_position(mouse_screen: Vector2) -> Vector2:
 
 	if camera == null:
 		return mouse_screen
+	if camera.has_method("get_game_mouse_world_position"):
+		return camera.call("get_game_mouse_world_position") as Vector2
 
 	var viewport_size := get_viewport().get_visible_rect().size
+	if camera.has_method("get_game_viewport_size"):
+		viewport_size = camera.call("get_game_viewport_size") as Vector2
 	return camera.get_screen_center_position() + (mouse_screen - viewport_size * 0.5) / camera.zoom
 
 
 func find_camera_2d() -> Camera2D:
+	var grouped_camera := get_tree().get_first_node_in_group("game_camera") as Camera2D
+
+	if grouped_camera != null:
+		return grouped_camera
+
 	var current := get_parent()
 
 	while current != null:
