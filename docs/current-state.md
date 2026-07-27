@@ -221,7 +221,10 @@ Current production behaviour:
 
 - builds a stegosaurus-heavy herbivore mix while the configured hunger gate allows it;
 - skips herbivore production when the adult herbivore herd is below its configured satiety threshold;
-- switches to the current predator priority after the configured herbivore-cap phase;
+- switches to the current combat-production priority after the configured herbivore-cap phase;
+- establishes two living adult raptors, one living adult tyrannosaurus, and one living adult pterodactyl before ordering an egg eater;
+- keeps egg-eater production locked for the first ten simulation minutes and orders at most one while any enemy egg eater or its egg exists;
+- returns the egg eater to the production priority after all enemy egg eaters and their eggs are gone; natural reproduction is not capped;
 - waits rather than substituting another species when the selected target cannot be bought or placed.
 
 The disabled legacy round-robin producer remains instantiated only for backward-compatible saved cursor/timer data and must stay disabled.
@@ -261,7 +264,7 @@ They:
 - are rebuilt from the runtime faction-base positions on new game and load;
 - are not serialized.
 
-The current strategic producer does not yet create egg-eater eggs.
+AI production limits only purchased egg-eater eggs. Natural enemy egg-eater reproduction remains unrestricted.
 
 ## Player flags
 

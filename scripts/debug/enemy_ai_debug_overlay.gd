@@ -115,6 +115,11 @@ func refresh_debug_text() -> void:
 		herbivore_cap,
 		int(snapshot.get("planned_predator_count", 0))
 	])
+	lines.append("Яйцеед AI: %d | 10 мин: %s | ядро 2R+T+P: %s" % [
+		int(snapshot.get("planned_egg_eater_count", 0)),
+		"да" if bool(snapshot.get("egg_eater_production_unlocked", false)) else "нет",
+		"да" if bool(snapshot.get("living_predator_core_ready", false)) else "нет"
+	])
 	lines.append("Действие: %s" % action_text)
 	lines.append(
 		"Популяция для решений: %d = взрослые %d + яйца %d" % [
@@ -204,7 +209,7 @@ func _format_production_phase(phase: String) -> String:
 		"herbivores":
 			return "добор травоядных (стег/триц = 3:1)"
 		"predators":
-			return "хищники (2 раптора → тирекс → птеро → чередование)"
+			return "атака (2 раптора → тирекс → птеро → яйцеед после 10 мин → чередование)"
 		"wait_food_pressure":
 			return "пропуск хода: голод ниже потолка"
 	return "ожидание"

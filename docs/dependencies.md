@@ -159,7 +159,7 @@ Main files:
 Snapshot rules:
 
 - scan the stable `creatures` and `eggs` groups only on the controller's strategic cadence, never every frame;
-- ignore invalid, queued-for-deletion, non-enemy, unsupported-species, or wrong-resource entities;
+- ignore invalid, queued-for-deletion, dead, non-enemy, unsupported-species, or wrong-resource entities;
 - adult creatures must match the corresponding enemy-catalog resource;
 - count eggs as projected adults through `hatch_species_data.species_id`, with stored egg `species_id` only as fallback;
 - store adult, egg, and projected per-species totals separately;
@@ -172,7 +172,10 @@ Production rules:
 - the controller owns population goals, hunger gating, species choice, and one production attempt;
 - the current herbivore phase maintains the configured stegosaurus-heavy mix;
 - the configured hunger threshold may block herbivore production;
-- the predator phase follows the implemented raptor/tyrannosaurus/pterodactyl priority;
+- the combat phase first establishes two living adult raptors, one living adult tyrannosaurus, and one living adult pterodactyl;
+- egg-eater production stays locked before ten simulation minutes, then enters the priority only while that living four-predator core exists and no enemy egg eater or egg-eater egg is already counted;
+- any naturally reproduced enemy egg eater also blocks another AI purchase, but the AI does not cap natural reproduction;
+- after all enemy egg eaters and their eggs are gone, the egg eater becomes eligible again before the long-term tyrannosaurus/pterodactyl rotation;
 - do not silently substitute another species when the selected target is unaffordable or cannot be placed;
 - spend energy only after `create_enemy_egg()` returns a real egg;
 - failed placement costs nothing;

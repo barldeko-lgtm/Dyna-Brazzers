@@ -3,7 +3,7 @@ class_name EnemyAIController
 
 # Strategic enemy turn. Every four simulation seconds it takes one lightweight
 # snapshot. It fills the herbivore cap only while adult herbivores are fed, skips
-# the turn when they are hungry below the cap, and produces predators at the cap.
+# the turn when they are hungry below the cap, and then produces the combat chain.
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const ENEMY_SPECIES_CATALOG := preload("res://scripts/catalogs/enemy_species_catalog.gd")
 
@@ -12,6 +12,7 @@ const TRICERATOPS_ID: StringName = &"triceratops"
 const RAPTOR_ID: StringName = &"raptor"
 const PTERODACTYL_ID: StringName = &"pterodactyl"
 const TYRANNOSAURUS_ID: StringName = &"tyrannosaurus"
+const EGG_EATER_ID: StringName = &"egg_eater"
 const STEGOSAURUS_PER_TRICERATOPS := 3
 const PREDATOR_IDS: Array[StringName] = [
 	RAPTOR_ID,
@@ -19,6 +20,8 @@ const PREDATOR_IDS: Array[StringName] = [
 	TYRANNOSAURUS_ID
 ]
 const BASE_DEFENSE_RAPTOR_TARGET := 2
+const EGG_EATER_UNLOCK_SIMULATION_SECONDS := 600.0
+const DEAD_CREATURE_STATE := 6
 
 @export var turn_interval := 4.0
 @export var minimum_herbivore_cap := 10
@@ -227,7 +230,29 @@ func choose_next_predator_species(snapshot: Dictionary) -> StringName:
 	if pterodactyl_count < 1:
 		return PTERODACTYL_ID
 
+	if _should_choose_egg_eater(snapshot, planned_counts):
+		return EGG_EATER_ID
+
 	return next_late_predator_id
+
+
+func _should_choose_egg_eater(snapshot: Dictionary, planned_counts: Dictionary) -> bool:
+	if get_elapsed_simulation_seconds() < EGG_EATER_UNLOCK_SIMULATION_SECONDS:
+		return false
+
+	if int(planned_counts.get(EGG_EATER_ID, 0)) > 0:
+		return false
+
+	return _has_living_predator_core(snapshot)
+
+
+func _has_living_predator_core(snapshot: Dictionary) -> bool:
+	var adult_counts := _read_adult_population_counts(snapshot)
+	return (
+		int(adult_counts.get(RAPTOR_ID, 0)) >= BASE_DEFENSE_RAPTOR_TARGET
+		and int(adult_counts.get(TYRANNOSAURUS_ID, 0)) >= 1
+		and int(adult_counts.get(PTERODACTYL_ID, 0)) >= 1
+	)
 
 
 func get_population_snapshot() -> Dictionary:
@@ -368,11 +393,12 @@ func _try_create_selected_egg(
 	if production_phase == "predators":
 		_advance_predator_rotation_after_success(selected_species_id)
 	snapshot["enemy_energy_after_action"] = _get_enemy_energy_value()
-	snapshot["action"] = (
-		"create_herbivore_egg"
-		if production_phase == "herbivores"
-		else "create_predator_egg"
-	)
+	if production_phase == "herbivores":
+		snapshot["action"] = "create_herbivore_egg"
+	elif selected_species_id == EGG_EATER_ID:
+		snapshot["action"] = "create_egg_eater_egg"
+	else:
+		snapshot["action"] = "create_predator_egg"
 	last_action_text = "создано яйцо: %s (-%d энки)" % [
 		species_data.species_name,
 		roundi(egg_cost)
@@ -465,6 +491,11 @@ func _refresh_population_summary_fields(snapshot: Dictionary) -> void:
 	snapshot["herbivore_cap"] = get_current_herbivore_cap()
 	snapshot["planned_herbivore_count"] = herbivore_count
 	snapshot["planned_predator_count"] = predator_count
+	snapshot["planned_egg_eater_count"] = int(planned_counts.get(EGG_EATER_ID, 0))
+	snapshot["egg_eater_production_unlocked"] = (
+		get_elapsed_simulation_seconds() >= EGG_EATER_UNLOCK_SIMULATION_SECONDS
+	)
+	snapshot["living_predator_core_ready"] = _has_living_predator_core(snapshot)
 	snapshot["minimum_average_herbivore_satiety_percent"] = satiety_threshold
 	snapshot["herbivore_spawning_blocked_by_hunger"] = spawning_blocked_by_hunger
 
@@ -472,6 +503,11 @@ func _refresh_population_summary_fields(snapshot: Dictionary) -> void:
 func _read_population_counts(snapshot: Dictionary) -> Dictionary:
 	var planned_counts_variant: Variant = snapshot.get("planned_population_by_species", {})
 	return planned_counts_variant if planned_counts_variant is Dictionary else {}
+
+
+func _read_adult_population_counts(snapshot: Dictionary) -> Dictionary:
+	var adult_counts_variant: Variant = snapshot.get("adult_by_species", {})
+	return adult_counts_variant if adult_counts_variant is Dictionary else {}
 
 
 func _refresh_runtime_references() -> void:
@@ -500,6 +536,9 @@ func _is_valid_enemy_entity(entity: Node) -> bool:
 
 func _is_valid_enemy_creature(creature: Node) -> bool:
 	if not _is_valid_enemy_entity(creature):
+		return false
+
+	if int(creature.get("state")) == DEAD_CREATURE_STATE:
 		return false
 
 	var species_data := creature.get("species_data") as CreatureSpeciesData
