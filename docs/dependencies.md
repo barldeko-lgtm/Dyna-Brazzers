@@ -28,6 +28,7 @@ Main files:
 - `res://scenes/world/world.tscn`
 - `res://scripts/world/world_grid.gd`
 - `res://scripts/world/start_map_layout.gd`
+- `res://scripts/world/pixel_map_parser.gd`
 - `res://scripts/world/start_map_world_grid.gd`
 - `res://scripts/camera/camera_controller.gd`
 
@@ -291,7 +292,10 @@ Rules:
 - `creature.gd` remains the external public facade for route/state transitions;
 - `creature_movement_controller.gd` owns every queued-route mutation and grid-step execution;
 - reserve the next footprint atomically before smooth movement;
-- when the next footprint of an indirect-order route is occupied, rebuild immediately from the current anchor toward the route's existing final destination; clear the route only if that bounded rebuild also fails;
+- build long indirect-order routes against terrain and persistent blockers rather than temporary creature occupancy or movement reservations;
+- when the next footprint of a managed indirect or behaviour route is occupied, first try a bounded local path that rejoins the existing route, then a bounded full path to the same final destination;
+- if both rebuilds fail, retain the destination and queued route while the blocking footprint is unchanged; retry as soon as its occupancy signature changes, without a fixed retry timer or failure limit;
+- ordinary one-step wandering is not a persistent managed route and may still be discarded when its chosen step becomes unavailable;
 - arrival converts a reservation into normal occupancy;
 - cancellation, failure, death, and removal release reservations;
 - autonomous behaviour and flag code must use movement-controller/creature public APIs rather than mutate `current_path` or FSM fields;
@@ -480,10 +484,9 @@ Main files:
 Startup flow:
 
 1. `project.godot` starts `start_screen.tscn`.
-2. New Game opens level selection.
-3. `SaveSystem` maps both available level ids to `main.tscn`; the active id selects the world layout before initialization.
-4. `main.tscn` instances the active world.
-5. Load delegates slot validation, level routing, and reconstruction to `SaveSystem`.
+2. New Game selects a registered level and opens its gameplay scene.
+3. The gameplay scene instances the active world and applies its level layout.
+4. Load delegates slot validation, saved-level routing, and reconstruction to `SaveSystem`.
 
 Stable slot paths:
 

@@ -91,6 +91,8 @@ All current species use the shared `creature.tscn` and common behaviour modules.
 
 All current creatures use the shared logical footprint. Movement reserves the next footprint before visual travel so two creatures cannot commit to the same destination.
 
+Long indirect-order routes are planned against terrain and persistent blockers rather than temporary creature positions. If the next real step is occupied, managed flag and behaviour routes first try a short rejoin around the obstruction, then a full alternate route to the same destination. When neither route exists, the creature keeps its goal and queued path, waits while the blocking footprint remains unchanged, and retries immediately after that occupancy changes.
+
 Survival, food, reproduction, hunting, combat, and death take priority over player or enemy strategic objectives.
 
 ### Reproduction
@@ -272,7 +274,9 @@ Player flags are soft, non-blocking movement preferences:
 - herbivores prefer useful grass destinations; other species use valid free destinations;
 - target reservations prevent creatures from repeatedly choosing the same footprint;
 - route work is batched and bounded;
-- when the next flag-route step is physically occupied, the movement controller immediately tries to rebuild a route from the creature's current tile to the same destination; the queued route is discarded only when no alternate route is found;
+- long flag routes ignore temporary creature occupancy while still respecting terrain, DryGround, eggs, and faction bases;
+- when the next real step is occupied, the movement controller first tries a short rejoin around the obstruction and then a full alternate route to the same target;
+- if no alternate route currently exists, the destination and queued route remain intact until the blocking footprint changes, after which movement retries without waiting for the flag assignment cycle;
 - temporary higher-priority behaviour pauses a committed flag route rather than discarding it;
 - entering the area completes the current placement revision, except for the persistent raptor guard assignment;
 - player and enemy raptors keep ordinary wandering within eight tile steps of their guard flag; active hunt chains may leave the leash, and an idle raptor outside it receives a return route;
@@ -323,7 +327,7 @@ Audio settings are stored in `user://audio_settings.cfg`, independently from gam
 
 `project.godot` starts `scenes/ui/start_screen.tscn`.
 
-The startup screen provides New Game, three-slot Load, Settings, and Exit. New Game opens level selection for the authored level 1 and pixel-map level 2. The in-game `MENU` button provides Save, Load, Settings, Main Menu, Close Game, and Back.
+The startup screen provides New Game, three-slot Load, Settings, and Exit. The in-game `MENU` button provides Save, Load, Settings, Main Menu, Close Game, and Back.
 
 Opening the in-game menu pauses simulation. Closing it restores the previously selected simulation speed.
 
@@ -338,7 +342,6 @@ Saved dynamic state includes:
 - DryGround cleared cells and partial rain progress;
 - camera state;
 - simulation speed;
-- active level id;
 - save timestamp.
 
 Static terrain, the two faction bases, derived enemy population snapshots, enemy rally-objective positions, temporary rain diagnostics, and corpses are not serialized.
