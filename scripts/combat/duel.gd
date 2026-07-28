@@ -10,13 +10,25 @@ var current_attacker: Node = null
 var tick_interval := 1.0
 var tick_remaining := 0.0
 var is_active := false
+var intervention_allowed := true
+var intervention_reserver: Node = null
+var intervention_protected_fighter: Node = null
 
 
-func setup(new_fighter_a: Node, new_fighter_b: Node, new_initiator: Node, new_tick_interval: float = 1.0) -> void:
+func setup(
+	new_fighter_a: Node,
+	new_fighter_b: Node,
+	new_initiator: Node,
+	new_tick_interval: float = 1.0,
+	new_intervention_allowed: bool = true
+) -> void:
 	fighter_a = new_fighter_a
 	fighter_b = new_fighter_b
 	initiator = new_initiator
 	tick_interval = max(new_tick_interval, 0.01)
+	intervention_allowed = new_intervention_allowed
+	intervention_reserver = null
+	intervention_protected_fighter = null
 	current_attacker = initiator
 	tick_remaining = 0.0
 
@@ -72,8 +84,87 @@ func resolve_next_turn() -> void:
 		finish_duel(attacker, defender)
 		return
 
+	if _complete_reserved_intervention():
+		return
+
 	current_attacker = defender
 	tick_remaining = tick_interval
+
+
+func reserve_intervention(intervener: Node, protected_fighter: Node) -> bool:
+	if (
+		not is_active
+		or not intervention_allowed
+		or is_instance_valid(intervention_reserver)
+		or not is_instance_valid(intervener)
+		or protected_fighter == initiator
+		or (protected_fighter != fighter_a and protected_fighter != fighter_b)
+	):
+		return false
+
+	if intervener.has_method("can_fight") and not bool(intervener.can_fight()):
+		return false
+
+	intervention_reserver = intervener
+	intervention_protected_fighter = protected_fighter
+	return true
+
+
+func cancel_intervention(intervener: Node) -> void:
+	if intervention_reserver != intervener:
+		return
+
+	intervention_reserver = null
+	intervention_protected_fighter = null
+
+
+func get_intervention_reserver() -> Node:
+	if intervention_reserver != null and not is_instance_valid(intervention_reserver):
+		intervention_reserver = null
+		intervention_protected_fighter = null
+
+	return intervention_reserver
+
+
+func can_accept_intervention() -> bool:
+	return is_active and intervention_allowed and get_intervention_reserver() == null
+
+
+func _complete_reserved_intervention() -> bool:
+	var intervener := get_intervention_reserver()
+	var protected_fighter := intervention_protected_fighter
+
+	if intervener == null:
+		return false
+
+	var attacker := _get_other_fighter(protected_fighter)
+
+	if (
+		not _is_fighter_available(protected_fighter)
+		or not _is_fighter_available(attacker)
+		or (intervener.has_method("can_fight") and not bool(intervener.can_fight()))
+	):
+		cancel_intervention(intervener)
+		return false
+
+	is_active = false
+	set_process(false)
+
+	if fighter_a != null and fighter_a.has_method("detach_duel"):
+		fighter_a.detach_duel(self)
+
+	if fighter_b != null and fighter_b.has_method("detach_duel"):
+		fighter_b.detach_duel(self)
+
+	intervention_reserver = null
+	intervention_protected_fighter = null
+
+	if intervener.has_method("complete_duel_intervention"):
+		intervener.complete_duel_intervention(attacker, self)
+
+	emit_signal("duel_finished", self, null, null)
+	queue_free()
+	return true
 
 
 func get_combat_stat(fighter: Node, stat_name: String) -> float:

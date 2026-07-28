@@ -838,6 +838,11 @@ func start_duel_with(opponent: Node) -> Duel:
 	return predator_logic.start_duel_with(opponent)
 
 
+func complete_duel_intervention(attacker: Node, completed_duel: Duel) -> void:
+	if predator_logic != null:
+		predator_logic.complete_duel_intervention(attacker, completed_duel)
+
+
 func take_duel_damage(amount: float, _attacker: Node = null) -> void:
 	take_direct_damage(amount)
 

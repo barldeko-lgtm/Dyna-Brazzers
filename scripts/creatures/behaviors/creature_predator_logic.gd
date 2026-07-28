@@ -3,6 +3,7 @@ extends RefCounted
 const Duel = preload("res://scripts/combat/duel.gd")
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const TARGET_RECHECK_INTERVAL := 2.0
+const INTERVENTION_RECHECK_INTERVAL := 0.5
 const TARGET_SWITCH_ADVANTAGE_STEPS := 2
 const TARGET_CANDIDATE_LIMIT := 3
 const APPROACH_RECHECK_DISTANCE := 4
@@ -24,6 +25,11 @@ var locked_approach_anchor := Vector2i.ZERO
 var has_locked_approach := false
 var has_hunt_route := false
 var hunt_mode: HuntMode = HuntMode.NONE
+var intervention_duel: Duel = null
+var intervention_protected_creature: Node = null
+var intervention_attacker: Node = null
+var intervention_reserved := false
+var intervention_recheck_remaining := 0.0
 
 
 func _init(owner_creature: Node) -> void:
@@ -43,6 +49,7 @@ func get_hunt_target() -> Node:
 
 
 func cancel_hunt_target() -> void:
+	_clear_intervention()
 	_clear_hunt_target()
 	hunt_mode = HuntMode.NONE
 
@@ -103,6 +110,10 @@ func update_predator_behavior(delta: float) -> void:
 
 	var desired_mode := _get_desired_hunt_mode()
 
+	if desired_mode != HuntMode.DEFENSE and intervention_duel != null:
+		_clear_intervention()
+		_clear_hunt_target()
+
 	if desired_mode == HuntMode.NONE:
 		_clear_hunt_target()
 		hunt_mode = HuntMode.NONE
@@ -113,8 +124,21 @@ func update_predator_behavior(delta: float) -> void:
 		return
 
 	if hunt_mode != desired_mode:
+		_clear_intervention()
 		_clear_hunt_target()
 		hunt_mode = desired_mode
+
+	if intervention_duel != null and _update_intervention_behavior():
+		return
+
+	if desired_mode == HuntMode.DEFENSE:
+		intervention_recheck_remaining -= delta
+
+		if intervention_recheck_remaining <= 0.0:
+			intervention_recheck_remaining = INTERVENTION_RECHECK_INTERVAL
+
+			if _try_acquire_intervention():
+				return
 
 	var pending_prey: Node = creature.get_pending_duel_opponent()
 
@@ -292,6 +316,212 @@ func _is_allowed_prey_for_current_mode(candidate: Node) -> bool:
 		return _is_opposing_player_enemy_faction(candidate)
 
 	return true
+
+
+func can_intervene_in_duel(duel: Duel, protected_creature: Node) -> bool:
+	if (
+		duel == null
+		or not is_instance_valid(duel)
+		or not duel.can_accept_intervention()
+		or not creature.species_data.is_defensive_predator()
+		or creature.hunger <= creature.species_data.hunger_search_threshold
+		or protected_creature == null
+		or not is_instance_valid(protected_creature)
+		or protected_creature == duel.initiator
+		or (protected_creature != duel.fighter_a and protected_creature != duel.fighter_b)
+	):
+		return false
+
+	var protected_species := protected_creature.get("species_data") as CreatureSpeciesData
+
+	if (
+		protected_species == null
+		or not protected_species.is_herbivore()
+		or not _is_same_faction(protected_creature)
+	):
+		return false
+
+	var attacker: Node = duel.fighter_b if duel.fighter_a == protected_creature else duel.fighter_a
+	var attacker_species := attacker.get("species_data") as CreatureSpeciesData
+
+	return (
+		attacker == duel.initiator
+		and attacker_species != null
+		and attacker_species.is_predator()
+		and _is_opposing_player_enemy_faction(attacker)
+	)
+
+
+func _try_acquire_intervention() -> bool:
+	if creature.world_grid == null:
+		return false
+
+	var origin_anchor: Vector2i = creature.get_navigation_anchor()
+	var active_radius := maxi(int(creature.species_data.defensive_hunt_radius), 0)
+	var best_plan: Dictionary = {}
+	var best_route_steps := 2147483647
+
+	for candidate_variant: Variant in creature.world_grid.creature_anchors.keys():
+		if not (candidate_variant is Node):
+			continue
+
+		var protected_creature := candidate_variant as Node
+		var candidate_duel := protected_creature.get("current_duel") as Duel
+
+		if not can_intervene_in_duel(candidate_duel, protected_creature):
+			continue
+
+		var attacker: Node = (
+			candidate_duel.fighter_b
+			if candidate_duel.fighter_a == protected_creature
+			else candidate_duel.fighter_a
+		)
+		var attacker_anchor: Vector2i = creature.world_grid.creature_anchors.get(
+			attacker,
+			origin_anchor
+		)
+
+		if creature.world_grid.estimate_path_steps(origin_anchor, attacker_anchor) > active_radius:
+			continue
+
+		var plan := _find_best_approach_plan(attacker, origin_anchor)
+
+		if plan.is_empty():
+			continue
+
+		var path: Array = plan.get("path", []) as Array
+
+		if path.size() >= best_route_steps:
+			continue
+
+		best_route_steps = path.size()
+		best_plan = plan
+		best_plan["duel"] = candidate_duel
+		best_plan["protected_creature"] = protected_creature
+		best_plan["attacker"] = attacker
+
+	if best_plan.is_empty():
+		return false
+
+	_commit_intervention_plan(best_plan)
+	return true
+
+
+func _commit_intervention_plan(plan: Dictionary) -> void:
+	_clear_hunt_target()
+	intervention_duel = plan.get("duel", null) as Duel
+	intervention_protected_creature = plan.get("protected_creature", null) as Node
+	intervention_attacker = plan.get("attacker", null) as Node
+	intervention_reserved = false
+	target_prey = intervention_attacker
+	locked_approach_anchor = plan.get("approach_anchor", Vector2i.ZERO)
+	has_locked_approach = bool(plan.get("has_approach", false))
+	has_hunt_route = true
+	_replace_predator_route(plan.get("path", []) as Array)
+
+
+func _update_intervention_behavior() -> bool:
+	if not _is_intervention_target_valid():
+		_clear_intervention()
+		_clear_hunt_target()
+		return false
+
+	var reserver: Node = intervention_duel.get_intervention_reserver()
+
+	if reserver != null and reserver != creature:
+		_clear_intervention()
+		_clear_hunt_target()
+		return false
+
+	if intervention_reserved:
+		return reserver == creature
+
+	if creature.is_moving:
+		return true
+
+	if _is_prey_in_duel_range_from_anchor(intervention_attacker, creature.anchor_tile):
+		if intervention_duel.reserve_intervention(creature, intervention_protected_creature):
+			intervention_reserved = true
+			has_hunt_route = false
+			_clear_predator_route()
+			creature.face_target(intervention_attacker)
+			return true
+
+		_clear_intervention()
+		_clear_hunt_target()
+		return false
+
+	if _remaining_route_steps() == 0:
+		if creature.predator_path_retry_cooldown_remaining <= 0.0:
+			var plan := _find_best_approach_plan(
+				intervention_attacker,
+				creature.get_navigation_anchor()
+			)
+
+			if plan.is_empty():
+				creature.predator_path_retry_cooldown_remaining = creature.predator_path_retry_interval
+				return true
+
+			locked_approach_anchor = plan.get("approach_anchor", Vector2i.ZERO)
+			has_locked_approach = bool(plan.get("has_approach", false))
+			has_hunt_route = true
+			_replace_predator_route(plan.get("path", []) as Array)
+
+	if _remaining_route_steps() > 0:
+		creature.start_next_path_step_if_needed()
+
+	return true
+
+
+func _is_intervention_target_valid() -> bool:
+	if (
+		intervention_duel == null
+		or not is_instance_valid(intervention_duel)
+		or not intervention_duel.is_active
+		or not is_instance_valid(intervention_protected_creature)
+		or not is_instance_valid(intervention_attacker)
+		or creature.hunger <= creature.species_data.hunger_search_threshold
+		or intervention_protected_creature.get("current_duel") != intervention_duel
+		or intervention_attacker.get("current_duel") != intervention_duel
+	):
+		return false
+
+	var protected_species := intervention_protected_creature.get("species_data") as CreatureSpeciesData
+	var attacker_species := intervention_attacker.get("species_data") as CreatureSpeciesData
+
+	return (
+		protected_species != null
+		and protected_species.is_herbivore()
+		and attacker_species != null
+		and attacker_species.is_predator()
+		and intervention_duel.initiator == intervention_attacker
+		and _is_same_faction(intervention_protected_creature)
+		and _is_opposing_player_enemy_faction(intervention_attacker)
+	)
+
+
+func _clear_intervention() -> void:
+	if (
+		is_instance_valid(intervention_duel)
+		and intervention_duel.get_intervention_reserver() == creature
+	):
+		intervention_duel.cancel_intervention(creature)
+
+	intervention_duel = null
+	intervention_protected_creature = null
+	intervention_attacker = null
+	intervention_reserved = false
+
+
+func complete_duel_intervention(attacker: Node, completed_duel: Duel) -> void:
+	if completed_duel != intervention_duel or attacker != intervention_attacker:
+		return
+
+	intervention_duel = null
+	intervention_protected_creature = null
+	intervention_attacker = null
+	intervention_reserved = false
+	start_duel_with(attacker, false)
 
 
 func _is_opposing_player_enemy_faction(candidate: Node) -> bool:
@@ -883,7 +1113,7 @@ func _insert_approach_anchor_by_distance(
 	ranked_anchors.insert(insert_index, candidate_anchor)
 
 
-func start_duel_with(opponent: Node) -> Duel:
+func start_duel_with(opponent: Node, intervention_allowed: bool = true) -> Duel:
 	if opponent == null or opponent == creature:
 		return null
 
@@ -921,7 +1151,7 @@ func start_duel_with(opponent: Node) -> Duel:
 	if duel.duel_finished.is_connected(finished_callable) == false:
 		duel.duel_finished.connect(finished_callable)
 
-	duel.setup(creature, opponent, creature, 1.0)
+	duel.setup(creature, opponent, creature, 1.0, intervention_allowed)
 	target_prey = null
 	target_recheck_remaining = 0.0
 	approach_recheck_done = false

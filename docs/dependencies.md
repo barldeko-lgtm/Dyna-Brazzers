@@ -363,6 +363,11 @@ Predator rules:
 - apply the active mode's prey rule consistently during acquisition, target revalidation, pending-duel settlement, and duel start;
 - prey may be pursued by several hunters, but final combat engagement is exclusive;
 - hunters losing engagement must release the target and search again through normal predator logic.
+- only a non-critical defender raptor may protect an allied herbivore from an opposing-faction predator that initiated the current duel;
+- the raptor approaches the attacker through normal side-contact routing, and the first raptor to arrive exclusively reserves that duel for intervention;
+- a reserved intervention waits until the next scheduled duel hit resolves; if both original fighters remain alive, the herbivore leaves combat and the raptor starts a replacement one-on-one duel with the attacker;
+- the replacement duel must disable further intervention so several raptors cannot replace one another against the same attacker;
+- never intervene in predator-versus-predator combat, same-faction predation, an already replaced duel, or a duel that ends before the reserved handoff.
 
 ## Player flags and enemy rally objectives
 

@@ -35,6 +35,10 @@ Automatic predator spawning is currently disabled.
 - Do not manually reconstruct or rewrite Godot `tile_map_data`; edit and save the TileMap through Godot.
 - Do not create species-specific copies of the whole world scene. Assign species resources directly to creature instances or spawning logic.
 
+## Memory candidates
+
+Treat confirmed design decisions, durable gameplay invariants, Sasha's corrections, and recurring failure modes as external-memory candidates. Do not store routine task progress, test output, temporary tuning values, speculation, or facts that are cheaply re-read from current project files. Project files remain the source of current truth; external memory is only a recall aid.
+
 ## Documentation rule
 
 The docs should explain architecture, ownership, runtime flows, current implemented behaviour, and fragile areas. They should not mirror every exported number or temporary tuning value.
