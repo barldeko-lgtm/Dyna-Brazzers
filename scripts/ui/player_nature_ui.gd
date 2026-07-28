@@ -12,7 +12,7 @@ const MENU_SYSTEM := &"system"
 @export var lightning_energy_cost := 1000.0
 @export var rain_energy_cost := 50.0
 @export var sun_energy_cost := 500.0
-@export var earthquake_energy_cost := 2000.0
+@export var earthquake_energy_cost := 1700.0
 
 @onready var energy_value_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EnergyValueLabel")
 @onready var lightning_button: Button = get_node_or_null("MarginContainer/VBoxContainer/LightningButton")
@@ -747,7 +747,6 @@ func _get_world_grid() -> Node:
 
 func _get_world_mouse_position() -> Vector2:
 	var camera := get_tree().get_first_node_in_group("game_camera") as Camera2D
-
 	if camera == null:
 		camera = get_viewport().get_camera_2d()
 
