@@ -507,10 +507,20 @@ func enter_dead() -> void:
 	egg_laying_timer.stop()
 	release_world_occupancy_for_corpse()
 	disable_corpse_collision()
-	if visual_controller != null:
-		visual_controller.show_death_visual()
 	clear_interaction_highlights()
 	remove_from_group("creatures")
+
+	var transition_time := 0.0
+	if species_data != null and species_data.death_transition_texture != null:
+		transition_time = max(species_data.death_transition_duration, 0.0)
+		if visual_controller != null:
+			visual_controller.show_death_transition_visual()
+
+	if transition_time > 0.0:
+		await get_tree().create_timer(transition_time).timeout
+
+	if visual_controller != null:
+		visual_controller.show_death_visual()
 
 	var corpse_time := 3.0
 	if species_data != null:

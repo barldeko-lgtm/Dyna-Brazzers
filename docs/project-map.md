@@ -57,10 +57,10 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/creatures/creature_faction.gd` — validated runtime ownership.
 - `scripts/creatures/behaviors/creature_movement_controller.gd` — queued routes, grid steps, reservations, and indirect-order route API.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — pasture cache, food candidate ranking, route search, and grazing target lifecycle.
-- `scripts/creatures/behaviors/creature_predator_logic.gd` — prey selection, protective raptor intervention, approach routing, engagement, and combat handoff.
+- `scripts/creatures/behaviors/creature_predator_logic.gd` — prey selection, active raptor protection, existing-target intervention by attacker-role predators, approach routing, engagement, and combat handoff.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — edible-egg targeting and consumption.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and natural egg spawning.
-- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, animations, shadows, and death poses.
+- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, animations, shadows, and optional transition/final death poses.
 - `scripts/creatures/behaviors/creature_interaction_controller.gd` — hover/selection visual and mouse bridge.
 - `scripts/combat/duel.gd` — one-on-one combat loop, single-intervention reservation, and post-hit fighter replacement handoff.
 - `scripts/resources/grass.gd` — grass lifecycle, food value, spreading, registry sync, and nature-power reactions.

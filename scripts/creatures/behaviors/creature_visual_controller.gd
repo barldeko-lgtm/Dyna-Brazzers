@@ -180,7 +180,24 @@ func update_sprite_visual() -> void:
 	_apply_static_texture(body_sprite, creature.species_data.right_texture, faces_left)
 
 
+func show_death_transition_visual() -> void:
+	if creature.species_data == null or creature.species_data.death_transition_texture == null:
+		return
+
+	_apply_death_texture(creature.species_data.death_transition_texture)
+
+
 func show_death_visual() -> void:
+	var death_texture: Texture2D = null
+	if creature.species_data != null:
+		death_texture = creature.species_data.death_texture
+		if death_texture == null:
+			death_texture = creature.species_data.right_texture
+
+	_apply_death_texture(death_texture)
+
+
+func _apply_death_texture(texture: Texture2D) -> void:
 	set_ground_shadow_upward_diagonal(false)
 	set_walk_animation_active(false)
 
@@ -190,11 +207,8 @@ func show_death_visual() -> void:
 
 	body_sprite.visible = true
 	body_sprite.flip_h = false
-
-	if creature.species_data != null and creature.species_data.death_texture != null:
-		body_sprite.texture = creature.species_data.death_texture
-	elif creature.species_data != null and creature.species_data.right_texture != null:
-		body_sprite.texture = creature.species_data.right_texture
+	if texture != null:
+		body_sprite.texture = texture
 
 	sync_ground_shadow_from_current_visual()
 

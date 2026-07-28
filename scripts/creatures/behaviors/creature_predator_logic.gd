@@ -110,11 +110,8 @@ func update_predator_behavior(delta: float) -> void:
 
 	var desired_mode := _get_desired_hunt_mode()
 
-	if desired_mode != HuntMode.DEFENSE and intervention_duel != null:
-		_clear_intervention()
-		_clear_hunt_target()
-
 	if desired_mode == HuntMode.NONE:
+		_clear_intervention()
 		_clear_hunt_target()
 		hunt_mode = HuntMode.NONE
 		return
@@ -123,13 +120,21 @@ func update_predator_behavior(delta: float) -> void:
 		_cancel_strategic_hunt(_has_active_flag_commitment())
 		return
 
+	if intervention_duel != null and _update_intervention_behavior():
+		return
+
+	if (
+		creature.species_data.is_attacking_predator()
+		and is_instance_valid(target_prey)
+		and target_prey.get("current_duel") != null
+	):
+		if _try_acquire_intervention():
+			return
+
 	if hunt_mode != desired_mode:
 		_clear_intervention()
 		_clear_hunt_target()
 		hunt_mode = desired_mode
-
-	if intervention_duel != null and _update_intervention_behavior():
-		return
 
 	if desired_mode == HuntMode.DEFENSE:
 		intervention_recheck_remaining -= delta
@@ -262,6 +267,7 @@ func _cancel_strategic_hunt(preserve_current_route: bool) -> void:
 	if pending_prey != null:
 		_cancel_duel_settlement(pending_prey)
 
+	_clear_intervention()
 	_clear_hunt_target(preserve_current_route)
 	hunt_mode = HuntMode.NONE
 
@@ -323,8 +329,6 @@ func can_intervene_in_duel(duel: Duel, protected_creature: Node) -> bool:
 		duel == null
 		or not is_instance_valid(duel)
 		or not duel.can_accept_intervention()
-		or not creature.species_data.is_defensive_predator()
-		or creature.hunger <= creature.species_data.hunger_search_threshold
 		or protected_creature == null
 		or not is_instance_valid(protected_creature)
 		or protected_creature == duel.initiator
@@ -343,9 +347,20 @@ func can_intervene_in_duel(duel: Duel, protected_creature: Node) -> bool:
 
 	var attacker: Node = duel.fighter_b if duel.fighter_a == protected_creature else duel.fighter_a
 	var attacker_species := attacker.get("species_data") as CreatureSpeciesData
+	var role_can_intervene: bool = (
+		(
+			creature.species_data.is_defensive_predator()
+			and creature.hunger > creature.species_data.hunger_search_threshold
+		)
+		or (
+			creature.species_data.is_attacking_predator()
+			and target_prey == attacker
+		)
+	)
 
 	return (
-		attacker == duel.initiator
+		role_can_intervene
+		and attacker == duel.initiator
 		and attacker_species != null
 		and attacker_species.is_predator()
 		and _is_opposing_player_enemy_faction(attacker)
@@ -357,7 +372,6 @@ func _try_acquire_intervention() -> bool:
 		return false
 
 	var origin_anchor: Vector2i = creature.get_navigation_anchor()
-	var active_radius := maxi(int(creature.species_data.defensive_hunt_radius), 0)
 	var best_plan: Dictionary = {}
 	var best_route_steps := 2147483647
 
@@ -381,8 +395,11 @@ func _try_acquire_intervention() -> bool:
 			origin_anchor
 		)
 
-		if creature.world_grid.estimate_path_steps(origin_anchor, attacker_anchor) > active_radius:
-			continue
+		if creature.species_data.is_defensive_predator():
+			var active_radius := maxi(int(creature.species_data.defensive_hunt_radius), 0)
+
+			if creature.world_grid.estimate_path_steps(origin_anchor, attacker_anchor) > active_radius:
+				continue
 
 		var plan := _find_best_approach_plan(attacker, origin_anchor)
 
@@ -480,7 +497,6 @@ func _is_intervention_target_valid() -> bool:
 		or not intervention_duel.is_active
 		or not is_instance_valid(intervention_protected_creature)
 		or not is_instance_valid(intervention_attacker)
-		or creature.hunger <= creature.species_data.hunger_search_threshold
 		or intervention_protected_creature.get("current_duel") != intervention_duel
 		or intervention_attacker.get("current_duel") != intervention_duel
 	):
@@ -488,9 +504,20 @@ func _is_intervention_target_valid() -> bool:
 
 	var protected_species := intervention_protected_creature.get("species_data") as CreatureSpeciesData
 	var attacker_species := intervention_attacker.get("species_data") as CreatureSpeciesData
+	var role_can_intervene: bool = (
+		(
+			creature.species_data.is_defensive_predator()
+			and creature.hunger > creature.species_data.hunger_search_threshold
+		)
+		or (
+			creature.species_data.is_attacking_predator()
+			and target_prey == intervention_attacker
+		)
+	)
 
 	return (
-		protected_species != null
+		role_can_intervene
+		and protected_species != null
 		and protected_species.is_herbivore()
 		and attacker_species != null
 		and attacker_species.is_predator()

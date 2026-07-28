@@ -34,6 +34,10 @@ Automatic predator spawning is currently disabled.
 - Do not document temporary balance values unless they are architecture-critical.
 - Do not manually reconstruct or rewrite Godot `tile_map_data`; edit and save the TileMap through Godot.
 - Do not create species-specific copies of the whole world scene. Assign species resources directly to creature instances or spawning logic.
+- Discussion is not implementation authorization. A named Discord asset handoff authorizes integration of that asset.
+- Never create a git commit, including a backup commit, without Sasha's explicit separate command.
+- Every Dyna code fix requires narrow compile/parse proof before completion; broad validation runs require explicit consent.
+- Keep ad hoc regression probes local and ignored unless Sasha explicitly asks to track or document them.
 
 ## Memory candidates
 
