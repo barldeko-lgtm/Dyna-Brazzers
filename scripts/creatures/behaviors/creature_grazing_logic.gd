@@ -641,9 +641,11 @@ func is_quality_candidate_better(
 # read index rather than pop_front(), so queue removal itself stays O(1).
 func _find_best_path_in_shared_wave(candidates: Array[Dictionary]) -> Dictionary:
 	PerformanceStats.add_counter("path_calls")
+	PerformanceStats.add_path_counter(&"grazing", &"calls")
 
 	if creature.world_grid == null or candidates.is_empty():
 		PerformanceStats.add_counter("path_failed")
+		PerformanceStats.add_path_counter(&"grazing", &"failed")
 		return {}
 
 	var start_anchor: Vector2i = creature.get_navigation_anchor()
@@ -676,6 +678,7 @@ func _find_best_path_in_shared_wave(candidates: Array[Dictionary]) -> Dictionary
 
 	if unresolved_targets.is_empty():
 		PerformanceStats.add_counter("path_failed")
+		PerformanceStats.add_path_counter(&"grazing", &"failed")
 		return {}
 
 	var expansion_limits: Array[int] = _get_grazing_path_limits()
@@ -753,15 +756,19 @@ func _find_best_path_in_shared_wave(candidates: Array[Dictionary]) -> Dictionary
 			open_queue.append(neighbor)
 
 	PerformanceStats.add_counter("path_expanded_tiles", expanded_tiles)
+	PerformanceStats.add_path_counter(&"grazing", &"expanded_tiles", expanded_tiles)
 
 	if search_capped:
 		PerformanceStats.add_counter("path_capped")
+		PerformanceStats.add_path_counter(&"grazing", &"capped")
 
 	if best_plan.is_empty():
 		PerformanceStats.add_counter("path_failed")
+		PerformanceStats.add_path_counter(&"grazing", &"failed")
 		return {}
 
 	PerformanceStats.add_counter("path_success")
+	PerformanceStats.add_path_counter(&"grazing", &"success")
 	best_plan["search_capped"] = search_capped
 	best_plan["path_limit"] = current_limit
 	return best_plan

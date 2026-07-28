@@ -495,8 +495,16 @@ func get_neighbors(anchor_tile: Vector2i, footprint_size: Vector2i, creature: No
 	return neighbors
 
 
-func find_path(start_anchor: Vector2i, goal_anchor: Vector2i, footprint_size: Vector2i, creature: Node = null, max_expanded_tiles: int = DEFAULT_MAX_PATH_EXPANDED_TILES) -> Array[Vector2i]:
+func find_path(
+	start_anchor: Vector2i,
+	goal_anchor: Vector2i,
+	footprint_size: Vector2i,
+	creature: Node = null,
+	max_expanded_tiles: int = DEFAULT_MAX_PATH_EXPANDED_TILES,
+	path_source: StringName = &"other"
+) -> Array[Vector2i]:
 	PerformanceStats.add_counter("path_calls")
+	PerformanceStats.add_path_counter(path_source, &"calls")
 
 	if start_anchor == goal_anchor:
 		PerformanceStats.add_counter("path_same_tile")
@@ -516,6 +524,7 @@ func find_path(start_anchor: Vector2i, goal_anchor: Vector2i, footprint_size: Ve
 	while not open_set.is_empty():
 		if expanded_tiles >= max_expanded_tiles:
 			PerformanceStats.add_counter("path_capped")
+			PerformanceStats.add_path_counter(path_source, &"capped")
 			break
 
 		var current := _pop_lowest_score(open_set, f_score)
@@ -525,6 +534,8 @@ func find_path(start_anchor: Vector2i, goal_anchor: Vector2i, footprint_size: Ve
 		if current == goal_anchor:
 			PerformanceStats.add_counter("path_success")
 			PerformanceStats.add_counter("path_expanded_tiles", expanded_tiles)
+			PerformanceStats.add_path_counter(path_source, &"success")
+			PerformanceStats.add_path_counter(path_source, &"expanded_tiles", expanded_tiles)
 			return _reconstruct_path(came_from, current, start_anchor)
 
 		for neighbor in get_neighbors(current, footprint_size, creature):
@@ -543,6 +554,8 @@ func find_path(start_anchor: Vector2i, goal_anchor: Vector2i, footprint_size: Ve
 
 	PerformanceStats.add_counter("path_failed")
 	PerformanceStats.add_counter("path_expanded_tiles", expanded_tiles)
+	PerformanceStats.add_path_counter(path_source, &"failed")
+	PerformanceStats.add_path_counter(path_source, &"expanded_tiles", expanded_tiles)
 	return []
 
 

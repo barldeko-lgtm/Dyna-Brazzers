@@ -392,7 +392,8 @@ func _try_rebuild_blocked_indirect_order_route(
 		final_anchor_variant,
 		footprint,
 		creature,
-		INDIRECT_ORDER_REPATH_TILE_CAP
+		INDIRECT_ORDER_REPATH_TILE_CAP,
+		&"movement_repath"
 	)
 
 	if not (rebuilt_path_variant is Array):
@@ -442,7 +443,8 @@ func _find_local_indirect_rejoin_route(
 			rejoin_anchor,
 			footprint,
 			creature,
-			LOCAL_BLOCKED_ROUTE_TILE_CAP
+			LOCAL_BLOCKED_ROUTE_TILE_CAP,
+			&"movement_repath"
 		)
 
 		if not (local_path_variant is Array):

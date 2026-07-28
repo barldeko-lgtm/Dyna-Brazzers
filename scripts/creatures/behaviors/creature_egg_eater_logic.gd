@@ -339,7 +339,8 @@ func _find_best_egg_approach_plan(egg: Node, origin_anchor: Vector2i) -> Diction
 			approach_anchor,
 			creature.footprint_size,
 			creature,
-			creature.max_path_search_tiles
+			creature.max_path_search_tiles,
+			&"egg_eater"
 		)
 
 		if not (path_variant is Array):

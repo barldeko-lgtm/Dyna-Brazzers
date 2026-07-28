@@ -2,8 +2,9 @@ extends Node2D
 class_name EnemySpellController
 
 # Enemy spell decisions stay separate from population production. On each
-# four-second enemy-AI snapshot, priority lightning is evaluated before support
-# rain. Both spells reuse the shared world nature-effects system.
+# four-second enemy-AI snapshot, the controller evaluates egg-eater lightning,
+# emergency rain, profitable earthquake, then weakened-tyrannosaurus lightning.
+# Every applied spell reuses the shared world nature-effects system.
 #
 # Rain targeting stays local to the visible map-clipped contour around the enemy
 # base. It scores immediate unique grass spread plus DryGround recovery, but only
@@ -12,6 +13,7 @@ class_name EnemySpellController
 # and young-grass growth remain intentionally ignored.
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const ENEMY_SPECIES_CATALOG := preload("res://scripts/catalogs/enemy_species_catalog.gd")
+const PLAYER_SPECIES_CATALOG := preload("res://scripts/catalogs/player_species_catalog.gd")
 
 const MATURE_GRASS_STAGE := 3
 const INITIALIZATION_RETRY_FRAMES := 12
@@ -20,6 +22,9 @@ const DEAD_CREATURE_STATE := 6
 const PLAYER_TYRANNOSAURUS_ID := &"tyrannosaurus"
 const PLAYER_EGG_EATER_ID := &"egg_eater"
 const ENEMY_RAPTOR_ID := &"raptor"
+const LIGHTNING_MODE_EGG_EATER := &"egg_eater"
+const LIGHTNING_MODE_TYRANNOSAURUS := &"tyrannosaurus"
+const EGG_STAGE_2 := 1
 const RAIN_PAYMENT_NONE := &"none"
 const RAIN_PAYMENT_ORDINARY := &"ordinary"
 const RAIN_PAYMENT_RESERVE := &"reserve"
@@ -73,6 +78,10 @@ const CARDINAL_OFFSETS: Array[Vector2i] = [
 @export var tyrannosaurus_raptor_guard_radius_tiles := 20.0
 @export var egg_eater_base_radius_tiles := 20.0
 
+@export_group("Enemy Earthquake")
+@export var earthquake_energy_cost := 1700.0
+@export var minimum_earthquake_player_eggs := 2
+
 var world_grid: Node = null
 var nature_effects: Node = null
 var enemy_ai: Node = null
@@ -96,6 +105,12 @@ var last_lightning_target_species := &""
 var last_lightning_target_health := 0.0
 var last_lightning_target_base_distance := -1.0
 var last_lightning_nearby_raptor_count := 0
+var last_earthquake_action_text := "ожидание выгодной кладки"
+var last_earthquake_target_tile := INVALID_TILE
+var last_earthquake_target_egg_count := 0
+var last_earthquake_target_value := 0.0
+var last_earthquake_target_stage_2_count := 0
+var last_earthquake_candidate_center_count := 0
 var last_rain_target_tile := INVALID_TILE
 var last_grass_entries_scanned := 0
 var last_mature_grass_count := 0
@@ -253,9 +268,9 @@ func _on_enemy_turn_completed(snapshot: Dictionary) -> void:
 	if lightning_sequence_active:
 		return
 
-	# Offensive lightning has priority over support rain. Egg eaters near the
-	# enemy base are evaluated before weakened tyrannosauruses.
-	if _try_cast_priority_lightning():
+	# One strategic spell action per completed turn. A delayed second lightning
+	# strike blocks the whole decision above; otherwise use the agreed priority.
+	if _try_cast_priority_lightning(LIGHTNING_MODE_EGG_EATER):
 		return
 
 	var adult_herbivore_count := int(snapshot.get("adult_herbivore_count", 0))
@@ -267,16 +282,21 @@ func _on_enemy_turn_completed(snapshot: Dictionary) -> void:
 		0.0,
 		100.0
 	)
+	var herd_needs_rain := (
+		adult_herbivore_count > 0
+		and average_satiety >= 0.0
+		and average_satiety < satiety_threshold
+	)
 
-	if adult_herbivore_count <= 0 or average_satiety < 0.0:
+	if herd_needs_rain and _try_cast_rain_for_hungry_herd():
 		return
-	if average_satiety >= satiety_threshold:
+	if _try_cast_earthquake():
 		return
 
-	_try_cast_rain_for_hungry_herd()
+	_try_cast_priority_lightning(LIGHTNING_MODE_TYRANNOSAURUS)
 
 
-func _try_cast_priority_lightning() -> bool:
+func _try_cast_priority_lightning(target_mode: StringName) -> bool:
 	_refresh_runtime_references()
 	_reset_last_lightning_debug()
 
@@ -297,10 +317,11 @@ func _try_cast_priority_lightning() -> bool:
 	var egg_eater_threats: Array = scan.get("egg_eater_threats", []) as Array
 	var enemy_raptors: Array = scan.get("enemy_raptors", []) as Array
 
-	# A threatening egg eater reserves lightning priority even while the reserve is
-	# still filling. Rain may still run, but a tyrannosaurus cannot consume that
-	# combat reserve first.
-	if not egg_eater_threats.is_empty():
+	if target_mode == LIGHTNING_MODE_EGG_EATER:
+		if egg_eater_threats.is_empty():
+			last_lightning_action_text = "яйцеед для молнии возле базы не найден"
+			return false
+
 		var egg_plan := _choose_egg_eater_lightning_plan(egg_eater_threats)
 
 		if egg_plan.is_empty():
@@ -325,16 +346,25 @@ func _try_cast_priority_lightning() -> bool:
 
 		return _execute_lightning_plan(egg_plan)
 
+	if target_mode != LIGHTNING_MODE_TYRANNOSAURUS:
+		last_lightning_action_text = "ожидание подходящей цели"
+		return false
+
+	# Preserve the existing reserve hold against opportunistic tyrannosaurus
+	# lightning while an unprotected egg eater is threatening the base.
+	if not egg_eater_threats.is_empty():
+		var nearest_threat: Dictionary = egg_eater_threats[0]
+		_set_last_lightning_target_debug(nearest_threat, 0)
+		last_lightning_action_text = "тирекс пропущен: приоритет у яйцееда возле базы"
+		return false
+
 	var tyrannosaurus_plan := _choose_tyrannosaurus_lightning_plan(
 		scan.get("tyrannosaurus_candidates", []) as Array,
 		enemy_raptors
 	)
 
 	if tyrannosaurus_plan.is_empty():
-		if get_combat_reserve() + 0.001 < _get_lightning_cost():
-			last_lightning_action_text = "ожидание: нет 1000 энки или подходящей цели"
-		else:
-			last_lightning_action_text = "ожидание подходящего тирекса или яйцееда"
+		last_lightning_action_text = "ожидание подходящего тирекса или яйцееда"
 		return false
 
 	return _execute_lightning_plan(tyrannosaurus_plan)
@@ -660,6 +690,409 @@ func _format_lightning_species(species_id: StringName) -> String:
 	if species_id == PLAYER_TYRANNOSAURUS_ID:
 		return "тирексу"
 	return "цели"
+
+
+func _try_cast_earthquake() -> bool:
+	_refresh_runtime_references()
+	_reset_last_earthquake_debug()
+
+	if world_grid == null or nature_effects == null or enemy_base == null:
+		last_earthquake_action_text = "отложено: база или мировая система эффектов не найдена"
+		return false
+	if (
+		not nature_effects.has_method("can_apply_earthquake")
+		or not nature_effects.has_method("apply_earthquake")
+		or not nature_effects.has_method("get_earthquake_radius_tiles")
+	):
+		last_earthquake_action_text = "отложено: общий эффект землетрясения недоступен"
+		return false
+
+	var earthquake_cost := _get_earthquake_cost()
+
+	if not can_spend_combat_reserve(earthquake_cost):
+		last_earthquake_action_text = "ожидание: в резерве меньше %d энки" % roundi(
+			earthquake_cost
+		)
+		return false
+
+	var egg_data := _collect_earthquake_egg_data()
+	var player_eggs: Array = []
+
+	for data: Dictionary in egg_data:
+		if StringName(data.get("faction_id", &"")) == CREATURE_FACTION.PLAYER:
+			player_eggs.append(data)
+
+	var minimum_eggs := maxi(minimum_earthquake_player_eggs, 2)
+
+	if player_eggs.size() < minimum_eggs:
+		last_earthquake_action_text = "ожидание: у игрока меньше %d яиц" % minimum_eggs
+		return false
+
+	var radius := maxi(int(nature_effects.call("get_earthquake_radius_tiles")), 0)
+	var base_anchor := _get_creature_or_base_anchor(enemy_base)
+	var candidate_centers := _build_earthquake_candidate_centers(
+		egg_data,
+		radius,
+		base_anchor
+	)
+	var best_plan: Dictionary = {}
+	var best_seen_plan: Dictionary = {}
+
+	for center_variant: Variant in candidate_centers:
+		if not (center_variant is Vector2i):
+			continue
+
+		var center: Vector2i = center_variant
+
+		if nature_effects.has_method("can_apply_at_tile") and not bool(
+			nature_effects.call("can_apply_at_tile", center)
+		):
+			continue
+
+		last_earthquake_candidate_center_count += 1
+		var plan := _evaluate_earthquake_center(center, egg_data, radius, base_anchor)
+
+		if (
+			int(plan.get("foreign_egg_count", 0)) == 0
+			and int(plan.get("player_egg_count", 0)) >= minimum_eggs
+			and _is_earthquake_plan_better(plan, best_seen_plan)
+		):
+			best_seen_plan = plan
+
+		if not _is_earthquake_plan_profitable(plan):
+			continue
+		if _is_earthquake_plan_better(plan, best_plan):
+			best_plan = plan
+
+	PerformanceStats.add_counter(
+		"enemy_earthquake_candidate_centers",
+		last_earthquake_candidate_center_count
+	)
+	PerformanceStats.add_counter("enemy_earthquake_searches")
+
+	if best_plan.is_empty():
+		if best_seen_plan.is_empty():
+			last_earthquake_action_text = (
+				"ожидание: нет зоны минимум с %d яйцами игрока без своих"
+				% minimum_eggs
+			)
+		else:
+			_set_last_earthquake_target_debug(best_seen_plan)
+			last_earthquake_action_text = (
+				"невыгодно: лучшая зона %d яиц на %d, нужно больше %d"
+				% [
+					int(best_seen_plan.get("player_egg_count", 0)),
+					roundi(float(best_seen_plan.get("total_value", 0.0))),
+					roundi(earthquake_cost)
+				]
+			)
+		return false
+
+	var target_center: Vector2i = best_plan.get("center", INVALID_TILE)
+	var current_plan := _evaluate_earthquake_center(
+		target_center,
+		_collect_earthquake_egg_data(),
+		radius,
+		base_anchor
+	)
+
+	if not _is_earthquake_plan_profitable(current_plan):
+		last_earthquake_action_text = "отложено: выгодная кладка изменилась до удара"
+		return false
+	if not bool(nature_effects.call("can_apply_earthquake", target_center)):
+		last_earthquake_action_text = "отложено: выбранную область больше нельзя поразить"
+		return false
+	if not bool(nature_effects.call("apply_earthquake", target_center)):
+		last_earthquake_action_text = "не сработало: яйца не были уничтожены"
+		return false
+	if not spend_combat_reserve_after_success(earthquake_cost):
+		last_earthquake_action_text = "ошибка: землетрясение прошло без списания резерва"
+		return false
+
+	_set_last_earthquake_target_debug(current_plan)
+	last_earthquake_action_text = "удар: %d яиц на %d энки, стадия 2: %d, центр %s" % [
+		last_earthquake_target_egg_count,
+		roundi(last_earthquake_target_value),
+		last_earthquake_target_stage_2_count,
+		_format_tile(last_earthquake_target_tile)
+	]
+	PerformanceStats.add_counter("enemy_earthquake_casts")
+	PerformanceStats.add_counter(
+		"enemy_earthquake_target_eggs",
+		last_earthquake_target_egg_count
+	)
+	PerformanceStats.add_counter(
+		"enemy_earthquake_target_value",
+		roundi(last_earthquake_target_value)
+	)
+	return true
+
+
+func _collect_earthquake_egg_data() -> Array:
+	var result: Array = []
+
+	for egg_variant: Variant in get_tree().get_nodes_in_group("eggs"):
+		var egg := egg_variant as Node
+
+		if egg == null or not is_instance_valid(egg) or egg.is_queued_for_deletion():
+			continue
+
+		var raw_anchor: Variant = egg.get("anchor_tile")
+
+		if not (raw_anchor is Vector2i):
+			continue
+
+		var footprint := Vector2i.ONE
+
+		if egg.has_method("get_current_footprint"):
+			var raw_footprint: Variant = egg.call("get_current_footprint")
+
+			if raw_footprint is Vector2i:
+				footprint = raw_footprint
+
+		var faction_id := CREATURE_FACTION.get_id(egg)
+		var species_id := _get_earthquake_egg_species_id(egg)
+		var value := 0.0
+
+		if faction_id == CREATURE_FACTION.PLAYER:
+			value = _get_player_egg_value(species_id)
+
+		result.append({
+			"egg": egg,
+			"faction_id": faction_id,
+			"species_id": species_id,
+			"value": value,
+			"stage_2": int(egg.get("current_stage")) == EGG_STAGE_2,
+			"anchor": raw_anchor,
+			"footprint": footprint
+		})
+
+	return result
+
+
+func _build_earthquake_candidate_centers(
+	egg_data: Array,
+	radius: int,
+	base_anchor: Vector2i
+) -> Array:
+	if world_grid == null:
+		return []
+
+	var raw_map_min: Variant = world_grid.get("map_min")
+	var raw_map_max: Variant = world_grid.get("map_max")
+
+	if not (raw_map_min is Vector2i) or not (raw_map_max is Vector2i):
+		return []
+
+	var map_min: Vector2i = raw_map_min
+	var map_max: Vector2i = raw_map_max
+	var x_values := _build_earthquake_axis_candidates(
+		egg_data,
+		radius,
+		0,
+		base_anchor.x,
+		map_min.x,
+		map_max.x
+	)
+	var y_values := _build_earthquake_axis_candidates(
+		egg_data,
+		radius,
+		1,
+		base_anchor.y,
+		map_min.y,
+		map_max.y
+	)
+	var centers: Array = []
+
+	for x: int in x_values:
+		for y: int in y_values:
+			centers.append(Vector2i(x, y))
+
+	return centers
+
+
+func _build_earthquake_axis_candidates(
+	egg_data: Array,
+	radius: int,
+	axis: int,
+	base_coordinate: int,
+	map_minimum: int,
+	map_maximum: int
+) -> Array[int]:
+	var breakpoints: Dictionary = {}
+	breakpoints[map_minimum] = true
+	breakpoints[map_maximum + 1] = true
+
+	for data: Dictionary in egg_data:
+		var anchor: Vector2i = data.get("anchor", Vector2i.ZERO)
+		var footprint: Vector2i = data.get("footprint", Vector2i.ONE)
+		var egg_max := anchor + footprint - Vector2i.ONE
+		var egg_minimum := anchor.x if axis == 0 else anchor.y
+		var egg_maximum := egg_max.x if axis == 0 else egg_max.y
+		var interval_minimum := maxi(egg_minimum - radius, map_minimum)
+		var interval_maximum := mini(egg_maximum + radius, map_maximum)
+
+		if interval_minimum > interval_maximum:
+			continue
+
+		breakpoints[interval_minimum] = true
+		breakpoints[interval_maximum + 1] = true
+
+	var sorted_breakpoints: Array = breakpoints.keys()
+	sorted_breakpoints.sort()
+	var result: Array[int] = []
+
+	for index in range(sorted_breakpoints.size() - 1):
+		var segment_minimum := maxi(int(sorted_breakpoints[index]), map_minimum)
+		var segment_maximum := mini(
+			int(sorted_breakpoints[index + 1]) - 1,
+			map_maximum
+		)
+
+		if segment_minimum > segment_maximum:
+			continue
+
+		# Every egg-overlap result is constant inside this segment. Use the point
+		# nearest the enemy base so the final distance tie-break is exact, not an
+		# approximation based only on egg interval edges.
+		result.append(clampi(base_coordinate, segment_minimum, segment_maximum))
+
+	return result
+
+
+func _evaluate_earthquake_center(
+	center: Vector2i,
+	egg_data: Array,
+	radius: int,
+	base_anchor: Vector2i
+) -> Dictionary:
+	var player_egg_count := 0
+	var foreign_egg_count := 0
+	var stage_2_count := 0
+	var total_value := 0.0
+
+	for data: Dictionary in egg_data:
+		if not _earthquake_area_overlaps_egg_data(center, radius, data):
+			continue
+
+		var faction_id := StringName(data.get("faction_id", &""))
+
+		if faction_id != CREATURE_FACTION.PLAYER:
+			foreign_egg_count += 1
+			continue
+
+		player_egg_count += 1
+		total_value += maxf(float(data.get("value", 0.0)), 0.0)
+
+		if bool(data.get("stage_2", false)):
+			stage_2_count += 1
+
+	return {
+		"center": center,
+		"player_egg_count": player_egg_count,
+		"foreign_egg_count": foreign_egg_count,
+		"stage_2_count": stage_2_count,
+		"total_value": total_value,
+		"base_distance": _tile_distance(base_anchor, center)
+	}
+
+
+func _earthquake_area_overlaps_egg_data(
+	center: Vector2i,
+	radius: int,
+	data: Dictionary
+) -> bool:
+	var anchor: Vector2i = data.get("anchor", Vector2i.ZERO)
+	var footprint: Vector2i = data.get("footprint", Vector2i.ONE)
+	var egg_max := anchor + footprint - Vector2i.ONE
+	var area_min := center - Vector2i.ONE * radius
+	var area_max := center + Vector2i.ONE * radius
+	return (
+		anchor.x <= area_max.x
+		and egg_max.x >= area_min.x
+		and anchor.y <= area_max.y
+		and egg_max.y >= area_min.y
+	)
+
+
+func _is_earthquake_plan_profitable(plan: Dictionary) -> bool:
+	return (
+		int(plan.get("foreign_egg_count", 0)) == 0
+		and int(plan.get("player_egg_count", 0)) >= maxi(
+			minimum_earthquake_player_eggs,
+			2
+		)
+		and float(plan.get("total_value", 0.0)) > _get_earthquake_cost() + 0.001
+	)
+
+
+func _is_earthquake_plan_better(candidate: Dictionary, current_best: Dictionary) -> bool:
+	if current_best.is_empty():
+		return true
+
+	var candidate_value := float(candidate.get("total_value", 0.0))
+	var best_value := float(current_best.get("total_value", 0.0))
+
+	if not is_equal_approx(candidate_value, best_value):
+		return candidate_value > best_value
+
+	var candidate_stage_2 := int(candidate.get("stage_2_count", 0))
+	var best_stage_2 := int(current_best.get("stage_2_count", 0))
+
+	if candidate_stage_2 != best_stage_2:
+		return candidate_stage_2 > best_stage_2
+
+	var candidate_count := int(candidate.get("player_egg_count", 0))
+	var best_count := int(current_best.get("player_egg_count", 0))
+
+	if candidate_count != best_count:
+		return candidate_count > best_count
+
+	var candidate_distance := float(candidate.get("base_distance", INF))
+	var best_distance := float(current_best.get("base_distance", INF))
+
+	if not is_equal_approx(candidate_distance, best_distance):
+		return candidate_distance < best_distance
+
+	var candidate_center: Vector2i = candidate.get("center", Vector2i.ZERO)
+	var best_center: Vector2i = current_best.get("center", Vector2i.ZERO)
+
+	if candidate_center.y != best_center.y:
+		return candidate_center.y < best_center.y
+	return candidate_center.x < best_center.x
+
+
+func _get_earthquake_egg_species_id(egg: Node) -> StringName:
+	var hatch_species := egg.get("hatch_species_data") as CreatureSpeciesData
+
+	if hatch_species != null:
+		return StringName(hatch_species.species_id)
+
+	return StringName(str(egg.get("species_id")))
+
+
+func _get_player_egg_value(species_id: StringName) -> float:
+	var entry: Dictionary = PLAYER_SPECIES_CATALOG.get_entry(species_id)
+	return maxf(float(entry.get("egg_purchase_cost", 0.0)), 0.0)
+
+
+func _get_earthquake_cost() -> float:
+	return maxf(earthquake_energy_cost, 0.0)
+
+
+func _reset_last_earthquake_debug() -> void:
+	last_earthquake_target_tile = INVALID_TILE
+	last_earthquake_target_egg_count = 0
+	last_earthquake_target_value = 0.0
+	last_earthquake_target_stage_2_count = 0
+	last_earthquake_candidate_center_count = 0
+
+
+func _set_last_earthquake_target_debug(plan: Dictionary) -> void:
+	last_earthquake_target_tile = plan.get("center", INVALID_TILE)
+	last_earthquake_target_egg_count = int(plan.get("player_egg_count", 0))
+	last_earthquake_target_value = float(plan.get("total_value", 0.0))
+	last_earthquake_target_stage_2_count = int(plan.get("stage_2_count", 0))
 
 
 func _try_cast_rain_for_hungry_herd() -> bool:
@@ -2013,6 +2446,13 @@ func get_rain_debug_data() -> Dictionary:
 		"lightning_target_base_distance": last_lightning_target_base_distance,
 		"lightning_nearby_raptor_count": last_lightning_nearby_raptor_count,
 		"lightning_energy_cost": _get_lightning_cost(),
+		"earthquake_action_text": last_earthquake_action_text,
+		"earthquake_energy_cost": _get_earthquake_cost(),
+		"earthquake_target_tile": last_earthquake_target_tile,
+		"earthquake_target_egg_count": last_earthquake_target_egg_count,
+		"earthquake_target_value": last_earthquake_target_value,
+		"earthquake_target_stage_2_count": last_earthquake_target_stage_2_count,
+		"earthquake_candidate_center_count": last_earthquake_candidate_center_count,
 		"combat_reserve": get_combat_reserve(),
 		"combat_reserve_capacity": get_combat_reserve_capacity(),
 		"combat_reserve_maximum": get_combat_reserve_maximum(),

@@ -209,7 +209,7 @@ Combat-reserve rules:
 
 Lightning target rules:
 
-- evaluate lightning before rain on each completed enemy strategic turn; an active delayed second strike blocks another strategic spell decision;
+- use one strategic spell action per completed enemy turn in this order: finish an active delayed lightning sequence, egg-eater lightning, emergency rain, profitable earthquake, then weakened-tyrannosaurus lightning;
 - scan only the stable `creatures` group and reject invalid, queued-for-deletion, dead, zero-health, neutral, or enemy-owned targets;
 - hatched living enemy raptors are creature nodes with enemy faction and raptor species id; raptor eggs never count as adults;
 - a threatening player egg eater must be inside the configured enemy-base radius and is considered only when no living enemy raptor exists anywhere;
@@ -220,7 +220,20 @@ Lightning target rules:
 - rank eligible tyrannosauruses by lower health first and shorter base distance second; there is no separate lightning cooldown;
 - use `NatureEffectsSystem.can_apply_lightning()` and `apply_lightning()` rather than duplicating damage, VFX, or sound logic.
 
-Trigger and cost rules:
+Earthquake target rules:
+
+- skip all earthquake target work until stored combat reserve can pay the complete controller-owned cost and at least two valid player eggs exist;
+- scan the stable `eggs` group only on the enemy strategic cadence, reject invalid or queued-for-deletion eggs, and read faction through `CreatureFaction`;
+- resolve egg species from `hatch_species_data.species_id` with stored `species_id` as fallback, then read purchase value only from `PlayerSpeciesCatalog` rather than copying a second price table;
+- partition each axis by the map-clipped center ranges that can overlap every current egg footprint, including non-player eggs, and test the point nearest the enemy base inside each unchanged overlap region; do not sample random centers or scan every map tile;
+- evaluate overlap with the same anchor, current footprint, and configured shared earthquake radius used by `NatureEffectsSystem`;
+- require at least the configured minimum of two player eggs, reject any zone containing a non-player egg, and require summed affected player-egg value to be strictly greater than the earthquake cost;
+- rank valid zones by greater total value, then more stage-two eggs, then more eggs, then shorter enemy-base distance, with tile order only as a deterministic final tie-break;
+- re-collect and revalidate the selected zone immediately before calling `can_apply_earthquake()` and `apply_earthquake()`; a stale or failed zone spends nothing;
+- after a successful shared earthquake, spend the complete cost through `spend_combat_reserve_after_success()` so stored energy may reach zero while capacity keeps its configured floor;
+- F5 may display the last earthquake decision, selected egg count/value/stage mix, and candidate-center count but must not influence targeting.
+
+Rain trigger and cost rules:
 
 - enemy rain may run only from a completed AI snapshot that reports eligible adult enemy herbivores below the configured satiety threshold;
 - check full-cost affordability from ordinary energy first and reserve second before scanning the grass registry;

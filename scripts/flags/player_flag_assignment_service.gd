@@ -314,7 +314,8 @@ func _try_build_flag_route(
 		target_anchor,
 		footprint,
 		creature,
-		FLAG_PATH_SEARCH_TILE_CAP
+		FLAG_PATH_SEARCH_TILE_CAP,
+		&"flag"
 	)
 
 	if not (path_variant is Array) or (path_variant as Array).is_empty():

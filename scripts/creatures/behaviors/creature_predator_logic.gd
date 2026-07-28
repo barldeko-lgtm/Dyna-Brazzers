@@ -793,7 +793,8 @@ func _find_best_approach_plan(prey: Node, origin_anchor: Vector2i) -> Dictionary
 			approach_anchor,
 			creature.footprint_size,
 			creature,
-			creature.max_path_search_tiles
+			creature.max_path_search_tiles,
+			&"predator"
 		)
 
 		if path.is_empty() or path.size() >= best_path_steps:

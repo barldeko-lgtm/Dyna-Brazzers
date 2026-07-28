@@ -11,9 +11,25 @@ extends Node
 #   <folder with Dyna.exe>/logs/
 
 const CSV_FOLDER_NAME := "logs"
+const PATH_SOURCE_NAMES := [
+	"grazing",
+	"predator",
+	"egg_eater",
+	"movement_repath",
+	"flag",
+	"other"
+]
+const PATH_SOURCE_METRICS := [
+	"calls",
+	"expanded_tiles",
+	"success",
+	"failed",
+	"capped"
+]
 const CSV_HEADER_COLUMNS := [
 	"sample_time_sec",
 	"fps",
+	"time_scale",
 	"memory_static_mb",
 	"node_count",
 	"object_count",
@@ -33,6 +49,36 @@ const CSV_HEADER_COLUMNS := [
 	"path_success_per_sec",
 	"path_failed_per_sec",
 	"path_capped_per_sec",
+	"path_grazing_calls_per_sec",
+	"path_grazing_expanded_tiles_per_sec",
+	"path_grazing_success_per_sec",
+	"path_grazing_failed_per_sec",
+	"path_grazing_capped_per_sec",
+	"path_predator_calls_per_sec",
+	"path_predator_expanded_tiles_per_sec",
+	"path_predator_success_per_sec",
+	"path_predator_failed_per_sec",
+	"path_predator_capped_per_sec",
+	"path_egg_eater_calls_per_sec",
+	"path_egg_eater_expanded_tiles_per_sec",
+	"path_egg_eater_success_per_sec",
+	"path_egg_eater_failed_per_sec",
+	"path_egg_eater_capped_per_sec",
+	"path_movement_repath_calls_per_sec",
+	"path_movement_repath_expanded_tiles_per_sec",
+	"path_movement_repath_success_per_sec",
+	"path_movement_repath_failed_per_sec",
+	"path_movement_repath_capped_per_sec",
+	"path_flag_calls_per_sec",
+	"path_flag_expanded_tiles_per_sec",
+	"path_flag_success_per_sec",
+	"path_flag_failed_per_sec",
+	"path_flag_capped_per_sec",
+	"path_other_calls_per_sec",
+	"path_other_expanded_tiles_per_sec",
+	"path_other_success_per_sec",
+	"path_other_failed_per_sec",
+	"path_other_capped_per_sec",
 	"grazing_candidate_unreachable_per_sec",
 	"flag_creatures_scanned_per_sec",
 	"flag_path_requests_per_sec",
@@ -113,6 +159,10 @@ func add_counter(counter_name: String, amount: int = 1) -> void:
 		return
 
 	current_counters[counter_name] = int(current_counters.get(counter_name, 0)) + amount
+
+
+func add_path_counter(source_name: StringName, metric_name: StringName, amount: int = 1) -> void:
+	add_counter("path_%s_%s" % [String(source_name), String(metric_name)], amount)
 
 
 func get_rate(counter_name: String) -> int:
@@ -236,6 +286,12 @@ func append_csv_sample() -> void:
 	if csv_file == null:
 		return
 
+	csv_file.store_line(",".join(build_csv_sample_row()))
+	csv_file.flush()
+
+
+func build_csv_sample_row() -> Array[String]:
+
 	var world_grid := get_tree().get_first_node_in_group("world_grid")
 	var grass_count := 0
 	var creature_count := 0
@@ -257,6 +313,7 @@ func append_csv_sample() -> void:
 	var row: Array[String] = []
 	row.append(format_float(get_elapsed_seconds(), 2))
 	row.append(str(Engine.get_frames_per_second()))
+	row.append(format_float(Engine.time_scale, 2))
 	row.append(format_float(get_static_memory_mb(), 2))
 	row.append(str(get_node_count()))
 	row.append(str(get_object_count()))
@@ -276,6 +333,11 @@ func append_csv_sample() -> void:
 	row.append(str(get_rate("path_success")))
 	row.append(str(get_rate("path_failed")))
 	row.append(str(get_rate("path_capped")))
+
+	for source_name: String in PATH_SOURCE_NAMES:
+		for metric_name: String in PATH_SOURCE_METRICS:
+			row.append(str(get_rate("path_%s_%s" % [source_name, metric_name])))
+
 	row.append(str(get_rate("grazing_candidate_unreachable")))
 	row.append(str(get_rate("flag_creatures_scanned")))
 	row.append(str(get_rate("flag_path_requests")))
@@ -299,8 +361,7 @@ func append_csv_sample() -> void:
 	row.append(f3_mode)
 	row.append(str(focused_path_steps))
 
-	csv_file.store_line(",".join(row))
-	csv_file.flush()
+	return row
 
 
 func format_float(value: float, decimals: int = 2) -> String:

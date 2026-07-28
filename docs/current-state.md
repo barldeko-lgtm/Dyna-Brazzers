@@ -30,7 +30,7 @@ Implemented foundations include:
 - player nature powers: lightning, rain, sun, and earthquake;
 - player energy, enemy energy, player egg purchases, and enemy strategic egg production;
 - species-specific player flags and persistent enemy rally objectives;
-- automatic enemy priority lightning plus rain targeting, scoring, and performance diagnostics;
+- automatic enemy priority lightning, profitable earthquake targeting, plus rain scoring and performance diagnostics;
 - startup, in-game menu, three save slots, settings, global audio, minimap, HUD, debug overlays, and elimination-based victory/defeat results.
 
 Roadmap block `0.5 — Visuals and game interface` is complete. Work from the later creature, player-expansion, and enemy blocks is partially implemented. `docs/design_roadmap.md` remains the design roadmap and must not be edited unless explicitly requested.
@@ -250,6 +250,14 @@ Egg eaters have priority. When the enemy has no living hatched raptor anywhere, 
 
 A player tyrannosaurus is eligible only at or below the configured one-strike health threshold, inside its configured enemy-base radius, and when no living hatched enemy raptor is inside the configured guard radius around that tyrannosaurus. Among eligible tyrannosauruses, lower health wins, then shorter base distance. There is no separate lightning cooldown.
 
+### Enemy earthquake
+
+Enemy earthquake is considered on the strategic cadence after egg-eater lightning and emergency rain, but before opportunistic lightning against a weakened tyrannosaurus. It uses the shared world earthquake effect and the controller-owned offensive reserve cost.
+
+The controller skips the search until the stored reserve can pay the complete cast and at least two valid player eggs exist. Candidate centers are derived from map-clipped overlap regions for all current egg footprints rather than sampled randomly or tested tile by tile; the representative point inside each unchanged region is the one nearest the enemy base. A zone is valid only when it contains at least the configured minimum number of player eggs, contains no non-player egg, and the summed player purchase value of the affected eggs is strictly greater than the earthquake cost. Values come directly from `PlayerSpeciesCatalog`, so later egg-price rebalance automatically changes the decision.
+
+The best profitable zone is ranked by greater total egg value, then more stage-two eggs, then more eggs, then shorter distance to the enemy base. The zone is revalidated immediately before application. Failed or stale targets spend nothing; a successful shared earthquake uses the normal offensive reserve amount-and-capacity spending rule.
+
 ### Enemy rain
 
 `enemy_spell_controller.gd` listens to the completed AI snapshot but does not own population decisions.
@@ -397,7 +405,7 @@ Returning to Main Menu unloads the active session without deleting save files. S
 Not implemented yet:
 
 - final enemy-specific creature animations;
-- additional enemy spells beyond lightning and rain;
+- additional enemy spells beyond lightning, earthquake, and rain;
 - dynamic enemy attack planning and base damage;
 - dynamic enemy rally placement;
 - minimap markers for eggs, faction bases, and world events.
