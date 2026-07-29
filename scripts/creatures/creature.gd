@@ -209,7 +209,7 @@ func _ready() -> void:
 	if world_grid != null:
 		var initial_position := global_position
 		anchor_tile = world_grid.world_to_anchor_tile(initial_position, footprint_size)
-		anchor_tile = world_grid.find_nearest_valid_anchor(anchor_tile, footprint_size, self)
+		anchor_tile = world_grid.find_initial_creature_anchor(anchor_tile, footprint_size, self)
 		render_offset = Vector2.ZERO
 		world_grid.register_creature(self, anchor_tile, footprint_size)
 		global_position = world_grid.anchor_to_world_position(anchor_tile, footprint_size)

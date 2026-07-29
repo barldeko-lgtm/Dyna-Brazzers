@@ -40,7 +40,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 
 - `scripts/main/main.gd` — gameplay viewport sizing, shared-world rendering, and render-layer isolation from the side panel.
 - `scripts/main/game_viewport_input_bridge.gd` — forwards unhandled game-area clicks to root-owned spell and flag targeting.
-- `scripts/world/world_grid.gd` — terrain queries, DryGround state, walkability, pathfinding, grass registry, footprints, blockers, creature occupancy, and movement reservations.
+- `scripts/world/world_grid.gd` — terrain queries, DryGround state, ground placement versus flight traversal, walkability, pathfinding, grass registry, footprints, blockers, creature occupancy, and movement reservations.
 - `scripts/world/start_map_world_grid.gd` — start-map bootstrap; creates both bases, enemy runtime controllers, enemy rally objectives, energy nodes, and world bounds.
 - `scripts/world/start_map_layout.gd` — preserves authored level 1 and builds registered pixel-map levels before world-grid initialization.
 - `scripts/world/pixel_map_parser.gd` — exact-color map decoding and 2x2 base/tree marker validation.
@@ -53,7 +53,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 ## Creature and resource scripts
 
 - `scripts/creatures/creature.gd` — creature FSM/survival coordinator, predator duel-victory rewards, and public facade.
-- `scripts/creatures/creature_species_data.gd` — biological species schema.
+- `scripts/creatures/creature_species_data.gd` — biological species schema, including optional flight navigation capability.
 - `scripts/creatures/creature_faction.gd` — validated runtime ownership.
 - `scripts/creatures/behaviors/creature_movement_controller.gd` — queued routes, grid steps, reservations, and indirect-order route API.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — pasture cache, food candidate ranking, route search, and grazing target lifecycle.

@@ -29,6 +29,7 @@ enum PredatorRole {
 @export var strategic_hunt_threshold := 0.0
 @export var strategic_hunt_radius := 0
 @export var strategic_hunt_overrides_flag := false
+@export var can_fly := false
 
 # Visuals.
 @export var down_texture: Texture2D
@@ -98,3 +99,7 @@ func is_defensive_predator() -> bool:
 
 func is_egg_eater() -> bool:
 	return diet_type == DietType.EGG_EATER
+
+
+func uses_flight_navigation() -> bool:
+	return can_fly

@@ -92,6 +92,8 @@ All current species use the shared `creature.tscn` and common behaviour modules.
 
 All current creatures use the shared logical footprint. Movement reserves the next footprint before visual travel so two creatures cannot commit to the same destination.
 
+Player and enemy pterodactyls use flight traversal: route steps may cross water, trees, and DryGround, while mountains remain blocked. Normal ground placement remains the destination contract, so a pterodactyl cannot idle, begin combat, or reproduce over aerial-only terrain. If an active route ends or is interrupted there, ordinary movement continues until a ground anchor is reached.
+
 Long indirect-order routes are planned against terrain and persistent blockers rather than temporary creature positions. If the next real step is occupied, managed flag and behaviour routes first try a short rejoin around the obstruction, then a full alternate route to the same destination. When neither route exists, the creature keeps its goal and queued path, waits while the blocking footprint remains unchanged, and retries immediately after that occupancy changes.
 
 Survival, food, reproduction, hunting, combat, and death take priority over player or enemy strategic objectives.

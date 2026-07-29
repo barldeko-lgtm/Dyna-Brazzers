@@ -115,6 +115,17 @@ func get_egg_spawn_anchor() -> Vector2i:
 	if creature.world_grid == null:
 		return INVALID_ANCHOR
 
+	if (
+		creature.species_data != null
+		and creature.species_data.uses_flight_navigation()
+		and not creature.world_grid.can_place_footprint(
+			creature.anchor_tile,
+			creature.footprint_size,
+			creature
+		)
+	):
+		return INVALID_ANCHOR
+
 	return creature.world_grid.world_to_anchor_tile(creature.global_position, EGG_STAGE_1_FOOTPRINT)
 
 

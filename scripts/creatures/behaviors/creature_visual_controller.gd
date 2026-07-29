@@ -206,7 +206,7 @@ func _apply_death_texture(texture: Texture2D) -> void:
 		return
 
 	body_sprite.visible = true
-	body_sprite.flip_h = false
+	body_sprite.flip_h = last_faces_left
 	if texture != null:
 		body_sprite.texture = texture
 

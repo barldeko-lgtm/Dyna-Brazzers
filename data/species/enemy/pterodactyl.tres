@@ -24,6 +24,7 @@ strategic_hunt_threshold = 90.0
 strategic_hunt_radius = 10
 strategic_hunt_overrides_flag = true
 predator_target_radius = 25
+can_fly = true
 down_texture = ExtResource("2_down")
 up_texture = ExtResource("3_up")
 right_texture = ExtResource("4_right")

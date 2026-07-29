@@ -62,7 +62,9 @@ Rules:
 - camera movement remains real-time and must not be multiplied by simulation speed;
 - camera zoom limits are owned only by `camera_controller.gd` and must be normalized after loading.
 
-`world_grid.gd` owns terrain queries, DryGround state, grass registry, walkability, pathfinding, creature/blocker occupancy, next-step reservations, footprint placement, and edible-grass footprint queries. Other systems should use its public APIs rather than maintain competing world state.
+`world_grid.gd` owns terrain queries, DryGround state, grass registry, walkability, ground placement, species-aware traversal, pathfinding, creature/blocker occupancy, next-step reservations, footprint placement, and edible-grass footprint queries. Other systems should use its public APIs rather than maintain competing world state.
+
+Pterodactyl flight is a traversal capability, not an alternate placement layer. Player and enemy pterodactyl routes may cross water, trees, and DryGround but never mountains. Route goals, idle anchors, combat side approaches, and reproduction remain restricted to full-footprint normal ground. A pterodactyl whose route is interrupted over aerial-only terrain must keep moving rather than enter idle; save restoration may preserve such an in-flight anchor.
 
 ## Faction bases
 
@@ -355,6 +357,7 @@ Predator rules:
 - resolve all valid side approaches for one prey through a single multi-goal path search rather than one search per side;
 - while a predator has a healthy route, periodically rank alternatives by cheap approach distance on a small stable per-creature timer offset, build a route only for the nearest challenger that can plausibly beat the remaining route by the configured switch advantage, and temporarily suppress a candidate after its shared approach search fails;
 - valid approaches overlap a footprint side; full corner-only diagonals remain invalid;
+- every combat approach must pass normal ground-placement validation for the hunter's full footprint, including flying pterodactyls; aerial-only traversal tiles are never legal duel-start anchors;
 - predator role, normal hunger threshold, optional strategic-hunt threshold, strategic-hunt radius/flag precedence, normal hunt radius, and optional defender guard radius belong to `CreatureSpeciesData` resources;
 - attacker-role strategic hunting accepts herbivores, predators, and egg eaters of the opposing player/enemy faction; when the species resource enables flag override, an acquired strategic target replaces indirect flag travel while reproduction eligibility remains higher priority;
 - attacker-role survival hunting may cross faction and diet boundaries but must always reject the same biological species of the hunter's own faction;

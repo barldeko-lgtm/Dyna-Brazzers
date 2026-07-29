@@ -49,10 +49,14 @@ func update_walk(delta: float) -> void:
 	if timer <= 0.0:
 		if has_indirect_route:
 			creature.set("state_timer", INDIRECT_ORDER_STATE_TIMER)
-		else:
+		elif _can_stop_at_current_anchor():
 			if creature.has_method("enter_idle"):
 				creature.call("enter_idle")
 			return
+		else:
+			# A flying route may be interrupted over aerial terrain. Keep moving until
+			# the creature reaches a normal ground anchor where idle is legal.
+			creature.set("state_timer", INDIRECT_ORDER_STATE_TIMER)
 
 	if not (path_variant is Array) or (path_variant as Array).is_empty():
 		if creature.has_method("is_hunting") and bool(creature.is_hunting()):
@@ -66,6 +70,17 @@ func update_walk(delta: float) -> void:
 		choose_random_wander_step()
 
 	start_next_path_step_if_needed()
+
+func _can_stop_at_current_anchor() -> bool:
+	var world_grid: Node = creature.get("world_grid")
+
+	if world_grid == null or not world_grid.has_method("can_place_footprint"):
+		return true
+
+	var anchor: Vector2i = creature.get("anchor_tile")
+	var footprint: Vector2i = creature.get("footprint_size")
+	return bool(world_grid.call("can_place_footprint", anchor, footprint, creature))
+
 
 func choose_random_wander_step() -> void:
 	is_following_indirect_order_route = false

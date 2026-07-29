@@ -1002,6 +1002,13 @@ func _is_prey_in_duel_range_from_anchor(prey: Node, hunter_anchor: Vector2i) -> 
 	):
 		return false
 
+	if not creature.world_grid.can_place_footprint(
+		hunter_anchor,
+		creature.footprint_size,
+		creature
+	):
+		return false
+
 	var prey_anchor: Vector2i = creature.world_grid.creature_anchors[prey]
 	return are_footprints_side_adjacent(
 		hunter_anchor,

@@ -199,6 +199,14 @@ func is_tile_walkable(tile: Vector2i) -> bool:
 	return not BLOCKED_TERRAIN_SOURCES.has(source_id) and not has_dry_ground_at_tile(tile)
 
 
+func is_tile_traversable(tile: Vector2i, creature: Node = null) -> bool:
+	if not _uses_flight_navigation(creature):
+		return is_tile_walkable(tile)
+
+	var source_id := get_tile_source_id(tile)
+	return source_id != -1 and source_id != TERRAIN_MOUNTAIN
+
+
 func has_dry_ground_at_tile(tile: Vector2i) -> bool:
 	ensure_initialized()
 	return dry_ground != null and dry_ground.tile_set != null and dry_ground.get_cell_source_id(tile) != -1
@@ -334,6 +342,33 @@ func can_place_footprint(anchor_tile: Vector2i, footprint_size: Vector2i, creatu
 	return true
 
 
+func can_traverse_footprint(anchor_tile: Vector2i, footprint_size: Vector2i, creature: Node = null) -> bool:
+	if not _uses_flight_navigation(creature):
+		return can_place_footprint(anchor_tile, footprint_size, creature)
+
+	for tile in get_footprint_tiles(anchor_tile, footprint_size):
+		var source_id := get_tile_source_id(tile)
+
+		if source_id == -1 or source_id == TERRAIN_MOUNTAIN:
+			return false
+
+		if occupied_by_tile.has(tile) and occupied_by_tile[tile] != creature:
+			return false
+
+		if reserved_by_tile.has(tile) and reserved_by_tile[tile] != creature:
+			return false
+
+	return true
+
+
+func _uses_flight_navigation(creature: Node) -> bool:
+	if creature == null or not is_instance_valid(creature):
+		return false
+
+	var species := creature.get("species_data") as CreatureSpeciesData
+	return species != null and species.uses_flight_navigation()
+
+
 func reserve_movement_destination(creature: Node, anchor_tile: Vector2i, footprint_size: Vector2i) -> bool:
 	if creature == null or not is_instance_valid(creature):
 		return false
@@ -348,7 +383,7 @@ func reserve_movement_destination(creature: Node, anchor_tile: Vector2i, footpri
 
 		release_movement_reservation(creature, footprint_size)
 
-	if not can_place_footprint(anchor_tile, footprint_size, creature):
+	if not can_traverse_footprint(anchor_tile, footprint_size, creature):
 		return false
 
 	movement_reservation_anchors[creature] = anchor_tile
@@ -366,6 +401,22 @@ func release_movement_reservation(creature: Node, footprint_size: Vector2i) -> v
 		_release_movement_tiles(anchor_variant, footprint_size, creature)
 
 	movement_reservation_anchors.erase(creature)
+
+
+func find_initial_creature_anchor(
+	preferred_anchor: Vector2i,
+	footprint_size: Vector2i,
+	creature: Node = null,
+	max_radius: int = 12
+) -> Vector2i:
+	if _uses_flight_navigation(creature) and can_traverse_footprint(
+		preferred_anchor,
+		footprint_size,
+		creature
+	):
+		return preferred_anchor
+
+	return find_nearest_valid_anchor(preferred_anchor, footprint_size, creature, max_radius)
 
 
 func find_nearest_valid_anchor(preferred_anchor: Vector2i, footprint_size: Vector2i, creature: Node = null, max_radius: int = 12) -> Vector2i:
@@ -407,7 +458,7 @@ func has_grass_at_tile(tile: Vector2i) -> bool:
 func register_creature(creature: Node, anchor_tile: Vector2i, footprint_size: Vector2i) -> bool:
 	ensure_initialized()
 
-	if not can_place_footprint(anchor_tile, footprint_size, creature):
+	if not can_traverse_footprint(anchor_tile, footprint_size, creature):
 		_reject_unregistered_creature(creature, anchor_tile)
 		return false
 
@@ -438,7 +489,7 @@ func move_creature(creature: Node, new_anchor_tile: Vector2i, footprint_size: Ve
 	var previous_anchor: Vector2i = creature_anchors[creature]
 	_release_tiles(previous_anchor, footprint_size, creature)
 
-	if not can_place_footprint(new_anchor_tile, footprint_size, creature):
+	if not can_traverse_footprint(new_anchor_tile, footprint_size, creature):
 		_reserve_tiles(previous_anchor, footprint_size, creature)
 		release_movement_reservation(creature, footprint_size)
 		return false
@@ -477,17 +528,17 @@ func get_neighbors(anchor_tile: Vector2i, footprint_size: Vector2i, creature: No
 	for direction in DIRECTIONS_8:
 		var candidate: Vector2i = anchor_tile + direction
 
-		if not can_place_footprint(candidate, footprint_size, creature):
+		if not can_traverse_footprint(candidate, footprint_size, creature):
 			continue
 
 		if direction.x != 0 and direction.y != 0:
 			var horizontal_candidate := anchor_tile + Vector2i(direction.x, 0)
 			var vertical_candidate := anchor_tile + Vector2i(0, direction.y)
 
-			if not can_place_footprint(horizontal_candidate, footprint_size, creature):
+			if not can_traverse_footprint(horizontal_candidate, footprint_size, creature):
 				continue
 
-			if not can_place_footprint(vertical_candidate, footprint_size, creature):
+			if not can_traverse_footprint(vertical_candidate, footprint_size, creature):
 				continue
 
 		neighbors.append(candidate)

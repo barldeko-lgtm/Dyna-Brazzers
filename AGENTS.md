@@ -11,6 +11,7 @@ The current prototype includes:
 - grass as the first renewable resource;
 - egg laying, egg stages, and hatching;
 - terrain blocking with ground, water, mountains, and trees;
+- player and enemy pterodactyl flight over water, trees, and DryGround while mountains remain blocking;
 - creature death with a short non-blocking corpse/death-pose visual;
 - player nature powers: lightning, rain, sun, and earthquake;
 - a first all-species flag pass: non-blocking 11x11 influence areas;
