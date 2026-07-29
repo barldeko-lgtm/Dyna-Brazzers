@@ -45,7 +45,7 @@ enum PredatorRole {
 @export var walk_animation_fps := 6.0
 @export var eating_animation_fps := 4.0
 @export var death_transition_texture: Texture2D
-@export var death_transition_duration := 0.5
+@export var death_transition_duration := 0.3
 @export var death_texture: Texture2D
 @export var corpse_lifetime := 3.0
 

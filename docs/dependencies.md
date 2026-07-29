@@ -363,12 +363,13 @@ Predator rules:
 - apply the active mode's prey rule consistently during acquisition, target revalidation, pending-duel settlement, and duel start;
 - prey may be pursued by several hunters, but final combat engagement is exclusive;
 - hunters losing engagement must release the target and search again through normal predator logic.
-- a non-critical defender raptor may actively protect an allied herbivore from an opposing-faction predator that initiated the current duel;
-- attacker-role tyrannosaurus and pterodactyl must never acquire or switch targets solely for protection, but may continue pursuing and intervene against an opposing predator that was already their selected target before it entered the eligible duel;
+- a non-critical defender raptor may actively protect an allied herbivore or egg eater from an opposing-faction predator that initiated the current duel;
+- attacker-role tyrannosaurus and pterodactyl must never acquire or switch targets solely for protection, but may continue pursuing and intervene against an opposing predator that was already their selected target before it attacked an allied herbivore or egg eater;
 - eligible protectors approach the existing target through normal side-contact routing, and the first protector to arrive exclusively reserves that duel for intervention;
-- a reserved intervention waits until the next scheduled duel hit resolves; if both original fighters remain alive, the herbivore leaves combat and the protector starts a replacement one-on-one duel with the attacker;
+- a reserved intervention waits until the next scheduled duel hit resolves; if both original fighters remain alive, the protected herbivore or egg eater leaves combat and the protector starts a replacement one-on-one duel with the attacker;
 - the replacement duel must disable further intervention so several protectors cannot replace one another against the same attacker;
-- never intervene in predator-versus-predator combat, same-faction predation, an already replaced duel, or a duel that ends before the reserved handoff.
+- never intervene in predator-versus-predator combat, same-faction predation, an already replaced duel, or a duel that ends before the reserved handoff;
+- only a predator reported as the winner of a completed duel receives the clamped satiety and health rewards; an intervention handoff reports no winner and grants no reward.
 
 ## Player flags and enemy rally objectives
 

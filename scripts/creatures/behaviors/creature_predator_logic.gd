@@ -340,7 +340,7 @@ func can_intervene_in_duel(duel: Duel, protected_creature: Node) -> bool:
 
 	if (
 		protected_species == null
-		or not protected_species.is_herbivore()
+		or (not protected_species.is_herbivore() and not protected_species.is_egg_eater())
 		or not _is_same_faction(protected_creature)
 	):
 		return false
@@ -518,7 +518,7 @@ func _is_intervention_target_valid() -> bool:
 	return (
 		role_can_intervene
 		and protected_species != null
-		and protected_species.is_herbivore()
+		and (protected_species.is_herbivore() or protected_species.is_egg_eater())
 		and attacker_species != null
 		and attacker_species.is_predator()
 		and intervention_duel.initiator == intervention_attacker

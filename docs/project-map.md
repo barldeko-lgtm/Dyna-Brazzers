@@ -52,12 +52,12 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 
 ## Creature and resource scripts
 
-- `scripts/creatures/creature.gd` — creature FSM/survival coordinator and public facade.
+- `scripts/creatures/creature.gd` — creature FSM/survival coordinator, predator duel-victory rewards, and public facade.
 - `scripts/creatures/creature_species_data.gd` — biological species schema.
 - `scripts/creatures/creature_faction.gd` — validated runtime ownership.
 - `scripts/creatures/behaviors/creature_movement_controller.gd` — queued routes, grid steps, reservations, and indirect-order route API.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — pasture cache, food candidate ranking, route search, and grazing target lifecycle.
-- `scripts/creatures/behaviors/creature_predator_logic.gd` — prey selection, active raptor protection, existing-target intervention by attacker-role predators, approach routing, engagement, and combat handoff.
+- `scripts/creatures/behaviors/creature_predator_logic.gd` — prey selection, active raptor protection of allied herbivores and egg eaters, existing-target intervention by attacker-role predators, approach routing, engagement, and combat handoff.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — edible-egg targeting and consumption.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and natural egg spawning.
 - `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, animations, shadows, and optional transition/final death poses.

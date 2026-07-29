@@ -8,6 +8,7 @@ const CreaturePredatorLogic = preload("res://scripts/creatures/behaviors/creatur
 const CreatureEggEaterLogic = preload("res://scripts/creatures/behaviors/creature_egg_eater_logic.gd")
 const CreatureMovementController = preload("res://scripts/creatures/behaviors/creature_movement_controller.gd")
 const CreatureInteractionController = preload("res://scripts/creatures/behaviors/creature_interaction_controller.gd")
+const PREDATOR_VICTORY_HEAL := 15.0
 
 # Core creature FSM.
 @onready var sprite: Sprite2D = $BodySprite
@@ -893,6 +894,7 @@ func _on_duel_finished(duel: Duel, winner: Node, _loser: Node) -> void:
 		return
 
 	hunger = clamp(hunger + species_data.hunger_restore_amount, 0.0, species_data.max_hunger)
+	health = clamp(health + PREDATOR_VICTORY_HEAL, 0.0, species_data.max_health)
 
 
 func find_world_grid() -> Node:
