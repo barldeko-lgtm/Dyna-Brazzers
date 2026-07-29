@@ -1,7 +1,11 @@
 extends RefCounted
 
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
-const FOOD_SEARCH_INTERVAL := 0.5
+const FOOD_SEARCH_INTERVAL := 1.0
+const SEARCH_INTERVAL_JITTER := 0.2
+const TIMER_JITTER_BUCKET_COUNT := 401
+const TIMER_JITTER_MULTIPLIER := 97
+const FAILED_TARGET_RECHECK_INTERVAL := 3.0
 const TARGET_SWITCH_ADVANTAGE_STEPS := 2
 const TARGET_CANDIDATE_LIMIT := 3
 
@@ -14,10 +18,28 @@ enum EggHuntMode {
 var creature: Node
 var search_cooldown_remaining := 0.0
 var target_egg: Node = null
+var failed_egg_recheck_remaining: Dictionary = {}
 
 
 func _init(owner_creature: Node) -> void:
 	creature = owner_creature
+
+
+func _get_staggered_food_search_interval() -> float:
+	var owner_bucket := posmod(
+		int(creature.get_instance_id()),
+		TIMER_JITTER_BUCKET_COUNT
+	)
+	var jitter_bucket := posmod(
+		owner_bucket * TIMER_JITTER_MULTIPLIER,
+		TIMER_JITTER_BUCKET_COUNT
+	)
+	var jitter_phase := float(jitter_bucket) / float(TIMER_JITTER_BUCKET_COUNT - 1)
+	return FOOD_SEARCH_INTERVAL + lerpf(
+		-SEARCH_INTERVAL_JITTER,
+		SEARCH_INTERVAL_JITTER,
+		jitter_phase
+	)
 
 
 func is_hunting() -> bool:
@@ -38,16 +60,18 @@ func update_egg_eater_behavior() -> void:
 	if creature.state == creature.State.DEAD or creature.state == creature.State.EATING or creature.state == creature.State.LAYING_EGG or creature.state == creature.State.COMBAT:
 		return
 
+	var delta := creature.get_physics_process_delta_time()
 	search_cooldown_remaining = max(
-		search_cooldown_remaining - creature.get_physics_process_delta_time(),
+		search_cooldown_remaining - delta,
 		0.0
 	)
+	_update_failed_egg_cooldowns(delta)
 
 	if target_egg != null and not is_valid_egg_target(target_egg):
 		clear_target()
 
 	if search_cooldown_remaining <= 0.0:
-		search_cooldown_remaining = FOOD_SEARCH_INTERVAL
+		search_cooldown_remaining = _get_staggered_food_search_interval()
 
 		if target_egg == null:
 			var acquisition_plan := find_best_egg_plan()
@@ -55,10 +79,17 @@ func update_egg_eater_behavior() -> void:
 			if not acquisition_plan.is_empty():
 				_commit_egg_plan(acquisition_plan)
 		else:
-			var challenger_plan := find_best_egg_plan(
-				target_egg,
-				TARGET_CANDIDATE_LIMIT - 1
-			)
+			var challenger_plan: Dictionary = {}
+			var challengers := find_nearest_egg_candidates(1, target_egg)
+
+			if not challengers.is_empty() and _should_build_challenger_plan(challengers[0]):
+				challenger_plan = _find_best_egg_approach_plan(
+					challengers[0],
+					_get_navigation_anchor()
+				)
+
+				if challenger_plan.is_empty():
+					_mark_egg_temporarily_unreachable(challengers[0])
 
 			if _should_retarget_to_plan(challenger_plan):
 				_commit_egg_plan(challenger_plan)
@@ -87,12 +118,16 @@ func update_current_target() -> void:
 	if creature.predator_path_retry_cooldown_remaining > 0.0:
 		return
 
+	if _is_egg_temporarily_unreachable(target_egg):
+		return
+
 	var path_built := build_path_to_egg(target_egg)
 	creature.start_next_path_step_if_needed()
 
 	if path_built:
 		return
 
+	_mark_egg_temporarily_unreachable(target_egg)
 	var fallback_plan := find_best_egg_plan(
 		target_egg,
 		TARGET_CANDIDATE_LIMIT - 1
@@ -151,7 +186,11 @@ func find_nearest_egg_candidates(
 	var active_radius := _get_active_target_radius()
 
 	for candidate: Node in creature.get_tree().get_nodes_in_group("eggs"):
-		if candidate == excluded_egg or not is_valid_egg_target(candidate):
+		if (
+			candidate == excluded_egg
+			or not is_valid_egg_target(candidate)
+			or _is_egg_temporarily_unreachable(candidate)
+		):
 			continue
 
 		var egg_anchor: Vector2i = candidate.get("anchor_tile")
@@ -173,6 +212,31 @@ func find_nearest_egg_candidates(
 			result.append(egg)
 
 	return result
+
+
+func _mark_egg_temporarily_unreachable(egg: Node) -> void:
+	if egg == null or not is_instance_valid(egg):
+		return
+
+	failed_egg_recheck_remaining[egg.get_instance_id()] = FAILED_TARGET_RECHECK_INTERVAL
+
+
+func _is_egg_temporarily_unreachable(egg: Node) -> bool:
+	return (
+		egg != null
+		and is_instance_valid(egg)
+		and float(failed_egg_recheck_remaining.get(egg.get_instance_id(), 0.0)) > 0.0
+	)
+
+
+func _update_failed_egg_cooldowns(delta: float) -> void:
+	for egg_id: int in failed_egg_recheck_remaining.keys():
+		var remaining := float(failed_egg_recheck_remaining.get(egg_id, 0.0)) - delta
+
+		if remaining <= 0.0:
+			failed_egg_recheck_remaining.erase(egg_id)
+		else:
+			failed_egg_recheck_remaining[egg_id] = remaining
 
 
 func _insert_ranked_egg_candidate(
@@ -206,6 +270,40 @@ func _should_retarget_to_plan(candidate_plan: Dictionary) -> bool:
 
 	var candidate_steps := int(candidate_plan.get("route_steps", 2147483647))
 	return candidate_steps + TARGET_SWITCH_ADVANTAGE_STEPS <= _remaining_route_steps()
+
+
+func _should_build_challenger_plan(candidate: Node) -> bool:
+	if candidate == null or not is_valid_egg_target(candidate):
+		return false
+
+	var origin_anchor := _get_navigation_anchor()
+	var estimated_steps := _estimate_best_egg_approach_steps(candidate, origin_anchor)
+	return (
+		estimated_steps < 2147483647
+		and estimated_steps + TARGET_SWITCH_ADVANTAGE_STEPS <= _remaining_route_steps()
+	)
+
+
+func _estimate_best_egg_approach_steps(egg: Node, origin_anchor: Vector2i) -> int:
+	if _is_egg_in_eating_range_from_anchor(egg, origin_anchor):
+		return 1 if creature.is_moving else 0
+
+	var best_estimate := 2147483647
+
+	for approach_anchor: Vector2i in build_egg_approach_anchors(egg):
+		if not creature.world_grid.can_place_footprint(
+			approach_anchor,
+			creature.footprint_size,
+			creature
+		):
+			continue
+
+		best_estimate = mini(
+			best_estimate,
+			int(creature.world_grid.estimate_path_steps(origin_anchor, approach_anchor))
+		)
+
+	return best_estimate
 
 
 func is_valid_egg_target(candidate: Node) -> bool:
@@ -314,52 +412,39 @@ func _find_best_egg_approach_plan(egg: Node, origin_anchor: Vector2i) -> Diction
 			origin_anchor
 		)
 
-	var best_plan: Dictionary = {}
-	var best_path_steps := 2147483647
+	if ranked_anchors.is_empty():
+		return {}
 
-	for approach_anchor in ranked_anchors:
-		var estimated_steps := int(creature.world_grid.estimate_path_steps(
-			origin_anchor,
-			approach_anchor
-		))
+	var result_variant: Variant = creature.world_grid.find_path_to_any(
+		origin_anchor,
+		ranked_anchors,
+		creature.footprint_size,
+		creature,
+		creature.max_path_search_tiles,
+		&"egg_eater"
+	)
 
-		if estimated_steps >= best_path_steps:
-			break
+	if not (result_variant is Dictionary):
+		return {}
 
-		if approach_anchor == origin_anchor:
-			return {
-				"egg": egg,
-				"path": [],
-				"approach_anchor": approach_anchor,
-				"route_steps": active_step_count
-			}
+	var result := result_variant as Dictionary
+	var approach_anchor: Vector2i = result.get("goal_anchor", Vector2i(-2147483648, -2147483648))
+	var path_variant: Variant = result.get("path", [])
 
-		var path_variant: Variant = creature.world_grid.find_path(
-			origin_anchor,
-			approach_anchor,
-			creature.footprint_size,
-			creature,
-			creature.max_path_search_tiles,
-			&"egg_eater"
-		)
+	if approach_anchor not in ranked_anchors or not (path_variant is Array):
+		return {}
 
-		if not (path_variant is Array):
-			continue
+	var path := _normalize_route(path_variant as Array)
 
-		var path := _normalize_route(path_variant as Array)
+	if path.is_empty() and approach_anchor != origin_anchor:
+		return {}
 
-		if path.is_empty() or path.size() >= best_path_steps:
-			continue
-
-		best_path_steps = path.size()
-		best_plan = {
-			"egg": egg,
-			"path": path,
-			"approach_anchor": approach_anchor,
-			"route_steps": path.size() + active_step_count
-		}
-
-	return best_plan
+	return {
+		"egg": egg,
+		"path": path,
+		"approach_anchor": approach_anchor,
+		"route_steps": path.size() + active_step_count
+	}
 
 
 func _insert_approach_anchor_by_distance(
@@ -399,7 +484,7 @@ func _commit_egg_plan(plan: Dictionary) -> void:
 		path = _normalize_route(path_variant as Array)
 
 	target_egg = egg
-	search_cooldown_remaining = FOOD_SEARCH_INTERVAL
+	search_cooldown_remaining = _get_staggered_food_search_interval()
 	_replace_egg_route(path)
 
 

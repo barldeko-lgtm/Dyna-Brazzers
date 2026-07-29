@@ -352,6 +352,8 @@ Rules:
 Predator rules:
 
 - compare a small nearest available prey set by actual reachable approach routes;
+- resolve all valid side approaches for one prey through a single multi-goal path search rather than one search per side;
+- while a predator has a healthy route, periodically rank alternatives by cheap approach distance on a small stable per-creature timer offset, build a route only for the nearest challenger that can plausibly beat the remaining route by the configured switch advantage, and temporarily suppress a candidate after its shared approach search fails;
 - valid approaches overlap a footprint side; full corner-only diagonals remain invalid;
 - predator role, normal hunger threshold, optional strategic-hunt threshold, strategic-hunt radius/flag precedence, normal hunt radius, and optional defender guard radius belong to `CreatureSpeciesData` resources;
 - attacker-role strategic hunting accepts herbivores, predators, and egg eaters of the opposing player/enemy faction; when the species resource enables flag override, an acquired strategic target replaces indirect flag travel while reproduction eligibility remains higher priority;
@@ -361,7 +363,8 @@ Predator rules:
 - egg eaters in strategic mode continue an indirect flag route until an opposing-faction egg is acquired, then the target overrides the flag;
 - egg eaters at the normal hunger threshold suspend the flag even without a target and accept all eggs except the same species of their own faction;
 - apply egg-eater faction rules during both acquisition and target revalidation, and reject eggs queued for deletion;
-- shortlist at most three egg targets by cheap distance, then select by real reachable route across all valid side approaches;
+- shortlist at most three egg targets by cheap distance, then select by real reachable route using one multi-goal search per egg across all valid side approaches;
+- keep the egg eater's periodic challenger scan at its controller-owned cadence with a small stable per-creature timer offset, use cheap approach distance before A*, and temporarily suppress failed current or challenger eggs without turning the suppression into a permanent blacklist;
 - stage-one eggs are trackable but not edible; waiting footprints must preserve both possible stage-two expansions and repath after the transition;
 - apply the active mode's prey rule consistently during acquisition, target revalidation, pending-duel settlement, and duel start;
 - prey may be pursued by several hunters, but final combat engagement is exclusive;

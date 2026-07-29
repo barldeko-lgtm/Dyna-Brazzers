@@ -3,7 +3,11 @@ extends RefCounted
 const Duel = preload("res://scripts/combat/duel.gd")
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const TARGET_RECHECK_INTERVAL := 2.0
+const TARGET_RECHECK_JITTER := 0.2
+const TIMER_JITTER_BUCKET_COUNT := 401
+const TIMER_JITTER_MULTIPLIER := 97
 const INTERVENTION_RECHECK_INTERVAL := 0.5
+const FAILED_TARGET_RECHECK_INTERVAL := 3.0
 const TARGET_SWITCH_ADVANTAGE_STEPS := 2
 const TARGET_CANDIDATE_LIMIT := 3
 const APPROACH_RECHECK_DISTANCE := 4
@@ -20,6 +24,7 @@ enum HuntMode {
 var creature: Node
 var target_prey: Node = null
 var target_recheck_remaining := 0.0
+var failed_prey_recheck_remaining: Dictionary = {}
 var approach_recheck_done := false
 var locked_approach_anchor := Vector2i.ZERO
 var has_locked_approach := false
@@ -34,6 +39,23 @@ var intervention_recheck_remaining := 0.0
 
 func _init(owner_creature: Node) -> void:
 	creature = owner_creature
+
+
+func _get_staggered_target_recheck_interval() -> float:
+	var owner_bucket := posmod(
+		int(creature.get_instance_id()),
+		TIMER_JITTER_BUCKET_COUNT
+	)
+	var jitter_bucket := posmod(
+		owner_bucket * TIMER_JITTER_MULTIPLIER,
+		TIMER_JITTER_BUCKET_COUNT
+	)
+	var jitter_phase := float(jitter_bucket) / float(TIMER_JITTER_BUCKET_COUNT - 1)
+	return TARGET_RECHECK_INTERVAL + lerpf(
+		-TARGET_RECHECK_JITTER,
+		TARGET_RECHECK_JITTER,
+		jitter_phase
+	)
 
 
 func is_hunting() -> bool:
@@ -108,6 +130,8 @@ func update_predator_behavior(delta: float) -> void:
 	):
 		return
 
+	_update_failed_prey_cooldowns(delta)
+
 	var desired_mode := _get_desired_hunt_mode()
 
 	if desired_mode == HuntMode.NONE:
@@ -169,7 +193,7 @@ func update_predator_behavior(delta: float) -> void:
 
 		if target_recheck_remaining <= 0.0:
 			_recheck_hunt_target()
-			target_recheck_remaining = TARGET_RECHECK_INTERVAL
+			target_recheck_remaining = _get_staggered_target_recheck_interval()
 
 	if not is_instance_valid(target_prey):
 		_clear_hunt_target()
@@ -644,7 +668,7 @@ func _replace_predator_route(path: Array) -> void:
 
 func _acquire_hunt_target() -> void:
 	# A failed acquisition must not scan the population again every physics frame.
-	target_recheck_remaining = TARGET_RECHECK_INTERVAL
+	target_recheck_remaining = _get_staggered_target_recheck_interval()
 
 	var candidates := find_nearest_prey_candidates(TARGET_CANDIDATE_LIMIT)
 	var plan := _find_best_hunt_plan(candidates)
@@ -657,9 +681,13 @@ func _acquire_hunt_target() -> void:
 
 func _recheck_hunt_target() -> void:
 	var candidates := find_nearest_prey_candidates(
-		TARGET_CANDIDATE_LIMIT,
+		1,
 		target_prey
 	)
+
+	if candidates.is_empty() or not _should_build_challenger_plan(candidates[0]):
+		return
+
 	var candidate_plan := _find_best_hunt_plan(candidates)
 
 	if candidate_plan.is_empty():
@@ -671,6 +699,47 @@ func _recheck_hunt_target() -> void:
 		return
 
 	_commit_hunt_plan(candidate_plan)
+
+
+func _should_build_challenger_plan(candidate: Node) -> bool:
+	if candidate == null or not is_valid_prey(candidate):
+		return false
+
+	var origin_anchor: Vector2i = creature.get_navigation_anchor()
+	var estimated_steps: int = _estimate_best_approach_steps(candidate, origin_anchor)
+	return (
+		estimated_steps < 2147483647
+		and estimated_steps + TARGET_SWITCH_ADVANTAGE_STEPS <= _remaining_route_steps()
+	)
+
+
+func _estimate_best_approach_steps(prey: Node, origin_anchor: Vector2i) -> int:
+	if _is_prey_in_duel_range_from_anchor(prey, origin_anchor):
+		return 1 if creature.is_moving else 0
+
+	if not creature.world_grid.creature_anchors.has(prey):
+		return 2147483647
+
+	var prey_anchor: Vector2i = creature.world_grid.creature_anchors[prey]
+	var best_estimate := 2147483647
+
+	for approach_anchor: Vector2i in _build_side_approach_anchors(
+		prey_anchor,
+		prey.footprint_size
+	):
+		if not creature.world_grid.can_place_footprint(
+			approach_anchor,
+			creature.footprint_size,
+			creature
+		):
+			continue
+
+		best_estimate = mini(
+			best_estimate,
+			int(creature.world_grid.estimate_path_steps(origin_anchor, approach_anchor))
+		)
+
+	return best_estimate
 
 
 func _find_best_hunt_plan(candidates: Array[Node]) -> Dictionary:
@@ -697,6 +766,7 @@ func _find_best_hunt_plan(candidates: Array[Node]) -> Dictionary:
 			plan = _find_best_approach_plan(prey, origin_anchor)
 
 			if plan.is_empty():
+				_mark_prey_temporarily_unreachable(prey)
 				continue
 
 			var path: Array = plan.get("path", []) as Array
@@ -731,7 +801,7 @@ func _commit_hunt_target(
 	has_approach: bool = true
 ) -> void:
 	target_prey = prey
-	target_recheck_remaining = TARGET_RECHECK_INTERVAL
+	target_recheck_remaining = _get_staggered_target_recheck_interval()
 	approach_recheck_done = false
 	locked_approach_anchor = approach_anchor
 	has_locked_approach = has_approach
@@ -818,7 +888,11 @@ func find_nearest_prey_candidates(
 
 		var candidate := candidate_variant as Node
 
-		if candidate == excluded_prey or not is_valid_prey(candidate):
+		if (
+			candidate == excluded_prey
+			or not is_valid_prey(candidate)
+			or _is_prey_temporarily_unreachable(candidate)
+		):
 			continue
 
 		var candidate_anchor: Vector2i = creature.world_grid.creature_anchors.get(
@@ -848,6 +922,31 @@ func find_nearest_prey_candidates(
 			result.append(prey)
 
 	return result
+
+
+func _mark_prey_temporarily_unreachable(prey: Node) -> void:
+	if prey == null or not is_instance_valid(prey):
+		return
+
+	failed_prey_recheck_remaining[prey.get_instance_id()] = FAILED_TARGET_RECHECK_INTERVAL
+
+
+func _is_prey_temporarily_unreachable(prey: Node) -> bool:
+	return (
+		prey != null
+		and is_instance_valid(prey)
+		and float(failed_prey_recheck_remaining.get(prey.get_instance_id(), 0.0)) > 0.0
+	)
+
+
+func _update_failed_prey_cooldowns(delta: float) -> void:
+	for prey_id: int in failed_prey_recheck_remaining.keys():
+		var remaining := float(failed_prey_recheck_remaining.get(prey_id, 0.0)) - delta
+
+		if remaining <= 0.0:
+			failed_prey_recheck_remaining.erase(prey_id)
+		else:
+			failed_prey_recheck_remaining[prey_id] = remaining
 
 
 func _insert_ranked_prey_candidate(
@@ -1023,48 +1122,41 @@ func _find_best_approach_plan(prey: Node, origin_anchor: Vector2i) -> Dictionary
 			origin_anchor
 		)
 
-	var best_plan: Dictionary = {}
-	var best_path_steps := 2147483647
+	if ranked_anchors.is_empty():
+		return {}
 
-	for approach_anchor: Vector2i in ranked_anchors:
-		var estimated_steps := int(creature.world_grid.estimate_path_steps(
-			origin_anchor,
-			approach_anchor
-		))
+	var result_variant: Variant = creature.world_grid.find_path_to_any(
+		origin_anchor,
+		ranked_anchors,
+		creature.footprint_size,
+		creature,
+		creature.max_path_search_tiles,
+		&"predator"
+	)
 
-		# Anchors are sorted by a lower-bound distance. Once that bound cannot beat
-		# the best real path already found, later anchors cannot improve the plan.
-		if estimated_steps >= best_path_steps:
-			break
+	if not (result_variant is Dictionary):
+		return {}
 
-		# find_path() returns an empty array both for failure and for start == goal.
-		if approach_anchor == origin_anchor:
-			return {
-				"path": [],
-				"approach_anchor": approach_anchor,
-				"has_approach": true
-			}
+	var result := result_variant as Dictionary
+	var approach_anchor: Vector2i = result.get("goal_anchor", Vector2i(-2147483648, -2147483648))
+	var path_variant: Variant = result.get("path", [])
+	var path: Array[Vector2i] = []
 
-		var path: Array[Vector2i] = creature.world_grid.find_path(
-			origin_anchor,
-			approach_anchor,
-			creature.footprint_size,
-			creature,
-			creature.max_path_search_tiles,
-			&"predator"
-		)
+	if approach_anchor not in ranked_anchors or not (path_variant is Array):
+		return {}
 
-		if path.is_empty() or path.size() >= best_path_steps:
-			continue
+	for step_variant: Variant in path_variant as Array:
+		if step_variant is Vector2i:
+			path.append(step_variant)
 
-		best_path_steps = path.size()
-		best_plan = {
-			"path": path,
-			"approach_anchor": approach_anchor,
-			"has_approach": true
-		}
+	if path.is_empty() and approach_anchor != origin_anchor:
+		return {}
 
-	return best_plan
+	return {
+		"path": path,
+		"approach_anchor": approach_anchor,
+		"has_approach": true
+	}
 
 
 func _build_side_approach_anchors(

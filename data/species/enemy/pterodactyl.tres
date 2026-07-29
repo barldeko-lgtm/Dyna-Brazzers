@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=12 format=3]
+[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/creatures/creature_species_data.gd" id="1_species_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/pterodactyl/pterodactyl_down.png" id="2_down"]
@@ -10,6 +10,8 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/pterodactyl/pterodactyl_egg_stage_1.png" id="8_egg_stage_1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/pterodactyl/pterodactyl_egg_stage_2.png" id="9_egg_stage_2"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/pterodactyl/pterodactyl_idle.png" id="10_idle"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/pterodactyl/pterodactyl_death_transition.png" id="11_death_transition"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/pterodactyl/pterodactyl_dead.png" id="12_death"]
 
 [resource]
 script = ExtResource("1_species_script")
@@ -28,6 +30,9 @@ right_texture = ExtResource("4_right")
 up_right_texture = ExtResource("5_up_right")
 down_right_texture = ExtResource("6_down_right")
 idle_texture = ExtResource("10_idle")
+death_transition_texture = ExtResource("11_death_transition")
+death_transition_duration = 0.3
+death_texture = ExtResource("12_death")
 corpse_lifetime = 3.0
 speed = 200.0
 max_health = 100.0
@@ -40,7 +45,7 @@ attack = 17.0
 defense = 8.0
 max_hunger = 100.0
 starting_hunger = 100.0
-hunger_decay_rate = 2.0
+hunger_decay_rate = 1.5
 hunger_search_threshold = 40.0
 hunger_restore_amount = 60.0
 eating_duration = 3.0

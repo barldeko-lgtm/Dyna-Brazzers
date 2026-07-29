@@ -559,6 +559,99 @@ func find_path(
 	return []
 
 
+func find_path_to_any(
+	start_anchor: Vector2i,
+	goal_anchors: Array,
+	footprint_size: Vector2i,
+	creature: Node = null,
+	max_expanded_tiles: int = DEFAULT_MAX_PATH_EXPANDED_TILES,
+	path_source: StringName = &"other"
+) -> Dictionary:
+	PerformanceStats.add_counter("path_calls")
+	PerformanceStats.add_path_counter(path_source, &"calls")
+
+	var valid_goals: Array[Vector2i] = []
+	var goal_lookup: Dictionary = {}
+
+	for goal_variant: Variant in goal_anchors:
+		if not (goal_variant is Vector2i):
+			continue
+
+		var goal_anchor := goal_variant as Vector2i
+
+		if goal_lookup.has(goal_anchor):
+			continue
+
+		if not can_place_footprint(goal_anchor, footprint_size, creature):
+			continue
+
+		goal_lookup[goal_anchor] = true
+		valid_goals.append(goal_anchor)
+
+	if valid_goals.is_empty():
+		PerformanceStats.add_counter("path_blocked_goal")
+		return {}
+
+	if goal_lookup.has(start_anchor):
+		PerformanceStats.add_counter("path_same_tile")
+		return {
+			"path": [],
+			"goal_anchor": start_anchor
+		}
+
+	var expanded_tiles := 0
+	var open_set: Array[Vector2i] = [start_anchor]
+	var open_lookup := {start_anchor: true}
+	var came_from: Dictionary = {}
+	var g_score := {start_anchor: 0.0}
+	var f_score := {
+		start_anchor: _estimate_path_cost_to_any(start_anchor, valid_goals)
+	}
+
+	while not open_set.is_empty():
+		if expanded_tiles >= max_expanded_tiles:
+			PerformanceStats.add_counter("path_capped")
+			PerformanceStats.add_path_counter(path_source, &"capped")
+			break
+
+		var current := _pop_lowest_score(open_set, f_score)
+		expanded_tiles += 1
+		open_lookup.erase(current)
+
+		if goal_lookup.has(current):
+			PerformanceStats.add_counter("path_success")
+			PerformanceStats.add_counter("path_expanded_tiles", expanded_tiles)
+			PerformanceStats.add_path_counter(path_source, &"success")
+			PerformanceStats.add_path_counter(path_source, &"expanded_tiles", expanded_tiles)
+			return {
+				"path": _reconstruct_path(came_from, current, start_anchor),
+				"goal_anchor": current
+			}
+
+		for neighbor in get_neighbors(current, footprint_size, creature):
+			var tentative_g_score := float(g_score.get(current, INF)) + _step_cost(current, neighbor)
+
+			if tentative_g_score >= float(g_score.get(neighbor, INF)):
+				continue
+
+			came_from[neighbor] = current
+			g_score[neighbor] = tentative_g_score
+			f_score[neighbor] = tentative_g_score + _estimate_path_cost_to_any(
+				neighbor,
+				valid_goals
+			)
+
+			if not open_lookup.has(neighbor):
+				open_set.append(neighbor)
+				open_lookup[neighbor] = true
+
+	PerformanceStats.add_counter("path_failed")
+	PerformanceStats.add_counter("path_expanded_tiles", expanded_tiles)
+	PerformanceStats.add_path_counter(path_source, &"failed")
+	PerformanceStats.add_path_counter(path_source, &"expanded_tiles", expanded_tiles)
+	return {}
+
+
 # Grazing queries.
 # Returns only the single best grazing candidate. Kept for callers that only
 # ever want one target (e.g. the periodic hysteresis recheck).
@@ -810,6 +903,15 @@ func _estimate_path_cost(from_tile: Vector2i, to_tile: Vector2i) -> float:
 	var diagonal_steps: int = min(dx, dy)
 	var straight_steps: int = max(dx, dy) - diagonal_steps
 	return float(diagonal_steps) * 1.41421356 + float(straight_steps)
+
+
+func _estimate_path_cost_to_any(from_tile: Vector2i, goal_anchors: Array[Vector2i]) -> float:
+	var best_cost := INF
+
+	for goal_anchor: Vector2i in goal_anchors:
+		best_cost = minf(best_cost, _estimate_path_cost(from_tile, goal_anchor))
+
+	return best_cost
 
 
 func _is_grazing_result_better(candidate: Dictionary, current_best: Dictionary) -> bool:
