@@ -53,7 +53,7 @@ Do not turn Dyna into a standard RTS or create enemy-only copies of common creat
 
 The active world is `scenes/world/world.tscn`.
 
-Level 1 preserves the authored 85x85 TileMap. Level 2 is built at runtime from `assets/maps/level_2_map.png`, where one exact-color pixel is one tile. The supplied 90x60 layout defines terrain, DryGround, grass, complete 2x2 trees, and two 2x2 base footprints with the player base on the left.
+Level 1 preserves the authored 85x85 TileMap. Level 2 is built at runtime from `assets/maps/level_2_map.png`, where one exact-color pixel is one tile. The supplied 84x70 layout defines terrain, DryGround, grass, complete 2x2 trees, and two 2x2 base footprints with the player base on the left.
 
 The current map uses stable TileSet source ids:
 
@@ -127,7 +127,7 @@ Egg eaters are a separate diet category. From 90 to above 25 satiety they scan r
 
 ### Death and visuals
 
-Death stops normal behaviour immediately, releases world-grid occupancy, disables collision and picking, and leaves a short non-blocking corpse visual before removal. Species may show a brief transition pose before the final corpse pose; the player stegosaurus, triceratops, tyrannosaurus, and raptor currently use this two-step sequence.
+Death stops normal behaviour immediately, releases world-grid occupancy, disables collision and picking, and leaves a short non-blocking corpse visual before removal. Species may show a brief transition pose before the final corpse pose; the player stegosaurus, triceratops, tyrannosaurus, raptor, egg eater, and pterodactyl currently use this two-step sequence.
 
 Death transition texture and duration, final death texture, and corpse lifetime belong to species data. Missing transition art skips that step, while a missing final death texture falls back through the shared visual controller.
 
@@ -224,6 +224,7 @@ The snapshot:
 
 Current production behaviour:
 
+- treats the first scheduled strategic cadence of a fresh match as a complete no-action turn, so production and spell decisions begin on the following cadence;
 - builds a stegosaurus-heavy herbivore mix while the configured hunger gate allows it;
 - skips herbivore production when the adult herbivore herd is below its configured satiety threshold;
 - switches to the current combat-production priority after the configured herbivore-cap phase;
@@ -273,6 +274,7 @@ When adult enemy herbivore satiety is below the configured threshold and energy 
 - also builds candidates from DryGround only when that DryGround has cardinally adjacent existing grass;
 - ignores isolated DryGround because grass cannot expand into it directly;
 - scores each center with controller-owned weights for unique immediate new-grass cells and adjacent DryGround at zero, one, or two prior rain hits, with more advanced DryGround progress valued more highly;
+- during the configured opening phase, multiplies only the herbivore-demand step and enemy-base proximity step by the opening-priority multiplier while preserving the normal DryGround weights and demand ceiling;
 - switches at exactly ten minutes of restored simulation time to the configured expansion-phase DryGround weights and stronger enemy-base proximity step;
 - counts each unique immediate new-grass cell once even when several mature sources could create it;
 - collects valid adult enemy herbivores once per rain search and builds a bounded local demand map around their logical footprints;

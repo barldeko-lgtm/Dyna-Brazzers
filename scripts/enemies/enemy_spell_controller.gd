@@ -46,9 +46,11 @@ const CARDINAL_OFFSETS: Array[Vector2i] = [
 @export var expansion_dry_ground_zero_hit_score := 8
 @export var expansion_dry_ground_one_hit_score := 11
 @export var expansion_dry_ground_two_hit_score := 15
+@export var rain_initial_priority_phase_duration_seconds := 180.0
+@export var rain_initial_priority_multiplier := 10.0
 @export var empty_area_score_multiplier := 0.5
 @export var herbivore_demand_multiplier_step := 0.3
-@export var maximum_herbivore_score_multiplier := 2.0
+@export var maximum_herbivore_score_multiplier := 2.5
 @export var herbivore_near_distance_tiles := 3
 @export var herbivore_medium_distance_tiles := 6
 @export var herbivore_far_distance_tiles := 10
@@ -129,6 +131,7 @@ var last_best_dry_ground_zero_hit_count := 0
 var last_best_dry_ground_one_hit_count := 0
 var last_best_dry_ground_two_hit_count := 0
 var last_best_dry_ground_score := 0
+var last_rain_initial_priority_phase_active := false
 var last_rain_expansion_phase_active := false
 var last_eligible_herbivore_count := 0
 var last_best_near_herbivore_count := 0
@@ -1245,12 +1248,17 @@ func _find_best_rain_target() -> Dictionary:
 		_finish_search_measurement(search_start_usec)
 		return result
 
+	last_rain_initial_priority_phase_active = _is_rain_initial_priority_phase_active()
 	last_rain_expansion_phase_active = _is_rain_expansion_phase_active()
 	var active_dry_ground_scores := _get_active_dry_ground_scores(
 		last_rain_expansion_phase_active
 	)
 	var active_base_proximity_step := _get_active_base_proximity_multiplier_step(
+		last_rain_initial_priority_phase_active,
 		last_rain_expansion_phase_active
+	)
+	var active_herbivore_demand_step := _get_active_herbivore_demand_multiplier_step(
+		last_rain_initial_priority_phase_active
 	)
 
 	var grass_registry_variant: Variant = world_grid.get("grass_by_tile")
@@ -1409,7 +1417,10 @@ func _find_best_rain_target() -> Dictionary:
 	var best_dry_ground_two_hit_count := 0
 	var best_dry_ground_score := 0
 	var best_herbivore_demand := 0.0
-	var best_demand_multiplier := _get_herbivore_demand_multiplier(0.0)
+	var best_demand_multiplier := _get_herbivore_demand_multiplier(
+		0.0,
+		active_herbivore_demand_step
+	)
 	var best_base_distance_tiles := _get_base_proximity_reference_distance_tiles()
 	var best_base_proximity_multiplier := 1.0
 	var safe_new_grass_score := maxi(new_grass_score, 0)
@@ -1423,7 +1434,10 @@ func _find_best_rain_target() -> Dictionary:
 		var dry_score := int(candidate_dry_ground_score.get(center_tile, 0))
 		var base_score := predicted_new_grass * safe_new_grass_score + dry_score
 		var herbivore_demand := float(herbivore_demand_by_center.get(center_tile, 0.0))
-		var demand_multiplier := _get_herbivore_demand_multiplier(herbivore_demand)
+		var demand_multiplier := _get_herbivore_demand_multiplier(
+			herbivore_demand,
+			active_herbivore_demand_step
+		)
 		var base_distance_tiles := _get_distance_from_rain_area_to_enemy_base(
 			center_tile,
 			rain_radius
@@ -1846,15 +1860,36 @@ func _get_herbivore_demand_weight(distance_tiles: int) -> float:
 	return 0.0
 
 
-func _get_herbivore_demand_multiplier(weighted_demand: float) -> float:
+func _get_herbivore_demand_multiplier(
+	weighted_demand: float,
+	active_multiplier_step: float = -1.0
+) -> float:
 	var base_multiplier := maxf(empty_area_score_multiplier, 0.0)
 	var maximum_multiplier := maxf(maximum_herbivore_score_multiplier, base_multiplier)
+	var safe_step := active_multiplier_step
+
+	if safe_step < 0.0:
+		safe_step = _get_active_herbivore_demand_multiplier_step(
+			_is_rain_initial_priority_phase_active()
+		)
+
 	return clampf(
 		base_multiplier
-		+ maxf(herbivore_demand_multiplier_step, 0.0) * maxf(weighted_demand, 0.0),
+		+ maxf(safe_step, 0.0) * maxf(weighted_demand, 0.0),
 		base_multiplier,
 		maximum_multiplier
 	)
+
+
+func _get_active_herbivore_demand_multiplier_step(
+	initial_priority_phase_active: bool
+) -> float:
+	var safe_step := maxf(herbivore_demand_multiplier_step, 0.0)
+
+	if initial_priority_phase_active:
+		return safe_step * maxf(rain_initial_priority_multiplier, 0.0)
+
+	return safe_step
 
 
 func _get_near_herbivore_distance_tiles() -> int:
@@ -1909,12 +1944,25 @@ func _get_base_proximity_multiplier(
 
 
 func _get_active_base_proximity_multiplier_step(
+	initial_priority_phase_active: bool,
 	expansion_phase_active: bool
 ) -> float:
+	if initial_priority_phase_active:
+		return (
+			maxf(base_proximity_multiplier_step, 0.0)
+			* maxf(rain_initial_priority_multiplier, 0.0)
+		)
 	if expansion_phase_active:
 		return maxf(expansion_base_proximity_multiplier_step, 0.0)
 
 	return maxf(base_proximity_multiplier_step, 0.0)
+
+
+func _is_rain_initial_priority_phase_active() -> bool:
+	return (
+		_get_enemy_elapsed_simulation_seconds()
+		< maxf(rain_initial_priority_phase_duration_seconds, 0.0)
+	)
 
 
 func _is_rain_expansion_phase_active() -> bool:
@@ -2417,6 +2465,7 @@ func _reset_last_search_stats() -> void:
 	last_best_dry_ground_one_hit_count = 0
 	last_best_dry_ground_two_hit_count = 0
 	last_best_dry_ground_score = 0
+	last_rain_initial_priority_phase_active = _is_rain_initial_priority_phase_active()
 	last_rain_expansion_phase_active = _is_rain_expansion_phase_active()
 	last_eligible_herbivore_count = 0
 	last_best_near_herbivore_count = 0
@@ -2497,7 +2546,11 @@ func get_rain_debug_data() -> Dictionary:
 		last_rain_expansion_phase_active
 	)
 	var active_base_proximity_step := _get_active_base_proximity_multiplier_step(
+		last_rain_initial_priority_phase_active,
 		last_rain_expansion_phase_active
+	)
+	var active_herbivore_demand_step := _get_active_herbivore_demand_multiplier_step(
+		last_rain_initial_priority_phase_active
 	)
 	return {
 		"action_text": last_action_text,
@@ -2559,8 +2612,13 @@ func get_rain_debug_data() -> Dictionary:
 			rain_expansion_phase_start_seconds,
 			0.0
 		),
+		"rain_initial_priority_phase_active": last_rain_initial_priority_phase_active,
+		"rain_initial_priority_phase_duration_seconds": maxf(
+			rain_initial_priority_phase_duration_seconds,
+			0.0
+		),
 		"empty_area_score_multiplier": maxf(empty_area_score_multiplier, 0.0),
-		"herbivore_demand_multiplier_step": maxf(herbivore_demand_multiplier_step, 0.0),
+		"herbivore_demand_multiplier_step": active_herbivore_demand_step,
 		"maximum_herbivore_score_multiplier": maxf(
 			maximum_herbivore_score_multiplier,
 			maxf(empty_area_score_multiplier, 0.0)

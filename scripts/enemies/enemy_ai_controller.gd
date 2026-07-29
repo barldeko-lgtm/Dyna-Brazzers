@@ -64,6 +64,15 @@ func _on_turn_timer_timeout() -> void:
 	turn_index += 1
 	latest_snapshot = collect_population_snapshot()
 	latest_snapshot["turn_index"] = turn_index
+
+	if turn_index == 1:
+		latest_snapshot["production_phase"] = "waiting"
+		latest_snapshot["selected_species_id"] = StringName()
+		latest_snapshot["selected_egg_cost"] = 0.0
+		latest_snapshot["action"] = "skip_initial_turn"
+		last_action_text = "пропуск первого хода"
+		return
+
 	perform_turn(latest_snapshot)
 	turn_completed.emit(latest_snapshot.duplicate(true))
 

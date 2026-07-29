@@ -169,6 +169,7 @@ Snapshot rules:
 
 Production rules:
 
+- the first scheduled cadence of a fresh match must advance the saved turn index but perform no production and emit no `turn_completed` signal, so every strategic action remains skipped until the following cadence;
 - the controller owns population goals, hunger gating, species choice, and one production attempt;
 - the current herbivore phase maintains the configured stegosaurus-heavy mix;
 - the configured hunger threshold may block herbivore production;
@@ -253,6 +254,7 @@ Current target-search contract:
 - ignore isolated DryGround because cardinal grass spreading cannot reach it directly;
 - obtain partial DryGround progress through the world-grid public `get_dry_ground_rain_hit_data()` API rather than maintaining competing state;
 - sum controller-owned weights for unique immediate new grass and adjacent DryGround at zero, one, or two prior rain hits; keep those tunable weights in `enemy_spell_controller.gd`;
+- during the configured opening phase, multiply only the herbivore-demand step and enemy-base proximity step by the configured opening multiplier; keep the DryGround weights unchanged and preserve the configured demand ceiling;
 - at exactly the configured ten-minute simulation-time boundary, switch both the active DryGround weights and enemy-base proximity step to their expansion-phase values; use the restored enemy-AI simulation clock rather than wall time;
 - collect eligible adult enemy herbivore footprints once per rain search from the stable `creatures` group, using faction, enemy-catalog resource, and herbivore-diet validation;
 - build only a bounded demand map around those footprints, measure distance to the edge of each candidate rain area, and use controller-owned near/middle/far weights;
