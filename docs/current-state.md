@@ -127,7 +127,7 @@ Egg eaters are a separate diet category. From 90 to above 25 satiety they scan r
 
 ### Death and visuals
 
-Death stops normal behaviour immediately, releases world-grid occupancy, disables collision and picking, and leaves a short non-blocking corpse visual before removal. Species may show a brief transition pose before the final corpse pose; the player stegosaurus, triceratops, and tyrannosaurus currently use this two-step sequence.
+Death stops normal behaviour immediately, releases world-grid occupancy, disables collision and picking, and leaves a short non-blocking corpse visual before removal. Species may show a brief transition pose before the final corpse pose; the player stegosaurus, triceratops, tyrannosaurus, and raptor currently use this two-step sequence.
 
 Death transition texture and duration, final death texture, and corpse lifetime belong to species data. Missing transition art skips that step, while a missing final death texture falls back through the shared visual controller.
 
@@ -273,6 +273,7 @@ When adult enemy herbivore satiety is below the configured threshold and energy 
 - also builds candidates from DryGround only when that DryGround has cardinally adjacent existing grass;
 - ignores isolated DryGround because grass cannot expand into it directly;
 - scores each center with controller-owned weights for unique immediate new-grass cells and adjacent DryGround at zero, one, or two prior rain hits, with more advanced DryGround progress valued more highly;
+- switches at exactly ten minutes of restored simulation time to the configured expansion-phase DryGround weights and stronger enemy-base proximity step;
 - counts each unique immediate new-grass cell once even when several mature sources could create it;
 - collects valid adult enemy herbivores once per rain search and builds a bounded local demand map around their logical footprints;
 - measures herbivore distance to the edge of the candidate rain area, applies near/middle/far demand weights, and multiplies the ecological score by a clamped controller-owned demand coefficient;

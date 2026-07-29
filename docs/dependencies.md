@@ -253,6 +253,7 @@ Current target-search contract:
 - ignore isolated DryGround because cardinal grass spreading cannot reach it directly;
 - obtain partial DryGround progress through the world-grid public `get_dry_ground_rain_hit_data()` API rather than maintaining competing state;
 - sum controller-owned weights for unique immediate new grass and adjacent DryGround at zero, one, or two prior rain hits; keep those tunable weights in `enemy_spell_controller.gd`;
+- at exactly the configured ten-minute simulation-time boundary, switch both the active DryGround weights and enemy-base proximity step to their expansion-phase values; use the restored enemy-AI simulation clock rather than wall time;
 - collect eligible adult enemy herbivore footprints once per rain search from the stable `creatures` group, using faction, enemy-catalog resource, and herbivore-diet validation;
 - build only a bounded demand map around those footprints, measure distance to the edge of each candidate rain area, and use controller-owned near/middle/far weights;
 - multiply the ecological base score by a clamped controller-owned herbivore-demand coefficient; candidates with no nearby herbivore demand remain valid at the configured baseline multiplier;

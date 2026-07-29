@@ -42,6 +42,10 @@ const CARDINAL_OFFSETS: Array[Vector2i] = [
 @export var dry_ground_zero_hit_score := 5
 @export var dry_ground_one_hit_score := 7
 @export var dry_ground_two_hit_score := 9
+@export var rain_expansion_phase_start_seconds := 600.0
+@export var expansion_dry_ground_zero_hit_score := 8
+@export var expansion_dry_ground_one_hit_score := 11
+@export var expansion_dry_ground_two_hit_score := 15
 @export var empty_area_score_multiplier := 0.5
 @export var herbivore_demand_multiplier_step := 0.3
 @export var maximum_herbivore_score_multiplier := 2.0
@@ -53,6 +57,7 @@ const CARDINAL_OFFSETS: Array[Vector2i] = [
 @export var rain_search_radius_tiles := 20
 @export var base_proximity_reference_distance_tiles := 20
 @export var base_proximity_multiplier_step := 0.007
+@export var expansion_base_proximity_multiplier_step := 0.014
 @export var rain_area_frame_duration_seconds := 4.0
 @export var search_area_frame_color := Color(1.0, 0.48, 0.12, 0.82)
 @export var rain_area_frame_color := Color(0.20, 0.78, 1.0, 0.95)
@@ -124,6 +129,7 @@ var last_best_dry_ground_zero_hit_count := 0
 var last_best_dry_ground_one_hit_count := 0
 var last_best_dry_ground_two_hit_count := 0
 var last_best_dry_ground_score := 0
+var last_rain_expansion_phase_active := false
 var last_eligible_herbivore_count := 0
 var last_best_near_herbivore_count := 0
 var last_best_medium_herbivore_count := 0
@@ -1239,6 +1245,14 @@ func _find_best_rain_target() -> Dictionary:
 		_finish_search_measurement(search_start_usec)
 		return result
 
+	last_rain_expansion_phase_active = _is_rain_expansion_phase_active()
+	var active_dry_ground_scores := _get_active_dry_ground_scores(
+		last_rain_expansion_phase_active
+	)
+	var active_base_proximity_step := _get_active_base_proximity_multiplier_step(
+		last_rain_expansion_phase_active
+	)
+
 	var grass_registry_variant: Variant = world_grid.get("grass_by_tile")
 	var grass_registry: Dictionary = grass_registry_variant as Dictionary
 	var source_tiles_by_spawn_target: Dictionary = {}
@@ -1339,7 +1353,10 @@ func _find_best_rain_target() -> Dictionary:
 
 			last_adjacent_dry_ground_count += 1
 			var rain_hits := clampi(int(dry_ground_hit_lookup.get(dry_tile, 0)), 0, 2)
-			var dry_weight := _get_dry_ground_score_for_hits(rain_hits)
+			var dry_weight := _get_dry_ground_score_for_hits(
+				rain_hits,
+				active_dry_ground_scores
+			)
 			var dry_covered_centers: Dictionary = {}
 			_append_covering_centers(dry_covered_centers, dry_tile, rain_radius)
 
@@ -1412,7 +1429,8 @@ func _find_best_rain_target() -> Dictionary:
 			rain_radius
 		)
 		var base_proximity_multiplier := _get_base_proximity_multiplier(
-			base_distance_tiles
+			base_distance_tiles,
+			active_base_proximity_step
 		)
 		var total_score := (
 			float(base_score)
@@ -1648,14 +1666,32 @@ func _get_dry_ground_hit_lookup() -> Dictionary:
 	return hit_lookup
 
 
-func _get_dry_ground_score_for_hits(rain_hits: int) -> int:
+func _get_dry_ground_score_for_hits(
+	rain_hits: int,
+	active_scores: Array[int]
+) -> int:
 	match clampi(rain_hits, 0, 2):
 		1:
-			return maxi(dry_ground_one_hit_score, 0)
+			return active_scores[1]
 		2:
-			return maxi(dry_ground_two_hit_score, 0)
+			return active_scores[2]
 		_:
-			return maxi(dry_ground_zero_hit_score, 0)
+			return active_scores[0]
+
+
+func _get_active_dry_ground_scores(expansion_phase_active: bool) -> Array[int]:
+	if expansion_phase_active:
+		return [
+			maxi(expansion_dry_ground_zero_hit_score, 0),
+			maxi(expansion_dry_ground_one_hit_score, 0),
+			maxi(expansion_dry_ground_two_hit_score, 0)
+		]
+
+	return [
+		maxi(dry_ground_zero_hit_score, 0),
+		maxi(dry_ground_one_hit_score, 0),
+		maxi(dry_ground_two_hit_score, 0)
+	]
 
 
 func _collect_eligible_enemy_herbivore_footprints() -> Array[Rect2i]:
@@ -1859,13 +1895,32 @@ func _get_distance_from_rain_area_to_enemy_base(
 	)
 
 
-func _get_base_proximity_multiplier(distance_tiles: int) -> float:
+func _get_base_proximity_multiplier(
+	distance_tiles: int,
+	active_multiplier_step: float
+) -> float:
 	var reference_distance := _get_base_proximity_reference_distance_tiles()
 	var clamped_distance := clampi(distance_tiles, 0, reference_distance)
 	return (
 		1.0
 		+ float(reference_distance - clamped_distance)
-		* maxf(base_proximity_multiplier_step, 0.0)
+		* maxf(active_multiplier_step, 0.0)
+	)
+
+
+func _get_active_base_proximity_multiplier_step(
+	expansion_phase_active: bool
+) -> float:
+	if expansion_phase_active:
+		return maxf(expansion_base_proximity_multiplier_step, 0.0)
+
+	return maxf(base_proximity_multiplier_step, 0.0)
+
+
+func _is_rain_expansion_phase_active() -> bool:
+	return (
+		_get_enemy_elapsed_simulation_seconds()
+		>= maxf(rain_expansion_phase_start_seconds, 0.0)
 	)
 
 
@@ -2362,6 +2417,7 @@ func _reset_last_search_stats() -> void:
 	last_best_dry_ground_one_hit_count = 0
 	last_best_dry_ground_two_hit_count = 0
 	last_best_dry_ground_score = 0
+	last_rain_expansion_phase_active = _is_rain_expansion_phase_active()
 	last_eligible_herbivore_count = 0
 	last_best_near_herbivore_count = 0
 	last_best_medium_herbivore_count = 0
@@ -2437,6 +2493,12 @@ func _get_enemy_energy_debug_value(method_name: StringName) -> float:
 
 func get_rain_debug_data() -> Dictionary:
 	_update_combat_reserve_capacity_from_match_time()
+	var active_dry_ground_scores := _get_active_dry_ground_scores(
+		last_rain_expansion_phase_active
+	)
+	var active_base_proximity_step := _get_active_base_proximity_multiplier_step(
+		last_rain_expansion_phase_active
+	)
 	return {
 		"action_text": last_action_text,
 		"lightning_action_text": last_lightning_action_text,
@@ -2489,9 +2551,14 @@ func get_rain_debug_data() -> Dictionary:
 		"best_base_score": last_best_base_score,
 		"best_total_score": last_best_total_score,
 		"new_grass_score": maxi(new_grass_score, 0),
-		"dry_ground_zero_hit_score": maxi(dry_ground_zero_hit_score, 0),
-		"dry_ground_one_hit_score": maxi(dry_ground_one_hit_score, 0),
-		"dry_ground_two_hit_score": maxi(dry_ground_two_hit_score, 0),
+		"dry_ground_zero_hit_score": active_dry_ground_scores[0],
+		"dry_ground_one_hit_score": active_dry_ground_scores[1],
+		"dry_ground_two_hit_score": active_dry_ground_scores[2],
+		"rain_expansion_phase_active": last_rain_expansion_phase_active,
+		"rain_expansion_phase_start_seconds": maxf(
+			rain_expansion_phase_start_seconds,
+			0.0
+		),
 		"empty_area_score_multiplier": maxf(empty_area_score_multiplier, 0.0),
 		"herbivore_demand_multiplier_step": maxf(herbivore_demand_multiplier_step, 0.0),
 		"maximum_herbivore_score_multiplier": maxf(
@@ -2502,7 +2569,7 @@ func get_rain_debug_data() -> Dictionary:
 		"herbivore_medium_distance_tiles": _get_medium_herbivore_distance_tiles(),
 		"herbivore_far_distance_tiles": _get_far_herbivore_distance_tiles(),
 		"base_proximity_reference_distance_tiles": _get_base_proximity_reference_distance_tiles(),
-		"base_proximity_multiplier_step": maxf(base_proximity_multiplier_step, 0.0),
+		"base_proximity_multiplier_step": active_base_proximity_step,
 		"actual_new_grass": last_actual_new_grass,
 		"prediction_gap": last_best_predicted_new_grass - last_actual_new_grass,
 		"search_duration_msec": get_last_search_duration_msec(),
