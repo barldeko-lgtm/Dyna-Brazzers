@@ -127,7 +127,7 @@ Egg eaters are a separate diet category. From 90 to above 25 satiety they scan r
 
 ### Death and visuals
 
-Death stops normal behaviour immediately, releases world-grid occupancy, disables collision and picking, and leaves a short non-blocking corpse visual before removal. Species may show a brief transition pose before the final corpse pose; the player triceratops and tyrannosaurus currently use this two-step sequence.
+Death stops normal behaviour immediately, releases world-grid occupancy, disables collision and picking, and leaves a short non-blocking corpse visual before removal. Species may show a brief transition pose before the final corpse pose; the player stegosaurus, triceratops, and tyrannosaurus currently use this two-step sequence.
 
 Death transition texture and duration, final death texture, and corpse lifetime belong to species data. Missing transition art skips that step, while a missing final death texture falls back through the shared visual controller.
 

@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=14 format=3]
+[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/creatures/creature_species_data.gd" id="1_species_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_down.png" id="2_down"]
@@ -14,6 +14,7 @@
 [ext_resource type="SpriteFrames" path="res://data/animations/stegosaurus_walk_up_right_frames.tres" id="12_walk_up_right_frames"]
 [ext_resource type="SpriteFrames" path="res://data/animations/stegosaurus_eating_right_frames.tres" id="13_eating_right_frames"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_dead.png" id="14_death"]
+[ext_resource type="Texture2D" path="res://assets/sprites/creatures/stegosaurus/stegosaurus_death_transition.png" id="15_death_transition"]
 
 [resource]
 script = ExtResource("1_species_script")
@@ -32,6 +33,8 @@ walk_up_right_frames = ExtResource("12_walk_up_right_frames")
 eating_right_frames = ExtResource("13_eating_right_frames")
 walk_animation_fps = 4.0
 eating_animation_fps = 4.0
+death_transition_texture = ExtResource("15_death_transition")
+death_transition_duration = 0.3
 death_texture = ExtResource("14_death")
 corpse_lifetime = 3.0
 speed = 130.0
