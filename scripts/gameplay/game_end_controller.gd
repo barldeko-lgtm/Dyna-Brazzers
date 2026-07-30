@@ -132,11 +132,11 @@ func _present_match_result() -> void:
 		return
 
 	var is_victory := match_result == MatchResult.VICTORY
-	var title := "ПОБЕДА" if is_victory else "ПОРАЖЕНИЕ"
+	var title := "RESULT_VICTORY" if is_victory else "RESULT_DEFEAT"
 	var message := (
-		"Отличная работа — враг полностью уничтожен!"
+		"RESULT_VICTORY_MESSAGE"
 		if is_victory
-		else "Не вышло в этот раз. Возьмём реванш!"
+		else "RESULT_DEFEAT_MESSAGE"
 	)
 
 	result_overlay.call(

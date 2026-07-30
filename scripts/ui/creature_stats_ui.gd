@@ -37,6 +37,8 @@ var last_selected_highlighted: Node = null
 func _ready() -> void:
 	add_to_group("creature_stats_ui")
 	configure_compact_stats_layout()
+	_refresh_localized_text()
+	LocalizationManager.locale_changed.connect(_on_locale_changed)
 	panel.visible = false
 
 
@@ -272,9 +274,9 @@ func update_stats_text() -> void:
 		return
 
 	if current_creature.has_method("get_age"):
-		age_label.text = "Возраст: %d" % int(current_creature.get_age())
+		age_label.text = tr("CREATURE_AGE") % int(current_creature.get_age())
 	else:
-		age_label.text = "Возраст: ?"
+		age_label.text = tr("CREATURE_AGE_UNKNOWN")
 
 	var health_percent := 0.0
 	if current_creature.has_method("get_health_percent"):
@@ -306,6 +308,20 @@ func update_stats_text() -> void:
 		reproduction_icon.texture = current_creature.call(
 			"get_reproduction_egg_texture"
 		) as Texture2D
+
+
+func _on_locale_changed(_locale: String) -> void:
+	_refresh_localized_text()
+
+
+func _refresh_localized_text() -> void:
+	title_label.text = tr("CREATURE_GENERIC")
+	health_label.text = tr("HEALTH_LABEL")
+	hunger_label.text = tr("HUNGER_LABEL")
+	if is_instance_valid(current_creature):
+		update_stats_text()
+	else:
+		age_label.text = tr("CREATURE_AGE_UNKNOWN")
 
 
 # Compatibility hook for creature click input.

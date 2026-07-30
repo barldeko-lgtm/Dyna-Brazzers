@@ -1,0 +1,115 @@
+keys,ru,en,fr,de,uk
+MENU_NEW_GAME,Новая игра,New Game,Nouvelle partie,Neues Spiel,Нова гра
+MENU_CONTINUE,Продолжить,Continue,Continuer,Fortsetzen,Продовжити
+MENU_LOAD,Загрузка,Load,Charger,Laden,Завантажити
+MENU_SETTINGS,Настройки,Settings,Paramètres,Einstellungen,Налаштування
+MENU_EXIT,Выход,Exit,Quitter,Beenden,Вихід
+MENU_LEVEL_SELECT,Выбор уровня,Select Level,Choix du niveau,Level auswählen,Вибір рівня
+LEVEL_1_CURRENT,Уровень 1 - Текущая карта,Level 1 - Current Map,Niveau 1 - Carte actuelle,Level 1 - Aktuelle Karte,Рівень 1 - Поточна мапа
+LEVEL_2_NEW,Уровень 2 - Новая карта,Level 2 - New Map,Niveau 2 - Nouvelle carte,Level 2 - Neue Karte,Рівень 2 - Нова мапа
+MENU_BACK,Назад,Back,Retour,Zurück,Назад
+SETTINGS_TITLE,Настройки,Settings,Paramètres,Einstellungen,Налаштування
+SETTINGS_LANGUAGE,Язык,Language,Langue,Sprache,Мова
+SETTINGS_MUSIC,Музыка,Music,Musique,Musik,Музика
+SETTINGS_SOUNDS,Звуки,Sounds,Sons,Töne,Звуки
+STATUS_NEW_GAME_FAILED,Не удалось запустить новую игру.,Could not start a new game.,Impossible de démarrer une nouvelle partie.,Neues Spiel konnte nicht gestartet werden.,Не вдалося почати нову гру.
+STATUS_LOADING_LATEST,Загрузка последнего сохранения...,Loading latest save...,Chargement de la dernière sauvegarde...,Letzten Spielstand laden...,Завантаження останнього збереження...
+STATUS_LOAD_LATEST_FAILED,Не удалось загрузить последнее сохранение.,Could not load the latest save.,Impossible de charger la dernière sauvegarde.,Letzter Spielstand konnte nicht geladen werden.,Не вдалося завантажити останнє збереження.
+STATUS_LOADING_SLOT,Загрузка слота %d...,Loading slot %d...,Chargement de l'emplacement %d...,Spielstand %d wird geladen...,Завантаження слота %d...
+STATUS_LOAD_SLOT_FAILED,Не удалось загрузить слот %d.,Could not load slot %d.,Impossible de charger l'emplacement %d.,Spielstand %d konnte nicht geladen werden.,Не вдалося завантажити слот %d.
+STATUS_LOADING_AUTOSAVE,Загрузка автосохранения...,Loading autosave...,Chargement de la sauvegarde automatique...,Autospeicher wird geladen...,Завантаження автозбереження...
+STATUS_LOAD_AUTOSAVE_FAILED,Не удалось загрузить автосохранение.,Could not load the autosave.,Impossible de charger la sauvegarde automatique.,Autospeicher konnte nicht geladen werden.,Не вдалося завантажити автозбереження.
+STATUS_SELECT_LEVEL,Выберите уровень.,Select a level.,Choisissez un niveau.,Level auswählen.,Виберіть рівень.
+STATUS_SELECT_LOAD_SLOT,Выберите слот для загрузки.,Select a save to load.,Choisissez une sauvegarde à charger.,Spielstand zum Laden auswählen.,Виберіть збереження для завантаження.
+STATUS_NO_SAVES,Сохранений пока нет.,No saves yet.,Aucune sauvegarde.,Noch keine Spielstände.,Збережень поки немає.
+MENU_TITLE,Меню,Menu,Menu,Menü,Меню
+MENU_SAVE,Сохранить,Save,Sauvegarder,Speichern,Зберегти
+MENU_LOAD_ACTION,Загрузить,Load,Charger,Laden,Завантажити
+MENU_MAIN_MENU,Главное меню,Main Menu,Menu principal,Hauptmenü,Головне меню
+MENU_QUIT_GAME,Закрыть игру,Quit Game,Quitter le jeu,Spiel beenden,Закрити гру
+STATUS_MAIN_MENU_FAILED,Не удалось открыть главное меню.,Could not open the main menu.,Impossible d'ouvrir le menu principal.,Hauptmenü konnte nicht geöffnet werden.,Не вдалося відкрити головне меню.
+STATUS_SAVE_OK,Игра сохранена в слот %d.,Game saved to slot %d.,Partie sauvegardée dans l'emplacement %d.,Spiel in Spielstand %d gespeichert.,Гру збережено в слот %d.
+STATUS_SAVE_FAILED,Не удалось сохранить слот %d.,Could not save slot %d.,Impossible d'enregistrer l'emplacement %d.,Spielstand %d konnte nicht gespeichert werden.,Не вдалося зберегти слот %d.
+MENU_TOOLTIP,Меню: сохранение и загрузка,Menu: save and load,Menu : sauvegarder et charger,Menü: Speichern und Laden,Меню: збереження та завантаження
+MENU_TOOLTIP_WITH_SETTINGS,Меню: сохранение загрузка и настройки,Menu: save load and settings,Menu : sauvegarde chargement et paramètres,Menü: Speichern Laden und Einstellungen,Меню: збереження завантаження та налаштування
+SAVE_AUTOSAVE_SHORT,Автосохр.,Autosave,Sauv. auto,Autospeicher,Автозбер.
+SAVE_EMPTY,пусто,empty,vide,leer,порожньо
+SAVE_CORRUPTED,повреждено,corrupted,endommagé,beschädigt,пошкоджено
+SAVE_SLOT_UNAVAILABLE,Слот недоступен,Slot unavailable,Emplacement indisponible,Spielstand nicht verfügbar,Слот недоступний
+SAVE_SLOT_EMPTY,Слот %d,Slot %d,Emplacement %d,Spielstand %d,Слот %d
+SAVE_SLOT_CORRUPTED,Слот %d - повреждён,Slot %d - corrupted,Emplacement %d - endommagé,Spielstand %d - beschädigt,Слот %d - пошкоджено
+SAVE_MAP_LABEL,М%d,M%d,C%d,K%d,М%d
+SAVE_WITHOUT_TIME,%s%s - сохранение,%s%s - save,%s%s - sauvegarde,%s%s - Spielstand,%s%s - збереження
+NATURE_EGG,Яйцо,Egg,Œuf,Ei,Яйце
+NATURE_BASE,База,Base,Base,Basis,База
+NATURE_SPELLS,Заклинания,Spells,Sorts,Zauber,Заклинання
+NATURE_ENEMY,Противник,Enemy,Ennemi,Gegner,Противник
+NATURE_FLAG,Флажок,Flag,Drapeau,Flagge,Прапорець
+NATURE_MENU,Меню,Menu,Menu,Menü,Меню
+NATURE_BASE_BUTTON,БАЗА,BASE,BASE,BASIS,БАЗА
+NATURE_ENEMY_BUTTON,ВРАГ,ENEMY,ENNEMI,FEIND,ВОРОГ
+NATURE_MENU_BUTTON,МЕНЮ,MENU,MENU,MENÜ,МЕНЮ
+SPELL_LIGHTNING,Молния,Lightning,Foudre,Blitz,Блискавка
+SPELL_RAIN,Дождь,Rain,Pluie,Regen,Дощ
+SPELL_SUN,Солнце,Sun,Soleil,Sonne,Сонце
+SPELL_EARTHQUAKE,Землетрясение,Earthquake,Séisme,Erdbeben,Землетрус
+RESULT_VICTORY,ПОБЕДА,VICTORY,VICTOIRE,SIEG,ПЕРЕМОГА
+RESULT_DEFEAT,ПОРАЖЕНИЕ,DEFEAT,DÉFAITE,NIEDERLAGE,ПОРАЗКА
+RESULT_VICTORY_MESSAGE,Отличная работа - враг полностью уничтожен!,Great work - the enemy has been completely destroyed!,Excellent travail - l'ennemi est entièrement détruit !,Gute Arbeit - der Gegner wurde vollständig vernichtet!,Чудова робота - ворога повністю знищено!
+RESULT_DEFEAT_MESSAGE,Не вышло в этот раз. Возьмём реванш!,Not this time. We will get them next time!,Pas cette fois. Nous prendrons notre revanche !,Diesmal nicht. Beim nächsten Mal schaffen wir es!,Цього разу не вийшло. Наступного разу переможемо!
+RESULT_TIME,Время партии: %s,Game time: %s,Durée de la partie : %s,Spielzeit: %s,Час гри: %s
+RESULT_MAIN_MENU,В главное меню,Main Menu,Menu principal,Hauptmenü,До головного меню
+MINIMAP_TOOLTIP,Миникарта мира - ЛКМ: переместить камеру,World minimap - LMB: move camera,Mini-carte du monde - clic gauche : déplacer la caméra,Welt-Minimap - Linksklick: Kamera bewegen,Мінімапа світу - ЛКМ: перемістити камеру
+SPECIES_STEGOSAURUS,Стегозавр,Stegosaurus,Stégosaure,Stegosaurus,Стегозавр
+SPECIES_TRICERATOPS,Трицератопс,Triceratops,Tricératops,Triceratops,Трицератопс
+SPECIES_TYRANNOSAURUS,Тираннозавр,Tyrannosaurus,Tyrannosaure,Tyrannosaurus,Тиранозавр
+SPECIES_RAPTOR,Раптор,Raptor,Raptor,Raptor,Раптор
+SPECIES_PTERODACTYL,Птеродактиль,Pterodactyl,Ptérodactyle,Pterodaktylus,Птеродактиль
+SPECIES_EGG_EATER,Яйцеед,Egg Eater,Mangeur d'œufs,Eierfresser,Яйцеїд
+EGG_MENU_TOOLTIP,Создание яиц,Egg creation,Création d'œufs,Eier erstellen,Створення яєць
+EGG_ENERGY_COST,%d энки,%d energy,%d énergie,%d Energie,%d енки
+EGG_CREATE_TOOLTIP,Создать яйцо: %s,Create egg: %s,Créer un œuf : %s,Ei erstellen: %s,Створити яйце: %s
+EGG_SELECT_SPECIES,Выберите вид,Select species,Choisissez une espèce,Art auswählen,Виберіть вид
+EGG_NOT_ENOUGH_ENERGY,Не хватает энки,Not enough energy,Énergie insuffisante,Nicht genug Energie,Не вистачає енки
+EGG_BASE_NOT_FOUND,База не найдена,Base not found,Base introuvable,Basis nicht gefunden,Базу не знайдено
+EGG_NO_SPACE,Нет места у базы,No space near the base,Aucune place près de la base,Kein Platz bei der Basis,Немає місця біля бази
+EGG_CREATED,Создано: %s,Created: %s,Créé : %s,Erstellt: %s,Створено: %s
+BACK_ARROW,← Назад,← Back,← Retour,← Zurück,← Назад
+BACK_TOOLTIP,Вернуться в основное меню,Return to main menu,Revenir au menu principal,Zum Hauptmenü zurückkehren,Повернутися до головного меню
+FLAG_MENU_TOOLTIP,Флаги видов,Species flags,Drapeaux d'espèce,Artenflaggen,Прапорці видів
+FLAG_NONE,Флагов нет,No flags,Aucun drapeau,Keine Flaggen,Прапорців немає
+FLAG_COUNT,Флагов: %d,Flags: %d,Drapeaux : %d,Flaggen: %d,Прапорців: %d
+FLAG_DEFAULT_BUTTON,Флаг\nвида,Species\nflag,Drapeau\nd'espèce,Arten-\nflagge,Прапорець\nвиду
+FLAG_DEFAULT_TOOLTIP,Поставить или перенести флаг вида,Place or move a species flag,Placer ou déplacer un drapeau d'espèce,Artenflagge setzen oder verschieben,Поставити або перенести прапорець виду
+FLAG_REMOVE_BUTTON,Удалить\nфлаг,Remove\nflag,Supprimer\ndrapeau,Flagge\nlöschen,Видалити\nпрапорець
+FLAG_REMOVE_TOOLTIP,Выбрать флаг на карте для удаления,Select a flag on the map to remove,Choisir un drapeau à supprimer sur la carte,Flagge auf der Karte zum Löschen auswählen,Вибрати прапорець на мапі для видалення
+FLAG_WORLD_NOT_FOUND,Мир не найден,World not found,Monde introuvable,Welt nicht gefunden,Світ не знайдено
+FLAG_PLACE_HINT,ЛКМ по карте\nПКМ - отмена,LMB on map\nRMB - cancel,Clic gauche sur la carte\nClic droit - annuler,Linksklick auf Karte\nRechtsklick - Abbruch,ЛКМ по мапі\nПКМ - скасувати
+FLAG_REMOVE_HINT,ЛКМ по флагу\nПКМ - отмена,LMB on flag\nRMB - cancel,Clic gauche sur le drapeau\nClic droit - annuler,Linksklick auf Flagge\nRechtsklick - Abbruch,ЛКМ по прапорцю\nПКМ - скасувати
+FLAG_CANCELLED,Установка отменена,Placement cancelled,Placement annulé,Platzierung abgebrochen,Встановлення скасовано
+FLAG_CENTER_REQUIRED,Нужен центр\nфлага,Select flag\ncenter,Sélectionnez le centre\ndu drapeau,Flaggenmitte\nauswählen,Потрібен центр\nпрапорця
+FLAG_REMOVED,Флаг удалён,Flag removed,Drapeau supprimé,Flagge entfernt,Прапорець видалено
+FLAG_FREE_TILE_REQUIRED,Нужен свободный\nтайл земли,Free ground\ntile required,Case de terrain\nlibre requise,Freies Bodenfeld\nerforderlich,Потрібен вільний\nтайл землі
+FLAG_PLACED,Флаг поставлен,Flag placed,Drapeau placé,Flagge gesetzt,Прапорець встановлено
+FLAG_STEGOSAURUS_BUTTON,Стего\nпастбище,Stego\npasture,Stégo\npâturage,Stego\nWeide,Стего\nпасовище
+FLAG_STEGOSAURUS_TOOLTIP,Поставить или перенести пастбищный флаг стегозавров,Place or move the stegosaurus pasture flag,Placer ou déplacer le drapeau de pâturage des stégosaures,Weideflagge der Stegosaurier setzen oder verschieben,Поставити або перенести пасовищний прапорець стегозаврів
+FLAG_TRICERATOPS_BUTTON,Трицер\nпастбище,Tricer\npasture,Tricé\npâturage,Tricera\nWeide,Трицер\nпасовище
+FLAG_TRICERATOPS_TOOLTIP,Поставить или перенести пастбищный флаг трицератопсов,Place or move the triceratops pasture flag,Placer ou déplacer le drapeau de pâturage des tricératops,Weideflagge der Triceratops setzen oder verschieben,Поставити або перенести пасовищний прапорець трицератопсів
+FLAG_TYRANNOSAURUS_BUTTON,Ти-рекс\nохота,T-Rex\nhunt,T-Rex\nchasse,T-Rex\nJagd,Ти-рекс\nполювання
+FLAG_TYRANNOSAURUS_TOOLTIP,Поставить или перенести флаг охоты ти-рексов,Place or move the T-Rex hunting flag,Placer ou déplacer le drapeau de chasse des T-Rex,Jagdflagge der T-Rex setzen oder verschieben,Поставити або перенести прапорець полювання ти-рексів
+FLAG_RAPTOR_BUTTON,Раптор\nзащита,Raptor\ndefense,Raptor\ndéfense,Raptor\nSchutz,Раптор\nзахист
+FLAG_RAPTOR_TOOLTIP,Поставить или перенести защитный флаг рапторов,Place or move the raptor defense flag,Placer ou déplacer le drapeau de défense des raptors,Schutzflagge der Raptoren setzen oder verschieben,Поставити або перенести захисний прапорець рапторів
+FLAG_PTERODACTYL_BUTTON,Птеро\nпатруль,Ptero\npatrol,Ptéro\npatrouille,Ptero\nPatrouille,Птеро\nпатруль
+FLAG_PTERODACTYL_TOOLTIP,Поставить или перенести патрульный флаг птеродактилей,Place or move the pterodactyl patrol flag,Placer ou déplacer le drapeau de patrouille des ptérodactyles,Patrouillenflagge der Pterodaktylen setzen oder verschieben,Поставити або перенести патрульний прапорець птеродактилів
+FLAG_EGG_EATER_BUTTON,Яйцеед\nпоиск,Egg eater\nsearch,Mangeur\nrecherche,Eierfresser\nSuche,Яйцеїд\nпошук
+FLAG_EGG_EATER_TOOLTIP,Поставить или перенести флаг поиска яйцеедов,Place or move the egg eater search flag,Placer ou déplacer le drapeau de recherche des mangeurs d'œufs,Suchflagge der Eierfresser setzen oder verschieben,Поставити або перенести пошуковий прапорець яйцеїдів
+CREATURE_GENERIC,Существо,Creature,Créature,Kreatur,Істота
+CREATURE_AGE,Возраст: %d,Age: %d,Âge : %d,Alter: %d,Вік: %d
+CREATURE_AGE_UNKNOWN,Возраст: ?,Age: ?,Âge : ?,Alter: ?,Вік: ?
+HEALTH_LABEL,Здоровье,Health,Santé,Gesundheit,Здоров'я
+HUNGER_LABEL,Сытость,Satiety,Satiété,Sättigung,Ситість
+HUD_HERBIVORE_SHORT,Тр,Her,Her,Pfl,Тр
+HUD_PREDATOR_SHORT,Хщ,Pred,Pré,Räu,Хиж
+HUD_EGG_EATER_SHORT,Яц,EggE,Ovf,Efr,Яїд
+HUD_EGG_SHORT,Яй,Egg,Œuf,Ei,Яй
+HUD_TOTAL_SHORT,Вс,All,Tot,Ges,Всі

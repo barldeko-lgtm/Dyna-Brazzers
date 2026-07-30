@@ -14,7 +14,7 @@ var back_button: Button = null
 func _ready() -> void:
 	toggle_mode = true
 	button_pressed = false
-	tooltip_text = "Заклинания"
+	tooltip_text = tr("NATURE_SPELLS")
 
 	for spell_button_path in spell_button_paths:
 		var node := get_node_or_null(spell_button_path)

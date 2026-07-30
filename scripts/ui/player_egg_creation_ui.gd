@@ -12,6 +12,8 @@ var egg_menu_button: Button = null
 var egg_menu_grid: GridContainer = null
 var status_label: Label = null
 var egg_buttons: Dictionary = {}
+var current_status_key := "EGG_SELECT_SPECIES"
+var current_status_species_key := ""
 
 
 func _ready() -> void:
@@ -36,7 +38,8 @@ func _ready() -> void:
 		return
 
 	_build_egg_menu()
-	egg_menu_button.tooltip_text = "Создание яиц"
+	_refresh_localized_text()
+	LocalizationManager.locale_changed.connect(_on_locale_changed)
 
 	if not egg_menu_button.pressed.is_connected(_on_egg_menu_button_pressed):
 		egg_menu_button.pressed.connect(_on_egg_menu_button_pressed)
@@ -68,6 +71,7 @@ func _build_egg_menu() -> void:
 
 	for option: Dictionary in PLAYER_SPECIES_CATALOG.get_egg_entries():
 		var species_data := option.get("species_data") as CreatureSpeciesData
+		var species_name_key := String(option.get("species_name_key", ""))
 		var energy_cost := float(option.get("egg_purchase_cost", 0.0))
 
 		if species_data == null:
@@ -76,8 +80,9 @@ func _build_egg_menu() -> void:
 		var species_button := _duplicate_menu_button()
 		species_button.name = "%sEggButton" % species_data.species_id.to_pascal_case()
 		species_button.custom_minimum_size = Vector2(126.0, 46.0)
-		species_button.text = "%s\n%d энки" % [species_data.species_name, floori(energy_cost)]
-		species_button.tooltip_text = "Создать яйцо: %s" % species_data.species_name
+		species_button.set_meta(&"species_name_key", species_name_key)
+		species_button.set_meta(&"energy_cost", energy_cost)
+		_update_species_button_text(species_button)
 		species_button.add_theme_font_size_override("font_size", 14)
 		species_button.pressed.connect(_on_species_button_pressed.bind(species_data, energy_cost))
 		egg_menu_grid.add_child(species_button)
@@ -86,8 +91,8 @@ func _build_egg_menu() -> void:
 	var back_button := _duplicate_menu_button()
 	back_button.name = "EggMenuBackButton"
 	back_button.custom_minimum_size = Vector2(126.0, 46.0)
-	back_button.text = "← Назад"
-	back_button.tooltip_text = "Вернуться в основное меню"
+	back_button.text = tr("BACK_ARROW")
+	back_button.tooltip_text = tr("BACK_TOOLTIP")
 	back_button.add_theme_font_size_override("font_size", 18)
 	back_button.pressed.connect(_on_back_button_pressed)
 	egg_menu_grid.add_child(back_button)
@@ -99,7 +104,7 @@ func _build_egg_menu() -> void:
 	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	status_label.add_theme_font_size_override("font_size", 11)
-	status_label.text = "Выберите вид"
+	status_label.text = tr("EGG_SELECT_SPECIES")
 	egg_menu_grid.add_child(status_label)
 
 
@@ -122,7 +127,7 @@ func _on_egg_menu_button_pressed() -> void:
 
 	main_menu_grid.visible = false
 	egg_menu_grid.visible = true
-	_set_status("Выберите вид")
+	_set_status_key("EGG_SELECT_SPECIES")
 	_update_species_buttons()
 
 
@@ -136,27 +141,28 @@ func _on_species_button_pressed(species_data: CreatureSpeciesData, energy_cost: 
 		return
 
 	if not _can_spend_energy(energy_cost):
-		_set_status("Не хватает энки")
+		_set_status_key("EGG_NOT_ENOUGH_ENERGY")
 		return
 
 	var player_base := get_tree().get_first_node_in_group("player_base")
 
 	if player_base == null or not player_base.has_method("create_player_egg"):
-		_set_status("База не найдена")
+		_set_status_key("EGG_BASE_NOT_FOUND")
 		return
 
 	var created_egg := player_base.call("create_player_egg", species_data) as Node2D
 
 	if created_egg == null:
-		_set_status("Нет места у базы")
+		_set_status_key("EGG_NO_SPACE")
 		return
 
 	if player_energy == null or not bool(player_energy.call("spend", energy_cost)):
 		created_egg.queue_free()
-		_set_status("Не хватает энки")
+		_set_status_key("EGG_NOT_ENOUGH_ENERGY")
 		return
 
-	_set_status("Создано: %s" % species_data.species_name)
+	var catalog_entry := PLAYER_SPECIES_CATALOG.get_entry(species_data.species_id)
+	_set_status_key("EGG_CREATED", String(catalog_entry.get("species_name_key", "")))
 	_update_species_buttons()
 
 
@@ -181,3 +187,39 @@ func _update_species_buttons() -> void:
 func _set_status(message: String) -> void:
 	if status_label != null:
 		status_label.text = message
+
+
+func _set_status_key(key: String, species_name_key: String = "") -> void:
+	current_status_key = key
+	current_status_species_key = species_name_key
+	var message := tr(key)
+	if not species_name_key.is_empty():
+		message = message % tr(species_name_key)
+	_set_status(message)
+
+
+func _on_locale_changed(_locale: String) -> void:
+	_refresh_localized_text()
+
+
+func _refresh_localized_text() -> void:
+	if egg_menu_button != null:
+		egg_menu_button.tooltip_text = tr("EGG_MENU_TOOLTIP")
+	for button_variant: Variant in egg_buttons.keys():
+		var button := button_variant as Button
+		if button != null and is_instance_valid(button):
+			_update_species_button_text(button)
+	if egg_menu_grid != null:
+		var back_button := egg_menu_grid.get_node_or_null("EggMenuBackButton") as Button
+		if back_button != null:
+			back_button.text = tr("BACK_ARROW")
+			back_button.tooltip_text = tr("BACK_TOOLTIP")
+	_set_status_key(current_status_key, current_status_species_key)
+
+
+func _update_species_button_text(button: Button) -> void:
+	var species_name_key := String(button.get_meta(&"species_name_key", ""))
+	var energy_cost := float(button.get_meta(&"energy_cost", 0.0))
+	var species_name := tr(species_name_key) if not species_name_key.is_empty() else "?"
+	button.text = "%s\n%s" % [species_name, tr("EGG_ENERGY_COST") % floori(energy_cost)]
+	button.tooltip_text = tr("EGG_CREATE_TOOLTIP") % species_name

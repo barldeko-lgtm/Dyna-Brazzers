@@ -620,7 +620,9 @@ Rules:
 - simulation speed advances the autosave cadence proportionally; loading, an open menu, zero time scale, or a finished match suspends it;
 - the startup and in-game load menus expose autosave separately and must never let it replace any manual slot;
 - the startup Continue button stays directly below New Game, ignores invalid candidates, and uses the same validated load paths rather than bypassing reconstruction;
-- the five-button startup main panel is centred 100 pixels below the viewport midpoint; hide the empty status row in this state so the panel frame closes after Exit, but reveal it before showing Continue/load errors;
+- the five-button startup main panel is centred 150 pixels below the viewport midpoint and displays `assets/ui/start_menu_frame.png` at a fixed 370x432 size; its centred 260x50 main buttons use 10-pixel separation, stay clear of both side ornaments, and sit 20 pixels lower than the initial textured layout; startup buttons/headings use Philosopher Bold and secondary labels use Philosopher Regular; hide the empty status row in this state, but reveal it before showing Continue/load errors;
+- player-facing menus, save labels, nature/egg/flag controls, result UI, creature age, minimap tooltip, and compact HUD headers use `localization/ui.csv` through `TranslationServer`; supported locales are `ru`, `en`, `fr`, `de`, and `uk`, with `ru` as the first-run default and the selected locale stored separately in `user://dyna_locale.cfg`;
+- language selection is the first setting in both startup and in-game Settings and refreshes the open interface; F3-F8 overlays and internal diagnostics remain deliberately untranslated;
 - invalid slots remain visible but cannot be loaded;
 - missing optional faction/flag/enemy/combat-reserve/match-end fields must not invalidate old saves;
 - empty manual entries show `Слот 1` through `Слот 3`; occupied manual entries omit the slot label and show only map plus timestamp in the form `М1 - ДД.ММ ЧЧ:ММ`, while the separate autosave uses `Автосохр. - М1 - ДД.ММ ЧЧ:ММ`;

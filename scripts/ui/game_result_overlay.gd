@@ -14,6 +14,7 @@ const DEFEAT_TITLE_COLOR := Color(1.0, 0.35, 0.30, 1.0)
 
 func _ready() -> void:
 	visible = false
+	main_menu_button.text = tr("RESULT_MAIN_MENU")
 	var button_callable := Callable(self, "_on_main_menu_button_pressed")
 
 	if not main_menu_button.pressed.is_connected(button_callable):
@@ -26,9 +27,9 @@ func show_result(
 	formatted_duration: String,
 	is_victory: bool
 ) -> void:
-	title_label.text = title_text
-	message_label.text = message_text
-	time_label.text = "Время партии: %s" % formatted_duration
+	title_label.text = tr(title_text)
+	message_label.text = tr(message_text)
+	time_label.text = tr("RESULT_TIME") % formatted_duration
 	title_label.add_theme_color_override(
 		"font_color",
 		VICTORY_TITLE_COLOR if is_victory else DEFEAT_TITLE_COLOR

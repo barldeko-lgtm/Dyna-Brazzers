@@ -11,6 +11,8 @@ var main_menu_grid: GridContainer = null
 var flag_menu_button: Button = null
 var flag_menu_grid: GridContainer = null
 var status_label: Label = null
+var current_status_key := ""
+var current_status_value := -1
 
 var targeting_species_id := StringName()
 var removal_targeting_enabled := false
@@ -35,14 +37,21 @@ func attach(
 	_build_flag_menu(menu_entries)
 
 	if flag_menu_button != null:
-		flag_menu_button.tooltip_text = "Флаги видов"
+		flag_menu_button.tooltip_text = tr("FLAG_MENU_TOOLTIP")
 
 		if not flag_menu_button.pressed.is_connected(_on_flag_menu_button_pressed):
 			flag_menu_button.pressed.connect(_on_flag_menu_button_pressed)
 
+	var locale_callable := Callable(self, "_on_locale_changed")
+	if not LocalizationManager.locale_changed.is_connected(locale_callable):
+		LocalizationManager.locale_changed.connect(locale_callable)
+
 
 func detach() -> void:
 	cancel_targeting()
+	var locale_callable := Callable(self, "_on_locale_changed")
+	if LocalizationManager.locale_changed.is_connected(locale_callable):
+		LocalizationManager.locale_changed.disconnect(locale_callable)
 	nature_ui = null
 	nature_content = null
 	main_menu_grid = null
@@ -99,13 +108,15 @@ func is_targeting() -> bool:
 
 func refresh_status() -> void:
 	if int(owner.call("get_flag_count")) <= 0:
-		_set_status("Флагов нет")
+		_set_status_key("FLAG_NONE")
 		return
 
-	_set_status("Флагов: %d" % int(owner.call("get_flag_count")))
+	_set_status_key("FLAG_COUNT", int(owner.call("get_flag_count")))
 
 
 func set_status(message: String) -> void:
+	current_status_key = ""
+	current_status_value = -1
 	_set_status(message)
 
 
@@ -132,10 +143,12 @@ func _build_flag_menu(menu_entries: Array[Dictionary]) -> void:
 		var species_button := _duplicate_menu_button()
 		species_button.name = "%sFlagButton" % String(species_id).capitalize()
 		species_button.custom_minimum_size = Vector2(80.0, 52.0)
-		species_button.text = String(entry.get("button_text", "Флаг\nвида"))
-		species_button.tooltip_text = String(
-			entry.get("tooltip", "Поставить или перенести флаг вида")
-		)
+		var button_key := String(entry.get("button_key", "FLAG_DEFAULT_BUTTON"))
+		var tooltip_key := String(entry.get("tooltip_key", "FLAG_DEFAULT_TOOLTIP"))
+		species_button.set_meta(&"translation_key", button_key)
+		species_button.set_meta(&"tooltip_translation_key", tooltip_key)
+		species_button.text = tr(button_key)
+		species_button.tooltip_text = tr(tooltip_key)
 		species_button.add_theme_font_size_override("font_size", 11)
 		species_button.pressed.connect(_on_species_flag_pressed.bind(species_id))
 		flag_menu_grid.add_child(species_button)
@@ -143,8 +156,10 @@ func _build_flag_menu(menu_entries: Array[Dictionary]) -> void:
 	var remove_button := _duplicate_menu_button()
 	remove_button.name = "RemoveSpeciesFlagButton"
 	remove_button.custom_minimum_size = Vector2(80.0, 52.0)
-	remove_button.text = "Удалить\nфлаг"
-	remove_button.tooltip_text = "Выбрать флаг на карте для удаления"
+	remove_button.set_meta(&"translation_key", "FLAG_REMOVE_BUTTON")
+	remove_button.set_meta(&"tooltip_translation_key", "FLAG_REMOVE_TOOLTIP")
+	remove_button.text = tr("FLAG_REMOVE_BUTTON")
+	remove_button.tooltip_text = tr("FLAG_REMOVE_TOOLTIP")
 	remove_button.add_theme_font_size_override("font_size", 12)
 	remove_button.pressed.connect(_on_remove_flag_pressed)
 	flag_menu_grid.add_child(remove_button)
@@ -152,8 +167,10 @@ func _build_flag_menu(menu_entries: Array[Dictionary]) -> void:
 	var back_button := _duplicate_menu_button()
 	back_button.name = "FlagMenuBackButton"
 	back_button.custom_minimum_size = Vector2(80.0, 52.0)
-	back_button.text = "← Назад"
-	back_button.tooltip_text = "Вернуться в основное меню"
+	back_button.set_meta(&"translation_key", "BACK_ARROW")
+	back_button.set_meta(&"tooltip_translation_key", "BACK_TOOLTIP")
+	back_button.text = tr("BACK_ARROW")
+	back_button.tooltip_text = tr("BACK_TOOLTIP")
 	back_button.add_theme_font_size_override("font_size", 14)
 	back_button.pressed.connect(_on_back_button_pressed)
 	flag_menu_grid.add_child(back_button)
@@ -184,6 +201,7 @@ func _duplicate_menu_button() -> Button:
 
 func _on_flag_menu_button_pressed() -> void:
 	_cancel_other_nature_targeting()
+	_refresh_localized_text()
 
 	if main_menu_grid != null:
 		main_menu_grid.visible = false
@@ -198,20 +216,20 @@ func _on_species_flag_pressed(species_id: StringName) -> void:
 	var world_grid: Node = owner.call("get_world_grid")
 
 	if world_grid == null or not is_instance_valid(world_grid):
-		_set_status("Мир не найден")
+		_set_status_key("FLAG_WORLD_NOT_FOUND")
 		return
 
 	_cancel_other_nature_targeting()
 	removal_targeting_enabled = false
 	targeting_species_id = species_id
-	_set_status("ЛКМ по карте\nПКМ — отмена")
+	_set_status_key("FLAG_PLACE_HINT")
 	update_targeting_preview()
 
 
 func _on_remove_flag_pressed() -> void:
 	cancel_targeting()
 	removal_targeting_enabled = true
-	_set_status("ЛКМ по флагу\nПКМ — отмена")
+	_set_status_key("FLAG_REMOVE_HINT")
 
 
 func _on_back_button_pressed() -> void:
@@ -239,7 +257,7 @@ func _handle_targeting_mouse(mouse_event: InputEventMouseButton) -> bool:
 
 func _cancel_targeting_from_mouse() -> bool:
 	cancel_targeting()
-	_set_status("Установка отменена")
+	_set_status_key("FLAG_CANCELLED")
 	return true
 
 
@@ -264,23 +282,23 @@ func _try_remove_flag_at(target_tile: Vector2i) -> bool:
 	var species_id := StringName(owner.call("get_species_flag_at_tile", target_tile))
 
 	if species_id == StringName():
-		_set_status("Нужен центр\nфлага")
+		_set_status_key("FLAG_CENTER_REQUIRED")
 		return false
 
 	owner.call("remove_flag", species_id)
 	cancel_targeting()
-	_set_status("Флаг удалён")
+	_set_status_key("FLAG_REMOVED")
 	return true
 
 
 func _try_place_flag_at(target_tile: Vector2i) -> bool:
 	if not bool(owner.call("is_valid_flag_tile", target_tile)):
-		_set_status("Нужен свободный\nтайл земли")
+		_set_status_key("FLAG_FREE_TILE_REQUIRED")
 		return false
 
 	owner.call("set_flag", targeting_species_id, target_tile)
 	cancel_targeting()
-	_set_status("Флаг поставлен")
+	_set_status_key("FLAG_PLACED")
 	return true
 
 
@@ -306,3 +324,32 @@ func _hide_preview() -> void:
 func _set_status(message: String) -> void:
 	if status_label != null and is_instance_valid(status_label):
 		status_label.text = message
+
+
+func _set_status_key(key: String, value: int = -1) -> void:
+	current_status_key = key
+	current_status_value = value
+	var message := tr(key)
+	if value >= 0:
+		message = message % value
+	_set_status(message)
+
+
+func _on_locale_changed(_locale: String) -> void:
+	_refresh_localized_text()
+
+
+func _refresh_localized_text() -> void:
+	if flag_menu_button != null and is_instance_valid(flag_menu_button):
+		flag_menu_button.tooltip_text = tr("FLAG_MENU_TOOLTIP")
+	if flag_menu_grid != null and is_instance_valid(flag_menu_grid):
+		for child: Node in flag_menu_grid.get_children():
+			var button := child as Button
+			if button == null:
+				continue
+			if button.has_meta(&"translation_key"):
+				button.text = tr(String(button.get_meta(&"translation_key")))
+			if button.has_meta(&"tooltip_translation_key"):
+				button.tooltip_text = tr(String(button.get_meta(&"tooltip_translation_key")))
+	if not current_status_key.is_empty():
+		_set_status_key(current_status_key, current_status_value)

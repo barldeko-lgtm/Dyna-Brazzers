@@ -205,12 +205,12 @@ func _on_menu_button_pressed() -> void:
 func _show_action_menu() -> void:
 	current_slot_mode = ""
 	_clear_menu_vbox()
-	_add_title_label("Меню")
-	_add_menu_button("Сохранить", _on_save_mode_pressed, 34.0)
-	_add_menu_button("Загрузить", _on_load_mode_pressed, 34.0)
-	_add_menu_button("Главное меню", _on_main_menu_pressed, 34.0)
-	_add_menu_button("Закрыть игру", _on_quit_game_pressed, 34.0)
-	_add_menu_button("Назад", _on_close_menu_pressed, 34.0)
+	_add_title_label("MENU_TITLE")
+	_add_menu_button("MENU_SAVE", _on_save_mode_pressed, 34.0)
+	_add_menu_button("MENU_LOAD_ACTION", _on_load_mode_pressed, 34.0)
+	_add_menu_button("MENU_MAIN_MENU", _on_main_menu_pressed, 34.0)
+	_add_menu_button("MENU_QUIT_GAME", _on_quit_game_pressed, 34.0)
+	_add_menu_button("MENU_BACK", _on_close_menu_pressed, 34.0)
 
 	if not status_message.is_empty():
 		_add_status_label(status_message)
@@ -232,9 +232,9 @@ func _show_slot_menu() -> void:
 	_clear_menu_vbox()
 
 	if current_slot_mode == "save":
-		_add_title_label("Сохранить")
+		_add_title_label("MENU_SAVE")
 	else:
-		_add_title_label("Загрузить")
+		_add_title_label("MENU_LOAD_ACTION")
 		var autosave_button := _create_styled_button()
 		autosave_button.custom_minimum_size = Vector2(260.0, 34.0)
 		autosave_button.disabled = not has_autosave()
@@ -255,14 +255,14 @@ func _show_slot_menu() -> void:
 		menu_vbox.add_child(slot_button)
 		apply_save_button_text(slot_button, _get_slot_button_text(slot_index), 18, 12)
 
-	_add_menu_button("Назад", _on_slots_back_pressed, 40.0)
+	_add_menu_button("MENU_BACK", _on_slots_back_pressed, 40.0)
 
 
 func _on_autosave_slot_pressed() -> void:
 	if not has_autosave():
 		return
 
-	status_message = "Загрузка автосохранения..."
+	status_message = tr("STATUS_LOADING_AUTOSAVE")
 	_show_slot_menu()
 	var load_succeeded: bool = await load_autosave()
 
@@ -270,7 +270,7 @@ func _on_autosave_slot_pressed() -> void:
 		_close_menu(false)
 		return
 
-	status_message = "Не удалось загрузить автосохранение."
+	status_message = tr("STATUS_LOAD_AUTOSAVE_FAILED")
 	_show_slot_menu()
 
 
@@ -296,7 +296,7 @@ func _on_main_menu_pressed() -> void:
 	# If the scene switch failed, restore the in-game menu.
 	menu_open = true
 	Engine.time_scale = 0.0
-	status_message = "Не удалось открыть главное меню."
+	status_message = tr("STATUS_MAIN_MENU_FAILED")
 	_show_action_menu()
 
 
@@ -346,9 +346,9 @@ func _on_slot_pressed(slot_index: int) -> void:
 		var save_succeeded: bool = save_game(slot_index)
 
 		if save_succeeded:
-			status_message = "Игра сохранена в слот %d." % slot_index
+			status_message = tr("STATUS_SAVE_OK") % slot_index
 		else:
-			status_message = "Не удалось сохранить слот %d." % slot_index
+			status_message = tr("STATUS_SAVE_FAILED") % slot_index
 
 		_show_slot_menu()
 		return
@@ -359,14 +359,14 @@ func _on_slot_pressed(slot_index: int) -> void:
 		if load_succeeded:
 			_close_menu(false)
 		else:
-			status_message = "Не удалось загрузить слот %d." % slot_index
+			status_message = tr("STATUS_LOAD_SLOT_FAILED") % slot_index
 			_show_slot_menu()
 
 
 func _add_title_label(title_text: String) -> void:
 	var title_label: Label = Label.new()
 	title_label.custom_minimum_size = Vector2(260.0, 24.0)
-	title_label.text = title_text
+	title_label.text = tr(title_text)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 18)
@@ -391,7 +391,7 @@ func _add_menu_button(
 ) -> Button:
 	var button: Button = _create_styled_button()
 	button.custom_minimum_size = Vector2(260.0, height)
-	button.text = button_text
+	button.text = tr(button_text)
 	button.pressed.connect(callback)
 	menu_vbox.add_child(button)
 	return button
@@ -436,7 +436,7 @@ func _refresh_menu_tooltip() -> void:
 	if menu_button == null:
 		return
 
-	menu_button.tooltip_text = "Меню: сохранение и загрузка"
+	menu_button.tooltip_text = tr("MENU_TOOLTIP")
 
 
 # ---------------------------------------------------------------------------
@@ -570,30 +570,30 @@ func get_autosave_button_text() -> String:
 	_recover_save_backup(get_autosave_path(), get_autosave_backup_path())
 
 	if not FileAccess.file_exists(get_autosave_path()):
-		return "Автосохр. - пусто"
+		return "%s - %s" % [tr("SAVE_AUTOSAVE_SHORT"), tr("SAVE_EMPTY")]
 
 	var metadata := _read_save_dictionary_at_path(get_autosave_path())
 
 	if not _is_valid_save_data(metadata):
-		return "Автосохр. - повреждено"
+		return "%s - %s" % [tr("SAVE_AUTOSAVE_SHORT"), tr("SAVE_CORRUPTED")]
 
 	return format_autosave_metadata(metadata)
 
 
 func _get_slot_button_text(slot_index: int) -> String:
 	if slot_index < 1 or slot_index > SLOT_COUNT:
-		return "Слот недоступен"
+		return tr("SAVE_SLOT_UNAVAILABLE")
 
 	_recover_slot_backup(slot_index)
 	var slot_path := get_slot_path(slot_index)
 
 	if not FileAccess.file_exists(slot_path):
-		return "Слот %d" % slot_index
+		return tr("SAVE_SLOT_EMPTY") % slot_index
 
 	var metadata := _read_save_dictionary_at_path(slot_path)
 
 	if not _is_valid_save_data(metadata):
-		return "Слот %d — повреждён" % slot_index
+		return tr("SAVE_SLOT_CORRUPTED") % slot_index
 
 	return format_slot_metadata(slot_index, metadata)
 
@@ -603,17 +603,17 @@ func format_slot_metadata(_slot_index: int, metadata: Dictionary) -> String:
 
 
 func format_autosave_metadata(metadata: Dictionary) -> String:
-	return _format_save_metadata("Автосохр.", metadata)
+	return _format_save_metadata(tr("SAVE_AUTOSAVE_SHORT"), metadata)
 
 
 func _format_save_metadata(label: String, metadata: Dictionary) -> String:
 	var level_id: int = get_saved_level_id(metadata)
-	var map_label := "М%d" % level_id
+	var map_label := tr("SAVE_MAP_LABEL") % level_id
 	var label_prefix := "%s - " % label if not label.is_empty() else ""
 	var saved_at: int = int(metadata.get("saved_at", 0))
 
 	if saved_at <= 0:
-		return "%s%s — сохранение" % [label_prefix, map_label]
+		return tr("SAVE_WITHOUT_TIME") % [label_prefix, map_label]
 
 	var offset_variant: Variant = metadata.get("saved_at_utc_offset_minutes", null)
 	var offset_minutes: int

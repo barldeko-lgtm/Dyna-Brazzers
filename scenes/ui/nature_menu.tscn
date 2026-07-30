@@ -137,7 +137,7 @@ columns = 2
 [node name="EggMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
-tooltip_text = "Яйцо"
+tooltip_text = "NATURE_EGG"
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_font_sizes/font_size = 30
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
@@ -149,19 +149,19 @@ text = "🥚"
 [node name="BaseMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
-tooltip_text = "База"
+tooltip_text = "NATURE_BASE"
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-text = "BASE"
+text = "NATURE_BASE_BUTTON"
 
 [node name="SpellMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
-tooltip_text = "Заклинания"
+tooltip_text = "NATURE_SPELLS"
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_colors/font_pressed_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_colors/font_hover_color = Color(0.08, 0.08, 0.08, 1)
@@ -179,19 +179,19 @@ menu_to_hide_paths = Array[NodePath]([NodePath("..")])
 [node name="EnemyMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
-tooltip_text = "Противник"
+tooltip_text = "NATURE_ENEMY"
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-text = "ENEMY"
+text = "NATURE_ENEMY_BUTTON"
 
 [node name="FlagMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
-tooltip_text = "Флажок"
+tooltip_text = "NATURE_FLAG"
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_font_sizes/font_size = 30
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
@@ -203,14 +203,14 @@ text = "⚑"
 [node name="SystemMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
-tooltip_text = "Меню"
+tooltip_text = "NATURE_MENU"
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-text = "MENU"
+text = "NATURE_MENU_BUTTON"
 
 [node name="LightningButton" type="Button" parent="MarginContainer/VBoxContainer"]
 visible = false
@@ -219,7 +219,7 @@ layout_mode = 0
 offset_top = 66.0
 offset_right = 78.0
 offset_bottom = 110.0
-tooltip_text = "Молния"
+tooltip_text = "SPELL_LIGHTNING"
 theme_override_colors/font_color = Color(0, 0, 0, 0)
 theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
 theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
@@ -230,7 +230,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-text = "Молния"
+text = "SPELL_LIGHTNING"
 clip_text = true
 
 [node name="IconLabel" type="Label" parent="MarginContainer/VBoxContainer/LightningButton"]
@@ -251,7 +251,7 @@ offset_left = 91.0
 offset_top = 66.0
 offset_right = 169.0
 offset_bottom = 110.0
-tooltip_text = "Дождь"
+tooltip_text = "SPELL_RAIN"
 theme_override_colors/font_color = Color(0, 0, 0, 0)
 theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
 theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
@@ -262,7 +262,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-text = "Дождь"
+text = "SPELL_RAIN"
 clip_text = true
 
 [node name="IconLabel" type="Label" parent="MarginContainer/VBoxContainer/RainButton"]
@@ -283,7 +283,7 @@ offset_left = 182.0
 offset_top = 66.0
 offset_right = 260.0
 offset_bottom = 110.0
-tooltip_text = "Солнце"
+tooltip_text = "SPELL_SUN"
 theme_override_colors/font_color = Color(0, 0, 0, 0)
 theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
 theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
@@ -294,7 +294,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-text = "Солнце"
+text = "SPELL_SUN"
 clip_text = true
 
 [node name="IconLabel" type="Label" parent="MarginContainer/VBoxContainer/SunButton"]
@@ -315,7 +315,7 @@ offset_left = 91.0
 offset_top = 120.0
 offset_right = 169.0
 offset_bottom = 164.0
-tooltip_text = "Землетрясение"
+tooltip_text = "SPELL_EARTHQUAKE"
 theme_override_colors/font_color = Color(0, 0, 0, 0)
 theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
 theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
@@ -326,7 +326,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
-text = "Землетрясение"
+text = "SPELL_EARTHQUAKE"
 clip_text = true
 
 [node name="IconLabel" type="Label" parent="MarginContainer/VBoxContainer/EarthquakeButton"]
@@ -346,7 +346,7 @@ layout_mode = 0
 offset_top = 120.0
 offset_right = 78.0
 offset_bottom = 164.0
-tooltip_text = "Назад"
+tooltip_text = "MENU_BACK"
 theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_colors/font_pressed_color = Color(0.08, 0.08, 0.08, 1)
 theme_override_colors/font_hover_color = Color(0.08, 0.08, 0.08, 1)

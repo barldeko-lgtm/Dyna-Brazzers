@@ -97,7 +97,9 @@ Enemy objectives:
 
 ## UI, audio, save, and debug scripts
 
-- `scripts/ui/start_screen.gd` — startup UI, level selection, slot loading, and settings.
+- `scripts/ui/start_screen.gd` — startup UI, level selection, slot loading, settings, and immediate locale refresh.
+- `scripts/localization/localization_manager.gd` — supported locale list, Russian first-run default, `TranslationServer` switching, and `user://dyna_locale.cfg` persistence.
+- `localization/ui.csv` — player-facing `ru`, `en`, `fr`, `de`, and `uk` translation catalog; F3-F8/debug diagnostics are intentionally excluded.
 - `scripts/ui/player_ui.gd` — minimap, counters, base focus, time controls, and egg-controller bootstrap.
 - `scripts/ui/creature_stats_ui.gd` — creature information, selection state, and lightning-target bridge.
 - `scripts/ui/player_egg_creation_ui.gd` — player egg submenu and purchases.
@@ -160,6 +162,8 @@ World/UI:
 - `assets/sprites/world/player_base.png`
 - `assets/sprites/world/enemy_base.png`
 - `assets/ui/start_screen_background.png`
+- `assets/ui/start_menu_frame.png` — transparent 720x840 startup menu frame, displayed at a fixed 370x432 UI size.
+- `assets/fonts/philosopher/Philosopher-Regular.ttf` and `Philosopher-Bold.ttf` — OFL-licensed startup UI font files; license text lives beside them.
 - `assets/ui/creature_selection_frame.png`
 - `assets/sprites/effects/rain/`
 

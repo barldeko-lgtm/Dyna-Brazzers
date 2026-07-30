@@ -95,6 +95,8 @@ func _ready() -> void:
 	setup_time_speed_controls()
 	setup_base_navigation_controls()
 	setup_player_egg_creation_ui()
+	_refresh_localized_hud_text()
+	LocalizationManager.locale_changed.connect(_on_locale_changed)
 	update_entity_counts_text()
 	entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
 	minimap_entity_refresh_timer = 0.0
@@ -121,6 +123,30 @@ func _process(delta: float) -> void:
 	if minimap_grass_refresh_timer <= 0.0:
 		minimap_grass_refresh_timer = MINIMAP_GRASS_REFRESH_INTERVAL
 		refresh_minimap_grass_layer()
+
+
+func _on_locale_changed(_locale: String) -> void:
+	_refresh_localized_hud_text()
+
+
+func _refresh_localized_hud_text() -> void:
+	var grid := get_node_or_null(
+		"PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"
+	) as GridContainer
+	if grid != null:
+		var label_keys := {
+			"HerbivoreIconLabel": "HUD_HERBIVORE_SHORT",
+			"PredatorIconLabel": "HUD_PREDATOR_SHORT",
+			"EggEaterIconLabel": "HUD_EGG_EATER_SHORT",
+			"EggIconLabel": "HUD_EGG_SHORT",
+			"TotalIconLabel": "HUD_TOTAL_SHORT",
+		}
+		for label_name: String in label_keys:
+			var label := grid.get_node_or_null(label_name) as Label
+			if label != null:
+				label.text = tr(String(label_keys[label_name]))
+	if minimap_placeholder != null:
+		minimap_placeholder.tooltip_text = tr("MINIMAP_TOOLTIP")
 
 
 func get_minimap_grass_refresh_delta(scaled_delta: float, _time_scale: float) -> float:
@@ -186,7 +212,7 @@ func rebuild_terrain_minimap() -> bool:
 	minimap_placeholder.add_theme_stylebox_override("panel", terrain_minimap_style_box)
 	minimap_placeholder.mouse_filter = Control.MOUSE_FILTER_STOP
 	minimap_placeholder.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	minimap_placeholder.tooltip_text = "Миникарта мира — ЛКМ: переместить камеру"
+	minimap_placeholder.tooltip_text = tr("MINIMAP_TOOLTIP")
 	ensure_minimap_overlay()
 
 	var minimap_input_callable := Callable(self, "_on_minimap_gui_input")

@@ -17,10 +17,16 @@ config/icon="res://app_icon.svg"
 
 [autoload]
 
+LocalizationManager="*res://scripts/localization/localization_manager.gd"
 AudioManager="*res://scripts/audio/audio_manager.gd"
 PerformanceStats="*res://scripts/debug/performance_stats.gd"
 PlayerFlags="*res://scripts/flags/player_flag_system_with_catalog.gd"
 SaveSystem="*res://scripts/save/save_system_with_enemy.gd"
+
+[internationalization]
+
+locale/fallback="ru"
+locale/translations=PackedStringArray("res://localization/ui.en.translation", "res://localization/ui.fr.translation", "res://localization/ui.de.translation", "res://localization/ui.ru.translation", "res://localization/ui.uk.translation")
 
 [display]
 

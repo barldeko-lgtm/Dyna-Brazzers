@@ -3,6 +3,13 @@ extends "res://scripts/save/save_system.gd"
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const FLAG_COMPLETION_REVISION_META := &"player_flag_completed_revision"
 const NATURE_MENU_ATTACH_RETRY_FRAMES := 16
+const LANGUAGE_OPTIONS := [
+	{"locale": "ru", "name": "Русский"},
+	{"locale": "en", "name": "English"},
+	{"locale": "fr", "name": "Français"},
+	{"locale": "de", "name": "Deutsch"},
+	{"locale": "uk", "name": "Українська"},
+]
 
 # Small save-system extension for player species flags, entity factions and
 # in-game audio settings. Core entity reconstruction stays in save_system.gd.
@@ -56,13 +63,13 @@ func _create_menu_root(content_root: Control) -> void:
 func _show_action_menu() -> void:
 	current_slot_mode = ""
 	_clear_menu_vbox()
-	_add_title_label("Меню")
-	_add_menu_button("Сохранить", _on_save_mode_pressed, 27.0)
-	_add_menu_button("Загрузить", _on_load_mode_pressed, 27.0)
-	_add_menu_button("Настройки", _on_audio_settings_pressed, 27.0)
-	_add_menu_button("Главное меню", _on_main_menu_pressed, 27.0)
-	_add_menu_button("Закрыть игру", _on_quit_game_pressed, 27.0)
-	_add_menu_button("Назад", _on_close_menu_pressed, 27.0)
+	_add_title_label("MENU_TITLE")
+	_add_menu_button("MENU_SAVE", _on_save_mode_pressed, 27.0)
+	_add_menu_button("MENU_LOAD_ACTION", _on_load_mode_pressed, 27.0)
+	_add_menu_button("MENU_SETTINGS", _on_audio_settings_pressed, 27.0)
+	_add_menu_button("MENU_MAIN_MENU", _on_main_menu_pressed, 27.0)
+	_add_menu_button("MENU_QUIT_GAME", _on_quit_game_pressed, 27.0)
+	_add_menu_button("MENU_BACK", _on_close_menu_pressed, 27.0)
 
 	if not status_message.is_empty():
 		_add_status_label(status_message)
@@ -75,18 +82,51 @@ func _on_audio_settings_pressed() -> void:
 
 func _show_audio_settings_menu() -> void:
 	_clear_menu_vbox()
-	_add_title_label("Настройки")
+	_add_title_label("SETTINGS_TITLE")
+	_add_language_control()
 	_add_audio_volume_control(
-		"Музыка",
+		"SETTINGS_MUSIC",
 		AudioManager.get_music_volume(),
 		"music"
 	)
 	_add_audio_volume_control(
-		"Звуки",
+		"SETTINGS_SOUNDS",
 		AudioManager.get_sound_volume(),
 		"sounds"
 	)
-	_add_menu_button("Назад", _on_audio_settings_back_pressed, 34.0)
+	_add_menu_button("MENU_BACK", _on_audio_settings_back_pressed, 34.0)
+
+
+func _add_language_control() -> void:
+	var language_label := Label.new()
+	language_label.name = "InGameLanguageLabel"
+	language_label.custom_minimum_size = Vector2(260.0, 20.0)
+	language_label.text = tr("SETTINGS_LANGUAGE")
+	language_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	language_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	language_label.add_theme_font_size_override("font_size", 15)
+	menu_vbox.add_child(language_label)
+
+	var language_option := OptionButton.new()
+	language_option.name = "InGameLanguageOption"
+	language_option.custom_minimum_size = Vector2(260.0, 27.0)
+	language_option.focus_mode = Control.FOCUS_ALL
+	for option_data: Dictionary in LANGUAGE_OPTIONS:
+		var item_index := language_option.item_count
+		var locale := String(option_data["locale"])
+		language_option.add_item(String(option_data["name"]))
+		language_option.set_item_metadata(item_index, locale)
+		if locale == LocalizationManager.get_current_locale():
+			language_option.select(item_index)
+	language_option.item_selected.connect(_on_ingame_language_selected.bind(language_option))
+	menu_vbox.add_child(language_option)
+
+
+func _on_ingame_language_selected(index: int, language_option: OptionButton) -> void:
+	if index < 0 or index >= language_option.item_count:
+		return
+	LocalizationManager.set_locale(String(language_option.get_item_metadata(index)))
+	_show_audio_settings_menu()
 
 
 func _on_audio_settings_back_pressed() -> void:
@@ -99,6 +139,7 @@ func _add_audio_volume_control(
 	setting_name: String
 ) -> void:
 	var value_label := Label.new()
+	value_label.name = "MusicVolumeLabel" if setting_name == "music" else "SoundVolumeLabel"
 	value_label.custom_minimum_size = Vector2(260.0, 22.0)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -142,14 +183,14 @@ func _update_audio_value_label(
 	value: float
 ) -> void:
 	if value_label != null:
-		value_label.text = "%s: %d%%" % [label_prefix, roundi(value)]
+		value_label.text = "%s: %d%%" % [tr(label_prefix), roundi(value)]
 
 
 func _refresh_menu_tooltip() -> void:
 	if menu_button == null:
 		return
 
-	menu_button.tooltip_text = "Меню: сохранение, загрузка и настройки"
+	menu_button.tooltip_text = tr("MENU_TOOLTIP_WITH_SETTINGS")
 
 
 func _collect_save_data() -> Dictionary:

@@ -1,21 +1,16 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/start_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/ui/start_screen_background.png" id="2_background"]
+[ext_resource type="Texture2D" path="res://assets/ui/start_menu_frame.png" id="3_menu_frame"]
+[ext_resource type="FontFile" path="res://assets/fonts/philosopher/Philosopher-Regular.ttf" id="4_philosopher_regular"]
+[ext_resource type="FontFile" path="res://assets/fonts/philosopher/Philosopher-Bold.ttf" id="5_philosopher_bold"]
 
-[sub_resource type="StyleBoxFlat" id="Panel"]
-bg_color = Color(0.04, 0.075, 0.09, 0.8)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.22, 0.45, 0.38, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-shadow_color = Color(0, 0, 0, 0.45)
-shadow_size = 12
+[sub_resource type="StyleBoxEmpty" id="Panel"]
+
+[sub_resource type="Theme" id="StartScreenTheme"]
+Button/fonts/font = ExtResource("5_philosopher_bold")
+Label/fonts/font = ExtResource("4_philosopher_regular")
 
 [sub_resource type="StyleBoxFlat" id="ButtonNormal"]
 bg_color = Color(0.14, 0.24, 0.22, 1)
@@ -72,6 +67,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+auto_translate_mode = 1
+theme = SubResource("StartScreenTheme")
 script = ExtResource("1_script")
 
 [node name="Background" type="TextureRect" parent="."]
@@ -91,29 +88,35 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 100.0
-offset_bottom = 100.0
+offset_top = 150.0
+offset_bottom = 150.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="MenuPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(360, 0)
+custom_minimum_size = Vector2(370, 432)
 layout_mode = 2
 theme_override_styles/panel = SubResource("Panel")
 
+[node name="FrameTexture" type="TextureRect" parent="CenterContainer/MenuPanel"]
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("3_menu_frame")
+expand_mode = 1
+
 [node name="MarginContainer" type="MarginContainer" parent="CenterContainer/MenuPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 34
-theme_override_constants/margin_top = 34
-theme_override_constants/margin_right = 34
-theme_override_constants/margin_bottom = 30
+theme_override_constants/margin_left = 42
+theme_override_constants/margin_top = 68
+theme_override_constants/margin_right = 42
+theme_override_constants/margin_bottom = 48
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/MenuPanel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 10
 
 [node name="NewGameButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(290, 58)
+custom_minimum_size = Vector2(286, 50)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -123,10 +126,10 @@ theme_override_styles/normal = SubResource("ButtonNormal")
 theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
-text = "Новая игра"
+text = "MENU_NEW_GAME"
 
 [node name="ContinueButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(290, 58)
+custom_minimum_size = Vector2(286, 50)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -137,10 +140,10 @@ theme_override_styles/normal = SubResource("ButtonNormal")
 theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
-text = "Продолжить"
+text = "MENU_CONTINUE"
 
 [node name="LoadButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(290, 58)
+custom_minimum_size = Vector2(286, 50)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -150,10 +153,10 @@ theme_override_styles/normal = SubResource("ButtonNormal")
 theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
-text = "Загрузка"
+text = "MENU_LOAD"
 
 [node name="MenuButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(290, 58)
+custom_minimum_size = Vector2(286, 50)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -163,10 +166,10 @@ theme_override_styles/normal = SubResource("ButtonNormal")
 theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
-text = "Меню"
+text = "MENU_SETTINGS"
 
 [node name="ExitButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(290, 58)
+custom_minimum_size = Vector2(286, 50)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -176,21 +179,22 @@ theme_override_styles/normal = SubResource("ButtonNormal")
 theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
-text = "Выход"
+text = "MENU_EXIT"
 
 [node name="LevelSelectTitle" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(290, 42)
+custom_minimum_size = Vector2(286, 42)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_fonts/font = ExtResource("5_philosopher_bold")
 theme_override_font_sizes/font_size = 24
-text = "Выбор уровня"
+text = "MENU_LEVEL_SELECT"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Level1Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(290, 58)
+custom_minimum_size = Vector2(286, 50)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -200,11 +204,11 @@ theme_override_styles/normal = SubResource("ButtonNormal")
 theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
-text = "Уровень 1 — Текущая карта"
+text = "LEVEL_1_CURRENT"
 
 [node name="Level2Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(290, 58)
+custom_minimum_size = Vector2(286, 50)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -214,11 +218,11 @@ theme_override_styles/normal = SubResource("ButtonNormal")
 theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
-text = "Уровень 2 — Новая карта"
+text = "LEVEL_2_NEW"
 
 [node name="LevelBackButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(290, 52)
+custom_minimum_size = Vector2(286, 44)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -228,11 +232,11 @@ theme_override_styles/normal = SubResource("ButtonNormal")
 theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
-text = "Назад"
+text = "MENU_BACK"
 
 [node name="AutosaveButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(290, 52)
+custom_minimum_size = Vector2(286, 44)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -243,11 +247,11 @@ theme_override_styles/normal = SubResource("ButtonNormal")
 theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
-text = "Автосохр."
+text = "SAVE_AUTOSAVE_SHORT"
 
 [node name="LoadSlot1Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(290, 52)
+custom_minimum_size = Vector2(286, 44)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -258,11 +262,11 @@ theme_override_styles/normal = SubResource("ButtonNormal")
 theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
-text = "Слот 1"
+text = "SAVE_SLOT_EMPTY"
 
 [node name="LoadSlot2Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(290, 52)
+custom_minimum_size = Vector2(286, 44)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -273,11 +277,11 @@ theme_override_styles/normal = SubResource("ButtonNormal")
 theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
-text = "Слот 2"
+text = "SAVE_SLOT_EMPTY"
 
 [node name="LoadSlot3Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(290, 52)
+custom_minimum_size = Vector2(286, 44)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -288,11 +292,11 @@ theme_override_styles/normal = SubResource("ButtonNormal")
 theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
-text = "Слот 3"
+text = "SAVE_SLOT_EMPTY"
 
 [node name="LoadBackButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(290, 52)
+custom_minimum_size = Vector2(286, 44)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -303,11 +307,11 @@ theme_override_styles/normal = SubResource("ButtonNormal")
 theme_override_styles/hover = SubResource("ButtonHover")
 theme_override_styles/pressed = SubResource("ButtonPressed")
 theme_override_styles/focus = SubResource("ButtonFocus")
-text = "Назад"
+text = "MENU_BACK"
 
 [node name="StatusLabel" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.66, 0.76, 0.72, 1)
 theme_override_font_sizes/font_size = 14

@@ -50,6 +50,8 @@ func _ready() -> void:
 	setup_rain_button()
 	setup_sun_button()
 	setup_earthquake_button()
+	_refresh_localized_text()
+	LocalizationManager.locale_changed.connect(_on_locale_changed)
 	_update_energy_ui()
 
 
@@ -393,19 +395,53 @@ func _update_spell_buttons() -> void:
 
 
 func _get_lightning_button_text() -> String:
-	return "Молния (%d)" % floori(lightning_energy_cost)
+	return "%s (%d)" % [tr("SPELL_LIGHTNING"), floori(lightning_energy_cost)]
 
 
 func _get_rain_button_text() -> String:
-	return "Дождь (%d)" % floori(rain_energy_cost)
+	return "%s (%d)" % [tr("SPELL_RAIN"), floori(rain_energy_cost)]
 
 
 func _get_sun_button_text() -> String:
-	return "Солнце (%d)" % floori(sun_energy_cost)
+	return "%s (%d)" % [tr("SPELL_SUN"), floori(sun_energy_cost)]
 
 
 func _get_earthquake_button_text() -> String:
-	return "Землетрясение (%d)" % floori(earthquake_energy_cost)
+	return "%s (%d)" % [tr("SPELL_EARTHQUAKE"), floori(earthquake_energy_cost)]
+
+
+func _on_locale_changed(_locale: String) -> void:
+	_refresh_localized_text()
+
+
+func _refresh_localized_text() -> void:
+	var tooltip_keys := {
+		"MarginContainer/VBoxContainer/MainMenuGrid/EggMenuButton": "NATURE_EGG",
+		"MarginContainer/VBoxContainer/MainMenuGrid/BaseMenuButton": "NATURE_BASE",
+		"MarginContainer/VBoxContainer/MainMenuGrid/SpellMenuButton": "NATURE_SPELLS",
+		"MarginContainer/VBoxContainer/MainMenuGrid/EnemyMenuButton": "NATURE_ENEMY",
+		"MarginContainer/VBoxContainer/MainMenuGrid/FlagMenuButton": "NATURE_FLAG",
+		"MarginContainer/VBoxContainer/MainMenuGrid/SystemMenuButton": "NATURE_MENU",
+		"MarginContainer/VBoxContainer/LightningButton": "SPELL_LIGHTNING",
+		"MarginContainer/VBoxContainer/RainButton": "SPELL_RAIN",
+		"MarginContainer/VBoxContainer/SunButton": "SPELL_SUN",
+		"MarginContainer/VBoxContainer/EarthquakeButton": "SPELL_EARTHQUAKE",
+		"MarginContainer/VBoxContainer/SpellBackButton": "MENU_BACK",
+	}
+	for node_path: String in tooltip_keys:
+		var button := get_node_or_null(node_path) as Button
+		if button != null:
+			button.tooltip_text = tr(String(tooltip_keys[node_path]))
+	var button_text_keys := {
+		"MarginContainer/VBoxContainer/MainMenuGrid/BaseMenuButton": "NATURE_BASE_BUTTON",
+		"MarginContainer/VBoxContainer/MainMenuGrid/EnemyMenuButton": "NATURE_ENEMY_BUTTON",
+		"MarginContainer/VBoxContainer/MainMenuGrid/SystemMenuButton": "NATURE_MENU_BUTTON",
+	}
+	for node_path: String in button_text_keys:
+		var button := get_node_or_null(node_path) as Button
+		if button != null:
+			button.text = tr(String(button_text_keys[node_path]))
+	_update_spell_buttons()
 
 
 func _try_apply_rain_at_mouse() -> bool:

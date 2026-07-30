@@ -20,50 +20,56 @@ const EMPTY_ENTRY: Dictionary = {}
 
 const STEGOSAURUS_ENTRY: Dictionary = {
 	"species_data": STEGOSAURUS,
+	"species_name_key": "SPECIES_STEGOSAURUS",
 	"egg_purchase_cost": 350.0,
 	"energy_income_per_second": 1.0,
-	"flag_button_text": "Стего\nпастбище",
-	"flag_tooltip": "Поставить или перенести пастбищный флаг стегозавров",
+	"flag_button_key": "FLAG_STEGOSAURUS_BUTTON",
+	"flag_tooltip_key": "FLAG_STEGOSAURUS_TOOLTIP",
 	"flag_behaviour_type": FlagBehaviourType.PASTURE
 }
 const TRICERATOPS_ENTRY: Dictionary = {
 	"species_data": TRICERATOPS,
+	"species_name_key": "SPECIES_TRICERATOPS",
 	"egg_purchase_cost": 450.0,
 	"energy_income_per_second": 0.8,
-	"flag_button_text": "Трицер\nпастбище",
-	"flag_tooltip": "Поставить или перенести пастбищный флаг трицератопсов",
+	"flag_button_key": "FLAG_TRICERATOPS_BUTTON",
+	"flag_tooltip_key": "FLAG_TRICERATOPS_TOOLTIP",
 	"flag_behaviour_type": FlagBehaviourType.PASTURE
 }
 const TYRANNOSAURUS_ENTRY: Dictionary = {
 	"species_data": TYRANNOSAURUS,
+	"species_name_key": "SPECIES_TYRANNOSAURUS",
 	"egg_purchase_cost": 1300.0,
 	"energy_income_per_second": 0.3,
-	"flag_button_text": "Ти-рекс\nохота",
-	"flag_tooltip": "Поставить или перенести флаг охоты ти-рексов",
+	"flag_button_key": "FLAG_TYRANNOSAURUS_BUTTON",
+	"flag_tooltip_key": "FLAG_TYRANNOSAURUS_TOOLTIP",
 	"flag_behaviour_type": FlagBehaviourType.GATHER
 }
 const RAPTOR_ENTRY: Dictionary = {
 	"species_data": RAPTOR,
+	"species_name_key": "SPECIES_RAPTOR",
 	"egg_purchase_cost": 900.0,
 	"energy_income_per_second": 0.3,
-	"flag_button_text": "Раптор\nзащита",
-	"flag_tooltip": "Поставить или перенести защитный флаг рапторов",
+	"flag_button_key": "FLAG_RAPTOR_BUTTON",
+	"flag_tooltip_key": "FLAG_RAPTOR_TOOLTIP",
 	"flag_behaviour_type": FlagBehaviourType.GATHER
 }
 const PTERODACTYL_ENTRY: Dictionary = {
 	"species_data": PTERODACTYL,
+	"species_name_key": "SPECIES_PTERODACTYL",
 	"egg_purchase_cost": 1000.0,
 	"energy_income_per_second": 0.3,
-	"flag_button_text": "Птеро\nпатруль",
-	"flag_tooltip": "Поставить или перенести патрульный флаг птеродактилей",
+	"flag_button_key": "FLAG_PTERODACTYL_BUTTON",
+	"flag_tooltip_key": "FLAG_PTERODACTYL_TOOLTIP",
 	"flag_behaviour_type": FlagBehaviourType.GATHER
 }
 const EGG_EATER_ENTRY: Dictionary = {
 	"species_data": EGG_EATER,
+	"species_name_key": "SPECIES_EGG_EATER",
 	"egg_purchase_cost": 1200.0,
 	"energy_income_per_second": 0.3,
-	"flag_button_text": "Яйцеед\nпоиск",
-	"flag_tooltip": "Поставить или перенести флаг поиска яйцеедов",
+	"flag_button_key": "FLAG_EGG_EATER_BUTTON",
+	"flag_tooltip_key": "FLAG_EGG_EATER_TOOLTIP",
 	"flag_behaviour_type": FlagBehaviourType.GATHER
 }
 

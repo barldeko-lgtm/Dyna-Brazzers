@@ -25,9 +25,9 @@ func _get_flag_menu_entries() -> Array[Dictionary]:
 
 		menu_entries.append({
 			"species_id": species_data.species_id,
-			"button_text": String(entry.get("flag_button_text", "Флаг\nвида")),
-			"tooltip": String(
-				entry.get("flag_tooltip", "Поставить или перенести флаг вида")
+			"button_key": String(entry.get("flag_button_key", "FLAG_DEFAULT_BUTTON")),
+			"tooltip_key": String(
+				entry.get("flag_tooltip_key", "FLAG_DEFAULT_TOOLTIP")
 			)
 		})
 
