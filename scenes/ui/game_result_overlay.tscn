@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/game_result_overlay.gd" id="1_game_result_overlay"]
+[ext_resource type="Theme" path="res://assets/ui/dyna_player_ui_theme.tres" id="2_player_ui_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_result_panel"]
 bg_color = Color(0.018, 0.028, 0.055, 0.98)
@@ -22,6 +23,7 @@ layer = 100
 script = ExtResource("1_game_result_overlay")
 
 [node name="Dimmer" type="ColorRect" parent="."]
+theme = ExtResource("2_player_ui_theme")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -56,6 +58,7 @@ theme_override_constants/separation = 18
 alignment = 1
 
 [node name="TitleLabel" type="Label" parent="Dimmer/CenterContainer/ResultPanel/MarginContainer/VBoxContainer"]
+theme_type_variation = &"HeaderLabel"
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "RESULT_VICTORY"

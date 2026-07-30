@@ -1,9 +1,10 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/ui/creature_info_panel.tscn" id="1_creature_info_panel"]
 [ext_resource type="PackedScene" path="res://scenes/ui/nature_menu.tscn" id="2_nature_menu"]
 [ext_resource type="Script" path="res://scripts/ui/debug_status_ui.gd" id="3_debug_status_ui"]
 [ext_resource type="Script" path="res://scripts/ui/player_ui.gd" id="4_player_ui"]
+[ext_resource type="Theme" path="res://assets/ui/dyna_player_ui_theme.tres" id="5_player_ui_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_player_side_panel_bg"]
 bg_color = Color(0.015, 0.035, 0.09, 1)
@@ -45,6 +46,7 @@ text = "FPS: 0"
 script = ExtResource("3_debug_status_ui")
 
 [node name="PlayerSidePanel" type="PanelContainer" parent="."]
+theme = ExtResource("5_player_ui_theme")
 anchors_preset = 11
 anchor_left = 1.0
 anchor_right = 1.0

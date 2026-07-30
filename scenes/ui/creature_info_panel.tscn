@@ -1,6 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/creature_stats_ui.gd" id="1_creature_stats_ui"]
+[ext_resource type="Theme" path="res://assets/ui/dyna_player_ui_theme.tres" id="2_player_ui_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hunger_bar_bg"]
 bg_color = Color(0.14, 0.14, 0.14, 1)
@@ -25,6 +26,7 @@ corner_radius_bottom_left = 4
 
 [node name="CreatureStatsPanel" type="PanelContainer"]
 visible = false
+theme = ExtResource("2_player_ui_theme")
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 220.0

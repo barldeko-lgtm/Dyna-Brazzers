@@ -1,7 +1,9 @@
 extends Node
 
 const GAMEPLAY_SCENE_PATH: String = "res://scenes/main/main.tscn"
+const START_SCREEN_SCENE_PATH: String = "res://scenes/ui/start_screen.tscn"
 const GAMEPLAY_MUSIC_PATH: String = "res://assets/audio/music/gameplay_theme.mp3"
+const MENU_MUSIC_PATH: String = "res://assets/audio/music/start_menu_theme.mp3"
 const BUTTON_CLICK_PATH: String = "res://assets/audio/ui/button_click.wav"
 const SETTINGS_PATH: String = "user://audio_settings.cfg"
 
@@ -15,10 +17,12 @@ const UI_BUS := &"UI"
 const DEFAULT_MUSIC_VOLUME: float = 0.45
 const DEFAULT_SOUND_VOLUME: float = 1.0
 const MUSIC_FADE_SECONDS: float = 1.25
+const MUSIC_TRACK_GAIN_DB: float = -6.020599913279624
 const SILENT_VOLUME_DB: float = -80.0
 
 var _music_player: AudioStreamPlayer = null
 var _gameplay_music: AudioStream = null
+var _menu_music: AudioStream = null
 var _button_click_stream: AudioStream = null
 var _fade_tween: Tween = null
 var _current_scene_path: String = ""
@@ -33,6 +37,7 @@ func _ready() -> void:
 	_apply_saved_volumes()
 	_create_music_player()
 	_load_gameplay_music()
+	_load_menu_music()
 	_load_button_click()
 
 	if not get_tree().node_added.is_connected(_on_tree_node_added):
@@ -40,6 +45,16 @@ func _ready() -> void:
 
 	call_deferred("_connect_existing_buttons")
 	call_deferred("_sync_scene_audio")
+
+
+func _exit_tree() -> void:
+	_kill_fade_tween()
+	if _music_player != null:
+		_music_player.stop()
+		_music_player.stream = null
+	_menu_music = null
+	_gameplay_music = null
+	_button_click_stream = null
 
 
 func _process(_delta: float) -> void:
@@ -53,19 +68,28 @@ func _process(_delta: float) -> void:
 
 
 func play_gameplay_music() -> void:
-	if _gameplay_music == null or _music_player == null:
+	_play_music(_gameplay_music)
+
+
+func play_menu_music() -> void:
+	_play_music(_menu_music)
+
+
+func _play_music(stream: AudioStream) -> void:
+	if stream == null or _music_player == null:
 		return
 
 	_kill_fade_tween()
-
-	if _music_player.stream != _gameplay_music:
-		_music_player.stream = _gameplay_music
-
-	if not _music_player.playing:
+	if _music_player.stream != stream:
+		_music_player.stop()
+		_music_player.stream = stream
+		_music_player.volume_db = SILENT_VOLUME_DB
+		_music_player.play()
+	elif not _music_player.playing:
 		_music_player.volume_db = SILENT_VOLUME_DB
 		_music_player.play()
 
-	_fade_music_to(0.0, MUSIC_FADE_SECONDS, false)
+	_fade_music_to(MUSIC_TRACK_GAIN_DB, MUSIC_FADE_SECONDS, false)
 
 
 func stop_music() -> void:
@@ -141,6 +165,8 @@ func _sync_scene_audio() -> void:
 
 	if _current_scene_path == GAMEPLAY_SCENE_PATH:
 		play_gameplay_music()
+	elif _current_scene_path == START_SCREEN_SCENE_PATH:
+		play_menu_music()
 	else:
 		stop_music()
 
@@ -171,6 +197,17 @@ func _load_gameplay_music() -> void:
 
 	if _gameplay_music is AudioStreamMP3:
 		(_gameplay_music as AudioStreamMP3).loop = true
+
+
+func _load_menu_music() -> void:
+	_menu_music = load(MENU_MUSIC_PATH) as AudioStream
+
+	if _menu_music == null:
+		push_warning("AudioManager could not load start-menu music: %s" % MENU_MUSIC_PATH)
+		return
+
+	if _menu_music is AudioStreamMP3:
+		(_menu_music as AudioStreamMP3).loop = true
 
 
 func _load_button_click() -> void:

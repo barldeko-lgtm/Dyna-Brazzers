@@ -1,8 +1,9 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/player_nature_ui.gd" id="1_player_nature_ui"]
 [ext_resource type="Script" path="res://scripts/ui/spell_menu_toggle.gd" id="2_spell_menu_toggle"]
 [ext_resource type="Texture2D" path="res://assets/ui/nature_energy_icon.png" id="3_nature_energy_icon"]
+[ext_resource type="Theme" path="res://assets/ui/dyna_player_ui_theme.tres" id="4_player_ui_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spell_button_normal"]
 bg_color = Color(0.74, 0.76, 0.8, 1)
@@ -53,6 +54,7 @@ corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
 [node name="PlayerNaturePanel" type="PanelContainer"]
+theme = ExtResource("4_player_ui_theme")
 custom_minimum_size = Vector2(280, 300)
 layout_mode = 2
 script = ExtResource("1_player_nature_ui")

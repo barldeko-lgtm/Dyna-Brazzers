@@ -1,0 +1,18 @@
+[gd_resource type="Theme" load_steps=3 format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/philosopher/Philosopher-Regular.ttf" id="1_regular"]
+[ext_resource type="FontFile" path="res://assets/fonts/philosopher/Philosopher-Bold.ttf" id="2_bold"]
+
+[resource]
+Button/fonts/font = ExtResource("2_bold")
+CheckBox/fonts/font = ExtResource("2_bold")
+CheckButton/fonts/font = ExtResource("2_bold")
+Label/fonts/font = ExtResource("1_regular")
+LineEdit/fonts/font = ExtResource("1_regular")
+OptionButton/fonts/font = ExtResource("2_bold")
+RichTextLabel/fonts/bold_font = ExtResource("2_bold")
+RichTextLabel/fonts/normal_font = ExtResource("1_regular")
+TextEdit/fonts/font = ExtResource("1_regular")
+TooltipLabel/fonts/font = ExtResource("1_regular")
+HeaderLabel/base_type = &"Label"
+HeaderLabel/fonts/font = ExtResource("2_bold")

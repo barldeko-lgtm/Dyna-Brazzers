@@ -365,6 +365,7 @@ func _on_slot_pressed(slot_index: int) -> void:
 
 func _add_title_label(title_text: String) -> void:
 	var title_label: Label = Label.new()
+	title_label.theme_type_variation = &"HeaderLabel"
 	title_label.custom_minimum_size = Vector2(260.0, 24.0)
 	title_label.text = tr(title_text)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

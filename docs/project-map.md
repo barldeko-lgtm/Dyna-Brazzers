@@ -163,13 +163,15 @@ World/UI:
 - `assets/sprites/world/enemy_base.png`
 - `assets/ui/start_screen_background.png`
 - `assets/ui/start_menu_frame.png` — transparent 720x840 startup menu frame, displayed at a fixed 370x432 UI size.
-- `assets/fonts/philosopher/Philosopher-Regular.ttf` and `Philosopher-Bold.ttf` — OFL-licensed startup UI font files; license text lives beside them.
+- `assets/fonts/philosopher/Philosopher-Regular.ttf` and `Philosopher-Bold.ttf` — OFL-licensed player-facing UI fonts; license text lives beside them.
+- `assets/ui/dyna_player_ui_theme.tres` — shared Philosopher theme for translated in-game HUD, menus, creature information, and result UI; debug overlays are intentionally excluded.
 - `assets/ui/creature_selection_frame.png`
 - `assets/sprites/effects/rain/`
 
 Audio:
 
 - `assets/audio/music/gameplay_theme.mp3`
+- `assets/audio/music/start_menu_theme.mp3` — looping startup-screen soundtrack routed through the Music bus.
 - `assets/audio/sfx/lightning_strike.wav`
 - `assets/audio/sfx/rain_cast.wav`
 - `assets/audio/sfx/sun_cast.wav`

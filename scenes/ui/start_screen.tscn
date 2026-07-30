@@ -11,6 +11,7 @@
 [sub_resource type="Theme" id="StartScreenTheme"]
 Button/fonts/font = ExtResource("5_philosopher_bold")
 Label/fonts/font = ExtResource("4_philosopher_regular")
+OptionButton/fonts/font = ExtResource("5_philosopher_bold")
 
 [sub_resource type="StyleBoxFlat" id="ButtonNormal"]
 bg_color = Color(0.14, 0.24, 0.22, 1)
