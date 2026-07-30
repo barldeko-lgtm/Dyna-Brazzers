@@ -29,6 +29,7 @@ const ENTITY_COUNTS_REFRESH_INTERVAL := 0.5
 const MINIMAP_WORLD_RETRY_FRAMES := 12
 const MINIMAP_CAMERA_MIN_PIXEL_SIZE := 2
 const MINIMAP_ENTITY_REFRESH_INTERVAL := 0.10
+const MINIMAP_GRASS_REFRESH_INTERVAL := 1.0
 const MINIMAP_CREATURE_MARKER_SIZE := 6
 const MINIMAP_CREATURE_MARKER_HALF_SIZE := 3.0
 
@@ -41,15 +42,17 @@ const MINIMAP_EMPTY_COLOR := Color(0x04070cff)
 const MINIMAP_GROUND_COLOR := Color(0xc7a978ff)
 const MINIMAP_WATER_COLOR := Color(0x67cfeeff)
 const MINIMAP_MOUNTAIN_COLOR := Color(0x41464eff)
-const MINIMAP_TREE_COLOR := Color(0x31572fff)
+const MINIMAP_TREE_COLOR := Color(0xd66a9aff)
 const MINIMAP_DRY_GROUND_COLOR := Color(0x9a6642ff)
+const MINIMAP_GRASS_COLOR := Color(0x86b65aff)
+const MINIMAP_BASE_COLOR := Color(0xe53935ff)
 const MINIMAP_BORDER_COLOR := Color(0x2e3b52ff)
 const MINIMAP_CAMERA_COLOR := Color(0xfff1a3ff)
-const MINIMAP_HERBIVORE_COLOR := Color(0x9be26aff)
-const MINIMAP_PREDATOR_COLOR := Color(0xe25757ff)
+const MINIMAP_HERBIVORE_COLOR := Color(0x2f7d4aff)
+const MINIMAP_PREDATOR_COLOR := Color(0xf06a6aff)
 const MINIMAP_EGG_EATER_COLOR := Color(0x2b63ffff)
 const MINIMAP_ENEMY_HERBIVORE_COLOR := Color(0xffc928ff)
-const MINIMAP_ENEMY_PREDATOR_COLOR := Color(0xb83555ff)
+const MINIMAP_ENEMY_PREDATOR_COLOR := Color(0x962f48ff)
 const MINIMAP_ENEMY_EGG_EATER_COLOR := Color(0x8c5de8ff)
 const MINIMAP_OTHER_FACTION_COLOR := Color(0xc88ce8ff)
 const MINIMAP_MARKER_SHADOW_COLOR := Color(0x11151fff)
@@ -82,6 +85,7 @@ var last_minimap_camera_position := Vector2.ZERO
 var last_minimap_camera_zoom := Vector2.ZERO
 var has_minimap_camera_state := false
 var minimap_entity_refresh_timer := 0.0
+var minimap_grass_refresh_timer := 0.0
 var dry_ground_signal_source: Node = null
 
 
@@ -94,6 +98,7 @@ func _ready() -> void:
 	update_entity_counts_text()
 	entity_counts_refresh_timer = ENTITY_COUNTS_REFRESH_INTERVAL
 	minimap_entity_refresh_timer = 0.0
+	minimap_grass_refresh_timer = 0.0
 	call_deferred("initialize_terrain_minimap")
 
 
@@ -110,6 +115,16 @@ func _process(delta: float) -> void:
 	if minimap_entity_refresh_timer <= 0.0:
 		minimap_entity_refresh_timer = MINIMAP_ENTITY_REFRESH_INTERVAL
 		update_minimap_camera_view(true)
+
+	minimap_grass_refresh_timer -= get_minimap_grass_refresh_delta(delta, Engine.time_scale)
+
+	if minimap_grass_refresh_timer <= 0.0:
+		minimap_grass_refresh_timer = MINIMAP_GRASS_REFRESH_INTERVAL
+		refresh_minimap_grass_layer()
+
+
+func get_minimap_grass_refresh_delta(scaled_delta: float, _time_scale: float) -> float:
+	return scaled_delta
 
 
 func initialize_terrain_minimap() -> void:
@@ -159,7 +174,8 @@ func rebuild_terrain_minimap() -> bool:
 			minimap_image.set_pixel(image_x + 1, image_y + 1, terrain_color)
 
 	terrain_minimap_base_image = minimap_image
-	terrain_minimap_texture = ImageTexture.create_from_image(minimap_image)
+	var displayed_minimap_image := build_minimap_image_with_grass()
+	terrain_minimap_texture = ImageTexture.create_from_image(displayed_minimap_image)
 
 	if terrain_minimap_texture == null:
 		return false
@@ -180,6 +196,7 @@ func rebuild_terrain_minimap() -> bool:
 
 	has_minimap_camera_state = false
 	minimap_entity_refresh_timer = 0.0
+	minimap_grass_refresh_timer = MINIMAP_GRASS_REFRESH_INTERVAL
 	_bind_dry_ground_changes()
 	update_minimap_camera_view(true)
 	return true
@@ -271,6 +288,117 @@ func get_minimap_terrain_color(source_id: int) -> Color:
 			return MINIMAP_EMPTY_COLOR
 
 
+func refresh_minimap_grass_layer() -> void:
+	if terrain_minimap_base_image == null or terrain_minimap_texture == null:
+		return
+
+	terrain_minimap_texture.update(build_minimap_image_with_grass())
+
+
+func build_minimap_image_with_grass() -> Image:
+	var minimap_image := terrain_minimap_base_image.duplicate() as Image
+	paint_minimap_grass_tiles(minimap_image, get_registered_grass_tiles())
+	paint_minimap_base_footprints(minimap_image, get_registered_base_footprints())
+	return minimap_image
+
+
+func get_registered_grass_tiles() -> Array[Vector2i]:
+	var grass_tiles: Array[Vector2i] = []
+	var world_grid := get_tree().get_first_node_in_group("world_grid")
+
+	if world_grid == null:
+		return grass_tiles
+
+	var grass_registry_variant: Variant = world_grid.get("grass_by_tile")
+
+	if not (grass_registry_variant is Dictionary):
+		return grass_tiles
+
+	var grass_registry := grass_registry_variant as Dictionary
+
+	for tile_variant: Variant in grass_registry.keys():
+		if not (tile_variant is Vector2i):
+			continue
+
+		var grass := grass_registry.get(tile_variant, null) as Node
+
+		if not is_instance_valid(grass) or grass.is_queued_for_deletion():
+			continue
+
+		grass_tiles.append(tile_variant as Vector2i)
+
+	return grass_tiles
+
+
+func paint_minimap_grass_tiles(minimap_image: Image, grass_tiles: Array) -> void:
+	if minimap_image == null:
+		return
+
+	for tile_variant: Variant in grass_tiles:
+		if not (tile_variant is Vector2i):
+			continue
+
+		var image_tile := (tile_variant as Vector2i) - minimap_map_min
+
+		if (
+			image_tile.x < 0
+			or image_tile.y < 0
+			or image_tile.x >= minimap_map_size.x
+			or image_tile.y >= minimap_map_size.y
+		):
+			continue
+
+		minimap_image.set_pixelv(image_tile + Vector2i.ONE, MINIMAP_GRASS_COLOR)
+
+
+func get_registered_base_footprints() -> Array[Rect2i]:
+	var base_footprints: Array[Rect2i] = []
+
+	for faction_base in get_tree().get_nodes_in_group("faction_base"):
+		if not is_instance_valid(faction_base) or faction_base.is_queued_for_deletion():
+			continue
+
+		var anchor_variant: Variant = faction_base.get("anchor_tile")
+		var footprint_variant: Variant = faction_base.get("footprint_size")
+
+		if not (anchor_variant is Vector2i) or not (footprint_variant is Vector2i):
+			continue
+
+		var footprint_size := footprint_variant as Vector2i
+
+		if footprint_size.x <= 0 or footprint_size.y <= 0:
+			continue
+
+		base_footprints.append(Rect2i(anchor_variant as Vector2i, footprint_size))
+
+	return base_footprints
+
+
+func paint_minimap_base_footprints(minimap_image: Image, base_footprints: Array) -> void:
+	if minimap_image == null:
+		return
+
+	for footprint_variant: Variant in base_footprints:
+		if not (footprint_variant is Rect2i):
+			continue
+
+		var footprint := footprint_variant as Rect2i
+
+		for map_y in range(footprint.position.y, footprint.end.y):
+			for map_x in range(footprint.position.x, footprint.end.x):
+				var image_tile := Vector2i(map_x, map_y) - minimap_map_min
+
+				if (
+					image_tile.x < 0
+					or image_tile.y < 0
+					or image_tile.x >= minimap_map_size.x
+					or image_tile.y >= minimap_map_size.y
+				):
+					continue
+
+				minimap_image.set_pixelv(image_tile + Vector2i.ONE, MINIMAP_BASE_COLOR)
+
+
 func update_minimap_camera_view(force_update := false) -> void:
 	if terrain_minimap_base_image == null or terrain_minimap_texture == null:
 		return
@@ -356,7 +484,18 @@ func draw_creature_markers_on_overlay(overlay: Control) -> void:
 		if overlay_position.x < 0.0 or overlay_position.y < 0.0:
 			continue
 
-		draw_triangle_marker_on_overlay(overlay, overlay_position, get_minimap_creature_color(creature))
+		var category := get_creature_category(creature)
+		var faction_id := get_minimap_creature_faction_id(creature)
+		draw_triangle_marker_on_overlay(
+			overlay,
+			overlay_position,
+			get_minimap_creature_color(creature),
+			is_minimap_marker_flipped(faction_id, category)
+		)
+
+
+func is_minimap_marker_flipped(faction_id: StringName, _category: StringName) -> bool:
+	return faction_id == CREATURE_FACTION.ENEMY
 
 
 func get_minimap_creature_color(creature: Node) -> Color:
@@ -436,15 +575,20 @@ func world_to_minimap_overlay_position(world_position: Vector2, draw_size: Vecto
 	return content_rect.position + Vector2(normalized_x * content_rect.size.x, normalized_y * content_rect.size.y)
 
 
-func draw_triangle_marker_on_overlay(overlay: Control, center_position: Vector2, marker_color: Color) -> void:
+func draw_triangle_marker_on_overlay(
+	overlay: Control,
+	center_position: Vector2,
+	marker_color: Color,
+	flipped := false
+) -> void:
 	var top_left := Vector2(
 		floor(center_position.x - MINIMAP_CREATURE_MARKER_HALF_SIZE),
 		floor(center_position.y - MINIMAP_CREATURE_MARKER_HALF_SIZE)
 	)
-	var marker_pixels := get_triangle_marker_pixels()
+	var marker_pixels := get_triangle_marker_pixels(flipped)
 
 	# One-pixel southeast shadow keeps every faction marker readable over terrain,
-	# especially the orange enemy-herbivore marker over brown ground.
+	# especially dark-green herbivores over the muted grass layer.
 	for pixel_offset in marker_pixels:
 		overlay.draw_rect(
 			Rect2(top_left + pixel_offset + Vector2.ONE, Vector2.ONE),
@@ -456,14 +600,24 @@ func draw_triangle_marker_on_overlay(overlay: Control, center_position: Vector2,
 		overlay.draw_rect(Rect2(top_left + pixel_offset, Vector2.ONE), marker_color, true)
 
 
-func get_triangle_marker_pixels() -> Array[Vector2]:
-	return [
+func get_triangle_marker_pixels(flipped := false) -> Array[Vector2]:
+	var marker_pixels: Array[Vector2] = [
 		Vector2(2, 0), Vector2(3, 0),
 		Vector2(1, 1), Vector2(2, 1), Vector2(3, 1), Vector2(4, 1),
 		Vector2(1, 2), Vector2(2, 2), Vector2(3, 2), Vector2(4, 2),
 		Vector2(0, 3), Vector2(1, 3), Vector2(2, 3), Vector2(3, 3), Vector2(4, 3), Vector2(5, 3),
 		Vector2(0, 4), Vector2(1, 4), Vector2(2, 4), Vector2(3, 4), Vector2(4, 4), Vector2(5, 4)
 	]
+
+	if not flipped:
+		return marker_pixels
+
+	var rotated_pixels: Array[Vector2] = []
+
+	for pixel: Vector2 in marker_pixels:
+		rotated_pixels.append(Vector2(5.0 - pixel.x, 4.0 - pixel.y))
+
+	return rotated_pixels
 
 
 func get_camera_world_rect(camera: Camera2D) -> Rect2:

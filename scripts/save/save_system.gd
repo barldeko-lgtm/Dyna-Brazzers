@@ -4,6 +4,8 @@ const GAME_SCENE_PATH: String = "res://scenes/main/main.tscn"
 const START_SCREEN_SCENE_PATH: String = "res://scenes/ui/start_screen.tscn"
 const SAVE_VERSION: int = 1
 const SLOT_COUNT: int = 3
+const AUTOSAVE_INTERVAL_SECONDS := 300.0
+const AUTOSAVE_FILE_PATH := "user://dyna_autosave.json"
 const DEFAULT_LEVEL_ID: int = 1
 const LEVEL_SCENE_PATHS: Dictionary = {
 	1: GAME_SCENE_PATH,
@@ -36,6 +38,9 @@ var menu_previous_time_scale: float = 1.0
 var current_slot_mode: String = ""
 var status_message: String = ""
 var current_level_id: int = DEFAULT_LEVEL_ID
+var autosave_elapsed := 0.0
+var autosave_in_progress := false
+var load_in_progress := false
 
 
 func _ready() -> void:
@@ -43,11 +48,13 @@ func _ready() -> void:
 	set_process(true)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var current_scene: Node = get_tree().current_scene
 
 	if current_scene == null:
 		return
+
+	_update_autosave(delta, current_scene)
 
 	var current_scene_id: int = int(current_scene.get_instance_id())
 
@@ -61,6 +68,52 @@ func _process(_delta: float) -> void:
 		current_scene.scene_file_path == get_level_scene_path(current_level_id)
 	):
 		call_deferred("_attach_to_game_scene", current_scene)
+
+
+func _update_autosave(delta: float, current_scene: Node) -> void:
+	if not _can_advance_autosave(current_scene):
+		return
+
+	if not advance_autosave_timer(delta):
+		return
+
+	autosave_in_progress = true
+	var save_succeeded := save_autosave()
+	autosave_in_progress = false
+
+	if not save_succeeded:
+		push_error("SaveSystem: automatic save failed.")
+
+
+func _can_advance_autosave(current_scene: Node) -> bool:
+	var active_level_scene_path := get_level_scene_path(current_level_id)
+
+	if (
+		current_scene == null
+		or active_level_scene_path.is_empty()
+		or current_scene.scene_file_path != active_level_scene_path
+	):
+		return false
+
+	if menu_open or autosave_in_progress or load_in_progress or Engine.time_scale <= 0.0:
+		return false
+
+	var game_end_controller := get_tree().get_first_node_in_group("game_end_controller")
+
+	if game_end_controller != null and int(game_end_controller.get("match_result")) != 0:
+		return false
+
+	return true
+
+
+func advance_autosave_timer(simulation_delta: float) -> bool:
+	autosave_elapsed += maxf(simulation_delta, 0.0)
+
+	if autosave_elapsed < AUTOSAVE_INTERVAL_SECONDS:
+		return false
+
+	autosave_elapsed = 0.0
+	return true
 
 
 func _attach_to_game_scene(scene: Node) -> void:
@@ -182,11 +235,16 @@ func _show_slot_menu() -> void:
 		_add_title_label("Сохранить")
 	else:
 		_add_title_label("Загрузить")
+		var autosave_button := _create_styled_button()
+		autosave_button.custom_minimum_size = Vector2(260.0, 34.0)
+		autosave_button.disabled = not has_autosave()
+		autosave_button.pressed.connect(_on_autosave_slot_pressed)
+		menu_vbox.add_child(autosave_button)
+		apply_save_button_text(autosave_button, get_autosave_button_text(), 18, 12)
 
 	for slot_index: int in range(1, SLOT_COUNT + 1):
 		var slot_button: Button = _create_styled_button()
 		slot_button.custom_minimum_size = Vector2(260.0, 40.0)
-		slot_button.text = _get_slot_button_text(slot_index)
 
 		var slot_is_empty: bool = not has_save(slot_index)
 
@@ -195,8 +253,25 @@ func _show_slot_menu() -> void:
 
 		slot_button.pressed.connect(_on_slot_pressed.bind(slot_index))
 		menu_vbox.add_child(slot_button)
+		apply_save_button_text(slot_button, _get_slot_button_text(slot_index), 18, 12)
 
 	_add_menu_button("Назад", _on_slots_back_pressed, 40.0)
+
+
+func _on_autosave_slot_pressed() -> void:
+	if not has_autosave():
+		return
+
+	status_message = "Загрузка автосохранения..."
+	_show_slot_menu()
+	var load_succeeded: bool = await load_autosave()
+
+	if load_succeeded:
+		_close_menu(false)
+		return
+
+	status_message = "Не удалось загрузить автосохранение."
+	_show_slot_menu()
 
 
 func _on_slots_back_pressed() -> void:
@@ -235,6 +310,9 @@ func _reset_active_game_session() -> void:
 	status_message = ""
 	attached_scene_id = 0
 	current_level_id = DEFAULT_LEVEL_ID
+	autosave_elapsed = 0.0
+	autosave_in_progress = false
+	load_in_progress = false
 
 	menu_button = null
 	main_menu_grid = null
@@ -369,6 +447,18 @@ func get_slot_path(slot_index: int) -> String:
 	return "user://dyna_save_slot_%d.json" % slot_index
 
 
+func get_autosave_path() -> String:
+	return AUTOSAVE_FILE_PATH
+
+
+func get_autosave_temp_path() -> String:
+	return "%s.tmp" % get_autosave_path()
+
+
+func get_autosave_backup_path() -> String:
+	return "%s.bak" % get_autosave_path()
+
+
 func get_slot_temp_path(slot_index: int) -> String:
 	return "%s.tmp" % get_slot_path(slot_index)
 
@@ -385,8 +475,109 @@ func has_save(slot_index: int) -> bool:
 	return _is_valid_save_data(_read_save_dictionary_at_path(get_slot_path(slot_index)))
 
 
+func has_autosave() -> bool:
+	_recover_save_backup(get_autosave_path(), get_autosave_backup_path())
+	return _is_valid_save_data(_read_save_dictionary_at_path(get_autosave_path()))
+
+
+func get_most_recent_save_candidate() -> Dictionary:
+	var candidates: Array[Dictionary] = []
+	_recover_save_backup(get_autosave_path(), get_autosave_backup_path())
+	var autosave_data := _read_save_dictionary_at_path(get_autosave_path())
+
+	if _is_valid_save_data(autosave_data):
+		candidates.append({
+			"kind": "autosave",
+			"saved_at": int(autosave_data.get("saved_at", 0)),
+			"valid": true
+		})
+
+	for slot_index: int in range(1, SLOT_COUNT + 1):
+		var slot_data := _read_save_dictionary(slot_index)
+
+		if not _is_valid_save_data(slot_data):
+			continue
+
+		candidates.append({
+			"kind": "slot",
+			"slot_index": slot_index,
+			"saved_at": int(slot_data.get("saved_at", 0)),
+			"valid": true
+		})
+
+	return select_most_recent_save_candidate(candidates)
+
+
+func select_most_recent_save_candidate(candidates: Array) -> Dictionary:
+	var selected: Dictionary = {}
+	var selected_timestamp := -1
+
+	for candidate_variant: Variant in candidates:
+		if not candidate_variant is Dictionary:
+			continue
+
+		var candidate := candidate_variant as Dictionary
+
+		if not bool(candidate.get("valid", false)):
+			continue
+
+		var kind := String(candidate.get("kind", ""))
+
+		if kind == "slot":
+			var slot_index := int(candidate.get("slot_index", 0))
+
+			if slot_index < 1 or slot_index > SLOT_COUNT:
+				continue
+		elif kind != "autosave":
+			continue
+
+		var timestamp := maxi(int(candidate.get("saved_at", 0)), 0)
+		var wins_timestamp := timestamp > selected_timestamp
+		var wins_autosave_tie := (
+			timestamp == selected_timestamp
+			and kind == "autosave"
+			and String(selected.get("kind", "")) != "autosave"
+		)
+
+		if selected.is_empty() or wins_timestamp or wins_autosave_tie:
+			selected = candidate.duplicate(true)
+			selected_timestamp = timestamp
+
+	return selected
+
+
+func has_continue_save() -> bool:
+	return not get_most_recent_save_candidate().is_empty()
+
+
+func load_most_recent_save() -> bool:
+	var selected := get_most_recent_save_candidate()
+
+	if selected.is_empty():
+		return false
+
+	if String(selected.get("kind", "")) == "autosave":
+		return await load_autosave()
+
+	return await load_game(int(selected.get("slot_index", 0)))
+
+
 func get_slot_button_text(slot_index: int) -> String:
 	return _get_slot_button_text(slot_index)
+
+
+func get_autosave_button_text() -> String:
+	_recover_save_backup(get_autosave_path(), get_autosave_backup_path())
+
+	if not FileAccess.file_exists(get_autosave_path()):
+		return "Автосохр. - пусто"
+
+	var metadata := _read_save_dictionary_at_path(get_autosave_path())
+
+	if not _is_valid_save_data(metadata):
+		return "Автосохр. - повреждено"
+
+	return format_autosave_metadata(metadata)
 
 
 func _get_slot_button_text(slot_index: int) -> String:
@@ -397,7 +588,7 @@ func _get_slot_button_text(slot_index: int) -> String:
 	var slot_path := get_slot_path(slot_index)
 
 	if not FileAccess.file_exists(slot_path):
-		return "Слот %d — пусто" % slot_index
+		return "Слот %d" % slot_index
 
 	var metadata := _read_save_dictionary_at_path(slot_path)
 
@@ -407,13 +598,22 @@ func _get_slot_button_text(slot_index: int) -> String:
 	return format_slot_metadata(slot_index, metadata)
 
 
-func format_slot_metadata(slot_index: int, metadata: Dictionary) -> String:
+func format_slot_metadata(_slot_index: int, metadata: Dictionary) -> String:
+	return _format_save_metadata("", metadata)
+
+
+func format_autosave_metadata(metadata: Dictionary) -> String:
+	return _format_save_metadata("Автосохр.", metadata)
+
+
+func _format_save_metadata(label: String, metadata: Dictionary) -> String:
 	var level_id: int = get_saved_level_id(metadata)
 	var map_label := "М%d" % level_id
+	var label_prefix := "%s - " % label if not label.is_empty() else ""
 	var saved_at: int = int(metadata.get("saved_at", 0))
 
 	if saved_at <= 0:
-		return "Слот %d — %s — сохранение" % [slot_index, map_label]
+		return "%s%s — сохранение" % [label_prefix, map_label]
 
 	var offset_variant: Variant = metadata.get("saved_at_utc_offset_minutes", null)
 	var offset_minutes: int
@@ -431,8 +631,8 @@ func format_slot_metadata(slot_index: int, metadata: Dictionary) -> String:
 	var hour: int = int(date.get("hour", 0))
 	var minute: int = int(date.get("minute", 0))
 
-	return "Слот %d — %s — %02d.%02d %02d:%02d" % [
-		slot_index,
+	return "%s%s - %02d.%02d %02d:%02d" % [
+		label_prefix,
 		map_label,
 		day,
 		month,
@@ -441,20 +641,73 @@ func format_slot_metadata(slot_index: int, metadata: Dictionary) -> String:
 	]
 
 
+func apply_save_button_text(
+	button: Button,
+	text: String,
+	preferred_font_size: int,
+	minimum_font_size: int
+) -> void:
+	if button == null:
+		return
+
+	button.text = text
+	var preferred_size := maxi(preferred_font_size, 1)
+	var minimum_size := clampi(minimum_font_size, 1, preferred_size)
+	var font := button.get_theme_font("font")
+	var stylebox := button.get_theme_stylebox("normal")
+	var horizontal_padding := stylebox.get_minimum_size().x if stylebox != null else 0.0
+	var available_width := maxf(button.custom_minimum_size.x - horizontal_padding - 8.0, 1.0)
+	var fitted_size := preferred_size
+
+	while (
+		fitted_size > minimum_size
+		and font.get_string_size(
+			text,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1.0,
+			fitted_size
+		).x > available_width
+	):
+		fitted_size -= 1
+
+	button.add_theme_font_size_override("font_size", fitted_size)
+
+
 func save_game(slot_index: int) -> bool:
 	if slot_index < 1 or slot_index > SLOT_COUNT:
 		return false
 
 	_recover_slot_backup(slot_index)
+	return _write_current_save(
+		get_slot_path(slot_index),
+		get_slot_temp_path(slot_index),
+		get_slot_backup_path(slot_index),
+		"slot %d" % slot_index
+	)
+
+
+func save_autosave() -> bool:
+	_recover_save_backup(get_autosave_path(), get_autosave_backup_path())
+	return _write_current_save(
+		get_autosave_path(),
+		get_autosave_temp_path(),
+		get_autosave_backup_path(),
+		"autosave"
+	)
+
+
+func _write_current_save(
+	save_path: String,
+	temp_path: String,
+	backup_path: String,
+	save_label: String
+) -> bool:
 	var save_data := _collect_save_data()
 
 	if not _is_valid_save_data(save_data):
-		push_error("SaveSystem: refused to write incomplete save data.")
+		push_error("SaveSystem: refused to write incomplete %s data." % save_label)
 		return false
 
-	var slot_path := get_slot_path(slot_index)
-	var temp_path := get_slot_temp_path(slot_index)
-	var backup_path := get_slot_backup_path(slot_index)
 	var saves_directory := DirAccess.open("user://")
 
 	if saves_directory == null:
@@ -467,7 +720,7 @@ func save_game(slot_index: int) -> bool:
 	var temp_file: FileAccess = FileAccess.open(temp_path, FileAccess.WRITE)
 
 	if temp_file == null:
-		push_error("SaveSystem: failed to open temporary slot %d for writing." % slot_index)
+		push_error("SaveSystem: failed to open temporary %s for writing." % save_label)
 		return false
 
 	temp_file.store_string(JSON.stringify(save_data, "	"))
@@ -477,23 +730,23 @@ func save_game(slot_index: int) -> bool:
 
 	if write_error != OK or not _is_valid_save_data(_read_save_dictionary_at_path(temp_path)):
 		saves_directory.remove(temp_path.get_file())
-		push_error("SaveSystem: temporary slot %d could not be verified." % slot_index)
+		push_error("SaveSystem: temporary %s could not be verified." % save_label)
 		return false
 
 	if FileAccess.file_exists(backup_path) and saves_directory.remove(backup_path.get_file()) != OK:
 		saves_directory.remove(temp_path.get_file())
-		push_error("SaveSystem: failed to clear the previous backup for slot %d." % slot_index)
+		push_error("SaveSystem: failed to clear the previous backup for %s." % save_label)
 		return false
 
-	if FileAccess.file_exists(slot_path) and saves_directory.rename(slot_path.get_file(), backup_path.get_file()) != OK:
+	if FileAccess.file_exists(save_path) and saves_directory.rename(save_path.get_file(), backup_path.get_file()) != OK:
 		saves_directory.remove(temp_path.get_file())
-		push_error("SaveSystem: failed to protect the previous slot %d." % slot_index)
+		push_error("SaveSystem: failed to protect the previous %s." % save_label)
 		return false
 
-	if saves_directory.rename(temp_path.get_file(), slot_path.get_file()) != OK:
+	if saves_directory.rename(temp_path.get_file(), save_path.get_file()) != OK:
 		if FileAccess.file_exists(backup_path):
-			saves_directory.rename(backup_path.get_file(), slot_path.get_file())
-		push_error("SaveSystem: failed to replace slot %d." % slot_index)
+			saves_directory.rename(backup_path.get_file(), save_path.get_file())
+		push_error("SaveSystem: failed to replace %s." % save_label)
 		return false
 
 	if FileAccess.file_exists(backup_path):
@@ -503,16 +756,18 @@ func save_game(slot_index: int) -> bool:
 
 
 func _recover_slot_backup(slot_index: int) -> void:
-	var slot_path := get_slot_path(slot_index)
-	var backup_path := get_slot_backup_path(slot_index)
+	_recover_save_backup(get_slot_path(slot_index), get_slot_backup_path(slot_index))
 
-	if FileAccess.file_exists(slot_path) or not FileAccess.file_exists(backup_path):
+
+func _recover_save_backup(save_path: String, backup_path: String) -> void:
+
+	if FileAccess.file_exists(save_path) or not FileAccess.file_exists(backup_path):
 		return
 
 	var saves_directory := DirAccess.open("user://")
 
 	if saves_directory != null:
-		saves_directory.rename(backup_path.get_file(), slot_path.get_file())
+		saves_directory.rename(backup_path.get_file(), save_path.get_file())
 
 
 func _read_save_dictionary(slot_index: int) -> Dictionary:
@@ -588,6 +843,7 @@ func start_new_game(level_id: int) -> Error:
 
 	var previous_level_id: int = current_level_id
 	current_level_id = level_id
+	autosave_elapsed = 0.0
 	Engine.time_scale = 1.0
 	var scene_error: Error = get_tree().change_scene_to_file(level_scene_path)
 
@@ -607,10 +863,28 @@ func load_game(slot_index: int) -> bool:
 		push_error("SaveSystem: slot %d is missing or invalid." % slot_index)
 		return false
 
+	return await _load_save_data(save_data)
+
+
+func load_autosave() -> bool:
+	_recover_save_backup(get_autosave_path(), get_autosave_backup_path())
+	var save_data := _read_save_dictionary_at_path(get_autosave_path())
+
+	if not _is_valid_save_data(save_data):
+		push_error("SaveSystem: autosave is missing or invalid.")
+		return false
+
+	return await _load_save_data(save_data)
+
+
+func _load_save_data(save_data: Dictionary) -> bool:
+	load_in_progress = true
+	autosave_elapsed = 0.0
 	var saved_level_id: int = get_saved_level_id(save_data)
 	var level_scene_path: String = get_level_scene_path(saved_level_id)
 
 	if level_scene_path.is_empty():
+		load_in_progress = false
 		push_error("SaveSystem: level %d is unavailable." % saved_level_id)
 		return false
 
@@ -627,6 +901,7 @@ func load_game(slot_index: int) -> bool:
 
 		if scene_error != OK:
 			current_level_id = previous_level_id
+			load_in_progress = false
 			return false
 
 		await get_tree().process_frame
@@ -640,6 +915,7 @@ func load_game(slot_index: int) -> bool:
 	if load_succeeded:
 		_reset_loaded_time_speed()
 
+	load_in_progress = false
 	return load_succeeded
 
 

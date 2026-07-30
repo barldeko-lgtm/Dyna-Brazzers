@@ -180,6 +180,7 @@ Generic egg fallback textures live under `assets/sprites/eggs/`; species-specifi
 
 Gameplay slots:
 
+- `user://dyna_autosave.json`
 - `user://dyna_save_slot_1.json`
 - `user://dyna_save_slot_2.json`
 - `user://dyna_save_slot_3.json`

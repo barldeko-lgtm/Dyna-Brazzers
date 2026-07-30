@@ -4,6 +4,7 @@ const SLOT_COUNT: int = 3
 
 @onready var menu_vbox: VBoxContainer = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer
 @onready var new_game_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/NewGameButton
+@onready var continue_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/ContinueButton
 @onready var load_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadButton
 @onready var menu_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/MenuButton
 @onready var exit_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/ExitButton
@@ -11,6 +12,7 @@ const SLOT_COUNT: int = 3
 @onready var level_1_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/Level1Button
 @onready var level_2_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/Level2Button
 @onready var level_back_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelBackButton
+@onready var autosave_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/AutosaveButton
 @onready var load_slot_1_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadSlot1Button
 @onready var load_slot_2_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadSlot2Button
 @onready var load_slot_3_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadSlot3Button
@@ -44,6 +46,7 @@ func _ready() -> void:
 	_create_audio_settings_controls()
 
 	new_game_button.pressed.connect(_on_new_game_pressed)
+	continue_button.pressed.connect(_on_continue_pressed)
 	level_1_button.pressed.connect(_on_level_1_pressed)
 	level_2_button.pressed.connect(_on_level_2_pressed)
 	level_back_button.pressed.connect(_on_level_back_pressed)
@@ -51,6 +54,7 @@ func _ready() -> void:
 	menu_button.pressed.connect(_on_menu_pressed)
 	exit_button.pressed.connect(_on_exit_pressed)
 	load_back_button.pressed.connect(_on_load_back_pressed)
+	autosave_button.pressed.connect(_on_autosave_pressed)
 	settings_back_button.pressed.connect(_on_settings_back_pressed)
 	music_volume_slider.value_changed.connect(_on_music_volume_changed)
 	sound_volume_slider.value_changed.connect(_on_sound_volume_changed)
@@ -89,6 +93,22 @@ func _on_level_back_pressed() -> void:
 
 func _on_load_pressed() -> void:
 	_show_load_slots()
+
+
+func _on_continue_pressed() -> void:
+	if not SaveSystem.has_continue_save():
+		return
+
+	status_label.visible = true
+	status_label.text = "Загрузка последнего сохранения..."
+	_set_main_buttons_disabled(true)
+	var load_succeeded: bool = await SaveSystem.load_most_recent_save()
+
+	if load_succeeded:
+		return
+
+	status_label.text = "Не удалось загрузить последнее сохранение."
+	_set_main_buttons_disabled(false)
 
 
 func _on_menu_pressed() -> void:
@@ -138,12 +158,30 @@ func _on_load_slot_pressed(slot_index: int) -> void:
 	load_back_button.grab_focus()
 
 
+func _on_autosave_pressed() -> void:
+	if not SaveSystem.has_autosave():
+		return
+
+	status_label.text = "Загрузка автосохранения..."
+	_set_load_slot_buttons_disabled(true)
+	var load_succeeded: bool = await SaveSystem.load_autosave()
+
+	if load_succeeded:
+		return
+
+	status_label.text = "Не удалось загрузить автосохранение."
+	_set_load_slot_buttons_disabled(false)
+	load_back_button.grab_focus()
+
+
 func _show_main_buttons() -> void:
 	new_game_button.visible = true
+	continue_button.visible = true
 	load_button.visible = true
 	menu_button.visible = true
 	exit_button.visible = true
-	status_label.visible = true
+	status_label.visible = false
+	autosave_button.visible = false
 
 	for slot_button: Button in load_slot_buttons:
 		slot_button.visible = false
@@ -152,16 +190,19 @@ func _show_main_buttons() -> void:
 	_set_level_selection_visible(false)
 	_set_settings_controls_visible(false)
 	status_label.text = ""
+	_set_main_buttons_disabled(false)
 
 
 func _show_level_selection() -> void:
 	new_game_button.visible = false
+	continue_button.visible = false
 	load_button.visible = false
 	menu_button.visible = false
 	exit_button.visible = false
 	load_back_button.visible = false
 	status_label.visible = true
 	status_label.text = "Выберите уровень."
+	autosave_button.visible = false
 
 	for slot_button: Button in load_slot_buttons:
 		slot_button.visible = false
@@ -173,6 +214,7 @@ func _show_level_selection() -> void:
 
 func _show_load_slots() -> void:
 	new_game_button.visible = false
+	continue_button.visible = false
 	load_button.visible = false
 	menu_button.visible = false
 	exit_button.visible = false
@@ -181,15 +223,31 @@ func _show_load_slots() -> void:
 	_set_settings_controls_visible(false)
 
 	var has_any_save: bool = false
+	var autosave_exists: bool = SaveSystem.has_autosave()
+	autosave_button.visible = true
+	autosave_button.disabled = not autosave_exists
+	SaveSystem.apply_save_button_text(
+		autosave_button,
+		SaveSystem.get_autosave_button_text(),
+		19,
+		13
+	)
+
+	if autosave_exists:
+		has_any_save = true
 
 	for slot_index: int in range(SLOT_COUNT):
 		var slot_number: int = slot_index + 1
 		var slot_button: Button = load_slot_buttons[slot_index]
 		var slot_has_save: bool = SaveSystem.has_save(slot_number)
-
 		slot_button.visible = true
 		slot_button.disabled = not slot_has_save
-		slot_button.text = SaveSystem.get_slot_button_text(slot_number)
+		SaveSystem.apply_save_button_text(
+			slot_button,
+			SaveSystem.get_slot_button_text(slot_number),
+			21,
+			13
+		)
 
 		if slot_has_save:
 			has_any_save = true
@@ -207,11 +265,13 @@ func _show_load_slots() -> void:
 
 func _show_audio_settings() -> void:
 	new_game_button.visible = false
+	continue_button.visible = false
 	load_button.visible = false
 	menu_button.visible = false
 	exit_button.visible = false
 	load_back_button.visible = false
 	status_label.visible = false
+	autosave_button.visible = false
 	_set_level_selection_visible(false)
 
 	for slot_button: Button in load_slot_buttons:
@@ -223,6 +283,10 @@ func _show_audio_settings() -> void:
 
 
 func _focus_first_available_slot() -> void:
+	if not autosave_button.disabled:
+		autosave_button.grab_focus()
+		return
+
 	for slot_button: Button in load_slot_buttons:
 		if not slot_button.disabled:
 			slot_button.grab_focus()
@@ -232,10 +296,20 @@ func _focus_first_available_slot() -> void:
 
 
 func _set_load_slot_buttons_disabled(disabled: bool) -> void:
+	autosave_button.disabled = disabled
+
 	for slot_button: Button in load_slot_buttons:
 		slot_button.disabled = disabled
 
 	load_back_button.disabled = disabled
+
+
+func _set_main_buttons_disabled(disabled: bool) -> void:
+	new_game_button.disabled = disabled
+	load_button.disabled = disabled
+	menu_button.disabled = disabled
+	exit_button.disabled = disabled
+	continue_button.disabled = disabled or not SaveSystem.has_continue_save()
 
 
 func _create_audio_settings_controls() -> void:

@@ -578,12 +578,14 @@ Main files:
 Startup flow:
 
 1. `project.godot` starts `start_screen.tscn`.
-2. New Game selects a registered level and opens its gameplay scene.
-3. The gameplay scene instances the active world and applies its level layout.
-4. Load delegates slot validation, saved-level routing, and reconstruction to `SaveSystem`.
+2. Continue selects the newest valid autosave/manual slot by `saved_at`, preferring autosave on equal-second ties; without a valid save its visible button remains disabled.
+3. New Game selects a registered level and opens its gameplay scene.
+4. The gameplay scene instances the active world and applies its level layout.
+5. Load delegates manual-slot or autosave validation, saved-level routing, and reconstruction to `SaveSystem`.
 
 Stable slot paths:
 
+- `user://dyna_autosave.json`
 - `user://dyna_save_slot_1.json`
 - `user://dyna_save_slot_2.json`
 - `user://dyna_save_slot_3.json`
@@ -614,9 +616,16 @@ Loading order:
 Rules:
 
 - save writes must validate a temporary JSON before replacing the live slot and retain recoverable backup state;
+- autosave uses the same validated temporary-write/backup path in a separate file, runs every five simulation minutes only during an active unpaused match, and resets its timer after loading or starting a new session;
+- simulation speed advances the autosave cadence proportionally; loading, an open menu, zero time scale, or a finished match suspends it;
+- the startup and in-game load menus expose autosave separately and must never let it replace any manual slot;
+- the startup Continue button stays directly below New Game, ignores invalid candidates, and uses the same validated load paths rather than bypassing reconstruction;
+- the five-button startup main panel is centred 100 pixels below the viewport midpoint; hide the empty status row in this state so the panel frame closes after Exit, but reveal it before showing Continue/load errors;
 - invalid slots remain visible but cannot be loaded;
 - missing optional faction/flag/enemy/combat-reserve/match-end fields must not invalidate old saves;
-- slot labels derive `М1`/`М2` from `level_id`; new saves store `saved_at_utc_offset_minutes` so their timestamp remains in the originating computer-local time, while old saves fall back to the current system UTC offset;
+- empty manual entries show `Слот 1` through `Слот 3`; occupied manual entries omit the slot label and show only map plus timestamp in the form `М1 - ДД.ММ ЧЧ:ММ`, while the separate autosave uses `Автосохр. - М1 - ДД.ММ ЧЧ:ММ`;
+- save/load button text must shrink within its approved font-size range when necessary rather than expanding the fixed menu width;
+- occupied-entry map labels derive `М1`/`М2` from `level_id`; new saves store `saved_at_utc_offset_minutes` so their timestamp remains in the originating computer-local time, while old saves fall back to the current system UTC offset;
 - missing `level_id` defaults to level 1; an unavailable saved level must fail before scene replacement;
 - missing faction defaults to player; unknown non-empty faction becomes neutral;
 - static terrain and faction bases are not dynamic save entities;

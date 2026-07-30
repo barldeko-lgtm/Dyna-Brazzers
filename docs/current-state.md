@@ -360,7 +360,7 @@ The HUD provides:
 - base-focus buttons;
 - creature information and selection.
 
-The minimap is generated from the active terrain and overlays faction/diet creature markers plus the current camera view. It does not require a manually maintained map image.
+The minimap is generated from the active terrain, overlays current grass presence as muted salad-green cells on a one-simulation-second cadence, paints both faction-base footprints red, and draws faction/diet creature markers plus the current camera view. It does not require a manually maintained map image.
 
 Debug systems remain separate:
 
@@ -383,11 +383,13 @@ Audio settings are stored in `user://audio_settings.cfg`, independently from gam
 
 `project.godot` starts `scenes/ui/start_screen.tscn`.
 
-The startup screen provides New Game, three-slot Load, Settings, and Exit. The in-game `MENU` button provides Save, Load, Settings, Main Menu, Close Game, and Back.
+The startup screen provides New Game, Continue, autosave plus three-slot Load, Settings, and Exit. Continue sits directly below New Game, loads the newest valid timestamp across autosave and all manual slots, prefers autosave on equal-second ties, and remains visible but disabled when no valid save exists. The five-button main panel is shifted 100 pixels below screen centre, and its empty status label is hidden so the frame closes beneath Exit without a blank lower row. The in-game `MENU` button provides Save, autosave plus three-slot Load, Settings, Main Menu, Close Game, and Back.
 
-Valid slot labels show the saved map as `М1`/`М2` and display the save time in the computer-local timezone captured when the save was written. Older saves without a stored UTC offset use the current system timezone.
+Empty manual entries are labelled `Слот 1` through `Слот 3`. Occupied manual entries show only the saved map and save time in the form `М1 - ДД.ММ ЧЧ:ММ`; their slot label is omitted. The separate autosave uses the compact form `Автосохр. - М1 - ДД.ММ ЧЧ:ММ`. Save/load button fonts shrink within an approved range when needed to keep their text inside the fixed menu width. Older saves without a stored UTC offset use the current system timezone.
 
 Opening the in-game menu pauses simulation. Closing it restores the previously selected simulation speed.
+
+One protected autosave is written every five simulation minutes during an active match. Speed controls advance this cadence proportionally; an open menu, loading, pause, or finished match suspends it. Loading resets the five-minute timer. The autosave uses its own file and never replaces the three manual slots.
 
 Saved dynamic state includes:
 
@@ -405,7 +407,7 @@ Saved dynamic state includes:
 
 Static terrain, the two faction bases, derived enemy population snapshots, enemy rally-objective positions, temporary rain diagnostics, and corpses are not serialized.
 
-Save writes validate a temporary JSON file before replacing a slot and retain backup recovery. Invalid slots remain visible but cannot be loaded.
+Manual and automatic save writes validate a temporary JSON file before replacing their live file and retain backup recovery. Invalid entries remain visible but cannot be loaded.
 
 Returning to Main Menu unloads the active session without deleting save files. Starting New Game afterwards creates a clean session.
 
@@ -417,7 +419,7 @@ Not implemented yet:
 - additional enemy spells beyond lightning, earthquake, and rain;
 - dynamic enemy attack planning and base damage;
 - dynamic enemy rally placement;
-- minimap markers for eggs, faction bases, and world events.
+- minimap markers for eggs and world events.
 
 ## Change-safety reference
 
