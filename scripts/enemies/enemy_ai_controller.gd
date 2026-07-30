@@ -21,7 +21,6 @@ const PREDATOR_IDS: Array[StringName] = [
 ]
 const BASE_DEFENSE_RAPTOR_TARGET := 2
 const EGG_EATER_UNLOCK_SIMULATION_SECONDS := 600.0
-const DEAD_CREATURE_STATE := 6
 
 @export var turn_interval := 4.0
 @export var minimum_herbivore_cap := 10
@@ -547,7 +546,7 @@ func _is_valid_enemy_creature(creature: Node) -> bool:
 	if not _is_valid_enemy_entity(creature):
 		return false
 
-	if int(creature.get("state")) == DEAD_CREATURE_STATE:
+	if int(creature.get("state")) == Creature.State.DEAD:
 		return false
 
 	var species_data := creature.get("species_data") as CreatureSpeciesData

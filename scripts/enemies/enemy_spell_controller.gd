@@ -18,7 +18,6 @@ const PLAYER_SPECIES_CATALOG := preload("res://scripts/catalogs/player_species_c
 const MATURE_GRASS_STAGE := 3
 const INITIALIZATION_RETRY_FRAMES := 12
 const COMBAT_RESERVE_SAVE_VERSION := 2
-const DEAD_CREATURE_STATE := 6
 const PLAYER_TYRANNOSAURUS_ID := &"tyrannosaurus"
 const PLAYER_EGG_EATER_ID := &"egg_eater"
 const ENEMY_RAPTOR_ID := &"raptor"
@@ -634,7 +633,7 @@ func _is_living_creature(creature: Node) -> bool:
 		creature != null
 		and is_instance_valid(creature)
 		and not creature.is_queued_for_deletion()
-		and int(creature.get("state")) != DEAD_CREATURE_STATE
+		and int(creature.get("state")) != Creature.State.DEAD
 		and float(creature.get("health")) > 0.0
 	)
 

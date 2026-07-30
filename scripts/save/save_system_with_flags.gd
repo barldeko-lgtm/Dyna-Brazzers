@@ -231,7 +231,7 @@ func _add_creature_factions_to_save_records(saved_records: Array) -> void:
 		if not is_instance_valid(creature) or creature.is_queued_for_deletion():
 			continue
 
-		if int(creature.get("state")) == 6:
+		if int(creature.get("state")) == Creature.State.DEAD:
 			continue
 
 		var species_data := creature.get("species_data") as Resource

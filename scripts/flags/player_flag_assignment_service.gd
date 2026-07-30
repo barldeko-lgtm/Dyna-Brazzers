@@ -16,12 +16,6 @@ const MAX_NEW_FLAG_PATHS_PER_UPDATE := 5
 const FLAG_PATH_SEARCH_TILE_CAP := 1800
 const FAILED_PATH_RETRY_SECONDS := 2.0
 
-const CREATURE_STATE_SEEK_FOOD := 2
-const CREATURE_STATE_EATING := 3
-const CREATURE_STATE_LAYING_EGG := 4
-const CREATURE_STATE_COMBAT := 5
-const CREATURE_STATE_DEAD := 6
-
 var owner: Node
 var target_allocator: RefCounted
 var failed_path_retry_until: Dictionary = {}
@@ -567,15 +561,15 @@ func _resolve_debug_status(
 		status = "в зоне флага"
 	elif (
 		_hunger_overrides_flag(creature)
-		or state == CREATURE_STATE_SEEK_FOOD
-		or state == CREATURE_STATE_EATING
+		or state == Creature.State.SEEK_FOOD
+		or state == Creature.State.EATING
 	):
 		status = "пауза — еда" if committed else "ждёт — еда"
-	elif state == CREATURE_STATE_LAYING_EGG:
+	elif state == Creature.State.LAYING_EGG:
 		status = "пауза — размножение" if committed else "ждёт — размножение"
-	elif state == CREATURE_STATE_COMBAT:
+	elif state == Creature.State.COMBAT:
 		status = "пауза — бой" if committed else "ждёт — бой"
-	elif state == CREATURE_STATE_DEAD:
+	elif state == Creature.State.DEAD:
 		status = "мёртв"
 	elif (
 		bool(target_allocator.call("has_assignment", creature))

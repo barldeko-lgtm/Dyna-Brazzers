@@ -1,4 +1,5 @@
 extends CharacterBody2D
+class_name Creature
 
 const Duel = preload("res://scripts/combat/duel.gd")
 const CreatureGrazingLogic = preload("res://scripts/creatures/behaviors/creature_grazing_logic.gd")

@@ -3,7 +3,6 @@ class_name GameEndController
 
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const START_SCREEN_SCENE_PATH := "res://scenes/ui/start_screen.tscn"
-const DEAD_CREATURE_STATE := 6
 
 @export var result_overlay_path: NodePath
 @export var elimination_grace_seconds := 120.0
@@ -85,7 +84,7 @@ func _count_faction_population(faction_id: StringName) -> Dictionary:
 		if CREATURE_FACTION.get_id(creature) != faction_id:
 			continue
 
-		if int(creature.get("state")) == DEAD_CREATURE_STATE:
+		if int(creature.get("state")) == Creature.State.DEAD:
 			continue
 
 		creature_count += 1

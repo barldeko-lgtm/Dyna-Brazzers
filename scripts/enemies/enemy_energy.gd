@@ -7,7 +7,6 @@ signal energy_changed(current_energy: float, max_energy: float)
 
 const ENEMY_SPECIES_CATALOG := preload("res://scripts/catalogs/enemy_species_catalog.gd")
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
-const DEAD_CREATURE_STATE := 6
 const ENERGY_TICK_INTERVAL := 1.0
 
 @export var max_energy := 9999.0
@@ -167,6 +166,6 @@ func _is_living_enemy_creature(creature: Node) -> bool:
 	return (
 		is_instance_valid(creature)
 		and not creature.is_queued_for_deletion()
-		and int(creature.get("state")) != DEAD_CREATURE_STATE
+		and int(creature.get("state")) != Creature.State.DEAD
 		and CREATURE_FACTION.get_id(creature) == CREATURE_FACTION.ENEMY
 	)

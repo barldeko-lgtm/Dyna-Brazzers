@@ -1012,7 +1012,7 @@ func _collect_creature_data() -> Array[Dictionary]:
 		var creature_state: int = int(creature_node.get("state"))
 
 		# Dead creatures are temporary corpse visuals and are not persisted.
-		if creature_state == 6:
+		if creature_state == Creature.State.DEAD:
 			continue
 
 		var species_data: Resource = creature_node.get("species_data") as Resource
