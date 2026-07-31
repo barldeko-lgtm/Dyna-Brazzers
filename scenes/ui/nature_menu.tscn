@@ -1,57 +1,15 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/player_nature_ui.gd" id="1_player_nature_ui"]
 [ext_resource type="Script" path="res://scripts/ui/spell_menu_toggle.gd" id="2_spell_menu_toggle"]
 [ext_resource type="Texture2D" path="res://assets/ui/nature_energy_icon.png" id="3_nature_energy_icon"]
 [ext_resource type="Theme" path="res://assets/ui/dyna_player_ui_theme.tres" id="4_player_ui_theme"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spell_button_normal"]
-bg_color = Color(0.74, 0.76, 0.8, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.32, 0.34, 0.38, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spell_button_pressed"]
-bg_color = Color(0.56, 0.6, 0.68, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.18, 0.24, 0.34, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spell_button_hover"]
-bg_color = Color(0.88, 0.9, 0.94, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.48, 0.52, 0.6, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spell_button_disabled"]
-bg_color = Color(0.36, 0.38, 0.42, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.22, 0.23, 0.25, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_normal.tres" id="5_button_normal"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_hover.tres" id="6_button_hover"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_disabled.tres" id="7_button_disabled"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_compact_normal.tres" id="8_button_compact_normal"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_compact_hover.tres" id="9_button_compact_hover"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_compact_disabled.tres" id="10_button_compact_disabled"]
 
 [node name="PlayerNaturePanel" type="PanelContainer"]
 theme = ExtResource("4_player_ui_theme")
@@ -110,21 +68,41 @@ theme_override_constants/separation = 2
 [node name="TimeSpeed1Button" type="Button" parent="MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
+theme_override_styles/normal = ExtResource("8_button_compact_normal")
+theme_override_styles/hover = ExtResource("9_button_compact_hover")
+theme_override_styles/pressed = ExtResource("9_button_compact_hover")
+theme_override_styles/focus = ExtResource("9_button_compact_hover")
+theme_override_styles/disabled = ExtResource("10_button_compact_disabled")
 text = "x1"
 
 [node name="TimeSpeed2Button" type="Button" parent="MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
+theme_override_styles/normal = ExtResource("8_button_compact_normal")
+theme_override_styles/hover = ExtResource("9_button_compact_hover")
+theme_override_styles/pressed = ExtResource("9_button_compact_hover")
+theme_override_styles/focus = ExtResource("9_button_compact_hover")
+theme_override_styles/disabled = ExtResource("10_button_compact_disabled")
 text = "x2"
 
 [node name="TimeSpeed3Button" type="Button" parent="MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
+theme_override_styles/normal = ExtResource("8_button_compact_normal")
+theme_override_styles/hover = ExtResource("9_button_compact_hover")
+theme_override_styles/pressed = ExtResource("9_button_compact_hover")
+theme_override_styles/focus = ExtResource("9_button_compact_hover")
+theme_override_styles/disabled = ExtResource("10_button_compact_disabled")
 text = "x3"
 
 [node name="TimeSpeed5Button" type="Button" parent="MarginContainer/VBoxContainer/TimeControlsPanel/MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
+theme_override_styles/normal = ExtResource("8_button_compact_normal")
+theme_override_styles/hover = ExtResource("9_button_compact_hover")
+theme_override_styles/pressed = ExtResource("9_button_compact_hover")
+theme_override_styles/focus = ExtResource("9_button_compact_hover")
+theme_override_styles/disabled = ExtResource("10_button_compact_disabled")
 text = "x5"
 
 [node name="MainMenuGrid" type="GridContainer" parent="MarginContainer/VBoxContainer"]
@@ -140,38 +118,38 @@ columns = 2
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 tooltip_text = "NATURE_EGG"
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_font_sizes/font_size = 30
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_styles/normal = ExtResource("5_button_normal")
+theme_override_styles/pressed = ExtResource("6_button_hover")
+theme_override_styles/hover = ExtResource("6_button_hover")
+theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "🥚"
 
 [node name="BaseMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 tooltip_text = "NATURE_BASE"
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_styles/normal = ExtResource("5_button_normal")
+theme_override_styles/pressed = ExtResource("6_button_hover")
+theme_override_styles/hover = ExtResource("6_button_hover")
+theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "NATURE_BASE_BUTTON"
 
 [node name="SpellMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 tooltip_text = "NATURE_SPELLS"
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_colors/font_pressed_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_colors/font_hover_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_pressed_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_hover_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_font_sizes/font_size = 30
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_styles/normal = ExtResource("5_button_normal")
+theme_override_styles/pressed = ExtResource("6_button_hover")
+theme_override_styles/hover = ExtResource("6_button_hover")
+theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "✦"
 script = ExtResource("2_spell_menu_toggle")
 spell_button_paths = Array[NodePath]([NodePath("../../LightningButton"), NodePath("../../RainButton"), NodePath("../../SunButton"), NodePath("../../EarthquakeButton")])
@@ -182,36 +160,36 @@ menu_to_hide_paths = Array[NodePath]([NodePath("..")])
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 tooltip_text = "NATURE_ENEMY"
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_styles/normal = ExtResource("5_button_normal")
+theme_override_styles/pressed = ExtResource("6_button_hover")
+theme_override_styles/hover = ExtResource("6_button_hover")
+theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "NATURE_ENEMY_BUTTON"
 
 [node name="FlagMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 tooltip_text = "NATURE_FLAG"
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_font_sizes/font_size = 30
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_styles/normal = ExtResource("5_button_normal")
+theme_override_styles/pressed = ExtResource("6_button_hover")
+theme_override_styles/hover = ExtResource("6_button_hover")
+theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "⚑"
 
 [node name="SystemMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
 custom_minimum_size = Vector2(126, 66)
 layout_mode = 2
 tooltip_text = "NATURE_MENU"
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_styles/normal = ExtResource("5_button_normal")
+theme_override_styles/pressed = ExtResource("6_button_hover")
+theme_override_styles/hover = ExtResource("6_button_hover")
+theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "NATURE_MENU_BUTTON"
 
 [node name="LightningButton" type="Button" parent="MarginContainer/VBoxContainer"]
@@ -228,10 +206,10 @@ theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
 theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
 theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
 theme_override_font_sizes/font_size = 1
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_styles/normal = ExtResource("5_button_normal")
+theme_override_styles/pressed = ExtResource("6_button_hover")
+theme_override_styles/hover = ExtResource("6_button_hover")
+theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "SPELL_LIGHTNING"
 clip_text = true
 
@@ -239,7 +217,7 @@ clip_text = true
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_font_sizes/font_size = 26
 text = "⚡"
 horizontal_alignment = 1
@@ -260,10 +238,10 @@ theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
 theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
 theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
 theme_override_font_sizes/font_size = 1
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_styles/normal = ExtResource("5_button_normal")
+theme_override_styles/pressed = ExtResource("6_button_hover")
+theme_override_styles/hover = ExtResource("6_button_hover")
+theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "SPELL_RAIN"
 clip_text = true
 
@@ -271,7 +249,7 @@ clip_text = true
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_font_sizes/font_size = 26
 text = "☁"
 horizontal_alignment = 1
@@ -292,10 +270,10 @@ theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
 theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
 theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
 theme_override_font_sizes/font_size = 1
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_styles/normal = ExtResource("5_button_normal")
+theme_override_styles/pressed = ExtResource("6_button_hover")
+theme_override_styles/hover = ExtResource("6_button_hover")
+theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "SPELL_SUN"
 clip_text = true
 
@@ -303,7 +281,7 @@ clip_text = true
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_font_sizes/font_size = 26
 text = "☀"
 horizontal_alignment = 1
@@ -324,10 +302,10 @@ theme_override_colors/font_pressed_color = Color(0, 0, 0, 0)
 theme_override_colors/font_hover_color = Color(0, 0, 0, 0)
 theme_override_colors/font_disabled_color = Color(0, 0, 0, 0)
 theme_override_font_sizes/font_size = 1
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_styles/normal = ExtResource("5_button_normal")
+theme_override_styles/pressed = ExtResource("6_button_hover")
+theme_override_styles/hover = ExtResource("6_button_hover")
+theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "SPELL_EARTHQUAKE"
 clip_text = true
 
@@ -335,7 +313,7 @@ clip_text = true
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_font_sizes/font_size = 26
 text = "≋"
 horizontal_alignment = 1
@@ -349,12 +327,12 @@ offset_top = 120.0
 offset_right = 78.0
 offset_bottom = 164.0
 tooltip_text = "MENU_BACK"
-theme_override_colors/font_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_colors/font_pressed_color = Color(0.08, 0.08, 0.08, 1)
-theme_override_colors/font_hover_color = Color(0.08, 0.08, 0.08, 1)
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_pressed_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_hover_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_font_sizes/font_size = 26
-theme_override_styles/normal = SubResource("StyleBoxFlat_spell_button_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_spell_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_spell_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_spell_button_disabled")
+theme_override_styles/normal = ExtResource("5_button_normal")
+theme_override_styles/pressed = ExtResource("6_button_hover")
+theme_override_styles/hover = ExtResource("6_button_hover")
+theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "←"

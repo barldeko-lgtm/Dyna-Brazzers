@@ -43,8 +43,10 @@ enum PredatorRole {
 @export var walk_up_right_frames: SpriteFrames
 @export var walk_down_right_frames: SpriteFrames
 @export var eating_right_frames: SpriteFrames
+@export var attack_right_frames: SpriteFrames
 @export var walk_animation_fps := 6.0
 @export var eating_animation_fps := 4.0
+@export var attack_animation_fps := 8.0
 @export var death_transition_texture: Texture2D
 @export var death_transition_duration := 0.3
 @export var death_texture: Texture2D

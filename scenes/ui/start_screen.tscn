@@ -1,65 +1,29 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/start_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/ui/start_screen_background.png" id="2_background"]
 [ext_resource type="Texture2D" path="res://assets/ui/start_menu_frame.png" id="3_menu_frame"]
 [ext_resource type="FontFile" path="res://assets/fonts/philosopher/Philosopher-Regular.ttf" id="4_philosopher_regular"]
 [ext_resource type="FontFile" path="res://assets/fonts/philosopher/Philosopher-Bold.ttf" id="5_philosopher_bold"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_normal.tres" id="6_button_normal"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_hover.tres" id="7_button_hover"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_disabled.tres" id="8_button_disabled"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_start_normal.tres" id="9_start_normal"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_start_hover.tres" id="10_start_hover"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_start_disabled.tres" id="11_start_disabled"]
 
 [sub_resource type="StyleBoxEmpty" id="Panel"]
 
 [sub_resource type="Theme" id="StartScreenTheme"]
 Button/fonts/font = ExtResource("5_philosopher_bold")
+Button/styles/disabled = ExtResource("8_button_disabled")
 Label/fonts/font = ExtResource("4_philosopher_regular")
 OptionButton/fonts/font = ExtResource("5_philosopher_bold")
-
-[sub_resource type="StyleBoxFlat" id="ButtonNormal"]
-bg_color = Color(0.14, 0.24, 0.22, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.28, 0.5, 0.4, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="ButtonHover"]
-bg_color = Color(0.2, 0.34, 0.29, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.52, 0.78, 0.56, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="ButtonPressed"]
-bg_color = Color(0.09, 0.18, 0.17, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.36, 0.64, 0.5, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="ButtonFocus"]
-bg_color = Color(0.16, 0.28, 0.25, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.72, 0.92, 0.64, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+OptionButton/styles/disabled = ExtResource("8_button_disabled")
+OptionButton/styles/focus = ExtResource("7_button_hover")
+OptionButton/styles/hover = ExtResource("7_button_hover")
+OptionButton/styles/normal = ExtResource("6_button_normal")
+OptionButton/styles/pressed = ExtResource("7_button_hover")
 
 [node name="StartScreen" type="Control"]
 layout_mode = 3
@@ -108,78 +72,88 @@ expand_mode = 1
 [node name="MarginContainer" type="MarginContainer" parent="CenterContainer/MenuPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 42
-theme_override_constants/margin_top = 68
+theme_override_constants/margin_top = 58
 theme_override_constants/margin_right = 42
 theme_override_constants/margin_bottom = 48
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/MenuPanel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 5
 
 [node name="NewGameButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(286, 50)
+custom_minimum_size = Vector2(250, 55)
 layout_mode = 2
+size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
 theme_override_font_sizes/font_size = 24
-theme_override_styles/normal = SubResource("ButtonNormal")
-theme_override_styles/hover = SubResource("ButtonHover")
-theme_override_styles/pressed = SubResource("ButtonPressed")
-theme_override_styles/focus = SubResource("ButtonFocus")
+theme_override_styles/normal = ExtResource("9_start_normal")
+theme_override_styles/hover = ExtResource("10_start_hover")
+theme_override_styles/pressed = ExtResource("10_start_hover")
+theme_override_styles/focus = ExtResource("10_start_hover")
+theme_override_styles/disabled = ExtResource("11_start_disabled")
 text = "MENU_NEW_GAME"
 
 [node name="ContinueButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(286, 50)
+custom_minimum_size = Vector2(250, 55)
 layout_mode = 2
+size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
 theme_override_colors/font_disabled_color = Color(0.48, 0.54, 0.51, 1)
 theme_override_font_sizes/font_size = 24
-theme_override_styles/normal = SubResource("ButtonNormal")
-theme_override_styles/hover = SubResource("ButtonHover")
-theme_override_styles/pressed = SubResource("ButtonPressed")
-theme_override_styles/focus = SubResource("ButtonFocus")
+theme_override_styles/normal = ExtResource("9_start_normal")
+theme_override_styles/hover = ExtResource("10_start_hover")
+theme_override_styles/pressed = ExtResource("10_start_hover")
+theme_override_styles/focus = ExtResource("10_start_hover")
+theme_override_styles/disabled = ExtResource("11_start_disabled")
 text = "MENU_CONTINUE"
 
 [node name="LoadButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(286, 50)
+custom_minimum_size = Vector2(250, 55)
 layout_mode = 2
+size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
 theme_override_font_sizes/font_size = 24
-theme_override_styles/normal = SubResource("ButtonNormal")
-theme_override_styles/hover = SubResource("ButtonHover")
-theme_override_styles/pressed = SubResource("ButtonPressed")
-theme_override_styles/focus = SubResource("ButtonFocus")
+theme_override_styles/normal = ExtResource("9_start_normal")
+theme_override_styles/hover = ExtResource("10_start_hover")
+theme_override_styles/pressed = ExtResource("10_start_hover")
+theme_override_styles/focus = ExtResource("10_start_hover")
+theme_override_styles/disabled = ExtResource("11_start_disabled")
 text = "MENU_LOAD"
 
 [node name="MenuButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(286, 50)
+custom_minimum_size = Vector2(250, 55)
 layout_mode = 2
+size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
 theme_override_font_sizes/font_size = 24
-theme_override_styles/normal = SubResource("ButtonNormal")
-theme_override_styles/hover = SubResource("ButtonHover")
-theme_override_styles/pressed = SubResource("ButtonPressed")
-theme_override_styles/focus = SubResource("ButtonFocus")
+theme_override_styles/normal = ExtResource("9_start_normal")
+theme_override_styles/hover = ExtResource("10_start_hover")
+theme_override_styles/pressed = ExtResource("10_start_hover")
+theme_override_styles/focus = ExtResource("10_start_hover")
+theme_override_styles/disabled = ExtResource("11_start_disabled")
 text = "MENU_SETTINGS"
 
 [node name="ExitButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(286, 50)
+custom_minimum_size = Vector2(250, 55)
 layout_mode = 2
+size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
 theme_override_font_sizes/font_size = 24
-theme_override_styles/normal = SubResource("ButtonNormal")
-theme_override_styles/hover = SubResource("ButtonHover")
-theme_override_styles/pressed = SubResource("ButtonPressed")
-theme_override_styles/focus = SubResource("ButtonFocus")
+theme_override_styles/normal = ExtResource("9_start_normal")
+theme_override_styles/hover = ExtResource("10_start_hover")
+theme_override_styles/pressed = ExtResource("10_start_hover")
+theme_override_styles/focus = ExtResource("10_start_hover")
+theme_override_styles/disabled = ExtResource("11_start_disabled")
 text = "MENU_EXIT"
 
 [node name="LevelSelectTitle" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
@@ -201,10 +175,10 @@ theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
 theme_override_font_sizes/font_size = 22
-theme_override_styles/normal = SubResource("ButtonNormal")
-theme_override_styles/hover = SubResource("ButtonHover")
-theme_override_styles/pressed = SubResource("ButtonPressed")
-theme_override_styles/focus = SubResource("ButtonFocus")
+theme_override_styles/normal = ExtResource("6_button_normal")
+theme_override_styles/hover = ExtResource("7_button_hover")
+theme_override_styles/pressed = ExtResource("7_button_hover")
+theme_override_styles/focus = ExtResource("7_button_hover")
 text = "LEVEL_1_CURRENT"
 
 [node name="Level2Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
@@ -215,10 +189,10 @@ theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
 theme_override_font_sizes/font_size = 20
-theme_override_styles/normal = SubResource("ButtonNormal")
-theme_override_styles/hover = SubResource("ButtonHover")
-theme_override_styles/pressed = SubResource("ButtonPressed")
-theme_override_styles/focus = SubResource("ButtonFocus")
+theme_override_styles/normal = ExtResource("6_button_normal")
+theme_override_styles/hover = ExtResource("7_button_hover")
+theme_override_styles/pressed = ExtResource("7_button_hover")
+theme_override_styles/focus = ExtResource("7_button_hover")
 text = "LEVEL_2_NEW"
 
 [node name="LevelBackButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
@@ -229,10 +203,10 @@ theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
 theme_override_font_sizes/font_size = 21
-theme_override_styles/normal = SubResource("ButtonNormal")
-theme_override_styles/hover = SubResource("ButtonHover")
-theme_override_styles/pressed = SubResource("ButtonPressed")
-theme_override_styles/focus = SubResource("ButtonFocus")
+theme_override_styles/normal = ExtResource("6_button_normal")
+theme_override_styles/hover = ExtResource("7_button_hover")
+theme_override_styles/pressed = ExtResource("7_button_hover")
+theme_override_styles/focus = ExtResource("7_button_hover")
 text = "MENU_BACK"
 
 [node name="AutosaveButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
@@ -244,10 +218,10 @@ theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
 theme_override_colors/font_disabled_color = Color(0.48, 0.54, 0.51, 1)
 theme_override_font_sizes/font_size = 19
-theme_override_styles/normal = SubResource("ButtonNormal")
-theme_override_styles/hover = SubResource("ButtonHover")
-theme_override_styles/pressed = SubResource("ButtonPressed")
-theme_override_styles/focus = SubResource("ButtonFocus")
+theme_override_styles/normal = ExtResource("6_button_normal")
+theme_override_styles/hover = ExtResource("7_button_hover")
+theme_override_styles/pressed = ExtResource("7_button_hover")
+theme_override_styles/focus = ExtResource("7_button_hover")
 text = "SAVE_AUTOSAVE_SHORT"
 
 [node name="LoadSlot1Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
@@ -259,10 +233,10 @@ theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
 theme_override_colors/font_disabled_color = Color(0.48, 0.54, 0.51, 1)
 theme_override_font_sizes/font_size = 21
-theme_override_styles/normal = SubResource("ButtonNormal")
-theme_override_styles/hover = SubResource("ButtonHover")
-theme_override_styles/pressed = SubResource("ButtonPressed")
-theme_override_styles/focus = SubResource("ButtonFocus")
+theme_override_styles/normal = ExtResource("6_button_normal")
+theme_override_styles/hover = ExtResource("7_button_hover")
+theme_override_styles/pressed = ExtResource("7_button_hover")
+theme_override_styles/focus = ExtResource("7_button_hover")
 text = "SAVE_SLOT_EMPTY"
 
 [node name="LoadSlot2Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
@@ -274,10 +248,10 @@ theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
 theme_override_colors/font_disabled_color = Color(0.48, 0.54, 0.51, 1)
 theme_override_font_sizes/font_size = 21
-theme_override_styles/normal = SubResource("ButtonNormal")
-theme_override_styles/hover = SubResource("ButtonHover")
-theme_override_styles/pressed = SubResource("ButtonPressed")
-theme_override_styles/focus = SubResource("ButtonFocus")
+theme_override_styles/normal = ExtResource("6_button_normal")
+theme_override_styles/hover = ExtResource("7_button_hover")
+theme_override_styles/pressed = ExtResource("7_button_hover")
+theme_override_styles/focus = ExtResource("7_button_hover")
 text = "SAVE_SLOT_EMPTY"
 
 [node name="LoadSlot3Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
@@ -289,10 +263,10 @@ theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
 theme_override_colors/font_disabled_color = Color(0.48, 0.54, 0.51, 1)
 theme_override_font_sizes/font_size = 21
-theme_override_styles/normal = SubResource("ButtonNormal")
-theme_override_styles/hover = SubResource("ButtonHover")
-theme_override_styles/pressed = SubResource("ButtonPressed")
-theme_override_styles/focus = SubResource("ButtonFocus")
+theme_override_styles/normal = ExtResource("6_button_normal")
+theme_override_styles/hover = ExtResource("7_button_hover")
+theme_override_styles/pressed = ExtResource("7_button_hover")
+theme_override_styles/focus = ExtResource("7_button_hover")
 text = "SAVE_SLOT_EMPTY"
 
 [node name="LoadBackButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
@@ -304,10 +278,10 @@ theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
 theme_override_colors/font_disabled_color = Color(0.48, 0.54, 0.51, 1)
 theme_override_font_sizes/font_size = 21
-theme_override_styles/normal = SubResource("ButtonNormal")
-theme_override_styles/hover = SubResource("ButtonHover")
-theme_override_styles/pressed = SubResource("ButtonPressed")
-theme_override_styles/focus = SubResource("ButtonFocus")
+theme_override_styles/normal = ExtResource("6_button_normal")
+theme_override_styles/hover = ExtResource("7_button_hover")
+theme_override_styles/pressed = ExtResource("7_button_hover")
+theme_override_styles/focus = ExtResource("7_button_hover")
 text = "MENU_BACK"
 
 [node name="StatusLabel" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]

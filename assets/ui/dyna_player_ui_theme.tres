@@ -1,15 +1,38 @@
-[gd_resource type="Theme" load_steps=3 format=3]
+[gd_resource type="Theme" load_steps=6 format=3]
 
 [ext_resource type="FontFile" path="res://assets/fonts/philosopher/Philosopher-Regular.ttf" id="1_regular"]
 [ext_resource type="FontFile" path="res://assets/fonts/philosopher/Philosopher-Bold.ttf" id="2_bold"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_normal.tres" id="3_button_normal"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_hover.tres" id="4_button_hover"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_disabled.tres" id="5_button_disabled"]
 
 [resource]
+Button/colors/font_color = Color(0.92, 0.96, 0.9, 1)
+Button/colors/font_disabled_color = Color(0.56, 0.59, 0.54, 1)
+Button/colors/font_focus_color = Color(1, 1, 1, 1)
+Button/colors/font_hover_color = Color(1, 1, 1, 1)
+Button/colors/font_pressed_color = Color(1, 1, 1, 1)
 Button/fonts/font = ExtResource("2_bold")
+Button/styles/disabled = ExtResource("5_button_disabled")
+Button/styles/focus = ExtResource("4_button_hover")
+Button/styles/hover = ExtResource("4_button_hover")
+Button/styles/normal = ExtResource("3_button_normal")
+Button/styles/pressed = ExtResource("4_button_hover")
 CheckBox/fonts/font = ExtResource("2_bold")
 CheckButton/fonts/font = ExtResource("2_bold")
 Label/fonts/font = ExtResource("1_regular")
 LineEdit/fonts/font = ExtResource("1_regular")
+OptionButton/colors/font_color = Color(0.92, 0.96, 0.9, 1)
+OptionButton/colors/font_disabled_color = Color(0.56, 0.59, 0.54, 1)
+OptionButton/colors/font_focus_color = Color(1, 1, 1, 1)
+OptionButton/colors/font_hover_color = Color(1, 1, 1, 1)
+OptionButton/colors/font_pressed_color = Color(1, 1, 1, 1)
 OptionButton/fonts/font = ExtResource("2_bold")
+OptionButton/styles/disabled = ExtResource("5_button_disabled")
+OptionButton/styles/focus = ExtResource("4_button_hover")
+OptionButton/styles/hover = ExtResource("4_button_hover")
+OptionButton/styles/normal = ExtResource("3_button_normal")
+OptionButton/styles/pressed = ExtResource("4_button_hover")
 RichTextLabel/fonts/bold_font = ExtResource("2_bold")
 RichTextLabel/fonts/normal_font = ExtResource("1_regular")
 TextEdit/fonts/font = ExtResource("1_regular")

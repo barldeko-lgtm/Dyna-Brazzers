@@ -1,0 +1,6 @@
+[gd_resource type="StyleBoxTexture" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/buttons/dyna_button_disabled.png" id="1_texture"]
+
+[resource]
+texture = ExtResource("1_texture")

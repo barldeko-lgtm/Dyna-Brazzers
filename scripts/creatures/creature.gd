@@ -826,6 +826,9 @@ func attach_duel(duel: Duel) -> void:
 	change_state(State.COMBAT)
 
 	if duel != null:
+		var attack_started_callable := Callable(self, "_on_duel_attack_started")
+		if not duel.attack_started.is_connected(attack_started_callable):
+			duel.attack_started.connect(attack_started_callable)
 		face_duel_opponent(duel)
 
 
@@ -833,9 +836,16 @@ func detach_duel(duel: Duel) -> void:
 	if current_duel != duel:
 		return
 
+	if duel != null:
+		var attack_started_callable := Callable(self, "_on_duel_attack_started")
+		if duel.attack_started.is_connected(attack_started_callable):
+			duel.attack_started.disconnect(attack_started_callable)
+
 	current_duel = null
 	cancel_pending_duel()
 	cancel_combat_engagement()
+	if visual_controller != null:
+		visual_controller.stop_attack_animation()
 
 	if state == State.DEAD:
 		return
@@ -844,6 +854,18 @@ func detach_duel(duel: Duel) -> void:
 		return
 
 	enter_walk()
+
+
+func _on_duel_attack_started(duel: Duel, attacker: Node, defender: Node) -> void:
+	if duel != current_duel or visual_controller == null:
+		return
+
+	face_target(defender if attacker == self else attacker)
+	if attacker == self:
+		visual_controller.play_attack_animation_toward(direction)
+		return
+
+	visual_controller.stop_attack_animation()
 
 
 func start_duel_with(opponent: Node) -> Duel:

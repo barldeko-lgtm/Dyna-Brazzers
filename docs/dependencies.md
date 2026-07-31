@@ -524,7 +524,10 @@ Main files:
 Rules:
 
 - `creature.gd` owns FSM state and ordered death cleanup;
-- the visual controller owns directional textures, animation playback, contour shadows, and displayed death poses;
+- the visual controller owns directional textures, walk/eat/duel-attack animation playback, contour shadows, and displayed death poses;
+- `Duel.attack_started` is the shared turn-start visual hook; damage remains owned by `Duel` and lands halfway through the one-second attack turn;
+- species attack animations are optional resource data; missing frames preserve the static combat pose, and right-facing attack frames mirror for left-facing combat;
+- every attack uses the same 64-pixel visual lunge: body/animated sprite and contour shadow move toward the opponent for the first half-turn and return during the second half-turn, while the creature node, logical anchor, occupancy, collision, and pathfinding position remain unchanged;
 - missing animation resources fall back to static directional textures;
 - the interaction controller owns the world-space highlight and mouse bridge, not UI selection state;
 - UI callers use the creature facade highlight methods;
@@ -621,7 +624,8 @@ Rules:
 - simulation speed advances the autosave cadence proportionally; loading, an open menu, zero time scale, or a finished match suspends it;
 - the startup and in-game load menus expose autosave separately and must never let it replace any manual slot;
 - the startup Continue button stays directly below New Game, ignores invalid candidates, and uses the same validated load paths rather than bypassing reconstruction;
-- the five-button startup main panel is centred 150 pixels below the viewport midpoint and displays `assets/ui/start_menu_frame.png` at a fixed 370x432 size; its centred 260x50 main buttons use 10-pixel separation, stay clear of both side ornaments, and sit 20 pixels lower than the initial textured layout; startup buttons/headings use Philosopher Bold and secondary labels use Philosopher Regular; translated in-game HUD/menu/result/creature UI follows the same Bold/Regular contract through `assets/ui/dyna_player_ui_theme.tres`, without applying it to F3-F8 developer overlays; hide the empty status row in the startup main state, but reveal it before showing Continue/load errors;
+- the five-button startup main panel is centred 150 pixels below the viewport midpoint and displays `assets/ui/start_menu_frame.png` at a fixed 370x432 logical size; its centred 250x55 main buttons use 5-pixel separation, start 10 pixels higher than the previous layout, and retain safe side and bottom ornament clearance; startup button textures remain at 450x109 and startup-specific style resources scale each whole image into the control rather than nine-patching its centre; `canvas_items` stretch handles larger output resolutions; startup buttons/headings use Philosopher Bold and secondary labels use Philosopher Regular; translated in-game HUD/menu/result/creature UI follows the same Bold/Regular contract through `assets/ui/dyna_player_ui_theme.tres`, without applying it to F3-F8 developer overlays; hide the empty status row in the startup main state, but reveal it before showing Continue/load errors;
+- production buttons resolve normal to `dyna_button_normal.png`, hover/pressed/focus to `dyna_button_hover.png`, and disabled to `dyna_button_disabled.png` through shared `StyleBoxTexture` resources that scale the complete texture into each control; compact speed controls retain matching low-padding resources so integration never expands their 28-pixel width;
 - player-facing menus, save labels, nature/egg/flag controls, result UI, creature age, minimap tooltip, and compact HUD headers use `localization/ui.csv` through `TranslationServer`; supported locales are `ru`, `en`, `fr`, `de`, and `uk`, with `ru` as the first-run default and the selected locale stored separately in `user://dyna_locale.cfg`;
 - language selection is the first setting in both startup and in-game Settings and refreshes the open interface; F3-F8 overlays and internal diagnostics remain deliberately untranslated;
 - invalid slots remain visible but cannot be loaded;

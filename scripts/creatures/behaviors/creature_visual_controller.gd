@@ -1,5 +1,8 @@
 extends RefCounted
 
+const ATTACK_LUNGE_DISTANCE := 64.0
+const ATTACK_LUNGE_HALF_DURATION := 0.5
+
 var creature: Node
 var last_faces_left := false
 var ground_shadow_sprite: Sprite2D = null
@@ -8,6 +11,9 @@ var ground_shadow_offset_y := 0.0
 var ground_shadow_base_scale_y := 0.36
 var ground_shadow_diagonal_rotation_degrees := 0.0
 var ground_shadow_diagonal_scale_y := 0.0
+var attack_animation_active := false
+var attack_lunge_offset := Vector2.ZERO
+var attack_lunge_tween: Tween = null
 
 
 func _init(owner_creature: Node) -> void:
@@ -95,6 +101,20 @@ func update_sprite_visual() -> void:
 
 	body_sprite.flip_h = false
 	body_sprite.visible = true
+
+	if (
+		creature.state == creature.State.COMBAT
+		and attack_animation_active
+		and _has_valid_animation(creature.species_data.attack_right_frames)
+	):
+		body_sprite.visible = false
+		set_walk_animation_active(
+			true,
+			last_faces_left,
+			creature.species_data.attack_right_frames,
+			creature.species_data.attack_animation_fps
+		)
+		return
 
 	if creature.state == creature.State.LAYING_EGG and creature.species_data.idle_texture != null:
 		set_walk_animation_active(false)
@@ -197,6 +217,79 @@ func show_death_visual() -> void:
 	_apply_death_texture(death_texture)
 
 
+func play_attack_animation() -> void:
+	attack_animation_active = _has_valid_animation(creature.species_data.attack_right_frames)
+	if not attack_animation_active:
+		update_sprite_visual()
+		return
+
+	var body_sprite := _get_body_sprite()
+	if body_sprite != null:
+		body_sprite.visible = false
+
+	set_walk_animation_active(
+		true,
+		last_faces_left,
+		creature.species_data.attack_right_frames,
+		creature.species_data.attack_animation_fps,
+		true
+	)
+
+
+func play_attack_animation_toward(target_direction: Vector2) -> void:
+	play_attack_animation()
+	start_attack_lunge(target_direction)
+
+
+func start_attack_lunge(target_direction: Vector2) -> void:
+	stop_attack_lunge()
+	if target_direction.length_squared() <= 0.0001:
+		return
+
+	var target_offset := target_direction.normalized() * ATTACK_LUNGE_DISTANCE
+	attack_lunge_tween = creature.create_tween()
+	attack_lunge_tween.tween_method(
+		_set_attack_lunge_offset,
+		Vector2.ZERO,
+		target_offset,
+		ATTACK_LUNGE_HALF_DURATION
+	)
+	attack_lunge_tween.tween_method(
+		_set_attack_lunge_offset,
+		target_offset,
+		Vector2.ZERO,
+		ATTACK_LUNGE_HALF_DURATION
+	)
+
+
+func stop_attack_lunge() -> void:
+	if attack_lunge_tween != null and attack_lunge_tween.is_valid():
+		attack_lunge_tween.kill()
+	attack_lunge_tween = null
+	_set_attack_lunge_offset(Vector2.ZERO)
+
+
+func stop_attack_animation() -> void:
+	stop_attack_lunge()
+	attack_animation_active = false
+	update_sprite_visual()
+
+
+func _set_attack_lunge_offset(new_offset: Vector2) -> void:
+	attack_lunge_offset = new_offset
+
+	var body_sprite := _get_body_sprite()
+	if body_sprite != null:
+		body_sprite.position = attack_lunge_offset
+
+	var walk_sprite := _get_walk_sprite()
+	if walk_sprite != null:
+		walk_sprite.position = attack_lunge_offset
+
+	if ground_shadow_sprite != null:
+		_apply_ground_shadow_pose(ground_shadow_sprite.flip_h)
+
+
 func _apply_death_texture(texture: Texture2D) -> void:
 	set_ground_shadow_upward_diagonal(false)
 	set_walk_animation_active(false)
@@ -217,7 +310,8 @@ func set_walk_animation_active(
 	active: bool,
 	flip_h: bool = false,
 	sprite_frames: SpriteFrames = null,
-	animation_fps: float = -1.0
+	animation_fps: float = -1.0,
+	restart: bool = false
 ) -> void:
 	var walk_sprite := _get_walk_sprite()
 	if walk_sprite == null:
@@ -227,7 +321,7 @@ func set_walk_animation_active(
 		if sprite_frames == null:
 			return
 
-		var must_restart := false
+		var must_restart := restart
 
 		walk_sprite.visible = true
 		walk_sprite.flip_h = flip_h
@@ -325,7 +419,7 @@ func _apply_ground_shadow_pose(flip_h: bool) -> void:
 	if ground_shadow_sprite == null:
 		return
 
-	ground_shadow_sprite.position = Vector2(0.0, ground_shadow_offset_y)
+	ground_shadow_sprite.position = Vector2(0.0, ground_shadow_offset_y) + attack_lunge_offset
 
 	if _ground_shadow_is_diagonal():
 		var rotation_sign := -1.0 if flip_h else 1.0

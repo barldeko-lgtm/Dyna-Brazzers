@@ -345,7 +345,7 @@ func _compact_menu_buttons() -> void:
 		var button := child as Button
 		if button == null:
 			continue
-		button.custom_minimum_size.x = 260.0
+		button.custom_minimum_size.x = 250.0
 		button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 

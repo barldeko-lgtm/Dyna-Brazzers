@@ -60,7 +60,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — prey selection, active raptor protection of allied herbivores and egg eaters, existing-target intervention by attacker-role predators, approach routing, engagement, and combat handoff.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — edible-egg targeting and consumption.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and natural egg spawning.
-- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, animations, shadows, and optional transition/final death poses.
+- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, walk/eat/duel-attack animations, visual attack lunges, shadows, and optional transition/final death poses.
 - `scripts/creatures/behaviors/creature_interaction_controller.gd` — hover/selection visual and mouse bridge.
 - `scripts/combat/duel.gd` — one-on-one combat loop, single-intervention reservation, and post-hit fighter replacement handoff.
 - `scripts/resources/grass.gd` — grass lifecycle, food value, spreading, registry sync, and nature-power reactions.
@@ -164,7 +164,8 @@ World/UI:
 - `assets/ui/start_screen_background.png`
 - `assets/ui/start_menu_frame.png` — transparent 720x840 startup menu frame, displayed at a fixed 370x432 UI size.
 - `assets/fonts/philosopher/Philosopher-Regular.ttf` and `Philosopher-Bold.ttf` — OFL-licensed player-facing UI fonts; license text lives beside them.
-- `assets/ui/dyna_player_ui_theme.tres` — shared Philosopher theme for translated in-game HUD, menus, creature information, and result UI; debug overlays are intentionally excluded.
+- `assets/ui/buttons/` — supplied normal, hover, and disabled stone-frame button textures plus reusable regular/compact resources and startup-specific whole-image `StyleBoxTexture` resources.
+- `assets/ui/dyna_player_ui_theme.tres` — shared Philosopher and textured-button theme for translated in-game HUD, menus, creature information, and result UI; debug overlays are intentionally excluded.
 - `assets/ui/creature_selection_frame.png`
 - `assets/sprites/effects/rain/`
 
@@ -178,7 +179,7 @@ Audio:
 - `assets/audio/sfx/earthquake_cast.wav`
 - `assets/audio/ui/button_click.wav`
 
-Player creature visuals live under `assets/sprites/creatures/<species>/`.
+Player creature visuals live under `assets/sprites/creatures/<species>/`; species animation resources live under `data/animations/`, including the current stegosaurus and tyrannosaurus duel attack frames.
 Enemy visuals live under `assets/sprites/creatures/enemy/<species>/`; their `.tres` resources select faction-specific directional and egg textures.
 Generic egg fallback textures live under `assets/sprites/eggs/`; species-specific stage textures stay beside that species' player visuals.
 

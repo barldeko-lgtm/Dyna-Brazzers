@@ -2,6 +2,9 @@ extends Node
 class_name Duel
 
 signal duel_finished(duel: Duel, winner: Node, loser: Node)
+signal attack_started(duel: Duel, attacker: Node, defender: Node)
+
+const ATTACK_HIT_DELAY := 0.5
 
 var fighter_a: Node = null
 var fighter_b: Node = null
@@ -9,6 +12,7 @@ var initiator: Node = null
 var current_attacker: Node = null
 var tick_interval := 1.0
 var tick_remaining := 0.0
+var attack_in_progress := false
 var is_active := false
 var intervention_allowed := true
 var intervention_reserver: Node = null
@@ -30,7 +34,8 @@ func setup(
 	intervention_reserver = null
 	intervention_protected_fighter = null
 	current_attacker = initiator
-	tick_remaining = 0.0
+	attack_in_progress = true
+	tick_remaining = minf(ATTACK_HIT_DELAY, tick_interval)
 
 	if fighter_a != null and fighter_a.has_method("attach_duel"):
 		fighter_a.attach_duel(self)
@@ -40,6 +45,7 @@ func setup(
 
 	is_active = true
 	set_process(true)
+	emit_signal("attack_started", self, current_attacker, _get_other_fighter(current_attacker))
 
 
 func _ready() -> void:
@@ -54,12 +60,20 @@ func _process(delta: float) -> void:
 		finish_from_current_state()
 		return
 
-	tick_remaining -= delta
+	var remaining_delta := delta
+	while is_active:
+		tick_remaining -= remaining_delta
+		if tick_remaining > 0.000001:
+			return
 
-	if tick_remaining > 0.0:
-		return
+		remaining_delta = maxf(-tick_remaining, 0.0)
+		if attack_in_progress:
+			resolve_next_turn()
+		else:
+			begin_next_turn()
 
-	resolve_next_turn()
+		if remaining_delta <= 0.0:
+			return
 
 
 func resolve_next_turn() -> void:
@@ -87,8 +101,18 @@ func resolve_next_turn() -> void:
 	if _complete_reserved_intervention():
 		return
 
-	current_attacker = defender
-	tick_remaining = tick_interval
+	attack_in_progress = false
+	tick_remaining = maxf(tick_interval - minf(ATTACK_HIT_DELAY, tick_interval), 0.0)
+
+
+func begin_next_turn() -> void:
+	if not is_active:
+		return
+
+	current_attacker = _get_other_fighter(current_attacker)
+	attack_in_progress = true
+	tick_remaining = minf(ATTACK_HIT_DELAY, tick_interval)
+	emit_signal("attack_started", self, current_attacker, _get_other_fighter(current_attacker))
 
 
 func reserve_intervention(intervener: Node, protected_fighter: Node) -> bool:
