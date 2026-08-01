@@ -18,7 +18,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 
 - `scenes/ui/start_screen.tscn` — startup menu, level selection, load slots, settings, and exit.
 - `scenes/main/main.tscn` — gameplay compositor with a dedicated world viewport, adaptive right-side HUD, camera, match flow, world, and debug overlays.
-- `scenes/ui/player_hud.tscn` — gameplay HUD, minimap, counters, and nature-menu instance.
+- `scenes/ui/player_hud.tscn` — gameplay HUD, minimap, counters, nature-menu instance, and the two stretched right-panel texture layers.
 - `scenes/ui/creature_info_panel.tscn` — selected/hovered creature information.
 - `scenes/ui/nature_menu.tscn` — player energy, spells, time controls, and host area for runtime submenus.
 - `scenes/ui/game_result_overlay.tscn` — full-screen victory/defeat result presentation and main-menu action.
@@ -166,6 +166,8 @@ World/UI:
 - `assets/fonts/philosopher/Philosopher-Regular.ttf` and `Philosopher-Bold.ttf` — OFL-licensed player-facing UI fonts; license text lives beside them.
 - `assets/ui/buttons/` — supplied normal, hover, and disabled stone-frame button textures plus reusable regular/compact resources and startup-specific whole-image `StyleBoxTexture` resources.
 - `assets/ui/dyna_player_ui_theme.tres` — shared Philosopher and textured-button theme for translated in-game HUD, menus, creature information, and result UI; debug overlays are intentionally excluded.
+- `assets/ui/right_panel_top.png` — supplied 631x822 whole-image background for the minimap and creature-counter portion of the right HUD.
+- `assets/ui/right_panel_bottom.png` — supplied 637x723 whole-image background for the nature/menu portion of the right HUD.
 - `assets/ui/creature_selection_frame.png`
 - `assets/sprites/effects/rain/`
 

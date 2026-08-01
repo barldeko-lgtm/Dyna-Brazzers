@@ -165,7 +165,7 @@ func _create_menu_root(content_root: Control) -> void:
 	menu_root = Control.new()
 	menu_root.name = "SaveLoadMenuRoot"
 	menu_root.process_mode = Node.PROCESS_MODE_ALWAYS
-	menu_root.position = Vector2(0.0, 66.0)
+	menu_root.position = Vector2(0.0, 91.0)
 	menu_root.size = Vector2(260.0, 218.0)
 	menu_root.visible = false
 	menu_root.mouse_filter = Control.MOUSE_FILTER_STOP

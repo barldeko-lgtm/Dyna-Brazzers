@@ -10,6 +10,7 @@ const LANGUAGE_OPTIONS := [
 ]
 
 @onready var menu_vbox: VBoxContainer = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer
+@onready var menu_margin: MarginContainer = $CenterContainer/MenuPanel/MarginContainer
 @onready var new_game_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/NewGameButton
 @onready var continue_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/ContinueButton
 @onready var load_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadButton
@@ -18,12 +19,16 @@ const LANGUAGE_OPTIONS := [
 @onready var level_select_title: Label = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelSelectTitle
 @onready var level_1_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/Level1Button
 @onready var level_2_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/Level2Button
+@onready var level_3_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/Level3Button
+@onready var level_4_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/Level4Button
 @onready var level_back_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelBackButton
 @onready var autosave_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/AutosaveButton
 @onready var load_slot_1_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadSlot1Button
 @onready var load_slot_2_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadSlot2Button
 @onready var load_slot_3_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadSlot3Button
 @onready var load_back_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadBackButton
+@onready var load_status_area: Control = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadStatusArea
+@onready var load_status_label: Label = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadStatusArea/LoadStatusLabel
 @onready var status_label: Label = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/StatusLabel
 
 var load_slot_buttons: Array[Button] = []
@@ -49,11 +54,14 @@ func _ready() -> void:
 		level_select_title,
 		level_1_button,
 		level_2_button,
+		level_3_button,
+		level_4_button,
 		level_back_button
 	]
 
 	_create_audio_settings_controls()
 	_compact_menu_buttons()
+	_configure_load_menu_buttons()
 	_refresh_localized_text()
 
 	new_game_button.pressed.connect(_on_new_game_pressed)
@@ -78,7 +86,6 @@ func _ready() -> void:
 		)
 
 	_show_main_buttons()
-	new_game_button.grab_focus()
 
 
 func _on_new_game_pressed() -> void:
@@ -101,7 +108,6 @@ func _on_level_2_pressed() -> void:
 
 func _on_level_back_pressed() -> void:
 	_show_main_buttons()
-	new_game_button.grab_focus()
 
 
 func _on_load_pressed() -> void:
@@ -134,12 +140,10 @@ func _on_exit_pressed() -> void:
 
 func _on_load_back_pressed() -> void:
 	_show_main_buttons()
-	load_button.grab_focus()
 
 
 func _on_settings_back_pressed() -> void:
 	_show_main_buttons()
-	menu_button.grab_focus()
 
 
 func _on_language_selected(index: int) -> void:
@@ -152,7 +156,9 @@ func _on_locale_changed(_locale: String) -> void:
 	_refresh_localized_text()
 	if level_1_button.visible:
 		SaveSystem.apply_save_button_text(level_1_button, level_1_button.text, 22, 13)
-		SaveSystem.apply_save_button_text(level_2_button, level_2_button.text, 20, 13)
+		SaveSystem.apply_save_button_text(level_2_button, level_2_button.text, 22, 13)
+		SaveSystem.apply_save_button_text(level_3_button, level_3_button.text, 22, 13)
+		SaveSystem.apply_save_button_text(level_4_button, level_4_button.text, 22, 13)
 
 
 func _on_music_volume_changed(value: float) -> void:
@@ -171,7 +177,7 @@ func _on_load_slot_pressed(slot_index: int) -> void:
 	if not SaveSystem.has_save(slot_index):
 		return
 
-	status_label.text = tr("STATUS_LOADING_SLOT") % slot_index
+	load_status_label.text = tr("STATUS_LOADING_SLOT") % slot_index
 	_set_load_slot_buttons_disabled(true)
 
 	var load_succeeded: bool = await SaveSystem.load_game(slot_index)
@@ -179,7 +185,7 @@ func _on_load_slot_pressed(slot_index: int) -> void:
 	if load_succeeded:
 		return
 
-	status_label.text = tr("STATUS_LOAD_SLOT_FAILED") % slot_index
+	load_status_label.text = tr("STATUS_LOAD_SLOT_FAILED") % slot_index
 	_set_load_slot_buttons_disabled(false)
 	load_back_button.grab_focus()
 
@@ -188,19 +194,21 @@ func _on_autosave_pressed() -> void:
 	if not SaveSystem.has_autosave():
 		return
 
-	status_label.text = tr("STATUS_LOADING_AUTOSAVE")
+	load_status_label.text = tr("STATUS_LOADING_AUTOSAVE")
 	_set_load_slot_buttons_disabled(true)
 	var load_succeeded: bool = await SaveSystem.load_autosave()
 
 	if load_succeeded:
 		return
 
-	status_label.text = tr("STATUS_LOAD_AUTOSAVE_FAILED")
+	load_status_label.text = tr("STATUS_LOAD_AUTOSAVE_FAILED")
 	_set_load_slot_buttons_disabled(false)
 	load_back_button.grab_focus()
 
 
 func _show_main_buttons() -> void:
+	menu_margin.add_theme_constant_override("margin_top", 58)
+	load_status_area.visible = false
 	new_game_button.visible = true
 	continue_button.visible = true
 	load_button.visible = true
@@ -220,14 +228,15 @@ func _show_main_buttons() -> void:
 
 
 func _show_level_selection() -> void:
+	menu_margin.add_theme_constant_override("margin_top", 33)
 	new_game_button.visible = false
 	continue_button.visible = false
 	load_button.visible = false
 	menu_button.visible = false
 	exit_button.visible = false
 	load_back_button.visible = false
-	status_label.visible = true
-	status_label.text = tr("STATUS_SELECT_LEVEL")
+	status_label.visible = false
+	status_label.text = ""
 	autosave_button.visible = false
 
 	for slot_button: Button in load_slot_buttons:
@@ -236,17 +245,21 @@ func _show_level_selection() -> void:
 	_set_settings_controls_visible(false)
 	_set_level_selection_visible(true)
 	SaveSystem.apply_save_button_text(level_1_button, level_1_button.text, 22, 13)
-	SaveSystem.apply_save_button_text(level_2_button, level_2_button.text, 20, 13)
+	SaveSystem.apply_save_button_text(level_2_button, level_2_button.text, 22, 13)
+	SaveSystem.apply_save_button_text(level_3_button, level_3_button.text, 22, 13)
+	SaveSystem.apply_save_button_text(level_4_button, level_4_button.text, 22, 13)
 	level_1_button.grab_focus()
 
 
 func _show_load_slots() -> void:
+	menu_margin.add_theme_constant_override("margin_top", 57)
 	new_game_button.visible = false
 	continue_button.visible = false
 	load_button.visible = false
 	menu_button.visible = false
 	exit_button.visible = false
-	status_label.visible = true
+	status_label.visible = false
+	load_status_area.visible = true
 	_set_level_selection_visible(false)
 	_set_settings_controls_visible(false)
 
@@ -284,10 +297,10 @@ func _show_load_slots() -> void:
 	load_back_button.disabled = false
 
 	if has_any_save:
-		status_label.text = tr("STATUS_SELECT_LOAD_SLOT")
+		load_status_label.text = tr("STATUS_SELECT_LOAD_SLOT")
 		_focus_first_available_slot()
 	else:
-		status_label.text = tr("STATUS_NO_SAVES")
+		load_status_label.text = tr("STATUS_NO_SAVES")
 		load_back_button.grab_focus()
 
 
@@ -347,6 +360,18 @@ func _compact_menu_buttons() -> void:
 			continue
 		button.custom_minimum_size.x = 250.0
 		button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
+
+func _configure_load_menu_buttons() -> void:
+	var buttons: Array[Button] = [
+		autosave_button,
+		load_slot_1_button,
+		load_slot_2_button,
+		load_slot_3_button,
+		load_back_button,
+	]
+	for button: Button in buttons:
+		button.custom_minimum_size.x = 250.0
 
 
 func _create_audio_settings_controls() -> void:
@@ -491,8 +516,10 @@ func _refresh_localized_text() -> void:
 	menu_button.text = tr("MENU_SETTINGS")
 	exit_button.text = tr("MENU_EXIT")
 	level_select_title.text = tr("MENU_LEVEL_SELECT")
-	level_1_button.text = tr("LEVEL_1_CURRENT")
-	level_2_button.text = tr("LEVEL_2_NEW")
+	level_1_button.text = tr("LEVEL_1")
+	level_2_button.text = tr("LEVEL_2")
+	level_3_button.text = tr("LEVEL_3")
+	level_4_button.text = tr("LEVEL_4")
 	level_back_button.text = tr("MENU_BACK")
 	load_back_button.text = tr("MENU_BACK")
 	var settings_title := menu_vbox.get_node_or_null("AudioSettingsTitle") as Label

@@ -5,8 +5,10 @@ MENU_LOAD,Загрузка,Load,Charger,Laden,Завантажити
 MENU_SETTINGS,Настройки,Settings,Paramètres,Einstellungen,Налаштування
 MENU_EXIT,Выход,Exit,Quitter,Beenden,Вихід
 MENU_LEVEL_SELECT,Выбор уровня,Select Level,Choix du niveau,Level auswählen,Вибір рівня
-LEVEL_1_CURRENT,Уровень 1 - Текущая карта,Level 1 - Current Map,Niveau 1 - Carte actuelle,Level 1 - Aktuelle Karte,Рівень 1 - Поточна мапа
-LEVEL_2_NEW,Уровень 2 - Новая карта,Level 2 - New Map,Niveau 2 - Nouvelle carte,Level 2 - Neue Karte,Рівень 2 - Нова мапа
+LEVEL_1,Уровень 1,Level 1,Niveau 1,Level 1,Рівень 1
+LEVEL_2,Уровень 2,Level 2,Niveau 2,Level 2,Рівень 2
+LEVEL_3,Уровень 3,Level 3,Niveau 3,Level 3,Рівень 3
+LEVEL_4,Уровень 4,Level 4,Niveau 4,Level 4,Рівень 4
 MENU_BACK,Назад,Back,Retour,Zurück,Назад
 SETTINGS_TITLE,Настройки,Settings,Paramètres,Einstellungen,Налаштування
 SETTINGS_LANGUAGE,Язык,Language,Langue,Sprache,Мова

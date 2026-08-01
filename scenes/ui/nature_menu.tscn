@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/player_nature_ui.gd" id="1_player_nature_ui"]
 [ext_resource type="Script" path="res://scripts/ui/spell_menu_toggle.gd" id="2_spell_menu_toggle"]
@@ -11,10 +11,13 @@
 [ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_compact_hover.tres" id="9_button_compact_hover"]
 [ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_compact_disabled.tres" id="10_button_compact_disabled"]
 
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_nature_panel"]
+
 [node name="PlayerNaturePanel" type="PanelContainer"]
 theme = ExtResource("4_player_ui_theme")
-custom_minimum_size = Vector2(280, 300)
+custom_minimum_size = Vector2(280, 325)
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_nature_panel")
 script = ExtResource("1_player_nature_ui")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
@@ -25,14 +28,15 @@ theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 8
 
 [node name="VBoxContainer" type="Control" parent="MarginContainer"]
-custom_minimum_size = Vector2(260, 284)
+custom_minimum_size = Vector2(260, 309)
 layout_mode = 2
 
 [node name="EnergyIcon" type="TextureRect" parent="MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 0
+offset_top = 25.0
 offset_right = 50.0
-offset_bottom = 50.0
+offset_bottom = 75.0
 texture = ExtResource("3_nature_energy_icon")
 expand_mode = 1
 stretch_mode = 5
@@ -41,8 +45,9 @@ stretch_mode = 5
 custom_minimum_size = Vector2(76, 50)
 layout_mode = 0
 offset_left = 52.0
+offset_top = 25.0
 offset_right = 128.0
-offset_bottom = 50.0
+offset_bottom = 75.0
 theme_override_font_sizes/font_size = 28
 text = "0"
 horizontal_alignment = 2
@@ -51,8 +56,10 @@ vertical_alignment = 1
 [node name="TimeControlsPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 0
 offset_left = 132.0
+offset_top = 25.0
 offset_right = 260.0
-offset_bottom = 50.0
+offset_bottom = 75.0
+theme_override_styles/panel = SubResource("StyleBoxEmpty_nature_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/TimeControlsPanel"]
 layout_mode = 2
@@ -107,9 +114,9 @@ text = "x5"
 
 [node name="MainMenuGrid" type="GridContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 0
-offset_top = 66.0
+offset_top = 91.0
 offset_right = 260.0
-offset_bottom = 284.0
+offset_bottom = 309.0
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 2
@@ -196,9 +203,9 @@ text = "NATURE_MENU_BUTTON"
 visible = false
 custom_minimum_size = Vector2(78, 44)
 layout_mode = 0
-offset_top = 66.0
+offset_top = 91.0
 offset_right = 78.0
-offset_bottom = 110.0
+offset_bottom = 135.0
 tooltip_text = "SPELL_LIGHTNING"
 theme_override_colors/font_color = Color(0, 0, 0, 0)
 theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
@@ -228,9 +235,9 @@ visible = false
 custom_minimum_size = Vector2(78, 44)
 layout_mode = 0
 offset_left = 91.0
-offset_top = 66.0
+offset_top = 91.0
 offset_right = 169.0
-offset_bottom = 110.0
+offset_bottom = 135.0
 tooltip_text = "SPELL_RAIN"
 theme_override_colors/font_color = Color(0, 0, 0, 0)
 theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
@@ -260,9 +267,9 @@ visible = false
 custom_minimum_size = Vector2(78, 44)
 layout_mode = 0
 offset_left = 182.0
-offset_top = 66.0
+offset_top = 91.0
 offset_right = 260.0
-offset_bottom = 110.0
+offset_bottom = 135.0
 tooltip_text = "SPELL_SUN"
 theme_override_colors/font_color = Color(0, 0, 0, 0)
 theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
@@ -292,9 +299,9 @@ visible = false
 custom_minimum_size = Vector2(78, 44)
 layout_mode = 0
 offset_left = 91.0
-offset_top = 120.0
+offset_top = 145.0
 offset_right = 169.0
-offset_bottom = 164.0
+offset_bottom = 189.0
 tooltip_text = "SPELL_EARTHQUAKE"
 theme_override_colors/font_color = Color(0, 0, 0, 0)
 theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
@@ -323,9 +330,9 @@ vertical_alignment = 1
 visible = false
 custom_minimum_size = Vector2(78, 44)
 layout_mode = 0
-offset_top = 120.0
+offset_top = 145.0
 offset_right = 78.0
-offset_bottom = 164.0
+offset_bottom = 189.0
 tooltip_text = "MENU_BACK"
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_pressed_color = Color(0.92, 0.96, 0.9, 1)

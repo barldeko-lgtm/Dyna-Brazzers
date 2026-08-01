@@ -475,10 +475,12 @@ Stable wiring:
 - the active world owns `PlayerEnergy`;
 - UI and SaveSystem resolve player energy through the `player_energy` group;
 - dynamic nested menus resolve nature controls through the `player_nature_ui` group API.
+- `player_hud.tscn/TopPanelTexture` and `BottomPanelTexture` own the decorative right-panel art; both scale the complete supplied PNG and ignore mouse input.
 
 Rules:
 
 - keep physical HUD layout out of `main.tscn`;
+- keep the right-panel art in `player_hud.tscn`: the upper texture covers the fixed minimap/counter region, while the lower texture begins at the menu boundary and remains bottom-anchored for taller expanded viewports; do not convert either supplied image to nine-patch or let the legacy flat panel fill hide it;
 - do not move counters or speed controls into `creature_stats_ui.gd`;
 - keep F3, F4, F5, and F8 as separate diagnostic systems;
 - debug systems may read public data but must not own simulation behaviour;

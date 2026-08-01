@@ -126,7 +126,7 @@ func _build_flag_menu(menu_entries: Array[Dictionary]) -> void:
 
 	flag_menu_grid = GridContainer.new()
 	flag_menu_grid.name = "SpeciesFlagMenu"
-	flag_menu_grid.position = Vector2(0.0, 66.0)
+	flag_menu_grid.position = Vector2(0.0, 91.0)
 	flag_menu_grid.size = Vector2(260.0, 218.0)
 	flag_menu_grid.columns = 3
 	flag_menu_grid.add_theme_constant_override("h_separation", 6)

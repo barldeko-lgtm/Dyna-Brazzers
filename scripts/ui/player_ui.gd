@@ -32,6 +32,7 @@ const MINIMAP_ENTITY_REFRESH_INTERVAL := 0.10
 const MINIMAP_GRASS_REFRESH_INTERVAL := 1.0
 const MINIMAP_CREATURE_MARKER_SIZE := 6
 const MINIMAP_CREATURE_MARKER_HALF_SIZE := 3.0
+const MINIMAP_CORNER_RADIUS_PIXELS := 3
 
 const TERRAIN_GROUND := 0
 const TERRAIN_WATER := 1
@@ -57,7 +58,7 @@ const MINIMAP_ENEMY_EGG_EATER_COLOR := Color(0x8c5de8ff)
 const MINIMAP_OTHER_FACTION_COLOR := Color(0xc88ce8ff)
 const MINIMAP_MARKER_SHADOW_COLOR := Color(0x11151fff)
 
-@onready var minimap_placeholder: PanelContainer = get_node_or_null("MarginContainer/VBoxContainer/MiniMapPlaceholder") as PanelContainer
+@onready var minimap_placeholder: PanelContainer = get_node_or_null("MarginContainer/VBoxContainer/MiniMapArea/MiniMapPlaceholder") as PanelContainer
 @onready var player_herbivore_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerHerbivoreCountLabel")
 @onready var player_predator_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerPredatorCountLabel")
 @onready var player_egg_eater_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerEggEaterCountLabel")
@@ -199,6 +200,7 @@ func rebuild_terrain_minimap() -> bool:
 
 			minimap_image.set_pixel(image_x + 1, image_y + 1, terrain_color)
 
+	round_minimap_image_corners(minimap_image, MINIMAP_CORNER_RADIUS_PIXELS)
 	terrain_minimap_base_image = minimap_image
 	var displayed_minimap_image := build_minimap_image_with_grass()
 	terrain_minimap_texture = ImageTexture.create_from_image(displayed_minimap_image)
@@ -312,6 +314,36 @@ func get_minimap_terrain_color(source_id: int) -> Color:
 			return MINIMAP_TREE_COLOR
 		_:
 			return MINIMAP_EMPTY_COLOR
+
+
+func round_minimap_image_corners(minimap_image: Image, radius: int) -> void:
+	if minimap_image == null or radius <= 0:
+		return
+
+	var safe_radius := mini(radius, mini(minimap_image.get_width(), minimap_image.get_height()) / 2)
+	var radius_squared := float(safe_radius * safe_radius)
+	var max_x := minimap_image.get_width() - 1
+	var max_y := minimap_image.get_height() - 1
+
+	for corner_y in range(safe_radius):
+		for corner_x in range(safe_radius):
+			var delta := Vector2(
+				float(safe_radius - corner_x) - 0.5,
+				float(safe_radius - corner_y) - 0.5
+			)
+
+			if delta.length_squared() <= radius_squared:
+				continue
+
+			for pixel_position in [
+				Vector2i(corner_x, corner_y),
+				Vector2i(max_x - corner_x, corner_y),
+				Vector2i(corner_x, max_y - corner_y),
+				Vector2i(max_x - corner_x, max_y - corner_y),
+			]:
+				var pixel_color := minimap_image.get_pixelv(pixel_position)
+				pixel_color.a = 0.0
+				minimap_image.set_pixelv(pixel_position, pixel_color)
 
 
 func refresh_minimap_grass_layer() -> void:

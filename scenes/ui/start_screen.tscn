@@ -158,9 +158,11 @@ text = "MENU_EXIT"
 
 [node name="LevelSelectTitle" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(286, 42)
+custom_minimum_size = Vector2(286, 37)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
 theme_override_fonts/font = ExtResource("5_philosopher_bold")
 theme_override_font_sizes/font_size = 24
 text = "MENU_LEVEL_SELECT"
@@ -169,7 +171,7 @@ vertical_alignment = 1
 
 [node name="Level1Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(286, 50)
+custom_minimum_size = Vector2(286, 55)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -179,25 +181,49 @@ theme_override_styles/normal = ExtResource("6_button_normal")
 theme_override_styles/hover = ExtResource("7_button_hover")
 theme_override_styles/pressed = ExtResource("7_button_hover")
 theme_override_styles/focus = ExtResource("7_button_hover")
-text = "LEVEL_1_CURRENT"
+text = "LEVEL_1"
 
 [node name="Level2Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(286, 50)
+custom_minimum_size = Vector2(286, 55)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.9, 0.95, 0.88, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = ExtResource("6_button_normal")
 theme_override_styles/hover = ExtResource("7_button_hover")
 theme_override_styles/pressed = ExtResource("7_button_hover")
 theme_override_styles/focus = ExtResource("7_button_hover")
-text = "LEVEL_2_NEW"
+text = "LEVEL_2"
+
+[node name="Level3Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(286, 55)
+layout_mode = 2
+disabled = true
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_disabled_color = Color(0.48, 0.54, 0.51, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/disabled = ExtResource("8_button_disabled")
+theme_override_styles/normal = ExtResource("6_button_normal")
+text = "LEVEL_3"
+
+[node name="Level4Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(286, 55)
+layout_mode = 2
+disabled = true
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_disabled_color = Color(0.48, 0.54, 0.51, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/disabled = ExtResource("8_button_disabled")
+theme_override_styles/normal = ExtResource("6_button_normal")
+text = "LEVEL_4"
 
 [node name="LevelBackButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(286, 44)
+custom_minimum_size = Vector2(286, 49)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -211,7 +237,7 @@ text = "MENU_BACK"
 
 [node name="AutosaveButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(286, 44)
+custom_minimum_size = Vector2(286, 53)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -226,7 +252,7 @@ text = "SAVE_AUTOSAVE_SHORT"
 
 [node name="LoadSlot1Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(286, 44)
+custom_minimum_size = Vector2(286, 53)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -241,7 +267,7 @@ text = "SAVE_SLOT_EMPTY"
 
 [node name="LoadSlot2Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(286, 44)
+custom_minimum_size = Vector2(286, 53)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -256,7 +282,7 @@ text = "SAVE_SLOT_EMPTY"
 
 [node name="LoadSlot3Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(286, 44)
+custom_minimum_size = Vector2(286, 53)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -271,7 +297,7 @@ text = "SAVE_SLOT_EMPTY"
 
 [node name="LoadBackButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(286, 44)
+custom_minimum_size = Vector2(286, 53)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -283,6 +309,25 @@ theme_override_styles/hover = ExtResource("7_button_hover")
 theme_override_styles/pressed = ExtResource("7_button_hover")
 theme_override_styles/focus = ExtResource("7_button_hover")
 text = "MENU_BACK"
+
+[node name="LoadStatusArea" type="Control" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(286, 31)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="LoadStatusLabel" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadStatusArea"]
+layout_mode = 0
+offset_top = -14.0
+offset_right = 286.0
+offset_bottom = 22.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
 
 [node name="StatusLabel" type="Label" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
