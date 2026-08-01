@@ -19,8 +19,10 @@ const MAIN_MENU_GRID_PATH: NodePath = NodePath(
 	"UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid"
 )
 const MENU_BUTTON_PATH: NodePath = NodePath(
-	"UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid/MainPlaceholder5"
+	"UI/PlayerSidePanel/MarginContainer/VBoxContainer/PlayerNaturePanel/MarginContainer/VBoxContainer/MainMenuGrid/SystemMenuButton"
 )
+const MENU_ROOT_POSITION := Vector2(-2.0, 94.0)
+const MENU_ROOT_SIZE := Vector2(260.0, 218.0)
 
 const DEFAULT_CREATURE_SCENE_PATH: String = "res://scenes/creatures/creature.tscn"
 const DEFAULT_GRASS_SCENE_PATH: String = "res://scenes/resources/grass.tscn"
@@ -159,23 +161,29 @@ func _create_menu_root(content_root: Control) -> void:
 	if existing_root != null:
 		menu_root = existing_root
 		menu_vbox = existing_root.get_node_or_null("MenuVBox") as VBoxContainer
+		menu_root.grow_horizontal = Control.GROW_DIRECTION_END
+		menu_root.grow_vertical = Control.GROW_DIRECTION_END
+		_place_menu_root()
 		menu_root.visible = false
 		return
 
 	menu_root = Control.new()
 	menu_root.name = "SaveLoadMenuRoot"
 	menu_root.process_mode = Node.PROCESS_MODE_ALWAYS
-	menu_root.position = Vector2(0.0, 91.0)
-	menu_root.size = Vector2(260.0, 218.0)
 	menu_root.visible = false
 	menu_root.mouse_filter = Control.MOUSE_FILTER_STOP
 	content_root.add_child(menu_root)
+	menu_root.grow_horizontal = Control.GROW_DIRECTION_END
+	menu_root.grow_vertical = Control.GROW_DIRECTION_END
+	menu_root.position = MENU_ROOT_POSITION
+	menu_root.size = MENU_ROOT_SIZE
 
 	menu_vbox = VBoxContainer.new()
 	menu_vbox.name = "MenuVBox"
+	menu_root.add_child(menu_vbox)
 	menu_vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	menu_vbox.add_theme_constant_override("separation", 6)
-	menu_root.add_child(menu_vbox)
+	_place_menu_root()
 
 
 func _on_menu_button_pressed() -> void:
@@ -214,6 +222,8 @@ func _show_action_menu() -> void:
 
 	if not status_message.is_empty():
 		_add_status_label(status_message)
+
+	_place_menu_root()
 
 
 func _on_save_mode_pressed() -> void:
@@ -256,6 +266,19 @@ func _show_slot_menu() -> void:
 		apply_save_button_text(slot_button, _get_slot_button_text(slot_index), 18, 12)
 
 	_add_menu_button("MENU_BACK", _on_slots_back_pressed, 40.0)
+	_place_menu_root()
+
+
+func _place_menu_root() -> void:
+	if menu_root == null or not is_instance_valid(menu_root):
+		return
+
+	menu_root.size = MENU_ROOT_SIZE
+	menu_root.position = MENU_ROOT_POSITION
+	# VBox minimum-size propagation is deferred by Godot. Reapply the approved
+	# top-left corner after that pass so the Menu page does not jump upward.
+	menu_root.set_deferred("size", MENU_ROOT_SIZE)
+	menu_root.set_deferred("position", MENU_ROOT_POSITION)
 
 
 func _on_autosave_slot_pressed() -> void:

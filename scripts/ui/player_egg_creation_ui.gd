@@ -61,7 +61,7 @@ func _build_egg_menu() -> void:
 
 	egg_menu_grid = GridContainer.new()
 	egg_menu_grid.name = "EggCreationMenu"
-	egg_menu_grid.position = Vector2(0.0, 91.0)
+	egg_menu_grid.position = Vector2(-2.0, 116.0)
 	egg_menu_grid.size = Vector2(260.0, 218.0)
 	egg_menu_grid.columns = 2
 	egg_menu_grid.add_theme_constant_override("h_separation", 8)
