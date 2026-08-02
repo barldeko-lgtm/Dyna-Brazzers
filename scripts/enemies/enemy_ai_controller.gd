@@ -60,6 +60,11 @@ func _setup_turn_timer() -> void:
 
 
 func _on_turn_timer_timeout() -> void:
+	if turn_timer != null and turn_timer.one_shot:
+		turn_timer.one_shot = false
+		turn_timer.wait_time = get_turn_interval()
+		turn_timer.call_deferred("start")
+
 	turn_index += 1
 	latest_snapshot = collect_population_snapshot()
 	latest_snapshot["turn_index"] = turn_index
@@ -341,6 +346,11 @@ func restore_save_data(saved_data: Dictionary) -> void:
 	var saved_time_left := float(
 		saved_data.get("timer_time_left", get_turn_interval())
 	)
+	# The restored remainder is only the delay before the first post-load turn.
+	# Use one-shot mode so Timer.start(remainder) cannot replace the recurring
+	# strategic cadence with that shorter value.
+	turn_timer.stop()
+	turn_timer.one_shot = true
 	turn_timer.start(clampf(saved_time_left, 0.05, get_turn_interval()))
 
 
