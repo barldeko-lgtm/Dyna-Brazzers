@@ -9,7 +9,15 @@ const CreaturePredatorLogic = preload("res://scripts/creatures/behaviors/creatur
 const CreatureEggEaterLogic = preload("res://scripts/creatures/behaviors/creature_egg_eater_logic.gd")
 const CreatureMovementController = preload("res://scripts/creatures/behaviors/creature_movement_controller.gd")
 const CreatureInteractionController = preload("res://scripts/creatures/behaviors/creature_interaction_controller.gd")
+const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const PREDATOR_VICTORY_HEAL := 15.0
+const RAPTOR_SPECIES_ID: StringName = &"raptor"
+const RAPTOR_BASE_GUARD_RADIUS_TILES := 20.0
+const RAPTOR_OUTSIDE_BASE_ATTACK_PENALTY := 2.0
+const RAPTOR_OUTSIDE_BASE_DEFENSE_PENALTY := 1.0
+const RAPTOR_GUARD_BASE_REFRESH_INTERVAL := 1.0
+const RAPTOR_GUARD_ICON_OFFSET := Vector2(82.0, -92.0)
+const RAPTOR_GUARD_ICON_Z_INDEX := 20
 
 # Core creature FSM.
 @onready var sprite: Sprite2D = $BodySprite
@@ -141,6 +149,10 @@ var predator_logic: RefCounted
 var egg_eater_logic: RefCounted
 var movement_controller: RefCounted
 var interaction_controller: RefCounted
+var raptor_guard_base: Node = null
+var raptor_guard_icon: Node2D = null
+var raptor_guard_buff_active := false
+var raptor_guard_base_refresh_remaining := 0.0
 
 
 
@@ -219,6 +231,8 @@ func _ready() -> void:
 	configure_walk_animation()
 	visual_controller.configure_ground_shadow()
 	interaction_controller.configure(hover_area)
+	configure_raptor_guard_icon()
+	update_raptor_base_guard_state(0.0, true)
 	enter_walk()
 
 
@@ -254,6 +268,7 @@ func _physics_process(delta: float) -> void:
 	if state == State.DEAD:
 		return
 
+	update_raptor_base_guard_state(delta)
 	ensure_combat_state_consistency()
 
 	if state == State.DEAD:
@@ -494,6 +509,8 @@ func enter_dead() -> void:
 		return
 
 	change_state(State.DEAD)
+	raptor_guard_buff_active = false
+	set_raptor_guard_icon_visible(false)
 
 	if predator_logic != null:
 		predator_logic.cancel_hunt_target()
@@ -981,14 +998,169 @@ func get_attack() -> float:
 	if species_data == null:
 		return 0.0
 
-	return species_data.attack
+	var attack_value := float(species_data.attack)
+	if is_guard_raptor() and not raptor_guard_buff_active:
+		attack_value -= RAPTOR_OUTSIDE_BASE_ATTACK_PENALTY
+
+	return maxf(attack_value, 1.0)
 
 
 func get_defense() -> float:
 	if species_data == null:
 		return 0.0
 
-	return species_data.defense
+	var defense_value := float(species_data.defense)
+	if is_guard_raptor() and not raptor_guard_buff_active:
+		defense_value -= RAPTOR_OUTSIDE_BASE_DEFENSE_PENALTY
+
+	return maxf(defense_value, 0.0)
+
+
+func is_guard_raptor() -> bool:
+	return (
+		species_data != null
+		and StringName(species_data.species_id) == RAPTOR_SPECIES_ID
+		and species_data.is_defensive_predator()
+	)
+
+
+func has_raptor_base_guard_buff() -> bool:
+	return is_guard_raptor() and raptor_guard_buff_active
+
+
+func update_raptor_base_guard_state(delta: float, force_base_refresh: bool = false) -> void:
+	if not is_guard_raptor():
+		raptor_guard_buff_active = false
+		set_raptor_guard_icon_visible(false)
+		return
+
+	if state == State.DEAD or health <= 0.0:
+		raptor_guard_buff_active = false
+		set_raptor_guard_icon_visible(false)
+		return
+
+	raptor_guard_base_refresh_remaining = maxf(
+		raptor_guard_base_refresh_remaining - delta,
+		0.0
+	)
+
+	if (
+		force_base_refresh
+		or not is_instance_valid(raptor_guard_base)
+		or raptor_guard_base_refresh_remaining <= 0.0
+	):
+		raptor_guard_base = find_matching_faction_base()
+		raptor_guard_base_refresh_remaining = RAPTOR_GUARD_BASE_REFRESH_INTERVAL
+
+	var buff_active := is_within_raptor_base_guard_radius(raptor_guard_base)
+	if buff_active == raptor_guard_buff_active:
+		set_raptor_guard_icon_visible(buff_active)
+		return
+
+	raptor_guard_buff_active = buff_active
+	set_raptor_guard_icon_visible(buff_active)
+
+
+func find_matching_faction_base() -> Node:
+	var tree := get_tree()
+	if tree == null:
+		return null
+
+	var creature_faction: StringName = CREATURE_FACTION.get_id(self)
+	for faction_base in tree.get_nodes_in_group("faction_base"):
+		if not is_instance_valid(faction_base) or faction_base.is_queued_for_deletion():
+			continue
+		if CREATURE_FACTION.get_id(faction_base) == creature_faction:
+			return faction_base
+
+	return null
+
+
+func is_within_raptor_base_guard_radius(faction_base: Node) -> bool:
+	if faction_base == null or not is_instance_valid(faction_base):
+		return false
+
+	var base_anchor_variant: Variant = faction_base.get("anchor_tile")
+	var base_footprint_variant: Variant = faction_base.get("footprint_size")
+	if not (base_anchor_variant is Vector2i) or not (base_footprint_variant is Vector2i):
+		return false
+
+	var base_anchor: Vector2i = base_anchor_variant
+	var base_footprint: Vector2i = base_footprint_variant
+	var creature_center := Vector2(
+		float(anchor_tile.x) + float(footprint_size.x) * 0.5,
+		float(anchor_tile.y) + float(footprint_size.y) * 0.5
+	)
+	var base_center := Vector2(
+		float(base_anchor.x) + float(base_footprint.x) * 0.5,
+		float(base_anchor.y) + float(base_footprint.y) * 0.5
+	)
+	var radius_squared := RAPTOR_BASE_GUARD_RADIUS_TILES * RAPTOR_BASE_GUARD_RADIUS_TILES
+	return creature_center.distance_squared_to(base_center) <= radius_squared
+
+
+func configure_raptor_guard_icon() -> void:
+	if not is_guard_raptor() or raptor_guard_icon != null:
+		return
+
+	raptor_guard_icon = Node2D.new()
+	raptor_guard_icon.name = "RaptorBaseGuardIcon"
+	raptor_guard_icon.position = RAPTOR_GUARD_ICON_OFFSET
+	raptor_guard_icon.z_index = RAPTOR_GUARD_ICON_Z_INDEX
+	raptor_guard_icon.visible = false
+	add_child(raptor_guard_icon)
+
+	var outer_points := PackedVector2Array([
+		Vector2(-12.0, -13.0),
+		Vector2(12.0, -13.0),
+		Vector2(11.0, 1.0),
+		Vector2(8.0, 9.0),
+		Vector2(0.0, 15.0),
+		Vector2(-8.0, 9.0),
+		Vector2(-11.0, 1.0)
+	])
+	var inner_points := PackedVector2Array([
+		Vector2(-9.0, -10.0),
+		Vector2(9.0, -10.0),
+		Vector2(8.0, 0.0),
+		Vector2(5.5, 7.0),
+		Vector2(0.0, 11.5),
+		Vector2(-5.5, 7.0),
+		Vector2(-8.0, 0.0)
+	])
+
+	var shadow := Polygon2D.new()
+	shadow.polygon = outer_points
+	shadow.position = Vector2(2.0, 3.0)
+	shadow.color = Color(0.0, 0.0, 0.0, 0.48)
+	raptor_guard_icon.add_child(shadow)
+
+	var outline := Polygon2D.new()
+	outline.polygon = outer_points
+	outline.color = Color(0.08, 0.12, 0.11, 1.0)
+	raptor_guard_icon.add_child(outline)
+
+	var fill := Polygon2D.new()
+	fill.polygon = inner_points
+	fill.color = Color(0.42, 0.68, 0.44, 1.0)
+	raptor_guard_icon.add_child(fill)
+
+	var highlight := Polygon2D.new()
+	highlight.polygon = PackedVector2Array([
+		Vector2(-6.0, -7.0),
+		Vector2(5.0, -7.0),
+		Vector2(4.0, -3.5),
+		Vector2(-5.0, -3.5)
+	])
+	highlight.color = Color(0.78, 0.91, 0.65, 0.9)
+	raptor_guard_icon.add_child(highlight)
+
+
+func set_raptor_guard_icon_visible(visible_state: bool) -> void:
+	if raptor_guard_icon == null:
+		return
+
+	raptor_guard_icon.visible = visible_state
 
 
 func get_max_health() -> float:
