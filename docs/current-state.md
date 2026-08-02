@@ -137,7 +137,7 @@ Death transition texture and duration, final death texture, and corpse lifetime 
 
 Creature contour shadows follow static or animated directional visuals and never affect gameplay systems.
 
-The player stegosaurus and tyrannosaurus each have a one-second eight-frame right-facing duel attack animation, mirrored for left-facing attacks. Tyrannosaurus attack frames retain their supplied mixed `256x256` and `285x256` canvases. `Duel` announces each attack start, the visual controller plays the species animation once, and damage lands halfway through the animation. Every attacker also makes a 64-pixel visual lunge toward its opponent over the first half-second and returns over the second half-second; the creature node, grid anchor, occupancy, and collision never move. Species without attack frames keep their static combat pose while still using the visual lunge.
+The player stegosaurus, tyrannosaurus, raptor, and egg eater plus the enemy stegosaurus each have a one-second eight-frame right-facing duel attack animation, mirrored for left-facing attacks. The tyrannosaurus, raptor, egg eater, and enemy stegosaurus retain their supplied mixed attack-frame canvas sizes (`256x256` plus species-specific wider frames). `Duel` announces each attack start, the visual controller plays the species animation once, and damage lands halfway through the animation. Every attacker also makes a 64-pixel visual lunge toward its opponent over the first half-second and returns over the second half-second; the creature node, grid anchor, occupancy, and collision never move. Species without attack frames keep their static combat pose while still using the visual lunge.
 
 ## Grass and nature powers
 
