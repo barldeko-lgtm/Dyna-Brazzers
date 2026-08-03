@@ -8,6 +8,14 @@ const INDIRECT_ORDER_STATE_TIMER := 30.0
 const INDIRECT_ORDER_REPATH_TILE_CAP := 1800
 const LOCAL_BLOCKED_ROUTE_REJOIN_STEPS := 8
 const LOCAL_BLOCKED_ROUTE_TILE_CAP := 192
+const DIAGONAL_STEP_COST := 1.41421356
+const ROUTE_COST_EPSILON := 0.0001
+const STATIC_ROUTE_MIN_EXTRA_COST := 2.0
+const STATIC_ROUTE_SHORTCUT_CHECK_CAP := 96
+const STATIC_ROUTE_SHORTCUT_LOOKAHEAD_STEPS := 24
+const PROACTIVE_BYPASS_REJOIN_STEPS := 5
+const PROACTIVE_BYPASS_TILE_CAP := 64
+const PROACTIVE_BYPASS_MAX_ADDED_COST := 3.0
 const RAPTOR_GUARD_POLICY := preload("res://scripts/flags/raptor_guard_policy.gd")
 
 var creature: Node
@@ -175,6 +183,22 @@ func start_next_path_step_if_needed(allow_rebuild: bool = true) -> void:
 
 	var footprint: Vector2i = creature.get("footprint_size")
 
+	if (
+		is_following_indirect_order_route
+		and allow_rebuild
+		and not is_waiting_for_blocked_indirect_route
+	):
+		var proactive_route := _find_proactive_indirect_bypass(
+			current_path,
+			world_grid,
+			footprint
+		)
+
+		if not proactive_route.is_empty():
+			current_path = proactive_route
+			creature.set("current_path", current_path)
+			next_anchor = proactive_route[0]
+
 	if is_waiting_for_blocked_indirect_route:
 		if not is_following_indirect_order_route or next_anchor != blocked_indirect_route_anchor:
 			_reset_blocked_indirect_route_wait()
@@ -317,6 +341,9 @@ func apply_indirect_order_route(path: Array) -> bool:
 	if normalized_path.is_empty():
 		return false
 
+	normalized_path = _simplify_indirect_route_ignoring_dynamic_occupancy(
+		normalized_path
+	)
 	_reset_blocked_indirect_route_wait()
 
 	if bool(creature.get("is_moving")):
@@ -370,6 +397,446 @@ func cancel_indirect_order_route() -> void:
 
 	if creature.has_method("enter_walk"):
 		creature.call("enter_walk")
+
+func _simplify_indirect_route_ignoring_dynamic_occupancy(
+	original_route: Array[Vector2i]
+) -> Array[Vector2i]:
+	var world_grid: Node = creature.get("world_grid")
+
+	if world_grid == null or original_route.size() < 2:
+		return original_route
+
+	var start_anchor := get_navigation_anchor()
+	var cleanup_result := _remove_route_loops(original_route, start_anchor)
+	var cleaned_variant: Variant = cleanup_result.get("route", [])
+
+	if not (cleaned_variant is Array):
+		return original_route
+
+	var source_route := _normalize_route(cleaned_variant as Array)
+
+	if source_route.is_empty():
+		return original_route
+
+	var goal_anchor := source_route[source_route.size() - 1]
+	var source_cost := _calculate_route_cost(start_anchor, source_route)
+	var minimum_cost := _estimate_direct_route_cost(start_anchor, goal_anchor)
+	var removed_loops := int(cleanup_result.get("loop_count", 0))
+
+	if removed_loops <= 0 and source_cost <= minimum_cost + STATIC_ROUTE_MIN_EXTRA_COST:
+		return source_route
+
+	PerformanceStats.add_counter("static_route_simplify_attempts")
+	var started_usec := Time.get_ticks_usec()
+	var footprint: Vector2i = creature.get("footprint_size")
+	var simplified_route: Array[Vector2i] = []
+	var current_anchor := start_anchor
+	var source_index := 0
+	var candidate_checks := 0
+
+	while source_index < source_route.size():
+		var chosen_route: Array[Vector2i] = []
+		var chosen_index := source_index
+
+		var farthest_index := mini(
+			source_index + STATIC_ROUTE_SHORTCUT_LOOKAHEAD_STEPS,
+			source_route.size() - 1
+		)
+
+		for target_index in range(farthest_index, source_index - 1, -1):
+			if candidate_checks >= STATIC_ROUTE_SHORTCUT_CHECK_CAP:
+				break
+
+			candidate_checks += 1
+			var direct_route := _build_static_direct_route(
+				world_grid,
+				current_anchor,
+				source_route[target_index],
+				footprint
+			)
+
+			if direct_route.is_empty():
+				continue
+
+			chosen_route = direct_route
+			chosen_index = target_index
+			break
+
+		if chosen_route.is_empty():
+			for remaining_index in range(source_index, source_route.size()):
+				simplified_route.append(source_route[remaining_index])
+			break
+
+		simplified_route.append_array(chosen_route)
+		current_anchor = source_route[chosen_index]
+		source_index = chosen_index + 1
+
+	PerformanceStats.add_counter("static_route_simplify_candidate_checks", candidate_checks)
+	var elapsed_usec := maxi(Time.get_ticks_usec() - started_usec, 0)
+	PerformanceStats.add_counter("static_route_simplify_search_usec", elapsed_usec)
+	PerformanceStats.set_max_value(
+		"static_route_simplify_search_max_usec",
+		float(elapsed_usec)
+	)
+
+	if simplified_route.is_empty():
+		PerformanceStats.add_counter("static_route_simplify_fallback")
+		return source_route
+
+	var simplified_cost := _calculate_route_cost(start_anchor, simplified_route)
+	var source_turns := _count_route_turns(start_anchor, source_route)
+	var simplified_turns := _count_route_turns(start_anchor, simplified_route)
+
+	if (
+		simplified_cost > source_cost + ROUTE_COST_EPSILON
+		or (
+			absf(simplified_cost - source_cost) <= ROUTE_COST_EPSILON
+			and simplified_turns >= source_turns
+		)
+	):
+		PerformanceStats.add_counter("static_route_simplify_fallback")
+		return source_route
+
+	PerformanceStats.add_counter("static_route_simplify_success")
+	var saved_steps := maxi(source_route.size() - simplified_route.size(), 0)
+
+	if saved_steps > 0:
+		PerformanceStats.add_counter("static_route_simplify_steps_saved", saved_steps)
+
+	return simplified_route
+
+func _build_static_direct_route(
+	world_grid: Node,
+	start_anchor: Vector2i,
+	target_anchor: Vector2i,
+	footprint: Vector2i
+) -> Array[Vector2i]:
+	if start_anchor == target_anchor:
+		return []
+
+	var best_route: Array[Vector2i] = []
+	var best_turn_count := 2147483647
+	var delta := target_anchor - start_anchor
+	var modes: Array[int] = [0]
+
+	if absi(delta.x) > absi(delta.y):
+		modes.append(1)
+	elif absi(delta.y) > absi(delta.x):
+		modes.append(2)
+
+	for mode: int in modes:
+		var candidate := _build_static_direct_route_mode(
+			world_grid,
+			start_anchor,
+			target_anchor,
+			footprint,
+			mode
+		)
+
+		if candidate.is_empty():
+			continue
+
+		var turn_count := _count_route_turns(start_anchor, candidate)
+
+		if turn_count >= best_turn_count:
+			continue
+
+		best_route = candidate
+		best_turn_count = turn_count
+
+	return best_route
+
+func _build_static_direct_route_mode(
+	world_grid: Node,
+	start_anchor: Vector2i,
+	target_anchor: Vector2i,
+	footprint: Vector2i,
+	mode: int
+) -> Array[Vector2i]:
+	var route: Array[Vector2i] = []
+	var current := start_anchor
+	var delta := target_anchor - start_anchor
+	var x_direction := signi(delta.x)
+	var y_direction := signi(delta.y)
+	var diagonal_steps := mini(absi(delta.x), absi(delta.y))
+	var straight_x_steps := absi(delta.x) - diagonal_steps
+	var straight_y_steps := absi(delta.y) - diagonal_steps
+	var step_plan: Array[Vector2i] = []
+
+	if mode == 1:
+		for _step in range(straight_x_steps):
+			step_plan.append(Vector2i(x_direction, 0))
+	elif mode == 2:
+		for _step in range(straight_y_steps):
+			step_plan.append(Vector2i(0, y_direction))
+
+	for _step in range(diagonal_steps):
+		step_plan.append(Vector2i(x_direction, y_direction))
+
+	if mode != 1:
+		for _step in range(straight_x_steps):
+			step_plan.append(Vector2i(x_direction, 0))
+
+	if mode != 2:
+		for _step in range(straight_y_steps):
+			step_plan.append(Vector2i(0, y_direction))
+
+	for direction: Vector2i in step_plan:
+		var next_anchor := current + direction
+
+		if not _is_static_step_valid(
+			world_grid,
+			current,
+			next_anchor,
+			footprint
+		):
+			return []
+
+		route.append(next_anchor)
+		current = next_anchor
+
+	return route if current == target_anchor else []
+
+func _is_static_step_valid(
+	world_grid: Node,
+	from_anchor: Vector2i,
+	to_anchor: Vector2i,
+	footprint: Vector2i
+) -> bool:
+	if not _is_static_anchor_traversable(world_grid, to_anchor, footprint):
+		return false
+
+	var delta := to_anchor - from_anchor
+
+	if delta.x == 0 or delta.y == 0:
+		return true
+
+	return (
+		_is_static_anchor_traversable(
+			world_grid,
+			from_anchor + Vector2i(delta.x, 0),
+			footprint
+		)
+		and _is_static_anchor_traversable(
+			world_grid,
+			from_anchor + Vector2i(0, delta.y),
+			footprint
+		)
+	)
+
+func _is_static_anchor_traversable(
+	world_grid: Node,
+	anchor: Vector2i,
+	footprint: Vector2i
+) -> bool:
+	var footprint_tiles_variant: Variant = world_grid.call(
+		"get_footprint_tiles",
+		anchor,
+		footprint
+	)
+
+	if not (footprint_tiles_variant is Array):
+		return false
+
+	var occupied_variant: Variant = world_grid.get("occupied_by_tile")
+	var creature_anchors_variant: Variant = world_grid.get("creature_anchors")
+	var occupied: Dictionary = occupied_variant if occupied_variant is Dictionary else {}
+	var creature_anchors: Dictionary = (
+		creature_anchors_variant if creature_anchors_variant is Dictionary else {}
+	)
+
+	for tile_variant: Variant in footprint_tiles_variant:
+		if not (tile_variant is Vector2i):
+			return false
+
+		var tile: Vector2i = tile_variant
+
+		if not bool(world_grid.call("is_tile_traversable", tile, creature)):
+			return false
+
+		var occupant: Variant = occupied.get(tile, null)
+
+		if occupant == null or occupant == creature:
+			continue
+
+		# Creature occupancy is temporary. Eggs, bases, and other blockers remain.
+		if creature_anchors.has(occupant):
+			continue
+
+		return false
+
+	return true
+
+func _estimate_direct_route_cost(from_anchor: Vector2i, to_anchor: Vector2i) -> float:
+	var delta := to_anchor - from_anchor
+	var diagonal_steps := mini(absi(delta.x), absi(delta.y))
+	var straight_steps := maxi(absi(delta.x), absi(delta.y)) - diagonal_steps
+	return float(diagonal_steps) * DIAGONAL_STEP_COST + float(straight_steps)
+
+func _find_proactive_indirect_bypass(
+	current_path: Array,
+	world_grid: Node,
+	footprint: Vector2i
+) -> Array[Vector2i]:
+	PerformanceStats.add_counter("proactive_route_lookahead_checks")
+
+	if current_path.size() < 3:
+		return []
+
+	var current_anchor_variant: Variant = creature.get("anchor_tile")
+	var first_anchor_variant: Variant = current_path[0]
+	var second_anchor_variant: Variant = current_path[1]
+
+	if (
+		not (current_anchor_variant is Vector2i)
+		or not (first_anchor_variant is Vector2i)
+		or not (second_anchor_variant is Vector2i)
+	):
+		return []
+
+	var current_anchor: Vector2i = current_anchor_variant
+	var first_anchor: Vector2i = first_anchor_variant
+	var second_anchor: Vector2i = second_anchor_variant
+
+	if not _is_static_anchor_traversable(world_grid, second_anchor, footprint):
+		return []
+
+	if bool(world_grid.call(
+		"can_traverse_footprint",
+		second_anchor,
+		footprint,
+		creature
+	)):
+		return []
+
+	if not bool(world_grid.call(
+		"can_traverse_footprint",
+		first_anchor,
+		footprint,
+		creature
+	)):
+		return []
+
+	PerformanceStats.add_counter("proactive_route_lookahead_blocked")
+	var max_rejoin_index := mini(
+		PROACTIVE_BYPASS_REJOIN_STEPS - 1,
+		current_path.size() - 1
+	)
+	var goals: Array[Vector2i] = []
+
+	for index in range(2, max_rejoin_index + 1):
+		var goal_variant: Variant = current_path[index]
+
+		if goal_variant is Vector2i:
+			goals.append(goal_variant)
+
+	if goals.is_empty():
+		return []
+
+	PerformanceStats.add_counter("proactive_route_bypass_attempts")
+	var started_usec := Time.get_ticks_usec()
+	var result_variant: Variant = world_grid.call(
+		"find_path_to_any",
+		current_anchor,
+		goals,
+		footprint,
+		creature,
+		PROACTIVE_BYPASS_TILE_CAP,
+		&"movement_lookahead"
+	)
+	var elapsed_usec := maxi(Time.get_ticks_usec() - started_usec, 0)
+	PerformanceStats.add_counter("proactive_route_bypass_search_usec", elapsed_usec)
+	PerformanceStats.set_max_value(
+		"proactive_route_bypass_search_max_usec",
+		float(elapsed_usec)
+	)
+
+	if not (result_variant is Dictionary):
+		PerformanceStats.add_counter("proactive_route_bypass_failed")
+		return []
+
+	var result: Dictionary = result_variant
+	var route_variant: Variant = result.get("path", [])
+	var goal_variant: Variant = result.get("goal_anchor", null)
+
+	if not (route_variant is Array) or not (goal_variant is Vector2i):
+		PerformanceStats.add_counter("proactive_route_bypass_failed")
+		return []
+
+	var local_route := _normalize_route(route_variant as Array)
+	var rejoin_anchor: Vector2i = goal_variant
+
+	if local_route.is_empty():
+		PerformanceStats.add_counter("proactive_route_bypass_failed")
+		return []
+
+	var rejoin_index := -1
+
+	for index in range(2, max_rejoin_index + 1):
+		if current_path[index] == rejoin_anchor:
+			rejoin_index = index
+			break
+
+	if rejoin_index < 0:
+		PerformanceStats.add_counter("proactive_route_bypass_failed")
+		return []
+
+	var original_direction := _get_step_direction(current_anchor, first_anchor)
+	var bypass_direction := _get_step_direction(current_anchor, local_route[0])
+	var direction_dot := (
+		original_direction.x * bypass_direction.x
+		+ original_direction.y * bypass_direction.y
+	)
+
+	if direction_dot < 0:
+		PerformanceStats.add_counter("proactive_route_bypass_failed")
+		return []
+
+	var original_segment: Array[Vector2i] = []
+
+	for index in range(0, rejoin_index + 1):
+		var segment_variant: Variant = current_path[index]
+
+		if segment_variant is Vector2i:
+			original_segment.append(segment_variant)
+
+	var added_cost := (
+		_calculate_route_cost(current_anchor, local_route)
+		- _calculate_route_cost(current_anchor, original_segment)
+	)
+
+	if added_cost > PROACTIVE_BYPASS_MAX_ADDED_COST + ROUTE_COST_EPSILON:
+		PerformanceStats.add_counter("proactive_route_bypass_failed")
+		return []
+
+	var rebuilt_route: Array[Vector2i] = []
+	rebuilt_route.append_array(local_route)
+
+	for index in range(rejoin_index + 1, current_path.size()):
+		var tail_variant: Variant = current_path[index]
+
+		if tail_variant is Vector2i:
+			rebuilt_route.append(tail_variant)
+
+	var cleanup_result := _remove_route_loops(rebuilt_route, current_anchor)
+	var cleaned_variant: Variant = cleanup_result.get("route", [])
+
+	if not (cleaned_variant is Array):
+		PerformanceStats.add_counter("proactive_route_bypass_failed")
+		return []
+
+	var cleaned_route := _normalize_route(cleaned_variant as Array)
+
+	if cleaned_route.is_empty():
+		PerformanceStats.add_counter("proactive_route_bypass_failed")
+		return []
+
+	PerformanceStats.add_counter("proactive_route_bypass_success")
+	return cleaned_route
+
+func _get_step_direction(from_anchor: Vector2i, to_anchor: Vector2i) -> Vector2i:
+	var delta := to_anchor - from_anchor
+	return Vector2i(signi(delta.x), signi(delta.y))
 
 func _try_rebuild_blocked_indirect_order_route(
 	current_path: Array,
@@ -431,17 +898,29 @@ func _find_local_indirect_rejoin_route(
 	if current_path.size() < 2:
 		return []
 
+	var started_usec := Time.get_ticks_usec()
+	PerformanceStats.add_counter("blocked_route_rejoin_attempts")
 	var max_rejoin_index := mini(
 		LOCAL_BLOCKED_ROUTE_REJOIN_STEPS - 1,
 		current_path.size() - 1
 	)
+	var best_route: Array[Vector2i] = []
+	var best_cost := INF
+	var best_turn_count := 2147483647
+	var best_rejoin_index := -1
+	var best_removed_loop_count := 0
+	var best_removed_step_count := 0
 
-	for rejoin_index in range(max_rejoin_index, 0, -1):
+	# Check every nearby place where the detour can safely reconnect. The previous
+	# implementation accepted the first reachable (and farthest) point, which could
+	# choose a long detour even when a shorter local bypass also existed.
+	for rejoin_index in range(1, max_rejoin_index + 1):
 		var rejoin_variant: Variant = current_path[rejoin_index]
 
 		if not (rejoin_variant is Vector2i):
 			continue
 
+		PerformanceStats.add_counter("blocked_route_rejoin_candidates_checked")
 		var rejoin_anchor: Vector2i = rejoin_variant
 
 		if not bool(world_grid.call(
@@ -470,15 +949,146 @@ func _find_local_indirect_rejoin_route(
 		if rebuilt_path.is_empty():
 			continue
 
+		PerformanceStats.add_counter("blocked_route_rejoin_candidates_reachable")
+
 		for tail_index in range(rejoin_index + 1, current_path.size()):
 			var tail_step: Variant = current_path[tail_index]
 
 			if tail_step is Vector2i:
 				rebuilt_path.append(tail_step)
 
-		return rebuilt_path
+		var cleanup_result := _remove_route_loops(rebuilt_path, current_anchor)
+		var candidate_route_variant: Variant = cleanup_result.get("route", [])
 
-	return []
+		if not (candidate_route_variant is Array):
+			continue
+
+		var candidate_route := _normalize_route(candidate_route_variant as Array)
+
+		if candidate_route.is_empty():
+			continue
+
+		var candidate_removed_loop_count := int(cleanup_result.get("loop_count", 0))
+		var candidate_removed_step_count := int(cleanup_result.get("removed_steps", 0))
+		var candidate_cost := _calculate_route_cost(current_anchor, candidate_route)
+		var candidate_turn_count := _count_route_turns(current_anchor, candidate_route)
+
+		if not _is_better_rejoin_candidate(
+			candidate_cost,
+			candidate_turn_count,
+			rejoin_index,
+			best_cost,
+			best_turn_count,
+			best_rejoin_index
+		):
+			continue
+
+		best_route = candidate_route
+		best_cost = candidate_cost
+		best_turn_count = candidate_turn_count
+		best_rejoin_index = rejoin_index
+		best_removed_loop_count = candidate_removed_loop_count
+		best_removed_step_count = candidate_removed_step_count
+
+	if best_removed_loop_count > 0:
+		PerformanceStats.add_counter(
+			"blocked_route_rejoin_loops_removed",
+			best_removed_loop_count
+		)
+	if best_removed_step_count > 0:
+		PerformanceStats.add_counter(
+			"blocked_route_rejoin_steps_removed",
+			best_removed_step_count
+		)
+
+	var elapsed_usec := maxi(Time.get_ticks_usec() - started_usec, 0)
+	PerformanceStats.add_counter("blocked_route_rejoin_search_usec", elapsed_usec)
+	PerformanceStats.set_max_value("blocked_route_rejoin_search_max_usec", float(elapsed_usec))
+
+	if best_route.is_empty():
+		PerformanceStats.add_counter("blocked_route_rejoin_failed")
+	else:
+		PerformanceStats.add_counter("blocked_route_rejoin_success")
+
+	return best_route
+
+func _remove_route_loops(path: Array[Vector2i], start_anchor: Vector2i) -> Dictionary:
+	var cleaned_path: Array[Vector2i] = []
+	var index_by_anchor: Dictionary = {start_anchor: -1}
+	var loop_count := 0
+	var removed_steps := 0
+
+	for anchor: Vector2i in path:
+		if not index_by_anchor.has(anchor):
+			index_by_anchor[anchor] = cleaned_path.size()
+			cleaned_path.append(anchor)
+			continue
+
+		loop_count += 1
+		var keep_index := int(index_by_anchor.get(anchor, -1))
+
+		while cleaned_path.size() - 1 > keep_index:
+			var removed_anchor_variant: Variant = cleaned_path.pop_back()
+			index_by_anchor.erase(removed_anchor_variant)
+			removed_steps += 1
+
+		# The repeated occurrence closes the loop and is omitted as well.
+		removed_steps += 1
+
+	return {
+		"route": cleaned_path,
+		"loop_count": loop_count,
+		"removed_steps": removed_steps
+	}
+
+func _is_better_rejoin_candidate(
+	candidate_cost: float,
+	candidate_turn_count: int,
+	candidate_rejoin_index: int,
+	best_cost: float,
+	best_turn_count: int,
+	best_rejoin_index: int
+) -> bool:
+	if candidate_cost < best_cost - ROUTE_COST_EPSILON:
+		return true
+
+	if absf(candidate_cost - best_cost) > ROUTE_COST_EPSILON:
+		return false
+
+	if candidate_turn_count != best_turn_count:
+		return candidate_turn_count < best_turn_count
+
+	# On a complete tie, reconnect farther along the old route so more of the
+	# temporarily blocked segment is bypassed.
+	return candidate_rejoin_index > best_rejoin_index
+
+func _calculate_route_cost(start_anchor: Vector2i, route: Array[Vector2i]) -> float:
+	var total_cost := 0.0
+	var previous_anchor := start_anchor
+
+	for anchor: Vector2i in route:
+		var delta := anchor - previous_anchor
+		total_cost += DIAGONAL_STEP_COST if delta.x != 0 and delta.y != 0 else 1.0
+		previous_anchor = anchor
+
+	return total_cost
+
+func _count_route_turns(start_anchor: Vector2i, route: Array[Vector2i]) -> int:
+	var turn_count := 0
+	var previous_anchor := start_anchor
+	var previous_direction := Vector2i.ZERO
+
+	for anchor: Vector2i in route:
+		var delta := anchor - previous_anchor
+		var direction := Vector2i(signi(delta.x), signi(delta.y))
+
+		if previous_direction != Vector2i.ZERO and direction != previous_direction:
+			turn_count += 1
+
+		previous_direction = direction
+		previous_anchor = anchor
+
+	return turn_count
 
 func _begin_blocked_indirect_route_wait(
 	world_grid: Node,

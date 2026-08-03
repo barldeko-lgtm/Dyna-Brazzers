@@ -16,6 +16,7 @@ const PATH_SOURCE_NAMES := [
 	"predator",
 	"egg_eater",
 	"movement_repath",
+	"movement_lookahead",
 	"flag",
 	"other"
 ]
@@ -69,6 +70,11 @@ const CSV_HEADER_COLUMNS := [
 	"path_movement_repath_success_per_sec",
 	"path_movement_repath_failed_per_sec",
 	"path_movement_repath_capped_per_sec",
+	"path_movement_lookahead_calls_per_sec",
+	"path_movement_lookahead_expanded_tiles_per_sec",
+	"path_movement_lookahead_success_per_sec",
+	"path_movement_lookahead_failed_per_sec",
+	"path_movement_lookahead_capped_per_sec",
 	"path_flag_calls_per_sec",
 	"path_flag_expanded_tiles_per_sec",
 	"path_flag_success_per_sec",
@@ -83,6 +89,29 @@ const CSV_HEADER_COLUMNS := [
 	"flag_creatures_scanned_per_sec",
 	"flag_path_requests_per_sec",
 	"flag_path_failures_per_sec",
+	"static_route_simplify_attempts_per_sec",
+	"static_route_simplify_success_per_sec",
+	"static_route_simplify_fallback_per_sec",
+	"static_route_simplify_candidate_checks_per_sec",
+	"static_route_simplify_steps_saved_per_sec",
+	"static_route_simplify_search_time_ms_per_sec",
+	"static_route_simplify_search_max_ms",
+	"proactive_route_lookahead_checks_per_sec",
+	"proactive_route_lookahead_blocked_per_sec",
+	"proactive_route_bypass_attempts_per_sec",
+	"proactive_route_bypass_success_per_sec",
+	"proactive_route_bypass_failed_per_sec",
+	"proactive_route_bypass_search_time_ms_per_sec",
+	"proactive_route_bypass_search_max_ms",
+	"blocked_route_rejoin_attempts_per_sec",
+	"blocked_route_rejoin_candidates_checked_per_sec",
+	"blocked_route_rejoin_candidates_reachable_per_sec",
+	"blocked_route_rejoin_success_per_sec",
+	"blocked_route_rejoin_failed_per_sec",
+	"blocked_route_rejoin_loops_removed_per_sec",
+	"blocked_route_rejoin_steps_removed_per_sec",
+	"blocked_route_rejoin_search_time_ms_per_sec",
+	"blocked_route_rejoin_search_max_ms",
 	"enemy_rain_searches_per_sec",
 	"enemy_rain_search_time_ms_per_sec",
 	"enemy_rain_search_max_ms",
@@ -342,6 +371,29 @@ func build_csv_sample_row() -> Array[String]:
 	row.append(str(get_rate("flag_creatures_scanned")))
 	row.append(str(get_rate("flag_path_requests")))
 	row.append(str(get_rate("flag_path_failures")))
+	row.append(str(get_rate("static_route_simplify_attempts")))
+	row.append(str(get_rate("static_route_simplify_success")))
+	row.append(str(get_rate("static_route_simplify_fallback")))
+	row.append(str(get_rate("static_route_simplify_candidate_checks")))
+	row.append(str(get_rate("static_route_simplify_steps_saved")))
+	row.append(format_float(get_rate_float("static_route_simplify_search_usec") / 1000.0, 3))
+	row.append(format_float(get_last_max_value("static_route_simplify_search_max_usec") / 1000.0, 3))
+	row.append(str(get_rate("proactive_route_lookahead_checks")))
+	row.append(str(get_rate("proactive_route_lookahead_blocked")))
+	row.append(str(get_rate("proactive_route_bypass_attempts")))
+	row.append(str(get_rate("proactive_route_bypass_success")))
+	row.append(str(get_rate("proactive_route_bypass_failed")))
+	row.append(format_float(get_rate_float("proactive_route_bypass_search_usec") / 1000.0, 3))
+	row.append(format_float(get_last_max_value("proactive_route_bypass_search_max_usec") / 1000.0, 3))
+	row.append(str(get_rate("blocked_route_rejoin_attempts")))
+	row.append(str(get_rate("blocked_route_rejoin_candidates_checked")))
+	row.append(str(get_rate("blocked_route_rejoin_candidates_reachable")))
+	row.append(str(get_rate("blocked_route_rejoin_success")))
+	row.append(str(get_rate("blocked_route_rejoin_failed")))
+	row.append(str(get_rate("blocked_route_rejoin_loops_removed")))
+	row.append(str(get_rate("blocked_route_rejoin_steps_removed")))
+	row.append(format_float(get_rate_float("blocked_route_rejoin_search_usec") / 1000.0, 3))
+	row.append(format_float(get_last_max_value("blocked_route_rejoin_search_max_usec") / 1000.0, 3))
 	row.append(str(get_rate("enemy_rain_searches")))
 	row.append(format_float(get_rate_float("enemy_rain_search_usec") / 1000.0, 3))
 	row.append(format_float(get_last_max_value("enemy_rain_search_max_usec") / 1000.0, 3))
