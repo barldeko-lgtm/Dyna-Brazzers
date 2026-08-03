@@ -7,6 +7,8 @@ const PLAYER_SPECIES_CATALOG := preload("res://scripts/catalogs/player_species_c
 
 const FLAG_AREA_SIZE := Vector2i(11, 11)
 const INVALID_ANCHOR := Vector2i(2147483647, 2147483647)
+const TARGET_DISTANCE_BAND_STEPS := 2
+const PASTURE_ADULT_COUNT_TOLERANCE := 1
 
 var owner: Node
 var assigned_targets: Dictionary = {}
@@ -162,16 +164,15 @@ func _find_grass_target(
 	if not (ranked_variant is Array):
 		return INVALID_ANCHOR
 
-	var candidates: Array[Vector2i] = []
+	var candidate_entries: Array[Dictionary] = []
+	var best_adult_count := 0
 
 	for result_variant: Variant in ranked_variant:
 		if not (result_variant is Dictionary):
 			continue
 
-		var candidate_variant: Variant = (result_variant as Dictionary).get(
-			"anchor",
-			INVALID_ANCHOR
-		)
+		var result := result_variant as Dictionary
+		var candidate_variant: Variant = result.get("anchor", INVALID_ANCHOR)
 
 		if not (candidate_variant is Vector2i):
 			continue
@@ -187,7 +188,30 @@ func _find_grass_target(
 		if _is_target_reserved_by_other(creature, candidate, footprint):
 			continue
 
-		candidates.append(candidate)
+		var adult_count := int(result.get("adult_count", 0))
+		best_adult_count = maxi(best_adult_count, adult_count)
+		candidate_entries.append({
+			"anchor": candidate,
+			"adult_count": adult_count
+		})
+
+	if candidate_entries.is_empty():
+		return INVALID_ANCHOR
+
+	var minimum_adult_count := maxi(
+		best_adult_count - PASTURE_ADULT_COUNT_TOLERANCE,
+		1
+	)
+	var candidates: Array[Vector2i] = []
+
+	for entry: Dictionary in candidate_entries:
+		if int(entry.get("adult_count", 0)) < minimum_adult_count:
+			continue
+
+		var anchor_variant: Variant = entry.get("anchor", INVALID_ANCHOR)
+
+		if anchor_variant is Vector2i:
+			candidates.append(anchor_variant)
 
 	return _choose_spread_candidate(creature, species_id, candidates)
 
@@ -230,14 +254,63 @@ func _choose_spread_candidate(
 	if candidates.is_empty():
 		return INVALID_ANCHOR
 
+	var navigation_anchor := _get_creature_navigation_anchor(creature)
+	var remaining: Array[Vector2i] = []
+	remaining.append_array(candidates)
+	var retry_offset := maxi(int(target_choice_offsets.get(creature, 0)), 0)
+	var selection_offset := posmod(retry_offset, remaining.size())
 	var seed_value := int(creature.get_instance_id())
 	var flag_tile: Vector2i = owner.call("get_flag_tile", species_id)
-	var retry_offset := int(target_choice_offsets.get(creature, 0))
-	var start_index := posmod(
-		seed_value + flag_tile.x * 31 + flag_tile.y * 17 + retry_offset,
-		candidates.size()
+	var spread_seed := seed_value + flag_tile.x * 31 + flag_tile.y * 17
+
+	while not remaining.is_empty():
+		var nearest_distance := _estimate_anchor_steps(navigation_anchor, remaining[0])
+
+		for candidate: Vector2i in remaining:
+			nearest_distance = mini(
+				nearest_distance,
+				_estimate_anchor_steps(navigation_anchor, candidate)
+			)
+
+		var band_limit := nearest_distance + TARGET_DISTANCE_BAND_STEPS
+		var band_candidates: Array[Vector2i] = []
+		var farther_candidates: Array[Vector2i] = []
+
+		for candidate: Vector2i in remaining:
+			if _estimate_anchor_steps(navigation_anchor, candidate) <= band_limit:
+				band_candidates.append(candidate)
+			else:
+				farther_candidates.append(candidate)
+
+		if selection_offset < band_candidates.size():
+			var start_index := posmod(spread_seed, band_candidates.size())
+			return band_candidates[posmod(start_index + selection_offset, band_candidates.size())]
+
+		selection_offset -= band_candidates.size()
+		remaining = farther_candidates
+
+	return INVALID_ANCHOR
+
+
+func _get_creature_navigation_anchor(creature: Node) -> Vector2i:
+	if creature == null or not is_instance_valid(creature):
+		return Vector2i.ZERO
+
+	if creature.has_method("get_navigation_anchor"):
+		var navigation_variant: Variant = creature.call("get_navigation_anchor")
+
+		if navigation_variant is Vector2i:
+			return navigation_variant
+
+	var anchor_variant: Variant = creature.get("anchor_tile")
+	return anchor_variant if anchor_variant is Vector2i else Vector2i.ZERO
+
+
+func _estimate_anchor_steps(from_anchor: Vector2i, to_anchor: Vector2i) -> int:
+	return maxi(
+		abs(to_anchor.x - from_anchor.x),
+		abs(to_anchor.y - from_anchor.y)
 	)
-	return candidates[start_index]
 
 
 func _is_valid_assigned_target(

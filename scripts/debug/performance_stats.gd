@@ -1,7 +1,7 @@
 extends Node
 
 # Lightweight runtime counters for debugging simulation spikes.
-# The counters are sampled once per real second and displayed by creature_stats_ui.gd.
+# The counters are sampled twice per real second and displayed by creature_stats_ui.gd.
 # Press F8 to toggle CSV recording.
 #
 # In the editor logs are written to:
@@ -11,6 +11,7 @@ extends Node
 #   <folder with Dyna.exe>/logs/
 
 const CSV_FOLDER_NAME := "logs"
+const SAMPLE_INTERVAL_MSEC := 500
 const PATH_SOURCE_NAMES := [
 	"grazing",
 	"predator",
@@ -29,6 +30,7 @@ const PATH_SOURCE_METRICS := [
 ]
 const CSV_HEADER_COLUMNS := [
 	"sample_time_sec",
+	"sample_window_sec",
 	"fps",
 	"time_scale",
 	"memory_static_mb",
@@ -134,6 +136,7 @@ const CSV_HEADER_COLUMNS := [
 
 var start_ticks_msec := 0
 var sample_start_ticks_msec := 0
+var last_sample_window_seconds := 0.0
 var current_counters: Dictionary = {}
 var last_rates: Dictionary = {}
 var current_max_values: Dictionary = {}
@@ -164,10 +167,11 @@ func _process(_delta: float) -> void:
 		sample_start_ticks_msec = now
 
 	var elapsed_msec: int = now - sample_start_ticks_msec
-	if elapsed_msec < 1000:
+	if elapsed_msec < SAMPLE_INTERVAL_MSEC:
 		return
 
 	var elapsed_seconds := float(elapsed_msec) / 1000.0
+	last_sample_window_seconds = elapsed_seconds
 	last_rates.clear()
 
 	for key in current_counters.keys():
@@ -341,6 +345,7 @@ func build_csv_sample_row() -> Array[String]:
 
 	var row: Array[String] = []
 	row.append(format_float(get_elapsed_seconds(), 2))
+	row.append(format_float(last_sample_window_seconds, 3))
 	row.append(str(Engine.get_frames_per_second()))
 	row.append(format_float(Engine.time_scale, 2))
 	row.append(format_float(get_static_memory_mb(), 2))
