@@ -8,6 +8,7 @@ const INDIRECT_ORDER_STATE_TIMER := 30.0
 const INDIRECT_ORDER_REPATH_TILE_CAP := 1800
 const LOCAL_BLOCKED_ROUTE_REJOIN_STEPS := 8
 const LOCAL_BLOCKED_ROUTE_TILE_CAP := 192
+const LOCAL_BLOCKED_ROUTE_SHARP_SEAM_COST_PENALTY := 3.0
 const DIAGONAL_STEP_COST := 1.41421356
 const ROUTE_COST_EPSILON := 0.0001
 const STATIC_ROUTE_MIN_EXTRA_COST := 2.0
@@ -35,6 +36,7 @@ var is_applying_calm_choice := false
 var last_completed_movement_physics_frame := -1
 var route_debug_source := "none"
 var route_debug_reason := "not assigned"
+var last_local_rejoin_debug_reason := "next route step was blocked"
 
 func _init(owner: Node, idle_state: int, walk_state: int, seek_food_state: int) -> void:
 	creature = owner
@@ -936,7 +938,7 @@ func _try_rebuild_blocked_indirect_order_route(
 
 	if not local_route.is_empty():
 		creature.set("current_path", local_route)
-		_set_route_debug("local rejoin", "next route step was blocked")
+		_set_route_debug("local rejoin", last_local_rejoin_debug_reason)
 		return true
 
 	var final_anchor_variant: Variant = current_path[current_path.size() - 1]
@@ -973,6 +975,8 @@ func _find_local_indirect_rejoin_route(
 	footprint: Vector2i,
 	current_anchor: Vector2i
 ) -> Array[Vector2i]:
+	last_local_rejoin_debug_reason = "next route step was blocked"
+
 	if current_path.size() < 2:
 		return []
 
@@ -983,9 +987,12 @@ func _find_local_indirect_rejoin_route(
 		current_path.size() - 1
 	)
 	var best_route: Array[Vector2i] = []
+	var best_score := INF
 	var best_cost := INF
 	var best_turn_count := 2147483647
 	var best_rejoin_index := -1
+	var best_has_sharp_seam := true
+	var sharp_seam_candidate_count := 0
 	var best_removed_loop_count := 0
 	var best_removed_step_count := 0
 
@@ -1046,15 +1053,34 @@ func _find_local_indirect_rejoin_route(
 		if candidate_route.is_empty():
 			continue
 
+		var candidate_has_sharp_seam := _has_sharp_rejoin_seam(
+			current_anchor,
+			candidate_route,
+			current_path
+		)
+
+		if candidate_has_sharp_seam:
+			sharp_seam_candidate_count += 1
+			PerformanceStats.add_counter("blocked_route_rejoin_sharp_seam_candidates")
+
 		var candidate_removed_loop_count := int(cleanup_result.get("loop_count", 0))
 		var candidate_removed_step_count := int(cleanup_result.get("removed_steps", 0))
 		var candidate_cost := _calculate_route_cost(current_anchor, candidate_route)
+		var candidate_score := candidate_cost
+
+		if candidate_has_sharp_seam:
+			candidate_score += LOCAL_BLOCKED_ROUTE_SHARP_SEAM_COST_PENALTY
+
 		var candidate_turn_count := _count_route_turns(current_anchor, candidate_route)
 
 		if not _is_better_rejoin_candidate(
+			candidate_score,
+			candidate_has_sharp_seam,
 			candidate_cost,
 			candidate_turn_count,
 			rejoin_index,
+			best_score,
+			best_has_sharp_seam,
 			best_cost,
 			best_turn_count,
 			best_rejoin_index
@@ -1062,9 +1088,11 @@ func _find_local_indirect_rejoin_route(
 			continue
 
 		best_route = candidate_route
+		best_score = candidate_score
 		best_cost = candidate_cost
 		best_turn_count = candidate_turn_count
 		best_rejoin_index = rejoin_index
+		best_has_sharp_seam = candidate_has_sharp_seam
 		best_removed_loop_count = candidate_removed_loop_count
 		best_removed_step_count = candidate_removed_step_count
 
@@ -1088,7 +1116,74 @@ func _find_local_indirect_rejoin_route(
 	else:
 		PerformanceStats.add_counter("blocked_route_rejoin_success")
 
+		if best_has_sharp_seam:
+			PerformanceStats.add_counter("blocked_route_rejoin_sharp_seam_fallback")
+			last_local_rejoin_debug_reason = (
+				"blocked; sharp seam fallback at old step %d"
+				% [best_rejoin_index + 1]
+			)
+		else:
+			if sharp_seam_candidate_count > 0:
+				PerformanceStats.add_counter("blocked_route_rejoin_sharp_seam_avoided")
+
+			last_local_rejoin_debug_reason = (
+				"blocked; smooth local rejoin at old step %d"
+				% [best_rejoin_index + 1]
+			)
+
 	return best_route
+
+func _get_shared_route_suffix_start(
+	candidate_route: Array[Vector2i],
+	source_route: Array
+) -> Vector2i:
+	var candidate_index := candidate_route.size() - 1
+	var source_index := source_route.size() - 1
+	var matched_steps := 0
+
+	while candidate_index >= 0 and source_index >= 0:
+		var source_anchor_variant: Variant = source_route[source_index]
+
+		if not (source_anchor_variant is Vector2i):
+			break
+
+		if candidate_route[candidate_index] != source_anchor_variant:
+			break
+
+		matched_steps += 1
+		candidate_index -= 1
+		source_index -= 1
+
+	if matched_steps <= 0:
+		return Vector2i(-1, -1)
+
+	return Vector2i(candidate_index + 1, source_index + 1)
+
+func _has_sharp_rejoin_seam(
+	current_anchor: Vector2i,
+	candidate_route: Array[Vector2i],
+	source_route: Array
+) -> bool:
+	var suffix_start := _get_shared_route_suffix_start(candidate_route, source_route)
+	var join_index := suffix_start.x
+
+	if join_index < 0 or join_index >= candidate_route.size() - 1:
+		return false
+
+	var previous_anchor := current_anchor
+
+	if join_index > 0:
+		previous_anchor = candidate_route[join_index - 1]
+	var join_anchor := candidate_route[join_index]
+	var next_anchor := candidate_route[join_index + 1]
+	var incoming_direction := _get_step_direction(previous_anchor, join_anchor)
+	var outgoing_direction := _get_step_direction(join_anchor, next_anchor)
+	var direction_dot := (
+		incoming_direction.x * outgoing_direction.x
+		+ incoming_direction.y * outgoing_direction.y
+	)
+
+	return direction_dot < 0
 
 func _remove_route_loops(path: Array[Vector2i], start_anchor: Vector2i) -> Dictionary:
 	var cleaned_path: Array[Vector2i] = []
@@ -1120,13 +1215,28 @@ func _remove_route_loops(path: Array[Vector2i], start_anchor: Vector2i) -> Dicti
 	}
 
 func _is_better_rejoin_candidate(
+	candidate_score: float,
+	candidate_has_sharp_seam: bool,
 	candidate_cost: float,
 	candidate_turn_count: int,
 	candidate_rejoin_index: int,
+	best_score: float,
+	best_has_sharp_seam: bool,
 	best_cost: float,
 	best_turn_count: int,
 	best_rejoin_index: int
 ) -> bool:
+	# A sharp seam is a soft cost, never a rejection. This prefers a nearby
+	# smooth connection without making congestion force the creature to wait.
+	if candidate_score < best_score - ROUTE_COST_EPSILON:
+		return true
+
+	if absf(candidate_score - best_score) > ROUTE_COST_EPSILON:
+		return false
+
+	if candidate_has_sharp_seam != best_has_sharp_seam:
+		return not candidate_has_sharp_seam
+
 	if candidate_cost < best_cost - ROUTE_COST_EPSILON:
 		return true
 

@@ -30,6 +30,7 @@ const PATH_SOURCE_METRICS := [
 ]
 const CSV_HEADER_COLUMNS := [
 	"sample_time_sec",
+	"game_time_sec",
 	"sample_window_sec",
 	"fps",
 	"time_scale",
@@ -112,6 +113,9 @@ const CSV_HEADER_COLUMNS := [
 	"blocked_route_rejoin_failed_per_sec",
 	"blocked_route_rejoin_loops_removed_per_sec",
 	"blocked_route_rejoin_steps_removed_per_sec",
+	"blocked_route_rejoin_sharp_seam_candidates_per_sec",
+	"blocked_route_rejoin_sharp_seam_avoided_per_sec",
+	"blocked_route_rejoin_sharp_seam_fallback_per_sec",
 	"blocked_route_rejoin_search_time_ms_per_sec",
 	"blocked_route_rejoin_search_max_ms",
 	"enemy_rain_searches_per_sec",
@@ -226,6 +230,15 @@ func get_elapsed_seconds() -> float:
 		return 0.0
 
 	return float(Time.get_ticks_msec() - start_ticks_msec) / 1000.0
+
+
+func get_game_elapsed_seconds() -> float:
+	var enemy_ai := get_tree().get_first_node_in_group("enemy_ai")
+
+	if enemy_ai != null and enemy_ai.has_method("get_elapsed_simulation_seconds"):
+		return maxf(float(enemy_ai.call("get_elapsed_simulation_seconds")), 0.0)
+
+	return 0.0
 
 
 func get_static_memory_mb() -> float:
@@ -345,6 +358,7 @@ func build_csv_sample_row() -> Array[String]:
 
 	var row: Array[String] = []
 	row.append(format_float(get_elapsed_seconds(), 2))
+	row.append(format_float(get_game_elapsed_seconds(), 2))
 	row.append(format_float(last_sample_window_seconds, 3))
 	row.append(str(Engine.get_frames_per_second()))
 	row.append(format_float(Engine.time_scale, 2))
@@ -397,6 +411,9 @@ func build_csv_sample_row() -> Array[String]:
 	row.append(str(get_rate("blocked_route_rejoin_failed")))
 	row.append(str(get_rate("blocked_route_rejoin_loops_removed")))
 	row.append(str(get_rate("blocked_route_rejoin_steps_removed")))
+	row.append(str(get_rate("blocked_route_rejoin_sharp_seam_candidates")))
+	row.append(str(get_rate("blocked_route_rejoin_sharp_seam_avoided")))
+	row.append(str(get_rate("blocked_route_rejoin_sharp_seam_fallback")))
 	row.append(format_float(get_rate_float("blocked_route_rejoin_search_usec") / 1000.0, 3))
 	row.append(format_float(get_last_max_value("blocked_route_rejoin_search_max_usec") / 1000.0, 3))
 	row.append(str(get_rate("enemy_rain_searches")))
