@@ -181,7 +181,7 @@ Audio:
 - `assets/audio/sfx/earthquake_cast.wav`
 - `assets/audio/ui/button_click.wav`
 
-Player creature visuals live under `assets/sprites/creatures/<species>/`; species animation resources live under `data/animations/`, including the current player stegosaurus, tyrannosaurus, raptor, and egg-eater attack frames plus the enemy stegosaurus attack frames.
+Player creature visuals live under `assets/sprites/creatures/<species>/`; species animation resources live under `data/animations/`, including the current player stegosaurus, tyrannosaurus, raptor, and egg-eater attack frames plus the enemy stegosaurus, triceratops, tyrannosaurus, and raptor attack frames.
 Enemy visuals live under `assets/sprites/creatures/enemy/<species>/`; their `.tres` resources select faction-specific directional and egg textures.
 Generic egg fallback textures live under `assets/sprites/eggs/`; species-specific stage textures stay beside that species' player visuals.
 
