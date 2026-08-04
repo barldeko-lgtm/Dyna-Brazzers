@@ -92,9 +92,11 @@ All current species use the shared `creature.tscn` and common behaviour modules.
 
 All current creatures use the shared logical footprint. Movement reserves the next footprint before visual travel so two creatures cannot commit to the same destination.
 
+When no higher-priority behaviour or indirect objective is active, a creature repeatedly chooses between a short idle and a short random walk. After every completed random wander step, movement leaves one stationary physics frame before another step may start, allowing food, reproduction, hunting, combat, and strategic-objective checks to take priority immediately. Exact idle/walk chances and durations remain movement-controller tuning values.
+
 Player and enemy pterodactyls use flight traversal: route steps may cross water, trees, and DryGround, while mountains remain blocked. Normal ground placement remains the destination contract, so a pterodactyl cannot idle, begin combat, or reproduce over aerial-only terrain. If an active route ends or is interrupted there, ordinary movement continues until a ground anchor is reached.
 
-Long indirect-order routes are planned against terrain and persistent blockers rather than temporary creature positions. If the next real step is occupied, managed flag and behaviour routes first try a short rejoin around the obstruction, then a full alternate route to the same destination. When neither route exists, the creature keeps its goal and queued path, waits while the blocking footprint remains unchanged, and retries immediately after that occupancy changes.
+Long indirect-order routes are planned against terrain and persistent blockers rather than temporary creature positions. If the next real step is occupied, managed flag and behaviour routes first try a short rejoin around the obstruction, then a full alternate route to the same destination. Local rejoin selection softly prefers smoother connections to the preserved route tail, but a viable sharper connection remains an allowed fallback so route aesthetics alone cannot make creatures wait behind temporary occupancy. When neither route exists, the creature keeps its goal and queued path, waits while the blocking footprint remains unchanged, and retries immediately after that occupancy changes.
 
 Survival, food, reproduction, hunting, combat, and death take priority over player or enemy strategic objectives.
 
@@ -370,10 +372,10 @@ The minimap is generated from the active terrain, overlays current grass presenc
 
 Debug systems remain separate:
 
-- F3 — world grid, paths, occupancy, and selected-creature flag information;
+- F3 — world grid, paths, occupancy, and selected-creature flag information, including the current route source and the reason for its latest replacement;
 - F4 — general text diagnostics;
 - F5 — enemy strategic AI, combat reserve, and enemy rain diagnostics;
-- F8 — performance CSV recording.
+- F8 — performance CSV recording, including simulation-time alignment and local-rejoin quality counters.
 
 Debug UI reads public state but must not make strategic decisions or mutate simulation state.
 
