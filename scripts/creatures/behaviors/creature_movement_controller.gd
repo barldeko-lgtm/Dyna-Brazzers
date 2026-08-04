@@ -17,6 +17,9 @@ const STATIC_ROUTE_SHORTCUT_LOOKAHEAD_STEPS := 24
 const PROACTIVE_BYPASS_REJOIN_STEPS := 5
 const PROACTIVE_BYPASS_TILE_CAP := 64
 const PROACTIVE_BYPASS_MAX_ADDED_COST := 3.0
+const INDIRECT_ROUTE_OPTIMIZATION_MIN_INTERVAL := 3.0
+const INDIRECT_ROUTE_OPTIMIZATION_MAX_INTERVAL := 5.0
+const INDIRECT_ROUTE_OPTIMIZATION_MIN_SAVED_COST := 2.0
 const CALM_IDLE_CHANCE := 0.6
 const CALM_IDLE_DURATION := 2.0
 const CALM_WALK_MIN_DURATION := 2.0
@@ -37,6 +40,8 @@ var last_completed_movement_physics_frame := -1
 var route_debug_source := "none"
 var route_debug_reason := "not assigned"
 var last_local_rejoin_debug_reason := "next route step was blocked"
+var indirect_route_may_be_suboptimal := false
+var indirect_route_optimization_timer := 0.0
 
 func _init(owner: Node, idle_state: int, walk_state: int, seek_food_state: int) -> void:
 	creature = owner
@@ -64,6 +69,7 @@ func update_walk(delta: float) -> void:
 
 	var timer := float(creature.get("state_timer")) - delta
 	creature.set("state_timer", timer)
+	_update_indirect_route_optimization(delta)
 
 	if bool(creature.get("is_moving")):
 		return
@@ -111,6 +117,7 @@ func update_walk(delta: float) -> void:
 
 		if is_following_indirect_order_route:
 			is_following_indirect_order_route = false
+			_reset_indirect_route_optimization()
 			calm_choice_pending = true
 
 		if calm_choice_pending and _can_choose_calm_state(path_variant):
@@ -289,6 +296,7 @@ func start_next_path_step_if_needed(allow_rebuild: bool = true) -> void:
 		if not proactive_route.is_empty():
 			current_path = proactive_route
 			creature.set("current_path", current_path)
+			_mark_indirect_route_for_optimization()
 			next_anchor = proactive_route[0]
 			_set_route_debug("lookahead bypass", "second route step was occupied")
 
@@ -445,6 +453,7 @@ func apply_indirect_order_route(path: Array) -> bool:
 
 	if bool(creature.get("is_moving")):
 		is_following_indirect_order_route = true
+		_reset_indirect_route_optimization()
 		calm_choice_pending = false
 		creature.set("current_path", normalized_path)
 		creature.set("state_timer", INDIRECT_ORDER_STATE_TIMER)
@@ -456,6 +465,7 @@ func apply_indirect_order_route(path: Array) -> bool:
 
 	creature.call("enter_walk")
 	is_following_indirect_order_route = true
+	_reset_indirect_route_optimization()
 	calm_choice_pending = false
 	creature.set("state_timer", INDIRECT_ORDER_STATE_TIMER)
 	creature.set("current_path", normalized_path)
@@ -465,6 +475,7 @@ func apply_indirect_order_route(path: Array) -> bool:
 
 func pause_indirect_order_for_food() -> void:
 	is_following_indirect_order_route = false
+	_reset_indirect_route_optimization()
 	_reset_blocked_indirect_route_wait()
 	_clear_queued_path()
 	calm_choice_pending = true
@@ -491,6 +502,7 @@ func cancel_indirect_order_route() -> void:
 		return
 
 	is_following_indirect_order_route = false
+	_reset_indirect_route_optimization()
 	_reset_blocked_indirect_route_wait()
 	_clear_queued_path()
 	calm_choice_pending = true
@@ -502,6 +514,98 @@ func cancel_indirect_order_route() -> void:
 
 	if creature.has_method("enter_walk"):
 		creature.call("enter_walk")
+
+func _get_staggered_indirect_route_optimization_interval() -> float:
+	var instance_id := int(creature.get_instance_id())
+	var phase_step := absi(instance_id % 2001)
+	var phase := float(phase_step) / 2000.0
+	return lerpf(
+		INDIRECT_ROUTE_OPTIMIZATION_MIN_INTERVAL,
+		INDIRECT_ROUTE_OPTIMIZATION_MAX_INTERVAL,
+		phase
+	)
+
+func _mark_indirect_route_for_optimization() -> void:
+	if not is_following_indirect_order_route:
+		return
+
+	indirect_route_may_be_suboptimal = true
+	indirect_route_optimization_timer = (
+		_get_staggered_indirect_route_optimization_interval()
+	)
+
+func _reset_indirect_route_optimization() -> void:
+	indirect_route_may_be_suboptimal = false
+	indirect_route_optimization_timer = 0.0
+
+func _update_indirect_route_optimization(delta: float) -> void:
+	if not is_following_indirect_order_route or not indirect_route_may_be_suboptimal:
+		return
+
+	indirect_route_optimization_timer -= delta
+
+	if indirect_route_optimization_timer > 0.0 or bool(creature.get("is_moving")):
+		return
+
+	var current_path_variant: Variant = creature.get("current_path")
+	var world_grid: Node = creature.get("world_grid")
+
+	if (
+		not (current_path_variant is Array)
+		or (current_path_variant as Array).is_empty()
+		or world_grid == null
+	):
+		_reset_indirect_route_optimization()
+		return
+
+	var current_route := _normalize_route(current_path_variant as Array)
+	var goal_anchor := current_route[current_route.size() - 1]
+	var current_anchor: Vector2i = creature.get("anchor_tile")
+	var footprint: Vector2i = creature.get("footprint_size")
+	var current_cost := _calculate_route_cost(current_anchor, current_route)
+	var minimum_possible_cost := _estimate_direct_route_cost(current_anchor, goal_anchor)
+
+	if current_cost - minimum_possible_cost < INDIRECT_ROUTE_OPTIMIZATION_MIN_SAVED_COST:
+		_reset_indirect_route_optimization()
+		PerformanceStats.add_counter("indirect_route_optimization_unchanged")
+		return
+
+	PerformanceStats.add_counter("indirect_route_optimization_attempts")
+	var candidate_variant: Variant = world_grid.call(
+		"find_path",
+		current_anchor,
+		goal_anchor,
+		footprint,
+		creature,
+		INDIRECT_ORDER_REPATH_TILE_CAP,
+		&"movement_repath",
+		true
+	)
+	_reset_indirect_route_optimization()
+
+	if not (candidate_variant is Array):
+		PerformanceStats.add_counter("indirect_route_optimization_unchanged")
+		return
+
+	var candidate_route := _normalize_route(candidate_variant as Array)
+
+	if candidate_route.is_empty() or candidate_route[candidate_route.size() - 1] != goal_anchor:
+		PerformanceStats.add_counter("indirect_route_optimization_unchanged")
+		return
+
+	var candidate_cost := _calculate_route_cost(current_anchor, candidate_route)
+
+	if current_cost - candidate_cost < INDIRECT_ROUTE_OPTIMIZATION_MIN_SAVED_COST:
+		PerformanceStats.add_counter("indirect_route_optimization_unchanged")
+		return
+
+	creature.set("current_path", candidate_route)
+	PerformanceStats.add_counter("indirect_route_optimization_success")
+	_set_route_debug(
+		"periodic shorten",
+		"detour shortened from %d to %d steps"
+		% [current_route.size(), candidate_route.size()]
+	)
 
 func _simplify_indirect_route_ignoring_dynamic_occupancy(
 	original_route: Array[Vector2i]
@@ -886,14 +990,11 @@ func _find_proactive_indirect_bypass(
 		PerformanceStats.add_counter("proactive_route_bypass_failed")
 		return []
 
-	var rebuilt_route: Array[Vector2i] = []
-	rebuilt_route.append_array(local_route)
-
-	for index in range(rejoin_index + 1, current_path.size()):
-		var tail_variant: Variant = current_path[index]
-
-		if tail_variant is Vector2i:
-			rebuilt_route.append(tail_variant)
+	var rebuilt_route := _splice_rejoin_at_furthest_intersection(
+		local_route,
+		current_path,
+		rejoin_index
+	)
 
 	var cleanup_result := _remove_route_loops(rebuilt_route, current_anchor)
 	var cleaned_variant: Variant = cleanup_result.get("route", [])
@@ -938,6 +1039,7 @@ func _try_rebuild_blocked_indirect_order_route(
 
 	if not local_route.is_empty():
 		creature.set("current_path", local_route)
+		_mark_indirect_route_for_optimization()
 		_set_route_debug("local rejoin", last_local_rejoin_debug_reason)
 		return true
 
@@ -966,6 +1068,7 @@ func _try_rebuild_blocked_indirect_order_route(
 		return false
 
 	creature.set("current_path", rebuilt_path)
+	_reset_indirect_route_optimization()
 	_set_route_debug("full static repath", "local rejoin was unavailable")
 	return true
 
@@ -1036,11 +1139,11 @@ func _find_local_indirect_rejoin_route(
 
 		PerformanceStats.add_counter("blocked_route_rejoin_candidates_reachable")
 
-		for tail_index in range(rejoin_index + 1, current_path.size()):
-			var tail_step: Variant = current_path[tail_index]
-
-			if tail_step is Vector2i:
-				rebuilt_path.append(tail_step)
+		rebuilt_path = _splice_rejoin_at_furthest_intersection(
+			rebuilt_path,
+			current_path,
+			rejoin_index
+		)
 
 		var cleanup_result := _remove_route_loops(rebuilt_path, current_anchor)
 		var candidate_route_variant: Variant = cleanup_result.get("route", [])
@@ -1184,6 +1287,59 @@ func _has_sharp_rejoin_seam(
 	)
 
 	return direction_dot < 0
+
+func _splice_rejoin_at_furthest_intersection(
+	detour: Array[Vector2i],
+	source_route: Array,
+	nominated_rejoin_index: int
+) -> Array[Vector2i]:
+	if detour.is_empty() or source_route.is_empty():
+		return []
+
+	var source_index_by_anchor: Dictionary = {}
+
+	for source_index in range(source_route.size()):
+		var source_anchor_variant: Variant = source_route[source_index]
+
+		if source_anchor_variant is Vector2i:
+			source_index_by_anchor[source_anchor_variant] = source_index
+
+	var furthest_source_index := clampi(
+		nominated_rejoin_index,
+		0,
+		source_route.size() - 1
+	)
+	var furthest_detour_index := detour.size() - 1
+
+	for detour_index in range(detour.size()):
+		var source_index_variant: Variant = source_index_by_anchor.get(
+			detour[detour_index],
+			null
+		)
+
+		if not (source_index_variant is int):
+			continue
+
+		var source_index: int = source_index_variant
+
+		if source_index <= furthest_source_index:
+			continue
+
+		furthest_source_index = source_index
+		furthest_detour_index = detour_index
+
+	var rebuilt_route: Array[Vector2i] = []
+
+	for detour_index in range(furthest_detour_index + 1):
+		rebuilt_route.append(detour[detour_index])
+
+	for source_index in range(furthest_source_index + 1, source_route.size()):
+		var source_anchor_variant: Variant = source_route[source_index]
+
+		if source_anchor_variant is Vector2i:
+			rebuilt_route.append(source_anchor_variant)
+
+	return rebuilt_route
 
 func _remove_route_loops(path: Array[Vector2i], start_anchor: Vector2i) -> Dictionary:
 	var cleaned_path: Array[Vector2i] = []

@@ -341,7 +341,9 @@ Rules:
 - `creature_movement_controller.gd` owns every queued-route mutation and grid-step execution;
 - reserve the next footprint atomically before smooth movement;
 - build long indirect-order routes against terrain and persistent blockers rather than temporary creature occupancy or movement reservations;
-- when the next footprint of a managed indirect or behaviour route is occupied, first try a bounded local path that rejoins the existing route, then a bounded full path to the same final destination;
+- when the next footprint of an indirect player-flag or enemy-rally route is occupied, first try a bounded local path that rejoins the existing route, then a bounded full path to the same final destination;
+- splice a local detour at its furthest actual intersection with the old route, then append only the untouched tail; loop cleanup remains a safety net rather than the primary splice mechanism;
+- mark successful temporary detours as potentially suboptimal and check them once after a stable per-creature delay of three to five simulation seconds; keep the same destination and replace the queue only when the static route saves meaningful travel cost;
 - if both rebuilds fail, retain the destination and queued route while the blocking footprint is unchanged; retry as soon as its occupancy signature changes, without a fixed retry timer or failure limit;
 - ordinary one-step wandering is not a persistent managed route and may still be discarded when its chosen step becomes unavailable;
 - arrival converts a reservation into normal occupancy;

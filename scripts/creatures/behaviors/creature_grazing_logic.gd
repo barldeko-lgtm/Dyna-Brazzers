@@ -1,6 +1,6 @@
 extends RefCounted
 
-const GRAZING_DISTANCE_COST_PER_TILE: float = 3.0
+const GRAZING_DISTANCE_COST_PER_TILE: float = 6.0
 const GRAZING_PATH_CANDIDATE_LIMIT: int = 10
 const GRAZING_FULL_RECHECK_INTERVAL: float = 5.0
 const GRAZING_PATH_LIMIT_NEAR: int = 80
@@ -306,7 +306,14 @@ func can_start_eating_here() -> bool:
 # continue the same queue without restarting work.
 #
 # Final score:
-# total food value under the footprint - actual route steps * 3.
+# total food value under the footprint - actual route steps * 6.
+func _score_grazing_candidate(food_value: int, route_steps: int) -> float:
+	return (
+		float(food_value)
+		- float(route_steps) * GRAZING_DISTANCE_COST_PER_TILE
+	)
+
+
 func try_acquire_grazing_target(include_current_target: bool = false) -> void:
 	PerformanceStats.add_counter("grazing_acquire_requests")
 
@@ -383,7 +390,7 @@ func _append_current_target_candidate(candidates: Array[Dictionary]) -> void:
 		"adult_count": adult_count,
 		"food_value": food_value,
 		"distance": distance,
-		"score": float(food_value) - float(distance) * GRAZING_DISTANCE_COST_PER_TILE,
+		"score": _score_grazing_candidate(food_value, distance),
 		"prefer_on_tie": true
 	})
 
@@ -455,9 +462,9 @@ func find_quality_ranked_grazing_candidates(
 
 		var rescored_candidate: Dictionary = raw_candidate.duplicate()
 		rescored_candidate["food_value"] = food_value
-		rescored_candidate["score"] = (
-			float(food_value)
-			- float(distance) * GRAZING_DISTANCE_COST_PER_TILE
+		rescored_candidate["score"] = _score_grazing_candidate(
+			food_value,
+			distance
 		)
 		rescored_candidate["prefer_on_tie"] = false
 		_insert_quality_ranked_candidate(
@@ -488,6 +495,7 @@ func _find_cached_raw_grazing_candidates(
 	for cached_pasture: Dictionary in cached_pastures:
 		candidate_checks += 1
 		var adult_count: int = int(cached_pasture.get("adult_count", 0))
+		var food_value: int = int(cached_pasture.get("food_value", 0))
 
 		if adult_count < creature.min_grass_to_eat:
 			continue
@@ -511,10 +519,7 @@ func _find_cached_raw_grazing_candidates(
 			navigation_anchor,
 			anchor
 		)
-		var rough_score: float = (
-			float(adult_count) * float(creature.grazing_grass_weight)
-			- float(distance) * float(creature.grazing_distance_penalty)
-		)
+		var rough_score: float = _score_grazing_candidate(food_value, distance)
 		var raw_candidate: Dictionary = cached_pasture.duplicate()
 		raw_candidate["distance"] = distance
 		raw_candidate["score"] = rough_score
@@ -726,9 +731,9 @@ func _find_best_path_in_shared_wave(candidates: Array[Dictionary]) -> Dictionary
 			plan["anchor"] = current
 			plan["path"] = path
 			plan["route_steps"] = total_route_steps
-			plan["score"] = (
-				float(food_value)
-				- float(total_route_steps) * GRAZING_DISTANCE_COST_PER_TILE
+			plan["score"] = _score_grazing_candidate(
+				food_value,
+				total_route_steps
 			)
 			unresolved_targets.erase(current)
 

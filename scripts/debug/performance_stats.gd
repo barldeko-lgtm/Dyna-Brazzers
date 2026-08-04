@@ -118,6 +118,9 @@ const CSV_HEADER_COLUMNS := [
 	"blocked_route_rejoin_sharp_seam_fallback_per_sec",
 	"blocked_route_rejoin_search_time_ms_per_sec",
 	"blocked_route_rejoin_search_max_ms",
+	"indirect_route_optimization_attempts_per_sec",
+	"indirect_route_optimization_success_per_sec",
+	"indirect_route_optimization_unchanged_per_sec",
 	"enemy_rain_searches_per_sec",
 	"enemy_rain_search_time_ms_per_sec",
 	"enemy_rain_search_max_ms",
@@ -416,6 +419,9 @@ func build_csv_sample_row() -> Array[String]:
 	row.append(str(get_rate("blocked_route_rejoin_sharp_seam_fallback")))
 	row.append(format_float(get_rate_float("blocked_route_rejoin_search_usec") / 1000.0, 3))
 	row.append(format_float(get_last_max_value("blocked_route_rejoin_search_max_usec") / 1000.0, 3))
+	row.append(str(get_rate("indirect_route_optimization_attempts")))
+	row.append(str(get_rate("indirect_route_optimization_success")))
+	row.append(str(get_rate("indirect_route_optimization_unchanged")))
 	row.append(str(get_rate("enemy_rain_searches")))
 	row.append(format_float(get_rate_float("enemy_rain_search_usec") / 1000.0, 3))
 	row.append(format_float(get_last_max_value("enemy_rain_search_max_usec") / 1000.0, 3))

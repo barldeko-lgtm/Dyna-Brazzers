@@ -55,7 +55,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/creatures/creature.gd` — creature FSM/survival coordinator, predator duel-victory rewards, and public facade.
 - `scripts/creatures/creature_species_data.gd` — biological species schema, including optional flight navigation capability.
 - `scripts/creatures/creature_faction.gd` — validated runtime ownership.
-- `scripts/creatures/behaviors/creature_movement_controller.gd` — queued routes, grid steps, reservations, and indirect-order route API.
+- `scripts/creatures/behaviors/creature_movement_controller.gd` — queued routes, grid steps, reservations, indirect-order detour splicing, and delayed route shortening.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — pasture cache, food candidate ranking, route search, and grazing target lifecycle.
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — prey selection, active raptor protection of allied herbivores and egg eaters, existing-target intervention by attacker-role predators, approach routing, engagement, and combat handoff.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — edible-egg targeting and consumption.
