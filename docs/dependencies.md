@@ -357,11 +357,11 @@ Predator rules:
 
 - compare a small nearest available prey set by actual reachable approach routes;
 - resolve all valid side approaches for one prey through a single multi-goal path search rather than one search per side;
-- while a predator has a healthy route, periodically rank alternatives by cheap approach distance on a small stable per-creature timer offset, build a route only for the nearest challenger that can plausibly beat the remaining route by the configured switch advantage, and temporarily suppress a candidate after its shared approach search fails;
+- while a predator has a healthy route, use the small stable per-creature timer offset to rebuild its current route only when the locked side approach no longer touches the moving target; otherwise rank alternatives by cheap approach distance, build a route only for the nearest challenger that can plausibly beat the remaining route by the configured switch advantage, and temporarily suppress a candidate after its shared approach search fails;
 - valid approaches overlap a footprint side; full corner-only diagonals remain invalid;
 - every combat approach must pass normal ground-placement validation for the hunter's full footprint, including flying pterodactyls; aerial-only traversal tiles are never legal duel-start anchors;
 - predator role, normal hunger threshold, optional strategic-hunt threshold, strategic-hunt radius/flag precedence, normal hunt radius, and optional defender guard radius belong to `CreatureSpeciesData` resources;
-- attacker-role strategic hunting accepts herbivores, predators, and egg eaters of the opposing player/enemy faction; when the species resource enables flag override, an acquired strategic target replaces indirect flag travel while reproduction eligibility remains higher priority;
+- an attacker-role predator committed to a flag objective above its strategic threshold scans the strategic radius only for opposing-faction predators; at or below that threshold strategic hunting accepts opposing herbivores, predators, and egg eaters; when the species resource enables flag override, an acquired strategic target replaces indirect flag travel while reproduction eligibility remains higher priority;
 - attacker-role survival hunting may cross faction and diet boundaries but must always reject the same biological species of the hunter's own faction;
 - defender guard hunting repeatedly scans only its guard radius for opposing player/enemy creatures and outranks indirect flag routes and eligibility to begin reproduction once a target is found; an egg laying already in progress remains uninterrupted;
 - defender survival hunting uses the normal predator radius, accepts herbivores regardless of faction, and rejects same-faction predators and egg eaters;
@@ -372,7 +372,7 @@ Predator rules:
 - keep the egg eater's periodic challenger scan at its controller-owned cadence with a small stable per-creature timer offset, use cheap approach distance before A*, and temporarily suppress failed current or challenger eggs without turning the suppression into a permanent blacklist;
 - stage-one eggs are trackable but not edible; waiting footprints must preserve both possible stage-two expansions and repath after the transition;
 - apply the active mode's prey rule consistently during acquisition, target revalidation, pending-duel settlement, and duel start;
-- prey may be pursued by several hunters, but final combat engagement is exclusive;
+- prey may be pursued by several hunters, but two predators that select each other resolve one stable moving pursuit owner and final combat engagement remains exclusive;
 - hunters losing engagement must release the target and search again through normal predator logic.
 - a non-critical defender raptor may actively protect an allied herbivore or egg eater from an opposing-faction predator that initiated the current duel;
 - attacker-role tyrannosaurus and pterodactyl must never acquire or switch targets solely for protection, but may continue pursuing and intervene against an opposing predator that was already their selected target before it attacked an allied herbivore or egg eater;

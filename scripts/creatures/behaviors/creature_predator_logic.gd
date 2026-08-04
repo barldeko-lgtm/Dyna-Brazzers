@@ -257,7 +257,10 @@ func _get_desired_hunt_mode() -> HuntMode:
 
 	if (
 		creature.species_data.is_attacking_predator()
-		and creature.hunger <= creature.species_data.strategic_hunt_threshold
+		and (
+			creature.hunger <= creature.species_data.strategic_hunt_threshold
+			or _has_active_flag_commitment()
+		)
 	):
 		return HuntMode.STRATEGIC
 
@@ -297,22 +300,7 @@ func _cancel_strategic_hunt(preserve_current_route: bool) -> void:
 
 
 func _has_valid_hunt_target() -> bool:
-	if not is_instance_valid(target_prey):
-		return false
-
-	if not target_prey.has_method("can_be_hunted") or not target_prey.can_be_hunted():
-		return false
-
-	if _is_prey_claimed_by_other_hunter(target_prey):
-		return false
-
-	if target_prey.has_method("get_pending_duel_opponent"):
-		var pending_opponent: Node = target_prey.get_pending_duel_opponent()
-
-		if pending_opponent != null and pending_opponent != creature:
-			return false
-
-	return _is_allowed_prey_for_current_mode(target_prey)
+	return is_valid_prey(target_prey)
 
 
 func _is_allowed_prey_for_current_mode(candidate: Node) -> bool:
@@ -322,7 +310,13 @@ func _is_allowed_prey_for_current_mode(candidate: Node) -> bool:
 		return false
 
 	if hunt_mode == HuntMode.STRATEGIC:
-		return _is_opposing_player_enemy_faction(candidate)
+		if not _is_opposing_player_enemy_faction(candidate):
+			return false
+
+		if creature.hunger > creature.species_data.strategic_hunt_threshold:
+			return candidate_species.is_predator()
+
+		return true
 
 	if hunt_mode == HuntMode.DEFENSE:
 		return _is_opposing_player_enemy_faction(candidate)
@@ -680,6 +674,9 @@ func _acquire_hunt_target() -> void:
 
 
 func _recheck_hunt_target() -> void:
+	if _refresh_stale_current_target_approach():
+		return
+
 	var candidates := find_nearest_prey_candidates(
 		1,
 		target_prey
@@ -699,6 +696,33 @@ func _recheck_hunt_target() -> void:
 		return
 
 	_commit_hunt_plan(candidate_plan)
+
+
+func _refresh_stale_current_target_approach() -> bool:
+	if (
+		not is_instance_valid(target_prey)
+		or not has_locked_approach
+		or _is_target_engaged_by_creature()
+		or _is_locked_approach_adjacent_to_target()
+	):
+		return false
+
+	var current_target := target_prey
+	var plan := _find_best_approach_plan(
+		current_target,
+		creature.get_navigation_anchor()
+	)
+
+	if plan.is_empty():
+		_mark_prey_temporarily_unreachable(current_target)
+		return false
+
+	plan["prey"] = current_target
+	_commit_hunt_plan(plan)
+	# The periodic refresh already used current target geometry. Do not run the
+	# separate near-contact side refresh again in the same behavior tick.
+	approach_recheck_done = true
+	return true
 
 
 func _should_build_challenger_plan(candidate: Node) -> bool:
@@ -971,8 +995,28 @@ func _insert_ranked_prey_candidate(
 		ranked_candidates.resize(max_candidates)
 
 
+func _must_yield_mutual_predator_pursuit(candidate: Node) -> bool:
+	if not candidate.has_method("get_hunt_target"):
+		return false
+
+	var candidate_species := candidate.get("species_data") as CreatureSpeciesData
+
+	if candidate_species == null or not candidate_species.is_predator():
+		return false
+
+	if candidate.get_hunt_target() != creature:
+		return false
+
+	# Keep only one moving route for a mutually targeted predator pair. The
+	# other creature remains ordinary prey until the existing final engagement.
+	return creature.get_instance_id() > candidate.get_instance_id()
+
+
 func is_valid_prey(candidate: Node) -> bool:
 	if candidate == null or candidate == creature or not is_instance_valid(candidate):
+		return false
+
+	if _must_yield_mutual_predator_pursuit(candidate):
 		return false
 
 	if not candidate.has_method("can_be_hunted") or not candidate.can_be_hunted():
