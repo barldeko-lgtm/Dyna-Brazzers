@@ -191,10 +191,23 @@ The old round-robin producer must remain disabled. Compatibility state may be re
 Main files:
 
 - `res://scripts/enemies/enemy_spell_controller.gd`
+- `res://scripts/enemies/spells/enemy_lightning_spell.gd`
+- `res://scripts/enemies/spells/enemy_earthquake_spell.gd`
+- `res://scripts/enemies/spells/enemy_rain_spell.gd`
 - `res://scripts/world/nature_effects_system.gd`
 - `res://scripts/resources/grass.gd`
 - `res://scripts/debug/enemy_ai_debug_overlay.gd`
 - `res://scripts/debug/performance_stats.gd`
+
+Module boundaries:
+
+- `EnemySpellController` is the only strategic spell facade, the only listener of `EnemyAI.turn_completed`, and the only owner of the strict one-action priority order;
+- the facade keeps all existing spell tuning exports, combat-reserve state/API, save compatibility, runtime reference lookup, and merged public diagnostics;
+- `EnemyLightningSpell`, `EnemyEarthquakeSpell`, and `EnemyRainSpell` are controller-owned child modules; they never subscribe to the AI cadence and never initiate an independent strategic action;
+- the lightning module owns target scanning, plan selection, delayed double-strike state, execution, and lightning diagnostics;
+- the earthquake module owns egg-zone collection, deterministic candidate search/ranking/revalidation, execution, and earthquake diagnostics;
+- the rain module owns full-cost payment orchestration, ecological target scoring, cast execution/refund, diagnostic contours, performance counters, and rain diagnostics;
+- `NatureEffectsSystem` remains the only owner of actual damage, grass/DryGround changes, egg destruction, cast VFX, and successful-cast sounds.
 
 Combat-reserve rules:
 
@@ -206,7 +219,7 @@ Combat-reserve rules:
 - offensive spells must require sufficient stored reserve before attempting a cast and call `spend_combat_reserve_after_success()` only after each shared effect succeeds;
 - successful offensive spending may reduce stored reserve energy to zero, reduces capacity by the same exact cost, and clamps only capacity to the configured post-cast floor; failed targeting/application changes neither amount nor capacity;
 - rain first uses ordinary energy when it can cover the complete cost, otherwise it may use the complete cost from stored reserve; never split one rain payment across both stores;
-- reserve-funded rain subtracts the exact rain cost without applying the combat-spell post-cast floor and never changes capacity; failed application refunds the same payment source;
+- reserve-funded rain subtracts the exact rain cost through the facade without applying the combat-spell post-cast floor and never changes capacity; failed application refunds the same payment source through the facade;
 - save exact stored reserve, exact capacity, and the next capacity tick; old time-charged-prototype saves discard artificial stored energy and rebuild capacity only;
 - F5 may read reserve, capacity, gross income, split threshold/share, and last accepted deposit through public diagnostics but must not mutate them.
 
@@ -240,7 +253,7 @@ Rain trigger and cost rules:
 
 - enemy rain may run only from a completed AI snapshot that reports eligible adult enemy herbivores below the configured satiety threshold;
 - check full-cost affordability from ordinary energy first and reserve second before scanning the grass registry;
-- keep target search and spell cost ownership in `EnemySpellController`;
+- keep rain target search in `EnemyRainSpell`, while tuning values, spell cost, and reserve storage remain owned by `EnemySpellController`;
 - require a positive target and `can_apply_rain()` before spending;
 - refund the exact cost to the same ordinary/reserve store if shared `apply_rain()` still fails.
 
@@ -266,11 +279,11 @@ Current target-search contract:
 
 Diagnostics:
 
-- the orange search contour and blue last-cast contour are non-blocking, non-serialized visuals;
+- the orange search contour and blue last-cast contour are drawn by `EnemyRainSpell` and remain non-blocking, non-serialized visuals;
 - their drawing must not alter targeting, terrain, occupancy, or spell cost;
 - the blue contour uses real elapsed time but its remaining duration pauses with the in-game menu;
 - simulation speed must not shorten the diagnostic duration;
-- F5 reads public `enemy_ai` data and `enemy_spell_controller.get_rain_debug_data()` only, including read-only combat-reserve fields;
+- F5 reads public `enemy_ai` data and `enemy_spell_controller.get_rain_debug_data()` only; the facade merges read-only reserve, lightning, earthquake, and rain module data without exposing the modules directly;
 - F5 may display selected immediate-grass count, DryGround hit buckets, eligible/nearby herbivore demand, herd multiplier, base distance/proximity multiplier, base score, and total target score;
 - F5 must not mutate enemy state or make decisions;
 - F8 may record search counts/workload, search/application timing, predicted/actual new grass, selected DryGround value, total target score, and cast rate.

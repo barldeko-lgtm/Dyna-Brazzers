@@ -74,7 +74,10 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/enemies/enemy_energy.gd` — ordinary enemy energy, gross income from eligible living enemy creatures, and threshold-based income splitting into the combat reserve.
 - `scripts/enemies/enemy_egg_production_controller.gd` — disabled legacy producer retained only for save compatibility.
 - `scripts/enemies/enemy_ai_controller.gd` — periodic enemy population/satiety snapshot and egg-production decisions.
-- `scripts/enemies/enemy_spell_controller.gd` — enemy lightning/earthquake/rain priorities, combat-reserve amount/capacity and deposit/spending API, profitable egg-zone search, rain payment/target scoring, world-space diagnostic contours, save API, and public F5/F8 data.
+- `scripts/enemies/enemy_spell_controller.gd` — single enemy-spell facade: subscribes to the strategic cadence, preserves spell priority, owns all spell tuning, combat reserve, save compatibility, runtime references, and merged public F5/F8 data.
+- `scripts/enemies/spells/enemy_lightning_spell.gd` — lightning target scanning, egg-eater/tyrannosaurus plan selection, delayed double strike, execution, and spell-specific diagnostics.
+- `scripts/enemies/spells/enemy_earthquake_spell.gd` — profitable player-egg zone search, deterministic ranking/revalidation, execution, and spell-specific diagnostics.
+- `scripts/enemies/spells/enemy_rain_spell.gd` — emergency-rain payment orchestration, ecological target scoring, world-space diagnostic contours, performance counters, and spell-specific diagnostics.
 - `scripts/gameplay/game_end_controller.gd` — simulation-time grace period, faction population checks, victory/defeat transition, duration tracking, and save API.
 
 ## Flag systems
