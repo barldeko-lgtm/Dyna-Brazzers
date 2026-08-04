@@ -361,6 +361,50 @@ func can_traverse_footprint(anchor_tile: Vector2i, footprint_size: Vector2i, cre
 	return true
 
 
+func can_place_static_footprint(
+	anchor_tile: Vector2i,
+	footprint_size: Vector2i,
+	creature: Node = null
+) -> bool:
+	return _can_use_static_footprint(anchor_tile, footprint_size, creature, false)
+
+
+func can_traverse_static_footprint(
+	anchor_tile: Vector2i,
+	footprint_size: Vector2i,
+	creature: Node = null
+) -> bool:
+	return _can_use_static_footprint(anchor_tile, footprint_size, creature, true)
+
+
+func _can_use_static_footprint(
+	anchor_tile: Vector2i,
+	footprint_size: Vector2i,
+	creature: Node,
+	allow_flight_traversal: bool
+) -> bool:
+	for tile in get_footprint_tiles(anchor_tile, footprint_size):
+		if allow_flight_traversal:
+			if not is_tile_traversable(tile, creature):
+				return false
+		elif not is_tile_walkable(tile):
+			return false
+
+		var occupant: Variant = occupied_by_tile.get(tile, null)
+
+		if occupant == null or occupant == creature:
+			continue
+
+		# Registered creatures and their movement reservations are temporary.
+		# Eggs, bases, and other occupied blockers remain part of the route map.
+		if creature_anchors.has(occupant):
+			continue
+
+		return false
+
+	return true
+
+
 func _uses_flight_navigation(creature: Node) -> bool:
 	if creature == null or not is_instance_valid(creature):
 		return false
@@ -522,28 +566,60 @@ func unregister_blocker(blocker: Node, footprint_size: Vector2i) -> void:
 
 
 # Pathfinding.
-func get_neighbors(anchor_tile: Vector2i, footprint_size: Vector2i, creature: Node = null) -> Array[Vector2i]:
+func get_neighbors(
+	anchor_tile: Vector2i,
+	footprint_size: Vector2i,
+	creature: Node = null,
+	ignore_creature_occupancy: bool = false
+) -> Array[Vector2i]:
 	var neighbors: Array[Vector2i] = []
 
 	for direction in DIRECTIONS_8:
 		var candidate: Vector2i = anchor_tile + direction
 
-		if not can_traverse_footprint(candidate, footprint_size, creature):
+		if not _can_traverse_path_footprint(
+			candidate,
+			footprint_size,
+			creature,
+			ignore_creature_occupancy
+		):
 			continue
 
 		if direction.x != 0 and direction.y != 0:
 			var horizontal_candidate := anchor_tile + Vector2i(direction.x, 0)
 			var vertical_candidate := anchor_tile + Vector2i(0, direction.y)
 
-			if not can_traverse_footprint(horizontal_candidate, footprint_size, creature):
+			if not _can_traverse_path_footprint(
+				horizontal_candidate,
+				footprint_size,
+				creature,
+				ignore_creature_occupancy
+			):
 				continue
 
-			if not can_traverse_footprint(vertical_candidate, footprint_size, creature):
+			if not _can_traverse_path_footprint(
+				vertical_candidate,
+				footprint_size,
+				creature,
+				ignore_creature_occupancy
+			):
 				continue
 
 		neighbors.append(candidate)
 
 	return neighbors
+
+
+func _can_traverse_path_footprint(
+	anchor_tile: Vector2i,
+	footprint_size: Vector2i,
+	creature: Node,
+	ignore_creature_occupancy: bool
+) -> bool:
+	if ignore_creature_occupancy:
+		return can_traverse_static_footprint(anchor_tile, footprint_size, creature)
+
+	return can_traverse_footprint(anchor_tile, footprint_size, creature)
 
 
 func find_path(
@@ -552,7 +628,8 @@ func find_path(
 	footprint_size: Vector2i,
 	creature: Node = null,
 	max_expanded_tiles: int = DEFAULT_MAX_PATH_EXPANDED_TILES,
-	path_source: StringName = &"other"
+	path_source: StringName = &"other",
+	ignore_creature_occupancy: bool = false
 ) -> Array[Vector2i]:
 	PerformanceStats.add_counter("path_calls")
 	PerformanceStats.add_path_counter(path_source, &"calls")
@@ -561,7 +638,20 @@ func find_path(
 		PerformanceStats.add_counter("path_same_tile")
 		return []
 
-	if not can_place_footprint(goal_anchor, footprint_size, creature):
+	var goal_is_available: bool = can_place_footprint(
+		goal_anchor,
+		footprint_size,
+		creature
+	)
+
+	if ignore_creature_occupancy:
+		goal_is_available = can_place_static_footprint(
+			goal_anchor,
+			footprint_size,
+			creature
+		)
+
+	if not goal_is_available:
 		PerformanceStats.add_counter("path_blocked_goal")
 		return []
 
@@ -589,7 +679,12 @@ func find_path(
 			PerformanceStats.add_path_counter(path_source, &"expanded_tiles", expanded_tiles)
 			return _reconstruct_path(came_from, current, start_anchor)
 
-		for neighbor in get_neighbors(current, footprint_size, creature):
+		for neighbor in get_neighbors(
+			current,
+			footprint_size,
+			creature,
+			ignore_creature_occupancy
+		):
 			var tentative_g_score := float(g_score.get(current, INF)) + _step_cost(current, neighbor)
 
 			if tentative_g_score >= float(g_score.get(neighbor, INF)):

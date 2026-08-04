@@ -188,6 +188,28 @@ func get_debug_data(creature: Node) -> Dictionary:
 	var committed := _has_current_flag_commitment(creature, species_id)
 	result["committed"] = committed
 	result["status"] = _resolve_debug_status(creature, species_id, committed)
+	var movement_controller_variant: Variant = creature.get("movement_controller")
+
+	if (
+		movement_controller_variant != null
+		and movement_controller_variant.has_method("get_route_debug_data")
+	):
+		var route_data_variant: Variant = movement_controller_variant.call(
+			"get_route_debug_data"
+		)
+
+		if route_data_variant is Dictionary:
+			var route_data := route_data_variant as Dictionary
+			var route_source := String(route_data.get("source", "none"))
+			var route_reason := String(route_data.get("reason", "not assigned"))
+			result["route_source"] = route_source
+			result["route_reason"] = route_reason
+			result["status"] = "%s\nroute source: %s\nroute reason: %s" % [
+				String(result["status"]),
+				route_source,
+				route_reason
+			]
+
 	return result
 
 
@@ -309,7 +331,8 @@ func _try_build_flag_route(
 		footprint,
 		creature,
 		FLAG_PATH_SEARCH_TILE_CAP,
-		&"flag"
+		&"flag",
+		true
 	)
 
 	if not (path_variant is Array) or (path_variant as Array).is_empty():
