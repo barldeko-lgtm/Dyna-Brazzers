@@ -110,9 +110,9 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_entity_counts_bg")
 [node name="MarginContainer" type="MarginContainer" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 6
-theme_override_constants/margin_top = 5
+theme_override_constants/margin_top = 7
 theme_override_constants/margin_right = 6
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_bottom = 3
 
 [node name="GridContainer" type="GridContainer" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer"]
 layout_mode = 2
