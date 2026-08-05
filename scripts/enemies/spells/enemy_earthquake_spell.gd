@@ -189,6 +189,9 @@ func _collect_earthquake_egg_data() -> Array:
 		if egg == null or not is_instance_valid(egg) or egg.is_queued_for_deletion():
 			continue
 
+		if egg.has_method("has_landed") and not bool(egg.call("has_landed")):
+			continue
+
 		var raw_anchor: Variant = egg.get("anchor_tile")
 
 		if not (raw_anchor is Vector2i):

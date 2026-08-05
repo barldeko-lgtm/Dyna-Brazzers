@@ -13,11 +13,21 @@ class_name FactionBase
 @export var shadow_alpha := 0.22
 @export var egg_search_radius := 6
 @export var placement_search_radius := 24
+@export var base_egg_launch_duration := 1.5
 
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const EGG_STAGE_1_FOOTPRINT := Vector2i(1, 2)
 const INVALID_ANCHOR := Vector2i(2147483647, 2147483647)
 const CREATURE_SCENE := preload("res://scenes/creatures/creature.tscn")
+const BASE_EGG_LAUNCH_EFFECT_SCENE := preload(
+	"res://scenes/effects/base_egg_launch_effect.tscn"
+)
+const PLAYER_BASE_EGG_TEXTURE := preload(
+	"res://assets/sprites/effects/base_egg_launch/player_base_egg.png"
+)
+const ENEMY_BASE_EGG_TEXTURE := preload(
+	"res://assets/sprites/effects/base_egg_launch/enemy_base_egg.png"
+)
 
 var world_grid: Node = null
 var anchor_tile := Vector2i.ZERO
@@ -127,8 +137,70 @@ func create_faction_egg(species_data: CreatureSpeciesData) -> Node2D:
 		EGG_STAGE_1_FOOTPRINT
 	)
 	new_egg.position = eggs_container.to_local(egg_world_position)
+
+	# Mark the real egg before it enters the tree. Its normal _ready() then
+	# registers it as an egg, places it at the destination, hides its species
+	# sprite, and deliberately does not start incubation yet.
+	if new_egg.has_method("prepare_base_launch_wait"):
+		new_egg.call("prepare_base_launch_wait")
+
 	eggs_container.add_child(new_egg)
+
+	# The base, not the egg, owns starting the visual projectile. This keeps the
+	# launch path explicit and avoids relying on a deferred callback from a newly
+	# added egg. Failure falls back to an immediate normal landing.
+	if not _start_base_egg_launch(new_egg, eggs_container):
+		if new_egg.has_method("complete_base_landing"):
+			new_egg.call("complete_base_landing")
+
 	return new_egg
+
+
+func _start_base_egg_launch(landing_egg: Node2D, effects_parent: Node2D) -> bool:
+	if landing_egg == null or not is_instance_valid(landing_egg):
+		push_warning("FactionBase: cannot launch an invalid landing egg from %s." % name)
+		return false
+
+	if effects_parent == null or BASE_EGG_LAUNCH_EFFECT_SCENE == null:
+		push_warning("FactionBase: launch effect resources are unavailable for %s." % name)
+		return false
+
+	var launch_texture := _get_base_launch_texture()
+
+	if launch_texture == null:
+		push_warning("FactionBase: launch texture is unavailable for %s." % name)
+		return false
+
+	var effect := BASE_EGG_LAUNCH_EFFECT_SCENE.instantiate() as Node2D
+
+	if effect == null:
+		push_warning("FactionBase: launch effect could not be instantiated for %s." % name)
+		return false
+
+	effects_parent.add_child(effect)
+
+	if not effect.has_method("configure"):
+		push_warning("FactionBase: launch effect has no configure() method for %s." % name)
+		effect.queue_free()
+		return false
+
+	var configured: bool = bool(
+		effect.call(
+			"configure",
+			global_position,
+			landing_egg.global_position,
+			launch_texture,
+			maxf(base_egg_launch_duration, 0.05),
+			landing_egg
+		)
+	)
+
+	if not configured:
+		push_warning("FactionBase: launch effect configuration failed for %s." % name)
+		effect.queue_free()
+		return false
+
+	return true
 
 
 func find_egg_spawn_anchor() -> Vector2i:
@@ -240,6 +312,13 @@ func _configure_shadow() -> void:
 	shadow_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	shadow_sprite.position = shadow_offset
 	shadow_sprite.modulate = Color(0.0, 0.0, 0.0, shadow_alpha)
+
+
+func _get_base_launch_texture() -> Texture2D:
+	if faction_id == CREATURE_FACTION.ENEMY:
+		return ENEMY_BASE_EGG_TEXTURE
+
+	return PLAYER_BASE_EGG_TEXTURE
 
 
 func find_world_grid() -> Node:

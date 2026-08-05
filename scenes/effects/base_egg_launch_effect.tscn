@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/effects/base_egg_launch_effect.gd" id="1_launch_script"]
+
+[node name="BaseEggLaunchEffect" type="Node2D"]
+z_index = 100
+z_as_relative = false
+script = ExtResource("1_launch_script")
+
+[node name="EggSprite" type="Sprite2D" parent="."]
+texture_filter = 1

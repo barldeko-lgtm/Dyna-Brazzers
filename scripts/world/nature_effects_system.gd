@@ -254,6 +254,9 @@ func _is_egg_inside_earthquake_area(egg: Node, center_tile: Vector2i) -> bool:
 	if egg == null or not is_instance_valid(egg) or egg.is_queued_for_deletion():
 		return false
 
+	if egg.has_method("has_landed") and not bool(egg.call("has_landed")):
+		return false
+
 	var raw_anchor = egg.get("anchor_tile")
 
 	if not (raw_anchor is Vector2i):

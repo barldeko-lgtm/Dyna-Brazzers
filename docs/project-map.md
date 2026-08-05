@@ -35,6 +35,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scenes/effects/rain_cast_effect.tscn` — rain cast animation.
 - `scenes/effects/sun_target_preview.tscn` — sun preview.
 - `scenes/effects/earthquake_target_preview.tscn` — earthquake preview.
+- `scenes/effects/base_egg_launch_effect.tscn` — visual-only spinning arc used when either faction base creates an egg.
 
 ## World and camera scripts
 
@@ -44,7 +45,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/world/start_map_world_grid.gd` — start-map bootstrap; creates both bases, enemy runtime controllers, enemy rally objectives, energy nodes, and world bounds.
 - `scripts/world/start_map_layout.gd` — preserves authored level 1 and builds registered pixel-map levels before world-grid initialization.
 - `scripts/world/pixel_map_parser.gd` — exact-color map decoding and 2x2 base/tree marker validation.
-- `scripts/world/faction_base.gd` — shared base blocker, scaling, faction assignment, and nearby egg placement.
+- `scripts/world/faction_base.gd` — shared base blocker, scaling, faction assignment, nearby egg placement, and direct startup of the faction-specific launch effect.
 - `scripts/world/player_base.gd` — player wrapper exposing `create_player_egg()`.
 - `scripts/world/enemy_base.gd` — enemy wrapper exposing `create_enemy_egg()`.
 - `scripts/world/nature_effects_system.gd` — successful lightning, rain, sun, and earthquake gameplay plus cast VFX/sounds. Rain uses a pre-cast grass snapshot.
@@ -64,7 +65,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/creatures/behaviors/creature_interaction_controller.gd` — hover/selection visual and mouse bridge.
 - `scripts/combat/duel.gd` — one-on-one combat loop, single-intervention reservation, and post-hit fighter replacement handoff.
 - `scripts/resources/grass.gd` — grass lifecycle, food value, spreading, registry sync, and nature-power reactions.
-- `scripts/resources/egg.gd` — egg lifecycle, expansion/blocker state, hatching, and edible/destruction API.
+- `scripts/resources/egg.gd` — egg lifecycle, optional base-landing gate, expansion/blocker state, hatching, and edible/destruction API.
 
 ## Catalogs, energy, enemy strategy, and match flow
 
@@ -116,7 +117,7 @@ Enemy objectives:
 - `scripts/save/save_system.gd` — level routing, base slot persistence, and reconstruction.
 - `scripts/save/save_system_with_flags.gd` — faction, player-flag, completion, and audio-setting extensions.
 - `scripts/save/save_system_with_enemy.gd` — active final save layer for enemy energy, combat-reserve amount/capacity, strategic timing/legacy state, match-end state, and result-to-main-menu bridge.
-- `scripts/effects/` — target previews and one-shot effect playback.
+- `scripts/effects/` — target previews and one-shot effect playback, including the base egg-launch projectile.
 
 ## Data resources
 
@@ -173,6 +174,7 @@ World/UI:
 - `assets/ui/right_panel_bottom.png` — supplied 637x723 whole-image background for the nature/menu portion of the right HUD.
 - `assets/ui/creature_selection_frame.png`
 - `assets/sprites/effects/rain/`
+- `assets/sprites/effects/base_egg_launch/player_base_egg.png` and `enemy_base_egg.png` — faction-specific visual projectiles used only during base-created egg flight.
 
 Audio:
 

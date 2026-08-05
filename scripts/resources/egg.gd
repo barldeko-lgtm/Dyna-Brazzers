@@ -2,7 +2,6 @@ extends Node2D
 class_name Egg
 
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
-
 # Egg lifecycle and hatch spawn.
 @onready var body_sprite: Sprite2D = $BodySprite
 
@@ -42,6 +41,8 @@ var anchor_tile := Vector2i.ZERO
 
 var is_registered_as_blocker := false
 
+var awaiting_base_landing := false
+
 const STAGE_1_FOOTPRINT := Vector2i(1, 2)
 
 const STAGE_2_FOOTPRINT := Vector2i(2, 2)
@@ -72,6 +73,10 @@ func _ready() -> void:
 			call_deferred("queue_free")
 			return
 
+	if awaiting_base_landing:
+		body_sprite.visible = false
+		return
+
 	stage_1_timer.start(STAGE_1_DURATION)
 
 
@@ -81,12 +86,40 @@ func _exit_tree() -> void:
 		is_registered_as_blocker = false
 
 
+func prepare_base_launch_wait() -> void:
+	# Called before add_child(). _ready() can therefore avoid starting the
+	# normal stage-one timer even if the launch effect is created immediately
+	# after the egg enters the tree.
+	awaiting_base_landing = true
+
+
+func has_landed() -> bool:
+	return not awaiting_base_landing
+
+
+func complete_base_landing() -> void:
+	if not awaiting_base_landing:
+		return
+
+	awaiting_base_landing = false
+
+	# If a visual-effect setup failed before _ready(), the normal _ready() path
+	# will see the cleared flag and start incubation itself.
+	if not is_node_ready():
+		return
+
+	if body_sprite != null:
+		body_sprite.visible = true
+	apply_current_stage_visual()
+	stage_1_timer.start(STAGE_1_DURATION)
+
+
 func can_be_eaten() -> bool:
-	return current_stage == Stage.STAGE_2
+	return has_landed() and current_stage == Stage.STAGE_2
 
 
 func can_be_tracked_by_egg_eater() -> bool:
-	return not is_queued_for_deletion()
+	return has_landed() and not is_queued_for_deletion()
 
 
 func consume() -> bool:
@@ -98,7 +131,7 @@ func consume() -> bool:
 
 
 func destroy_by_earthquake() -> bool:
-	if is_queued_for_deletion():
+	if not has_landed() or is_queued_for_deletion():
 		return false
 
 	queue_free()

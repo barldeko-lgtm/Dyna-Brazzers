@@ -76,6 +76,9 @@ Main files:
 - `res://scripts/world/player_base.gd`
 - `res://scripts/world/enemy_base.gd`
 - `res://scripts/world/start_map_world_grid.gd`
+- `res://scenes/effects/base_egg_launch_effect.tscn`
+- `res://scripts/effects/base_egg_launch_effect.gd`
+- faction launch textures under `res://assets/sprites/effects/base_egg_launch/`
 
 Rules:
 
@@ -84,12 +87,14 @@ Rules:
 - both register through world-grid blocker APIs;
 - `can_host_grass()` must reject any `faction_base` footprint;
 - both are static world setup and must not join dynamic save groups;
-- shared blocker, visuals, faction assignment, and nearby egg placement belong in `faction_base.gd`;
+- shared blocker, visuals, faction assignment, nearby egg placement, and direct launch-effect startup belong in `faction_base.gd`;
+- a base-created egg must reserve its final stage-one anchor and join the normal `eggs` group before the creator spends energy, while the separate launch effect remains visual-only;
+- the faction-specific launch projectile travels from the base centre to that reserved anchor over the controller-owned simulation-time duration, so speed controls accelerate it and zero time scale pauses it;
 - `player_base.gd` remains a thin wrapper exposing `create_player_egg()`;
 - `enemy_base.gd` remains a thin wrapper exposing `create_enemy_egg()`;
 - player UI finds the player base through the `player_base` group;
 - enemy strategy finds the enemy base through the `enemy_base` group;
-- species data and faction must be assigned before `add_child()` starts an egg lifecycle;
+- species data and faction must be assigned before `add_child()` starts an egg lifecycle; the base sets only the egg landing-wait gate before insertion and starts the visual effect directly afterwards;
 - strategic decisions must not be moved into either base scene.
 
 `CameraStart` is the player-base/start-camera anchor for a fresh game. `EnemyBaseStart` is preferred when authored; otherwise the bootstrap chooses a deterministic valid fallback without changing terrain.
@@ -239,7 +244,7 @@ Lightning target rules:
 Earthquake target rules:
 
 - skip all earthquake target work until stored combat reserve can pay the complete controller-owned cost and at least two valid player eggs exist;
-- scan the stable `eggs` group only on the enemy strategic cadence, reject invalid or queued-for-deletion eggs, and read faction through `CreatureFaction`;
+- scan the stable `eggs` group only on the enemy strategic cadence, reject invalid, queued-for-deletion, or not-yet-landed base eggs, and read faction through `CreatureFaction`;
 - resolve egg species from `hatch_species_data.species_id` with stored `species_id` as fallback, then read purchase value only from `PlayerSpeciesCatalog` rather than copying a second price table;
 - partition each axis by the map-clipped center ranges that can overlap every current egg footprint, including non-player eggs, and test the point nearest the enemy base inside each unchanged overlap region; do not sample random centers or scan every map tile;
 - evaluate overlap with the same anchor, current footprint, and configured shared earthquake radius used by `NatureEffectsSystem`;
@@ -448,6 +453,8 @@ Main files:
 - `res://scripts/creatures/creature_species_data.gd`
 - `res://scripts/creatures/behaviors/creature_reproduction_logic.gd`
 - `res://scripts/world/faction_base.gd`
+- `res://scenes/effects/base_egg_launch_effect.tscn`
+- `res://scripts/effects/base_egg_launch_effect.gd`
 - species resources and egg assets
 
 Rules:
@@ -461,6 +468,10 @@ Rules:
 - faction and species data must be assigned before adding a created egg to the tree;
 - natural eggs inherit the parent faction;
 - base-created eggs receive the owning base faction;
+- base-created eggs may begin in a hidden landing gate: their real destination is already reserved and counted, but stage-one incubation, egg-eater tracking, and earthquake eligibility begin only after the visual projectile lands;
+- natural reproduction bypasses the base-launch gate and keeps the existing immediate stage-one lifecycle;
+- the launch projectile is never a gameplay egg, blocker, save entity, or target; it only calls the real egg's public landing completion method;
+- saving during base flight persists the real stage-one egg through the normal egg record; loading restores it already landed with the normal full stage-one fallback timer rather than resuming a temporary visual arc;
 - hatchlings inherit the egg faction;
 - reproduction-progress capacity belongs to species data; runtime progress belongs to the creature;
 - satiety controls progress accumulation, while existing health, satiety, and age gates still control laying;
@@ -653,7 +664,7 @@ Rules:
 - missing `level_id` defaults to level 1; an unavailable saved level must fail before scene replacement;
 - missing faction defaults to player; unknown non-empty faction becomes neutral;
 - static terrain and faction bases are not dynamic save entities;
-- temporary corpses and rain diagnostic contours are not saved;
+- temporary corpses, rain diagnostic contours, and base egg-launch projectiles are not saved;
 - enemy population snapshots and enemy rally-objective positions are derived and rebuilt;
 - returning to Main Menu must not delete slots and must allow a clean New Game;
 - changing map layout, schema, or persisted resource paths may require migration.
