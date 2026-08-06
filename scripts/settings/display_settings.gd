@@ -22,9 +22,14 @@ const SETTINGS_LABEL_MIN_FONT_SIZE := 13
 const SETTINGS_LABEL_CONTENT_WIDTH := 108.0
 const VOLUME_ROW_SIZE := Vector2(286.0, 28.0)
 const VOLUME_LABEL_SIZE := Vector2(104.0, 28.0)
+const VOLUME_LABEL_INSET_LEFT := 10
+const VOLUME_LABEL_CONTENT_WIDTH := 94.0
 const VOLUME_SLIDER_SIZE := Vector2(174.0, 28.0)
+const VOLUME_SLIDER_MARGIN_LEFT := 20
+const VOLUME_SLIDER_MARGIN_RIGHT := 30
 const LOAD_MENU_BUTTON_SIZE := Vector2(250.0, 55.0)
 const START_MENU_TOP_MARGIN := 58
+const SETTINGS_CONTENT_RAISE := 30
 
 var fullscreen_enabled := false
 var resolution_index := DEFAULT_RESOLUTION_INDEX
@@ -38,6 +43,9 @@ var resolution_label: Label = null
 var resolution_option: OptionButton = null
 var music_volume_row: HBoxContainer = null
 var sound_volume_row: HBoxContainer = null
+var settings_back_spacer: Control = null
+var main_menu_bottom_button_global_position := Vector2.ZERO
+var main_menu_bottom_button_geometry_valid := false
 var transparent_option_arrow: ImageTexture = null
 var window_geometry_revision := 0
 
@@ -234,6 +242,8 @@ func _on_scene_changed() -> void:
 	resolution_option = null
 	music_volume_row = null
 	sound_volume_row = null
+	settings_back_spacer = null
+	main_menu_bottom_button_geometry_valid = false
 	call_deferred("_try_inject_start_screen_controls")
 
 
@@ -304,6 +314,10 @@ func _try_inject_start_screen_controls() -> void:
 		language_option
 	)
 	_configure_load_menu_layout(scene_root, menu_vbox)
+	_capture_main_menu_bottom_button_geometry(menu_vbox)
+	call_deferred("_capture_main_menu_bottom_button_geometry", menu_vbox)
+	_configure_settings_back_button(menu_vbox)
+	_ensure_settings_back_spacer(scene_root, menu_vbox)
 	_configure_settings_menu_open_refresh(menu_vbox)
 	_refresh_injected_text()
 	_sync_injected_controls()
@@ -493,20 +507,17 @@ func _ensure_volume_row(
 	row.custom_minimum_size = VOLUME_ROW_SIZE
 	row.add_theme_constant_override("separation", 8)
 
-	label.custom_minimum_size = VOLUME_LABEL_SIZE
-	label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 17)
-	label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	label.clip_text = true
+	_ensure_volume_label_slot(
+		row,
+		label,
+		"%sArea" % label_name
+	)
+	_ensure_volume_slider_slot(
+		row,
+		slider,
+		"%sArea" % slider_name
+	)
 	label.visible = true
-
-	slider.custom_minimum_size = VOLUME_SLIDER_SIZE
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	slider.visible = true
 
 	var value_changed_callable := Callable(
@@ -522,6 +533,101 @@ func _ensure_volume_row(
 		row
 	)
 	return row
+
+
+func _ensure_volume_label_slot(
+	row: HBoxContainer,
+	label: Label,
+	slot_name: String
+) -> void:
+	if row == null or label == null:
+		return
+
+	var slot := label.get_parent() as MarginContainer
+	if slot == null or slot.name != slot_name:
+		var insertion_index := label.get_index()
+		var previous_parent := label.get_parent()
+		if previous_parent != null:
+			previous_parent.remove_child(label)
+
+		slot = MarginContainer.new()
+		slot.name = slot_name
+		row.add_child(slot)
+		row.move_child(
+			slot,
+			clampi(insertion_index, 0, row.get_child_count() - 1)
+		)
+		slot.add_child(label)
+
+	slot.custom_minimum_size = VOLUME_LABEL_SIZE
+	slot.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	slot.add_theme_constant_override(
+		"margin_left",
+		VOLUME_LABEL_INSET_LEFT
+	)
+	slot.add_theme_constant_override("margin_top", 0)
+	slot.add_theme_constant_override("margin_right", 0)
+	slot.add_theme_constant_override("margin_bottom", 0)
+
+	label.custom_minimum_size = Vector2(
+		VOLUME_LABEL_CONTENT_WIDTH,
+		VOLUME_LABEL_SIZE.y
+	)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 17)
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.clip_text = true
+
+
+func _ensure_volume_slider_slot(
+	row: HBoxContainer,
+	slider: HSlider,
+	slot_name: String
+) -> void:
+	if row == null or slider == null:
+		return
+
+	var slot := slider.get_parent() as MarginContainer
+	if slot == null or slot.name != slot_name:
+		var insertion_index := slider.get_index()
+		var previous_parent := slider.get_parent()
+		if previous_parent != null:
+			previous_parent.remove_child(slider)
+
+		slot = MarginContainer.new()
+		slot.name = slot_name
+		row.add_child(slot)
+		row.move_child(
+			slot,
+			clampi(insertion_index, 0, row.get_child_count() - 1)
+		)
+		slot.add_child(slider)
+
+	slot.custom_minimum_size = VOLUME_SLIDER_SIZE
+	slot.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	slot.add_theme_constant_override(
+		"margin_left",
+		VOLUME_SLIDER_MARGIN_LEFT
+	)
+	slot.add_theme_constant_override("margin_top", 0)
+	slot.add_theme_constant_override(
+		"margin_right",
+		VOLUME_SLIDER_MARGIN_RIGHT
+	)
+	slot.add_theme_constant_override("margin_bottom", 0)
+
+	slider.custom_minimum_size = Vector2(
+		VOLUME_SLIDER_SIZE.x
+		- VOLUME_SLIDER_MARGIN_LEFT
+		- VOLUME_SLIDER_MARGIN_RIGHT,
+		VOLUME_SLIDER_SIZE.y
+	)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 
 func _replace_start_screen_settings_controls(
@@ -564,7 +670,185 @@ func _configure_settings_menu_open_refresh(
 
 
 func _on_start_screen_settings_pressed() -> void:
+	call_deferred("_apply_settings_menu_layout")
 	call_deferred("_refresh_settings_label_fitting")
+
+
+func _capture_main_menu_bottom_button_geometry(
+	menu_vbox: VBoxContainer
+) -> void:
+	if menu_vbox == null:
+		return
+
+	var main_menu_bottom_button := menu_vbox.get_node_or_null(
+		"ExitButton"
+	) as Button
+	if main_menu_bottom_button == null:
+		return
+
+	main_menu_bottom_button_global_position = (
+		main_menu_bottom_button.global_position
+	)
+	main_menu_bottom_button_geometry_valid = true
+
+
+func _configure_settings_back_button(
+	menu_vbox: VBoxContainer
+) -> void:
+	var main_menu_bottom_button := menu_vbox.get_node_or_null(
+		"ExitButton"
+	) as Button
+	var settings_back := menu_vbox.get_node_or_null(
+		"AudioSettingsBackButton"
+	) as Button
+	if main_menu_bottom_button == null or settings_back == null:
+		return
+
+	settings_back.custom_minimum_size = (
+		main_menu_bottom_button.custom_minimum_size
+	)
+	settings_back.size_flags_horizontal = (
+		main_menu_bottom_button.size_flags_horizontal
+	)
+	settings_back.size_flags_vertical = (
+		main_menu_bottom_button.size_flags_vertical
+	)
+	settings_back.focus_mode = main_menu_bottom_button.focus_mode
+	settings_back.alignment = main_menu_bottom_button.alignment
+	settings_back.add_theme_font_override(
+		"font",
+		main_menu_bottom_button.get_theme_font("font")
+	)
+	settings_back.add_theme_font_size_override(
+		"font_size",
+		main_menu_bottom_button.get_theme_font_size("font_size")
+	)
+
+	for style_name: StringName in [
+		&"normal",
+		&"hover",
+		&"pressed",
+		&"focus",
+		&"disabled",
+	]:
+		settings_back.add_theme_stylebox_override(
+			style_name,
+			main_menu_bottom_button.get_theme_stylebox(style_name)
+		)
+
+	for color_name: StringName in [
+		&"font_color",
+		&"font_hover_color",
+		&"font_pressed_color",
+		&"font_focus_color",
+		&"font_disabled_color",
+	]:
+		settings_back.add_theme_color_override(
+			color_name,
+			main_menu_bottom_button.get_theme_color(color_name)
+		)
+
+
+func _ensure_settings_back_spacer(
+	scene_root: Control,
+	menu_vbox: VBoxContainer
+) -> void:
+	var settings_back := menu_vbox.get_node_or_null(
+		"AudioSettingsBackButton"
+	) as Button
+	if settings_back == null:
+		return
+
+	settings_back_spacer = menu_vbox.get_node_or_null(
+		"SettingsBackSpacer"
+	) as Control
+	if settings_back_spacer == null:
+		settings_back_spacer = Control.new()
+		settings_back_spacer.name = "SettingsBackSpacer"
+		menu_vbox.add_child(settings_back_spacer)
+		menu_vbox.move_child(
+			settings_back_spacer,
+			settings_back.get_index()
+		)
+		settings_back_spacer.visible = false
+
+	var row_separation := menu_vbox.get_theme_constant("separation")
+	settings_back_spacer.custom_minimum_size = Vector2(
+		0.0,
+		maxf(float(SETTINGS_CONTENT_RAISE - row_separation), 0.0)
+	)
+	_register_with_start_screen_settings(
+		scene_root,
+		settings_back_spacer
+	)
+
+
+func _apply_settings_menu_layout() -> void:
+	if injected_start_screen == null or not is_instance_valid(
+		injected_start_screen
+	):
+		return
+
+	var menu_margin := injected_start_screen.get_node_or_null(
+		"CenterContainer/MenuPanel/MarginContainer"
+	) as MarginContainer
+	var menu_vbox := injected_start_screen.get_node_or_null(
+		"CenterContainer/MenuPanel/MarginContainer/VBoxContainer"
+	) as VBoxContainer
+	if menu_margin == null or menu_vbox == null:
+		return
+
+	menu_margin.add_theme_constant_override(
+		"margin_top",
+		START_MENU_TOP_MARGIN - SETTINGS_CONTENT_RAISE
+	)
+	_configure_settings_back_button(menu_vbox)
+	_ensure_settings_back_spacer(
+		injected_start_screen,
+		menu_vbox
+	)
+	call_deferred("_align_settings_back_to_main_menu_button")
+
+
+func _align_settings_back_to_main_menu_button() -> void:
+	if not main_menu_bottom_button_geometry_valid:
+		return
+	if injected_start_screen == null or not is_instance_valid(
+		injected_start_screen
+	):
+		return
+	if settings_back_spacer == null or not is_instance_valid(
+		settings_back_spacer
+	):
+		return
+
+	await get_tree().process_frame
+
+	var menu_vbox := injected_start_screen.get_node_or_null(
+		"CenterContainer/MenuPanel/MarginContainer/VBoxContainer"
+	) as VBoxContainer
+	if menu_vbox == null:
+		return
+
+	var settings_back := menu_vbox.get_node_or_null(
+		"AudioSettingsBackButton"
+	) as Button
+	if settings_back == null or not settings_back.visible:
+		return
+
+	for _alignment_pass: int in range(2):
+		var vertical_delta := (
+			main_menu_bottom_button_global_position.y
+			- settings_back.global_position.y
+		)
+		if absf(vertical_delta) <= 0.25:
+			break
+
+		settings_back_spacer.custom_minimum_size.y = maxf(
+			settings_back_spacer.custom_minimum_size.y + vertical_delta,
+			0.0
+		)
+		await get_tree().process_frame
 
 
 func _configure_load_menu_layout(
@@ -688,12 +972,12 @@ func _refresh_settings_label_fitting() -> void:
 	_fit_settings_label(
 		_find_named_label(injected_start_screen, "MusicVolumeLabel"),
 		17,
-		VOLUME_LABEL_SIZE.x
+		VOLUME_LABEL_CONTENT_WIDTH
 	)
 	_fit_settings_label(
 		_find_named_label(injected_start_screen, "SoundVolumeLabel"),
 		17,
-		VOLUME_LABEL_SIZE.x
+		VOLUME_LABEL_CONTENT_WIDTH
 	)
 
 

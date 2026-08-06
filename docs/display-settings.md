@@ -43,7 +43,10 @@ Settings screen:
 - Their option buttons are 20 pixels narrower on the right than the earlier layout.
 - The visible selected value is centered across the stone button; the normally reserved dropdown-arrow area must not offset it.
 - Long translated labels reduce their font size within a safe range and then clip rather than changing row geometry.
-- Music and sound labels share one horizontal row with their corresponding sliders.
+- Music and sound labels share one horizontal row with their corresponding sliders and start at the same left inset as the three labels above.
+- Each volume slider keeps its existing allocation but receives 20 pixels of internal space on the left and 30 pixels on the right.
+- All settings content except Back is raised by 30 pixels. A dynamically corrected spacer keeps Back at the exact screen position of the bottom button on the initial menu.
+- The Settings Back button copies the initial menu's bottom Exit button size, horizontal layout flags, font, colors, and complete button styles.
 - Settings labels outside buttons use a black font outline for readability.
 
 ## Localization
