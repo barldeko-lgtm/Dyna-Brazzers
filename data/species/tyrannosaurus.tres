@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=16 format=3]
+[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/creatures/creature_species_data.gd" id="1_species_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/tyrannosaurus/tyrannosaurus_down.png" id="2_down"]
@@ -14,6 +14,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/tyrannosaurus/tyrannosaurus_dead.png" id="12_death"]
 [ext_resource type="SpriteFrames" path="res://data/animations/tyrannosaurus_attack_right_frames.tres" id="13_attack_right_frames"]
 [ext_resource type="SpriteFrames" path="res://data/animations/tyrannosaurus_walk_right_frames.tres" id="14_walk_right_frames"]
+[ext_resource type="SpriteFrames" path="res://data/animations/tyrannosaurus_walk_down_right_frames.tres" id="15_walk_down_right_frames"]
 
 [resource]
 script = ExtResource("1_species_script")
@@ -33,6 +34,7 @@ up_right_texture = ExtResource("5_up_right")
 down_right_texture = ExtResource("6_down_right")
 idle_texture = ExtResource("7_idle")
 walk_right_frames = ExtResource("14_walk_right_frames")
+walk_down_right_frames = ExtResource("15_walk_down_right_frames")
 attack_right_frames = ExtResource("13_attack_right_frames")
 attack_animation_fps = 8.0
 death_transition_texture = ExtResource("11_death_transition")
