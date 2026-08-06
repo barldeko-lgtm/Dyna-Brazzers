@@ -4,7 +4,9 @@
 
 `res://scripts/settings/display_settings.gd` is the single owner of runtime display mode, window resolution, 16:9 content scaling, persistence, the two display rows injected into the startup Settings menu, and the small runtime layout normalization used by the startup Settings and Load screens.
 
-The script is registered as the `DisplaySettings` autoload in `project.godot` and stores its state separately from gameplay saves at:
+The compact in-game Settings page is built by the active SaveSystem layer in `res://scripts/save/save_system_with_enemy.gd`. That page owns presentation only and calls the same `DisplaySettings`, `LocalizationManager`, and `AudioManager` singletons as the startup menu. It must not keep a competing copy of display, language, or audio state.
+
+The display script is registered as the `DisplaySettings` autoload in `project.godot` and stores its state separately from gameplay saves at:
 
 - `user://display_settings.cfg`
 
@@ -48,6 +50,29 @@ Settings screen:
 - All settings content except Back is raised by 30 pixels. A dynamically corrected spacer keeps Back at the exact screen position of the bottom button on the initial menu.
 - The Settings Back button copies the initial menu's bottom Exit button size, horizontal layout flags, font, colors, and complete button styles.
 - Settings labels outside buttons use a black font outline for readability.
+
+## In-game presentation
+
+The in-game Settings page stays inside the existing `260×235` nature-menu area and keeps the simulation paused while it is open.
+
+Its compact layout contains:
+
+- Language;
+- Display mode;
+- Resolution;
+- Music volume;
+- Sound volume;
+- Back.
+
+All five setting rows use one fixed label column and one fixed control column, so French, German, and Ukrainian text cannot move neighbouring controls. Long labels shrink within a safe range and then clip. Selected option text is centered across the stone button without the dropdown-arrow reservation shifting it.
+
+The in-game page reads and writes the same persistent state as the startup page:
+
+- changing language refreshes the open page immediately;
+- changing window/fullscreen mode applies immediately;
+- resolution is disabled in fullscreen;
+- music and sound sliders update `AudioManager` immediately;
+- switching display mode or resolution must not resume simulation or alter the previously selected game speed.
 
 ## Localization
 
