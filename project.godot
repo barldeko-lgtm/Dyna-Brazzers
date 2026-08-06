@@ -18,6 +18,7 @@ config/icon="res://app_icon.svg"
 [autoload]
 
 LocalizationManager="*res://scripts/localization/localization_manager.gd"
+DisplaySettings="*res://scripts/settings/display_settings.gd"
 AudioManager="*res://scripts/audio/audio_manager.gd"
 PerformanceStats="*res://scripts/debug/performance_stats.gd"
 PlayerFlags="*res://scripts/flags/player_flag_system_with_catalog.gd"
@@ -33,7 +34,7 @@ window/vsync/vsync_mode=0
 
 [internationalization]
 
-locale/translations=PackedStringArray("res://localization/ui.en.translation", "res://localization/ui.fr.translation", "res://localization/ui.de.translation", "res://localization/ui.ru.translation", "res://localization/ui.uk.translation")
+locale/translations=PackedStringArray("res://localization/ui.en.translation", "res://localization/ui.fr.translation", "res://localization/ui.de.translation", "res://localization/ui.ru.translation", "res://localization/ui.uk.translation", "res://localization/display_settings.en.translation", "res://localization/display_settings.fr.translation", "res://localization/display_settings.de.translation", "res://localization/display_settings.ru.translation", "res://localization/display_settings.uk.translation")
 locale/fallback="ru"
 
 [physics]
