@@ -8,15 +8,17 @@ Read `docs/current-state.md` and `docs/project-map.md` first.
 
 The current repository is authoritative.
 
-Frequently tuned balance values—costs, timers, thresholds, search limits, radii, and visual durations—belong in their owning scripts or resources. Do not copy them into several documents. This file repeats only values that are stable identifiers or required compatibility contracts.
+Frequently tuned balance values—costs, timers, thresholds, search limits, radii, weights, visual durations, and current per-species animation coverage—belong in their owning scripts/resources. Do not duplicate them across documentation.
 
 When behaviour and prose disagree, verify the implementation before editing and update the relevant working document as part of the same change.
+
+`docs/display-settings.md` is a compatibility pointer, not a fourth source of truth.
 
 ## Global architecture rules
 
 - Preserve the simulation-first direction and autonomous creature behaviour.
 - Do not introduce direct unit control as the primary game loop.
-- Keep world, creature, UI, save, audio, debug, and strategic-decision responsibilities separate.
+- Keep world, creature, UI, save, settings, audio, debug, and strategic-decision responsibilities separate.
 - Reuse common player/enemy biological systems; do not create enemy-only copies of creature, egg, movement, survival, combat, or world logic.
 - Keep `scenes/main/main.tscn` as a small compositor.
 - Do not edit `docs/design_roadmap.md` unless explicitly requested.
@@ -34,11 +36,11 @@ Main files:
 
 Runtime order:
 
-1. `world.tscn` supplies the authored Ground TileMap, containers, markers, and world grid.
-2. `start_map_layout.gd` preserves authored level 1 or builds the selected pixel-map level before grid initialization.
-3. The world grid initializes terrain, grass lookup, occupancy, blockers, and pathfinding.
-4. `start_map_world_grid.gd` places the player base, enemy base, energy nodes, enemy controllers, and enemy rally objectives.
-5. The camera reads authored bounds and the start marker.
+1. `world.tscn` supplies authored terrain, containers, markers, and world grid.
+2. `start_map_layout.gd` preserves level 1 or builds the selected registered pixel-map layout before grid initialization.
+3. `world_grid.gd` initializes terrain state, grass lookup, occupancy, blockers, and pathfinding.
+4. `start_map_world_grid.gd` creates faction bases, energy nodes, enemy runtime controllers, and enemy rally objectives.
+5. The camera reads the resulting authored/runtime bounds and start marker.
 
 Stable terrain source ids:
 
@@ -49,24 +51,21 @@ Stable terrain source ids:
 
 Rules:
 
-- never clear or rebuild the authored level-1 map during startup;
+- never clear/rebuild the authored level-1 map during startup;
 - a registered pixel-map level may replace runtime Ground/DryGround only before world-grid initialization;
-- pixel-map colors are exact; unknown colors must fail with pixel coordinates rather than default to ground;
-- base and tree markers must form complete 2x2 blocks; the left base marker belongs to the player;
+- pixel-map colors are exact; unknown colors must fail visibly rather than default to ground;
+- base/tree markers must form complete 2x2 blocks;
 - never hand-generate or replace serialized `tile_map_data`;
-- preserve terrain source ids unless a deliberate migration updates every dependent system;
-- keep authored grass, egg/creature containers, camera marker, and base spawn regions on valid terrain;
+- changing stable terrain source ids requires a deliberate migration of every dependent system;
 - faction bases are runtime blockers, not terrain sources;
-- runtime fallback placement may inspect existing terrain but must never rewrite it;
-- map layout/schema changes may require new saves or migration logic;
-- camera movement remains real-time and must not be multiplied by simulation speed;
-- camera zoom limits are owned only by `camera_controller.gd` and must be normalized after loading.
+- static fallback placement may inspect terrain but must not rewrite it;
+- camera movement remains real-time and camera zoom limits remain owned only by `camera_controller.gd`.
 
-`world_grid.gd` owns terrain queries, DryGround state, grass registry, walkability, ground placement, species-aware traversal, pathfinding, creature/blocker occupancy, next-step reservations, footprint placement, and edible-grass footprint queries. Other systems should use its public APIs rather than maintain competing world state.
+`world_grid.gd` is the authority for terrain queries, DryGround state, grass registry, walkability, species-aware traversal, ground placement, pathfinding, blockers, creature occupancy, movement reservations, and footprint APIs. Other systems must not maintain competing world state.
 
-Pterodactyl flight is a traversal capability, not an alternate placement layer. Player and enemy pterodactyl routes may cross water, trees, and DryGround but never mountains. Route goals, idle anchors, combat side approaches, and reproduction remain restricted to full-footprint normal ground. A pterodactyl whose route is interrupted over aerial-only terrain must keep moving rather than enter idle; save restoration may preserve such an in-flight anchor.
+Pterodactyl flight is a traversal capability, not another placement layer. Flight routes may cross water, trees, and DryGround but not mountains. Goals, idle anchors, reproduction, and combat approaches still require normal ground placement.
 
-## Faction bases
+## Faction bases and base-created eggs
 
 Main files:
 
@@ -75,31 +74,28 @@ Main files:
 - `res://scripts/world/faction_base.gd`
 - `res://scripts/world/player_base.gd`
 - `res://scripts/world/enemy_base.gd`
-- `res://scripts/world/start_map_world_grid.gd`
 - `res://scenes/effects/base_egg_launch_effect.tscn`
 - `res://scripts/effects/base_egg_launch_effect.gd`
-- faction launch textures under `res://assets/sprites/effects/base_egg_launch/`
 
 Rules:
 
-- create exactly one runtime `PlayerBase` and one runtime `EnemyBase`;
-- both remain stationary, non-passable, and use the shared 2x2 logical footprint;
-- both register through world-grid blocker APIs;
-- `can_host_grass()` must reject any `faction_base` footprint;
-- both are static world setup and must not join dynamic save groups;
-- shared blocker, visuals, faction assignment, nearby egg placement, and direct launch-effect startup belong in `faction_base.gd`;
-- a base-created egg must reserve its final stage-one anchor and join the normal `eggs` group before the creator spends energy, while the separate launch effect remains visual-only;
-- the faction-specific launch projectile travels from the base centre to that reserved anchor over the controller-owned simulation-time duration, so speed controls accelerate it and zero time scale pauses it;
-- `player_base.gd` remains a thin wrapper exposing `create_player_egg()`;
-- `enemy_base.gd` remains a thin wrapper exposing `create_enemy_egg()`;
-- player UI finds the player base through the `player_base` group;
-- enemy strategy finds the enemy base through the `enemy_base` group;
-- species data and faction must be assigned before `add_child()` starts an egg lifecycle; the base sets only the egg landing-wait gate before insertion and starts the visual effect directly afterwards;
-- strategic decisions must not be moved into either base scene.
+- create exactly one runtime player base and one runtime enemy base;
+- both remain stationary, non-passable, shared-footprint world blockers and reject grass;
+- both are static world setup and never dynamic save entities;
+- shared blocker/placement/launch plumbing belongs in `faction_base.gd`;
+- `player_base.gd` and `enemy_base.gd` remain thin public wrappers;
+- a base-created real egg must reserve its final anchor and enter the normal `eggs` group before purchase energy is committed;
+- species data and faction must be assigned before the real egg enters the scene tree;
+- the base launch projectile is visual-only: never a blocker, save entity, population entity, egg-eater target, or earthquake target;
+- the real egg's base-landing gate delays incubation and gameplay targeting until landing;
+- the launch uses simulation-scaled time, so speed controls accelerate it and pause stops it;
+- saving during flight serializes only the real egg; loading restores it already landed rather than restoring a temporary projectile;
+- natural reproduction bypasses the base-launch gate;
+- strategic decisions must not move into either base scene.
 
-`CameraStart` is the player-base/start-camera anchor for a fresh game. `EnemyBaseStart` is preferred when authored; otherwise the bootstrap chooses a deterministic valid fallback without changing terrain.
+`CameraStart` anchors the player base/start camera on a fresh game. `EnemyBaseStart` is preferred for the enemy base when authored; fallback placement must remain deterministic and non-destructive.
 
-## Species data, catalogs, and faction ownership
+## Species data, catalogs, faction, and animation data
 
 Main files:
 
@@ -107,17 +103,18 @@ Main files:
 - `res://scripts/creatures/creature_faction.gd`
 - `res://scripts/catalogs/player_species_catalog.gd`
 - `res://scripts/catalogs/enemy_species_catalog.gd`
-- player resources under `res://data/species/`
+- species resources under `res://data/species/`
 - enemy resources under `res://data/species/enemy/`
+- optional animation resources under `res://data/animations/`
 
-Ownership layers:
+Ownership:
 
-1. `CreatureSpeciesData` describes biology, diet, stats, visuals, survival, combat, and reproduction.
-2. A species resource path selects the player/enemy visual and stat variant.
+1. `CreatureSpeciesData` describes biology, diet, stats, navigation capability, visuals, combat, survival, and reproduction.
+2. The resource path selects the player/enemy visual/stat variant.
 3. `CreatureFaction` selects runtime ownership.
-4. `PlayerSpeciesCatalog` owns player-only roster/economy/flag presentation.
-5. `EnemySpeciesCatalog` owns enemy resource selection and enemy economy values.
-6. Strategic priorities belong to enemy controllers, not either catalog.
+4. `PlayerSpeciesCatalog` owns player roster/economy/flag presentation.
+5. `EnemySpeciesCatalog` owns enemy resource selection/economy.
+6. Strategic priorities belong to enemy controllers.
 
 Stable faction ids:
 
@@ -127,173 +124,18 @@ Stable faction ids:
 
 Rules:
 
-- `diet_type` is the single stored diet category; use the species helper methods rather than filenames;
 - player and enemy variants retain the same biological `species_id`;
+- `diet_type` is the stored diet category; use helpers rather than asset/file naming;
 - untagged current entities and old save records default to player;
 - unknown non-empty faction ids normalize to neutral;
-- do not introduce another faction id without reviewing save, UI, combat, energy, flags, and targeting;
-- all current creatures keep the shared logical footprint; do not duplicate it in catalogs;
-- living player energy uses only player-faction creatures present in `PlayerSpeciesCatalog`;
-- living enemy energy uses only enemy-faction creatures present in `EnemySpeciesCatalog`;
-- enemy resources select faction-specific directional sprites under `assets/sprites/creatures/enemy/<species>/` through `.tres` references; current egg textures remain shared with player resources;
-- stable enemy resource paths matter once saves contain enemy creatures.
+- a new faction id requires review of save, UI, combat, energy, flags, and targeting;
+- all current creatures use the shared logical footprint;
+- player/enemy energy counts only living faction creatures supported by the corresponding catalog;
+- stable resource paths matter once saves reference them;
+- optional idle/walk/eat/attack/death animation resources are species data; missing resources must fall back through the shared visual controller;
+- do not duplicate current animation coverage in documentation or hard-code it from species names.
 
-## Enemy runtime bootstrap
-
-`start_map_world_grid.gd` must create exactly one runtime node for each active enemy subsystem:
-
-- `EnemyAI`, registered in `enemy_ai`;
-- `EnemySpellController`, registered in `enemy_spell_controller`;
-- `EnemyAttackFlags`, registered through its enemy-flag facade/group contract;
-- enemy energy;
-- the disabled legacy egg producer retained for compatibility.
-
-`EnemySpellController` connects to the public `EnemyAI.turn_completed` signal. Spell decisions must remain outside `enemy_ai_controller.gd`.
-
-Enemy attack objectives must be created only after both bases exist because they derive their positions from the runtime player base.
-
-## Enemy strategic AI
-
-Main files:
-
-- `res://scripts/enemies/enemy_ai_controller.gd`
-- `res://scripts/enemies/enemy_energy.gd`
-- `res://scripts/enemies/enemy_egg_production_controller.gd`
-- `res://scripts/catalogs/enemy_species_catalog.gd`
-- `res://scripts/world/enemy_base.gd`
-- `res://scripts/save/save_system_with_enemy.gd`
-
-Snapshot rules:
-
-- scan the stable `creatures` and `eggs` groups only on the controller's strategic cadence, never every frame;
-- ignore invalid, queued-for-deletion, dead, non-enemy, unsupported-species, or wrong-resource entities;
-- adult creatures must match the corresponding enemy-catalog resource;
-- count eggs as projected adults through `hatch_species_data.species_id`, with stored egg `species_id` only as fallback;
-- store adult, egg, and projected per-species totals separately;
-- normalize each adult herbivore by its own maximum hunger;
-- exclude eggs and non-herbivores from the satiety average;
-- rebuild the snapshot after load instead of serializing it.
-
-Production rules:
-
-- the first scheduled cadence of a fresh match must advance the saved turn index but perform no production and emit no `turn_completed` signal, so every strategic action remains skipped until the following cadence;
-- the controller owns population goals, hunger gating, species choice, and one production attempt;
-- the current herbivore phase maintains the configured stegosaurus-heavy mix;
-- the configured hunger threshold may block herbivore production;
-- the combat phase first establishes two living adult raptors, one living adult tyrannosaurus, and one living adult pterodactyl;
-- egg-eater production stays locked before ten simulation minutes, then enters the priority only while that living four-predator core exists and no enemy egg eater or egg-eater egg is already counted;
-- any naturally reproduced enemy egg eater also blocks another AI purchase, but the AI does not cap natural reproduction;
-- after all enemy egg eaters and their eggs are gone, the egg eater becomes eligible again before the long-term tyrannosaurus/pterodactyl rotation;
-- do not silently substitute another species when the selected target is unaffordable or cannot be placed;
-- spend energy only after `create_enemy_egg()` returns a real egg;
-- failed placement costs nothing;
-- save only strategic timing/progression fields needed to resume the controller, not its derived snapshot.
-
-The old round-robin producer must remain disabled. Compatibility state may be restored into it, but restore must not restart its timer.
-
-## Enemy spells and diagnostics
-
-Main files:
-
-- `res://scripts/enemies/enemy_spell_controller.gd`
-- `res://scripts/enemies/spells/enemy_lightning_spell.gd`
-- `res://scripts/enemies/spells/enemy_earthquake_spell.gd`
-- `res://scripts/enemies/spells/enemy_rain_spell.gd`
-- `res://scripts/world/nature_effects_system.gd`
-- `res://scripts/resources/grass.gd`
-- `res://scripts/debug/enemy_ai_debug_overlay.gd`
-- `res://scripts/debug/performance_stats.gd`
-
-Module boundaries:
-
-- `EnemySpellController` is the only strategic spell facade, the only listener of `EnemyAI.turn_completed`, and the only owner of the strict one-action priority order;
-- the facade keeps all existing spell tuning exports, combat-reserve state/API, save compatibility, runtime reference lookup, and merged public diagnostics;
-- `EnemyLightningSpell`, `EnemyEarthquakeSpell`, and `EnemyRainSpell` are controller-owned child modules; they never subscribe to the AI cadence and never initiate an independent strategic action;
-- the lightning module owns target scanning, plan selection, delayed double-strike state, execution, and lightning diagnostics;
-- the earthquake module owns egg-zone collection, deterministic candidate search/ranking/revalidation, execution, and earthquake diagnostics;
-- the rain module owns full-cost payment orchestration, ecological target scoring, cast execution/refund, diagnostic contours, performance counters, and rain diagnostics;
-- `NatureEffectsSystem` remains the only owner of actual damage, grass/DryGround changes, egg destruction, cast VFX, and successful-cast sounds.
-
-Combat-reserve rules:
-
-- `EnemySpellController` owns the combat-reserve amount and its time-based capacity; elapsed time may grow capacity but must never create stored reserve energy;
-- capacity opens on the configured ten-minute tick, the early capacity gain applies through the 20:00 tick, the late gain starts with the 21:00 tick, and capacity remains capped at the configured maximum;
-- `EnemyEnergy` remains the authority for gross creature income and diverts the configured share only when gross income meets the configured threshold and the reserve has free capacity;
-- before unlock, below the income threshold, or while capacity is full, all gross creature income goes to ordinary enemy energy;
-- `deposit_combat_reserve_income()` returns the amount actually accepted so `EnemyEnergy` can send every unaccepted fraction to ordinary energy without creating or losing income;
-- offensive spells must require sufficient stored reserve before attempting a cast and call `spend_combat_reserve_after_success()` only after each shared effect succeeds;
-- successful offensive spending may reduce stored reserve energy to zero, reduces capacity by the same exact cost, and clamps only capacity to the configured post-cast floor; failed targeting/application changes neither amount nor capacity;
-- rain first uses ordinary energy when it can cover the complete cost, otherwise it may use the complete cost from stored reserve; never split one rain payment across both stores;
-- reserve-funded rain subtracts the exact rain cost through the facade without applying the combat-spell post-cast floor and never changes capacity; failed application refunds the same payment source through the facade;
-- save exact stored reserve, exact capacity, and the next capacity tick; old time-charged-prototype saves discard artificial stored energy and rebuild capacity only;
-- F5 may read reserve, capacity, gross income, split threshold/share, and last accepted deposit through public diagnostics but must not mutate them.
-
-Lightning target rules:
-
-- use one strategic spell action per completed enemy turn in this order: finish an active delayed lightning sequence, egg-eater lightning, emergency rain, profitable earthquake, then weakened-tyrannosaurus lightning;
-- scan only the stable `creatures` group and reject invalid, queued-for-deletion, dead, zero-health, neutral, or enemy-owned targets;
-- hatched living enemy raptors are creature nodes with enemy faction and raptor species id; raptor eggs never count as adults;
-- a threatening player egg eater must be inside the configured enemy-base radius and is considered only when no living enemy raptor exists anywhere;
-- egg eaters reserve target priority over tyrannosauruses: if a threatening egg eater exists but stored reserve cannot fund the number of strikes needed to kill it, do not spend that reserve on a tyrannosaurus;
-- an egg eater at or below one lightning hit uses one strike; a healthier egg eater is eligible only when two hits can kill it, requires two complete costs before the first strike, and receives the second strike after the configured simulation-time delay; passive regeneration during that delay must not invalidate the approved kill;
-- each successful strike spends one lightning cost and reduces capacity through the common offensive-spend API; a strike that cannot be applied spends nothing;
-- a player tyrannosaurus is eligible only at or below the configured health threshold, inside the configured base radius, and with no living enemy raptor inside its configured guard radius;
-- rank eligible tyrannosauruses by lower health first and shorter base distance second; there is no separate lightning cooldown;
-- use `NatureEffectsSystem.can_apply_lightning()` and `apply_lightning()` rather than duplicating damage, VFX, or sound logic.
-
-Earthquake target rules:
-
-- skip all earthquake target work until stored combat reserve can pay the complete controller-owned cost and at least two valid player eggs exist;
-- scan the stable `eggs` group only on the enemy strategic cadence, reject invalid, queued-for-deletion, or not-yet-landed base eggs, and read faction through `CreatureFaction`;
-- resolve egg species from `hatch_species_data.species_id` with stored `species_id` as fallback, then read purchase value only from `PlayerSpeciesCatalog` rather than copying a second price table;
-- partition each axis by the map-clipped center ranges that can overlap every current egg footprint, including non-player eggs, and test the point nearest the enemy base inside each unchanged overlap region; do not sample random centers or scan every map tile;
-- evaluate overlap with the same anchor, current footprint, and configured shared earthquake radius used by `NatureEffectsSystem`;
-- require at least the configured minimum of two player eggs, reject any zone containing a non-player egg, and require summed affected player-egg value to be strictly greater than the earthquake cost;
-- rank valid zones by greater total value, then more stage-two eggs, then more eggs, then shorter enemy-base distance, with tile order only as a deterministic final tie-break;
-- re-collect and revalidate the selected zone immediately before calling `can_apply_earthquake()` and `apply_earthquake()`; a stale or failed zone spends nothing;
-- after a successful shared earthquake, spend the complete cost through `spend_combat_reserve_after_success()` so stored energy may reach zero while capacity keeps its configured floor;
-- F5 may display the last earthquake decision, selected egg count/value/stage mix, and candidate-center count but must not influence targeting.
-
-Rain trigger and cost rules:
-
-- enemy rain may run only from a completed AI snapshot that reports eligible adult enemy herbivores below the configured satiety threshold;
-- check full-cost affordability from ordinary energy first and reserve second before scanning the grass registry;
-- keep rain target search in `EnemyRainSpell`, while tuning values, spell cost, and reserve storage remain owned by `EnemySpellController`;
-- require a positive target and `can_apply_rain()` before spending;
-- refund the exact cost to the same ordinary/reserve store if shared `apply_rain()` still fails.
-
-Current target-search contract:
-
-- resolve the search contour from the current enemy-base footprint, the controller's configured search radius, and map bounds;
-- reject grass sources, relevant DryGround, and future grass cells outside the contour;
-- reject centers whose complete shared rain area would cross the contour;
-- preserve registered mature-grass candidates only when their spread attempt remains unused;
-- use the same `can_host_grass()` and `has_grass_at_tile()` rules as real immediate spreading;
-- count each unique immediately spawnable cell once even when several mature sources could create it;
-- allow DryGround to create candidates and contribute score only when at least one cardinal neighbouring tile contains existing grass;
-- ignore isolated DryGround because cardinal grass spreading cannot reach it directly;
-- obtain partial DryGround progress through the world-grid public `get_dry_ground_rain_hit_data()` API rather than maintaining competing state;
-- sum controller-owned weights for unique immediate new grass and adjacent DryGround at zero, one, or two prior rain hits; keep those tunable weights in `enemy_spell_controller.gd`;
-- during the configured opening phase, multiply only the herbivore-demand step and enemy-base proximity step by the configured opening multiplier; keep the DryGround weights unchanged and preserve the configured demand ceiling;
-- at exactly the configured ten-minute simulation-time boundary, switch both the active DryGround weights and enemy-base proximity step to their expansion-phase values; use the restored enemy-AI simulation clock rather than wall time;
-- collect eligible adult enemy herbivore footprints once per rain search from the stable `creatures` group, using faction, enemy-catalog resource, and herbivore-diet validation;
-- build only a bounded demand map around those footprints, measure distance to the edge of each candidate rain area, and use controller-owned near/middle/far weights;
-- multiply the ecological base score by a clamped controller-owned herbivore-demand coefficient; candidates with no nearby herbivore demand remain valid at the configured baseline multiplier;
-- multiply that result by a separate controller-owned base-proximity coefficient computed from the distance between the full rain area and the enemy-base footprint; the coefficient must remain neutral at the configured reference distance and rise only toward the base;
-- still ignore young-grass growth and recovery value beyond the current DryGround hit state.
-
-Diagnostics:
-
-- the orange search contour and blue last-cast contour are drawn by `EnemyRainSpell` and remain non-blocking, non-serialized visuals;
-- their drawing must not alter targeting, terrain, occupancy, or spell cost;
-- the blue contour uses real elapsed time but its remaining duration pauses with the in-game menu;
-- simulation speed must not shorten the diagnostic duration;
-- F5 reads public `enemy_ai` data and `enemy_spell_controller.get_rain_debug_data()` only; the facade merges read-only reserve, lightning, earthquake, and rain module data without exposing the modules directly;
-- F5 may display selected immediate-grass count, DryGround hit buckets, eligible/nearby herbivore demand, herd multiplier, base distance/proximity multiplier, base score, and total target score;
-- F5 must not mutate enemy state or make decisions;
-- F8 may record search counts/workload, search/application timing, predicted/actual new grass, selected DryGround value, total target score, and cast rate.
-
-## Grass lifecycle and shared rain
+## Grass lifecycle and shared nature effects
 
 Main files:
 
@@ -303,102 +145,99 @@ Main files:
 - `res://scripts/world/nature_effects_system.gd`
 - `res://scripts/creatures/behaviors/creature_grazing_logic.gd`
 
-`grass.gd` is the single owner of grass timing and lifecycle behaviour. `grass.tscn` supplies nodes/textures and must not override lifecycle exports or Timer wait values.
-
 Rules:
 
-- use explicit script values or restored remaining time when starting grass timers;
-- grass may exist only on valid normal ground, not blocked terrain, DryGround, or faction bases;
-- initial grass nodes do not define an allowed-growth mask;
-- mature spreading checks cardinal neighbours;
-- prevent duplicate grass registration on one tile;
-- position dynamically created grass at its target tile before `add_child()`;
-- registration, unregistration, consumption, and edible-stage changes must refresh only overlapping pasture-cache anchors;
-- nature powers must use grass lifecycle methods rather than bypassing them.
+- `grass.gd` owns lifecycle timing/food/spread; the scene supplies structure/textures;
+- grass exists only on valid normal ground, never blocked terrain, DryGround, or faction bases;
+- initial grass nodes are seeds, not a growth mask;
+- prevent duplicate grass registration;
+- position dynamically created grass before `add_child()`;
+- grass registry/edibility changes refresh only overlapping pasture-cache anchors;
+- nature powers call grass/world lifecycle APIs rather than directly mutating competing state;
+- one rain cast uses a pre-cast grass snapshot so newly spawned grass cannot receive the same cast again;
+- DryGround progress lives in the world grid;
+- `NatureEffectsSystem` owns actual lightning/rain/sun/earthquake application, cast ordering, VFX, and successful-cast sounds.
 
-One rain cast must operate on a snapshot of valid grass nodes present before any grass `apply_rain()` call. Grass spawned during that cast must not receive the same rain again or advance beyond stage 1.
-
-DryGround processing happens through the world grid. Clearing a cell may reset/restart adjacent mature-grass recovery, but the shared rain system remains the single owner of cast order, VFX, and successful-cast sound.
-
-## Grazing and path ranking
-
-Main files:
-
-- `res://scripts/creatures/behaviors/creature_grazing_logic.gd`
-- `res://scripts/creatures/behaviors/creature_movement_controller.gd`
-- `res://scripts/world/world_grid.gd`
-
-Rules:
-
-- keep one pasture cache shared by all compatible herbivores;
-- partition cached pasture anchors into local sectors;
-- refresh only anchors overlapping a changed grass tile;
-- cache food data, not creature occupancy or movement reservations;
-- validate occupancy/reservations live;
-- create a bounded quality shortlist before route work;
-- evaluate the shortlist through one continuing breadth-first route wave rather than independent full searches;
-- rank reachable options with the same food-value-minus-route-cost formula in acquisition, comparisons, bounds, and reached-target validation;
-- periodically validate the current target/route and compare alternatives without pathfinding every frame;
-- preserve the uncached fallback for a future incompatible footprint;
-- route replacement/clearing must go through the movement controller;
-- a creature must reach a valid eating footprint before consuming grass.
-
-## Creature movement, hunting, and indirect orders
+## Grazing, movement, hunting, and combat
 
 Main files:
 
 - `res://scripts/creatures/creature.gd`
 - `res://scripts/creatures/behaviors/creature_movement_controller.gd`
-- `res://scripts/creatures/behaviors/creature_predator_logic.gd`
 - `res://scripts/creatures/behaviors/creature_grazing_logic.gd`
-- flag assignment services
+- `res://scripts/creatures/behaviors/creature_predator_logic.gd`
+- `res://scripts/creatures/behaviors/creature_egg_eater_logic.gd`
+- `res://scripts/combat/duel.gd`
+- `res://scripts/world/world_grid.gd`
+
+Shared movement rules:
+
+- `creature.gd` remains the public state/route facade;
+- `creature_movement_controller.gd` owns queued-route mutation and grid-step execution;
+- reserve the next footprint atomically before visual movement and convert it to normal occupancy on arrival;
+- cancellation, failure, death, and removal release reservations;
+- long indirect routes plan against terrain/persistent blockers, not temporary creature occupancy;
+- temporary indirect-route blockage first attempts shared rerouting while preserving the strategic destination;
+- if rerouting fails, keep the commitment while the relevant blockage remains transient and retry through movement-controller logic;
+- ordinary one-step wandering is not a persistent strategic route;
+- replacing queued behaviour must not interrupt an active smooth grid step;
+- autonomous survival, food, reproduction, hunting, combat, and death outrank indirect orders;
+- player and enemy creatures reuse the same movement/FSM path.
+
+Grazing rules:
+
+- use one pasture cache for compatible herbivores;
+- cache food data, never live creature occupancy/reservations;
+- update only affected cache anchors;
+- create a bounded candidate set before route work;
+- rank reachable food consistently using food value and route cost;
+- route replacement/clearing goes through the movement controller;
+- consumption requires a valid eating footprint.
+
+Predator and egg-eater rules:
+
+- prey/egg selection must validate real reachable side approaches rather than pure straight-line distance;
+- multi-goal route search should resolve valid approaches for one target without launching independent full searches for every side;
+- combat approach anchors always require normal ground placement, including for flying pterodactyls;
+- predator role, hunger thresholds, strategic/guard behaviour, and hunting radii are species data;
+- attacker-role and defender-role target rules must be applied consistently during acquisition and revalidation;
+- defender raptor protection is allowed only for eligible allied herbivore/egg-eater versus opposing-predator duels;
+- attacker-role predators never acquire/switch solely for protection;
+- one protector may reserve a handoff; the replacement duel cannot recursively trigger another intervention;
+- predator-versus-predator duels are not protection candidates;
+- only the final winner of a completed duel receives victory rewards;
+- egg eaters may track stage-one eggs but consume only stage two;
+- egg-eater faction/species rules must remain identical during acquisition, waiting, revalidation, and consumption;
+- final combat engagement remains exclusive even when several hunters pursue one prey.
+
+## Creature visuals and interaction
+
+Main files:
+
+- `res://scripts/creatures/creature.gd`
+- `res://scripts/creatures/behaviors/creature_visual_controller.gd`
+- `res://scripts/creatures/behaviors/creature_interaction_controller.gd`
+- `res://scripts/ui/creature_stats_ui.gd`
+- `res://scripts/combat/duel.gd`
 
 Rules:
 
-- `creature.gd` remains the external public facade for route/state transitions;
-- `creature_movement_controller.gd` owns every queued-route mutation and grid-step execution;
-- reserve the next footprint atomically before smooth movement;
-- build long indirect-order routes against terrain and persistent blockers rather than temporary creature occupancy or movement reservations;
-- when the next footprint of an indirect player-flag or enemy-rally route is occupied, first try a bounded local path that rejoins the existing route, then a bounded full path to the same final destination;
-- splice a local detour at its furthest actual intersection with the old route, then append only the untouched tail; loop cleanup remains a safety net rather than the primary splice mechanism;
-- mark successful temporary detours as potentially suboptimal and check them once after a stable per-creature delay of three to five simulation seconds; keep the same destination and replace the queue only when the static route saves meaningful travel cost;
-- if both rebuilds fail, retain the destination and queued route while the blocking footprint is unchanged; retry as soon as its occupancy signature changes, without a fixed retry timer or failure limit;
-- ordinary one-step wandering is not a persistent managed route and may still be discarded when its chosen step becomes unavailable;
-- arrival converts a reservation into normal occupancy;
-- cancellation, failure, death, and removal release reservations;
-- autonomous behaviour and flag code must use movement-controller/creature public APIs rather than mutate `current_path` or FSM fields;
-- replacing queued behaviour must not interrupt an already active smooth grid step;
-- survival, food, reproduction, hunting, combat, and death outrank indirect orders;
-- enemy creatures reuse the same autonomous FSM and movement controller.
+- `creature.gd` owns FSM state and ordered death cleanup;
+- the visual controller owns directional textures, optional animations, visual attack lunges, shadows, and death poses;
+- `Duel` owns damage/timing; visual hooks must not become gameplay timing authorities;
+- animation availability is optional resource data and missing resources fall back to static directional visuals;
+- visual attack movement changes only rendered body/animation/shadow state, never logical anchor, occupancy, collision, or pathfinding position;
+- interaction controller owns world-space hover/highlight input bridge; UI owns selected information;
+- dead/corpse creatures are non-selectable;
+- shadows/highlights never affect navigation or collision.
 
-Predator rules:
+Death ordering:
 
-- compare a small nearest available prey set by actual reachable approach routes;
-- resolve all valid side approaches for one prey through a single multi-goal path search rather than one search per side;
-- while a predator has a healthy route, use the small stable per-creature timer offset to rebuild its current route only when the locked side approach no longer touches the moving target; otherwise rank alternatives by cheap approach distance, build a route only for the nearest challenger that can plausibly beat the remaining route by the configured switch advantage, and temporarily suppress a candidate after its shared approach search fails;
-- valid approaches overlap a footprint side; full corner-only diagonals remain invalid;
-- every combat approach must pass normal ground-placement validation for the hunter's full footprint, including flying pterodactyls; aerial-only traversal tiles are never legal duel-start anchors;
-- predator role, normal hunger threshold, optional strategic-hunt threshold, strategic-hunt radius/flag precedence, normal hunt radius, and optional defender guard radius belong to `CreatureSpeciesData` resources;
-- an attacker-role predator committed to a flag objective above its strategic threshold scans the strategic radius only for opposing-faction predators; at or below that threshold strategic hunting accepts opposing herbivores, predators, and egg eaters; when the species resource enables flag override, an acquired strategic target replaces indirect flag travel while reproduction eligibility remains higher priority;
-- attacker-role survival hunting may cross faction and diet boundaries but must always reject the same biological species of the hunter's own faction;
-- defender guard hunting repeatedly scans only its guard radius for opposing player/enemy creatures and outranks indirect flag routes and eligibility to begin reproduction once a target is found; an egg laying already in progress remains uninterrupted;
-- defender survival hunting uses the normal predator radius, accepts herbivores regardless of faction, and rejects same-faction predators and egg eaters;
-- egg eaters in strategic mode continue an indirect flag route until an opposing-faction egg is acquired, then the target overrides the flag;
-- egg eaters at the normal hunger threshold suspend the flag even without a target and accept all eggs except the same species of their own faction;
-- apply egg-eater faction rules during both acquisition and target revalidation, and reject eggs queued for deletion;
-- shortlist at most three egg targets by cheap distance, then select by real reachable route using one multi-goal search per egg across all valid side approaches;
-- keep the egg eater's periodic challenger scan at its controller-owned cadence with a small stable per-creature timer offset, use cheap approach distance before A*, and temporarily suppress failed current or challenger eggs without turning the suppression into a permanent blacklist;
-- stage-one eggs are trackable but not edible; waiting footprints must preserve both possible stage-two expansions and repath after the transition;
-- apply the active mode's prey rule consistently during acquisition, target revalidation, pending-duel settlement, and duel start;
-- prey may be pursued by several hunters, but two predators that select each other resolve one stable moving pursuit owner and final combat engagement remains exclusive;
-- hunters losing engagement must release the target and search again through normal predator logic.
-- a non-critical defender raptor may actively protect an allied herbivore or egg eater from an opposing-faction predator that initiated the current duel;
-- attacker-role tyrannosaurus and pterodactyl must never acquire or switch targets solely for protection, but may continue pursuing and intervene against an opposing predator that was already their selected target before it attacked an allied herbivore or egg eater;
-- eligible protectors approach the existing target through normal side-contact routing, and the first protector to arrive exclusively reserves that duel for intervention;
-- a reserved intervention waits until the next scheduled duel hit resolves; if both original fighters remain alive, the protected herbivore or egg eater leaves combat and the protector starts a replacement one-on-one duel with the attacker;
-- the replacement duel must disable further intervention so several protectors cannot replace one another against the same attacker;
-- never intervene in predator-versus-predator combat, same-faction predation, an already replaced duel, or a duel that ends before the reserved handoff;
-- only a predator reported as the winner of a completed duel receives the clamped satiety and health rewards; an intervention handoff reports no winner and grants no reward.
+- release occupancy first;
+- disable collision/picking;
+- then show optional transition/final corpse visuals;
+- corpse visuals remain non-blocking;
+- do not delay occupancy release until `queue_free()`.
 
 ## Player flags and enemy rally objectives
 
@@ -412,109 +251,159 @@ Player main files:
 - `res://scripts/flags/player_flag_visual.gd`
 - `res://scripts/flags/raptor_guard_policy.gd`
 
-Ownership:
+Rules:
 
-- facade — placed data, scene attachment, world visual, public save/debug API;
-- catalog layer — player-species validation and placement revisions;
-- UI controller — menu, targeting input, preview, and user text;
-- assignment service — eligibility, batching, commitments, retries, completion, and route application;
-- target allocator — candidates, pasture preference, reservations, and retry rotation;
-- visual — non-blocking drawing only.
-
-Player rules:
-
-- affect only matching player-faction catalog species;
-- route work remains batched and bounded;
-- temporary autonomous interruptions pause a committed route;
-- entering the area completes the current placement revision, except for the persistent raptor guard assignment;
-- raptor ordinary-wander candidates must stay within the shared eight-step guard leash;
-- an active raptor hunt outranks guard recall; recall resumes only when no hunt target remains outside the leash;
-- moving/replacing a species flag creates a new revision;
-- changing one species flag must not cancel other species work;
-- active revisions and per-creature completion are optional saved fields;
-- old saves without completion data remain valid.
+- player flags affect only matching player-faction catalog species;
+- facade, UI controller, assignment service, allocator, and visual keep their current responsibility split;
+- route work stays batched/bounded and uses creature/movement public APIs;
+- temporary autonomous behaviour pauses a commitment instead of deleting it;
+- moving one species flag creates a new revision without cancelling another species;
+- raptor ordinary wandering/recall uses the shared guard policy; an active hunt outranks guard recall;
+- active revisions and per-creature completion remain save-compatible optional fields.
 
 Enemy objectives:
 
-- reuse the shared assignment/allocator and creature indirect-order API;
-- specialize only faction/resource eligibility and persistent-rally semantics;
-- accept only matching enemy resources for the implemented objective species;
+- reuse the shared assignment/allocator and creature indirect-order APIs;
+- specialize only enemy faction/resource eligibility and persistent-rally semantics;
 - remain lower priority than autonomous behaviour;
-- keep attack objectives at the player base and the raptor guard objective at the enemy base;
-- are rebuilt from both runtime faction-base positions;
-- are not saved as a second source of truth.
+- derive attack/guard positions from runtime faction bases;
+- are rebuilt rather than saved.
 
-## Egg lifecycle and species visuals
+## Enemy runtime bootstrap and strategic AI
+
+`start_map_world_grid.gd` must create exactly one runtime instance for each active enemy subsystem: enemy AI, enemy spell controller, enemy rally facade, enemy energy, and the disabled compatibility producer.
+
+`EnemySpellController` listens to `EnemyAI.turn_completed`. Spell decisions remain outside `enemy_ai_controller.gd`.
+
+Enemy objectives are created only after both bases exist because their positions depend on runtime base locations.
+
+AI snapshot rules:
+
+- scan stable `creatures`/`eggs` groups only on the strategic cadence;
+- reject invalid/dead/wrong-faction/wrong-resource/unsupported entries;
+- validate adult resources against `EnemySpeciesCatalog`;
+- count eggs as projected adults using hatch species data with stored id fallback;
+- keep adult, egg, and projected totals distinct;
+- derive herbivore satiety only from living adult enemy herbivores;
+- rebuild the snapshot after load instead of saving it.
+
+Production rules:
+
+- the first scheduled fresh-match cadence advances strategic timing but performs no production/spell turn;
+- the controller owns population goals, hunger gating, species choice, and one purchase attempt;
+- do not silently substitute another species when the selected target cannot be afforded/placed;
+- spend ordinary enemy energy only after a real egg was created;
+- natural reproduction is not capped by the purchase controller;
+- save strategic progression/timing, not the derived population snapshot;
+- the old round-robin producer stays disabled even when compatibility state is restored.
+
+## Enemy spells, reserve, and diagnostics
 
 Main files:
 
-- `res://scenes/resources/egg.tscn`
-- `res://scripts/resources/egg.gd`
-- `res://scripts/creatures/creature_species_data.gd`
-- `res://scripts/creatures/behaviors/creature_reproduction_logic.gd`
-- `res://scripts/world/faction_base.gd`
-- `res://scenes/effects/base_egg_launch_effect.tscn`
-- `res://scripts/effects/base_egg_launch_effect.gd`
-- species resources and egg assets
+- `res://scripts/enemies/enemy_spell_controller.gd`
+- `res://scripts/enemies/spells/enemy_lightning_spell.gd`
+- `res://scripts/enemies/spells/enemy_earthquake_spell.gd`
+- `res://scripts/enemies/spells/enemy_rain_spell.gd`
+- `res://scripts/enemies/enemy_energy.gd`
+- `res://scripts/world/nature_effects_system.gd`
+- `res://scripts/debug/enemy_ai_debug_overlay.gd`
+- `res://scripts/debug/performance_stats.gd`
 
-Rules:
+Module boundaries:
 
-- all species/factions use the shared egg scene and lifecycle;
-- incubation timing lives only in `egg.gd`;
-- species resources may define egg textures and hatchling biology, never separate timing;
-- generic fallback egg textures live under `assets/sprites/eggs/`; species-specific stage pairs live beside their player visuals and are selected by the resource;
-- store both stage texture references in species resources when custom visuals exist;
-- preserve shared scene defaults when custom textures are absent;
-- faction and species data must be assigned before adding a created egg to the tree;
-- natural eggs inherit the parent faction;
-- base-created eggs receive the owning base faction;
-- base-created eggs may begin in a hidden landing gate: their real destination is already reserved and counted, but stage-one incubation, egg-eater tracking, and earthquake eligibility begin only after the visual projectile lands;
-- natural reproduction bypasses the base-launch gate and keeps the existing immediate stage-one lifecycle;
-- the launch projectile is never a gameplay egg, blocker, save entity, or target; it only calls the real egg's public landing completion method;
-- saving during base flight persists the real stage-one egg through the normal egg record; loading restores it already landed with the normal full stage-one fallback timer rather than resuming a temporary visual arc;
-- hatchlings inherit the egg faction;
-- reproduction-progress capacity belongs to species data; runtime progress belongs to the creature;
-- satiety controls progress accumulation, while existing health, satiety, and age gates still control laying;
-- only successful egg creation resets progress, and save/load must preserve it;
-- stage changes, blockers, hatching, save/load, egg-eater targeting, and earthquake destruction must not depend on which textures are assigned;
-- earthquake destroys through the egg lifecycle so blockers release normally;
-- do not duplicate `egg.tscn` per species or faction;
-- moving egg assets requires updating every player/enemy resource that references them.
+- `EnemySpellController` is the only strategic spell facade/listener and owns strict action priority, tuning exports, reserve state/API, save compatibility, runtime references, and merged public diagnostics;
+- lightning/earthquake/rain child modules own only their spell-specific targeting/execution/diagnostics and never subscribe independently to the AI cadence;
+- `NatureEffectsSystem` owns actual world effects.
 
-## UI ownership
+Combat reserve:
 
-Main scenes:
+- time may increase capacity but never creates stored reserve energy;
+- stored reserve comes only from eligible enemy creature income through `EnemyEnergy`;
+- `EnemyEnergy` must account for all accepted/unaccepted reserve income without creating or losing energy;
+- offensive spells require full stored cost and spend only after successful application;
+- failed target/application changes neither stored reserve nor capacity;
+- rain pays one full cast from ordinary energy first or reserve second; never split one cast across both;
+- reserve-funded rain changes stored reserve only, not offensive post-cast capacity rules;
+- save exact stored amount, capacity, and capacity schedule;
+- compatibility loading from the old time-charged prototype may rebuild capacity but must not restore artificial stored energy.
+
+Spell targeting contracts:
+
+- preserve the controller's one-action strategic priority, including completion of an active delayed lightning sequence before another strategic action;
+- lightning validates living player targets from stable creature state and preserves egg-eater priority over opportunistic tyrannosaurus spending;
+- delayed two-strike lightning must reserve/validate its approved kill plan without wall-time dependence and spend each successful strike separately;
+- earthquake scans valid landed player eggs, derives their values from `PlayerSpeciesCatalog`, rejects contaminated/non-profitable zones, revalidates before application, and spends only after success;
+- rain checks complete affordability before target work, keeps target scoring in `EnemyRainSpell`, uses world/grass public APIs including DryGround progress, and refunds the same store if application fails;
+- rain search/scoring may use restored simulation time for strategic phases but must not create parallel grass/DryGround state.
+
+Diagnostics:
+
+- F5 reads public strategy/spell data only and never mutates state;
+- rain contours are visual-only, non-blocking, and non-serialized;
+- diagnostic contour lifetime uses real elapsed time but pauses with the in-game menu;
+- F8 records performance data but never influences decisions.
+
+## UI ownership and display settings
+
+Main files:
 
 - `res://scenes/main/main.tscn`
 - `res://scenes/ui/player_hud.tscn`
 - `res://scenes/ui/creature_info_panel.tscn`
 - `res://scenes/ui/nature_menu.tscn`
-- `res://scenes/ui/game_result_overlay.tscn`
+- `res://scripts/main/main.gd`
+- `res://scripts/main/game_viewport_input_bridge.gd`
+- `res://scripts/ui/player_nature_ui.gd`
+- `res://scripts/settings/display_settings.gd`
+- `res://scripts/save/save_system_with_enemy.gd`
+- `res://localization/display_settings.csv`
 
 Stable wiring:
 
 - `main.tscn/UI` instances `player_hud.tscn`;
-- `main.tscn` renders world-space canvas items through a dedicated gameplay `SubViewport` whose width follows the live left edge of the adaptive right-side panel;
-- the gameplay camera is registered in `game_camera`; camera bounds, minimap framing, save/load, targeting, and debug projections must use its gameplay-viewport API rather than the root viewport size;
-- unhandled game-area clicks reach root-owned spell and flag targeting through `game_viewport_input_bridge.gd`;
-- the HUD instances `CreatureStatsPanel` and `PlayerNaturePanel`;
-- the active world owns `PlayerEnergy`;
-- UI and SaveSystem resolve player energy through the `player_energy` group;
-- dynamic nested menus resolve nature controls through the `player_nature_ui` group API.
-- `player_hud.tscn/TopPanelTexture` and `BottomPanelTexture` own the decorative right-panel art; both scale the complete supplied PNG and ignore mouse input.
+- world canvas renders through the dedicated gameplay SubViewport whose width follows the live left edge of the side panel;
+- gameplay camera consumers use the gameplay-viewport API rather than assuming root viewport dimensions;
+- root-owned spell/flag clicks pass through `game_viewport_input_bridge.gd`;
+- nested menus resolve nature/system controls through the `player_nature_ui` group/API;
+- base focus resolves bases through stable groups;
+- debug overlays remain separate from player-facing UI.
 
-Rules:
+Display ownership:
 
-- keep physical HUD layout out of `main.tscn`;
-- keep the right-panel art in `player_hud.tscn`: the upper texture covers the fixed minimap/counter region, while the lower texture begins at the menu boundary and remains bottom-anchored for taller expanded viewports; do not convert either supplied image to nine-patch or let the legacy flat panel fill hide it;
-- do not move counters or speed controls into `creature_stats_ui.gd`;
-- keep F3, F4, F5, and F8 as separate diagnostic systems;
-- debug systems may read public data but must not own simulation behaviour;
-- creature selection must remain compatible with nature-power targeting;
-- dead/corpse creatures must not remain selectable;
-- base-focus buttons find bases through stable groups, not deep scene paths;
-- time shortcuts must use `player_ui.gd`'s existing speed-application path so engine speed and button state stay synchronized;
-- preserve stable root instance names used by existing diagnostics and integrations.
+- `DisplaySettings` is the single owner of window/fullscreen state, supported window resolution, content scaling/aspect behaviour, and `user://display_settings.cfg`;
+- first-run display state is windowed `1366×768`;
+- supported window preferences remain `1366×768`, `1600×900`, and `1920×1080` unless deliberately changed together with UI/testing expectations;
+- fullscreen uses the current monitor size and non-16:9 fullscreen must preserve the game's 16:9 content aspect rather than stretch it;
+- returning to windowed mode restores a decorated window and selected preference;
+- if the selected client size plus operating-system decorations cannot fit the usable desktop, fit it proportionally so title-bar/close controls remain accessible;
+- resolution selection is disabled while fullscreen uses monitor size;
+- free-form resizing/maximizing remains disabled while the settings list owns supported window sizes;
+- display settings are independent of gameplay save slots.
+
+The startup settings presentation is normalized by `display_settings.gd`. The current in-game settings presentation is overridden in `save_system_with_enemy.gd`, but that file must not become a competing owner of display, audio, or locale state. It only calls `DisplaySettings`, `AudioManager`, and `LocalizationManager`.
+
+Layout pixel offsets inside Settings/Load are implementation details and should not be copied into this document. Read the current UI code/scene before layout changes.
+
+## Localization and audio
+
+Localization:
+
+- `LocalizationManager` owns runtime locale and `user://dyna_locale.cfg`;
+- supported player-facing locales are `ru`, `en`, `fr`, `de`, and `uk`;
+- general player-facing strings use `localization/ui.csv`;
+- display-mode strings use `localization/display_settings.csv`;
+- locale changes refresh open player-facing UI;
+- F3-F8/internal diagnostics remain intentionally outside localization.
+
+Audio:
+
+- `AudioManager` is the only global audio state owner;
+- preserve the current bus hierarchy and global shared music/SFX/UI paths;
+- music/fades remain active through simulation pause;
+- one-shot cast sounds play only after successful gameplay application;
+- audio settings live in `user://audio_settings.cfg`, not gameplay saves;
+- settings UI calls `AudioManager`, not scene-local competing state.
 
 ## Match end and result UI
 
@@ -523,78 +412,20 @@ Main files:
 - `res://scripts/gameplay/game_end_controller.gd`
 - `res://scripts/ui/game_result_overlay.gd`
 - `res://scenes/ui/game_result_overlay.tscn`
-- `res://scenes/main/main.tscn`
 - `res://scripts/save/save_system_with_enemy.gd`
 
 Rules:
 
-- the match-end controller owns elapsed simulation time, the opening grace period, population checks, and the one-time transition to victory or defeat;
-- check only stable `creatures` and `eggs` groups, reject invalid or queued-for-deletion nodes, reject dead creature state, and use `CreatureFaction` as ownership authority;
-- a faction remains alive while at least one living creature or one egg of that faction exists; bases, energy, corpses, neutral entities, and future purchasing ability do not count;
-- elimination checks remain disabled for the controller-owned opening grace period and run on a bounded interval rather than every frame;
-- the grace period and displayed match duration use simulation-scaled delta, so pause stops them and speed controls advance them proportionally;
-- the current implementation exposes only victory and defeat; do not invent a draw branch or continue-observing flow;
-- finishing the match sets `Engine.time_scale` to zero, shows the result overlay once, and leaves only the public main-menu action available;
-- the result overlay owns presentation and emits `main_menu_requested`; it must not count populations or decide the result;
-- `SaveSystem` persists controller elapsed time/result through the final enemy save layer and exposes the public result-to-main-menu bridge;
-- old saves without `game_end` data fall back to `enemy_ai.elapsed_simulation_seconds`, avoiding a renewed grace period after loading;
-- loading active match state must resume checks only after normal entity reconstruction; loading a finished state must restore the paused result overlay.
-
-## Creature visuals and interaction
-
-Main files:
-
-- `res://scripts/creatures/creature.gd`
-- `res://scripts/creatures/behaviors/creature_visual_controller.gd`
-- `res://scripts/creatures/behaviors/creature_interaction_controller.gd`
-- `res://scripts/ui/creature_stats_ui.gd`
-
-Rules:
-
-- `creature.gd` owns FSM state and ordered death cleanup;
-- the visual controller owns directional textures, walk/eat/duel-attack animation playback, contour shadows, and displayed death poses;
-- `Duel.attack_started` is the shared turn-start visual hook; damage remains owned by `Duel` and lands halfway through the one-second attack turn;
-- species attack animations are optional resource data; missing frames preserve the static combat pose, and right-facing attack frames mirror for left-facing combat;
-- every attack uses the same 64-pixel visual lunge: body/animated sprite and contour shadow move toward the opponent for the first half-turn and return during the second half-turn, while the creature node, logical anchor, occupancy, collision, and pathfinding position remain unchanged;
-- missing animation resources fall back to static directional textures;
-- the interaction controller owns the world-space highlight and mouse bridge, not UI selection state;
-- UI callers use the creature facade highlight methods;
-- visuals and interaction must not alter survival, combat, reproduction, occupancy, or pathfinding;
-- shadows and highlights never affect collision or navigation.
-
-Death:
-
-- release occupancy immediately;
-- disable collision and picking;
-- keep corpse visuals non-blocking;
-- species data owns the optional death-transition texture/duration, final death texture, and corpse lifetime;
-- release occupancy and disable interaction before showing either death pose;
-- skip the transition delay when no transition texture is assigned;
-- missing death textures may fall back to the right-facing texture;
-- do not delay occupancy release until `queue_free()`.
-
-## Audio system
-
-Main files:
-
-- `res://project.godot`
-- `res://default_bus_layout.tres`
-- `res://scripts/audio/audio_manager.gd`
-- audio settings UI
-- nature-effects sound call sites
-
-Rules:
-
-- `AudioManager` is the only global gameplay audio owner;
-- keep the current bus hierarchy and route non-music player-facing volume through `Sounds`;
-- gameplay and startup-menu music use the shared persistent Music player and fade path at a fixed 0.5 linear pre-gain (-6.02 dB); the startup track loops only while `start_screen.tscn` is current, then switches to gameplay music when the main scene opens;
-- music, ambient, SFX, and UI feedback use their dedicated buses;
-- audio settings live in `user://audio_settings.cfg`, not gameplay save slots;
-- gameplay music and fades remain active through menu pauses;
-- shared short sounds use temporary players and free themselves;
-- cast sounds play only after successful gameplay application;
-- keep the global button click global; do not attach duplicate players/callbacks to individual scenes;
-- settings UI calls `AudioManager`, not scene-local players or direct competing state.
+- match-end controller owns elapsed simulation time, grace period, population checks, and the one-time victory/defeat transition;
+- population checks use stable creature/egg groups, reject invalid/dead/queued entries, and use `CreatureFaction`;
+- a faction stays alive while at least one living creature or one egg exists;
+- bases, energy, corpses, neutral entities, and future purchasing ability do not count;
+- grace period and match duration use simulation-scaled time;
+- current result types are victory/defeat only;
+- finishing sets simulation speed to zero and displays the result once;
+- result overlay owns presentation and emits its public main-menu action; it does not decide populations;
+- save/load restores elapsed time/result after entity reconstruction;
+- old saves without match-end data use the compatible enemy-AI simulation clock fallback.
 
 ## Startup and save system
 
@@ -610,64 +441,61 @@ Main files:
 Startup flow:
 
 1. `project.godot` starts `start_screen.tscn`.
-2. Continue selects the newest valid autosave/manual slot by `saved_at`, preferring autosave on equal-second ties; without a valid save its visible button remains disabled.
-3. New Game selects a registered level and opens its gameplay scene.
-4. The gameplay scene instances the active world and applies its level layout.
-5. Load delegates manual-slot or autosave validation, saved-level routing, and reconstruction to `SaveSystem`.
+2. Continue chooses the newest valid autosave/manual candidate.
+3. New Game selects a registered level and opens gameplay.
+4. The gameplay scene builds the selected world layout.
+5. Load validates the saved level and delegates reconstruction to `SaveSystem`.
 
-Stable slot paths:
+Stable gameplay slot paths:
 
 - `user://dyna_autosave.json`
 - `user://dyna_save_slot_1.json`
 - `user://dyna_save_slot_2.json`
 - `user://dyna_save_slot_3.json`
 
+Independent preference files:
+
+- `user://audio_settings.cfg`
+- `user://display_settings.cfg`
+- `user://dyna_locale.cfg`
+
 Save ownership:
 
-- `save_system.gd` — base slot validation, temporary-write/backup safety, and reconstruction;
-- `save_system_with_flags.gd` — faction, player-flag, completion, and audio-related extensions;
-- `save_system_with_enemy.gd` — enemy energy, combat-reserve amount/capacity state, strategic/legacy enemy state, and match-end timing/result state.
+- `save_system.gd` — base slot validation, temporary-write/backup safety, level routing, and entity reconstruction;
+- `save_system_with_flags.gd` — faction/player-flag/completion extensions and shared in-game system-menu foundation;
+- `save_system_with_enemy.gd` — enemy energy/reserve/strategic compatibility, match-end state, and current in-game Settings presentation override.
 
 Loading order:
 
-1. validate the slot before changing the active scene;
-2. resolve the saved level id and activate its registered gameplay scene;
+1. validate the slot before replacing the active scene;
+2. resolve and activate the saved level;
 3. pause reconstruction;
 4. clear dynamic creature, egg, and grass nodes;
 5. restore DryGround deltas;
-6. restore grass and timer state;
-7. restore eggs and blockers;
-8. restore creatures and mutable stats from exact resource paths;
+6. restore grass/timers;
+7. restore eggs/blockers;
+8. restore creatures and mutable state from exact resource paths;
 9. preserve already spawned static faction bases;
 10. restore energies, camera, and simulation speed;
 11. reapply factions and player flag state;
-12. restore enemy strategic timing/legacy compatibility state, then restore combat-reserve capacity/amount against that clock;
-13. restore match-end elapsed time/result state after entity reconstruction;
-14. leave the legacy producer disabled and rebuild derived snapshots/objectives from runtime state.
+12. restore enemy strategic/legacy timing and combat-reserve state against that clock;
+13. restore match-end time/result after entity reconstruction;
+14. keep the legacy producer disabled and rebuild derived snapshots/objectives from runtime state.
 
-Rules:
+Save rules:
 
-- save writes must validate a temporary JSON before replacing the live slot and retain recoverable backup state;
-- autosave uses the same validated temporary-write/backup path in a separate file, runs every five simulation minutes only during an active unpaused match, and resets its timer after loading or starting a new session;
-- simulation speed advances the autosave cadence proportionally; loading, an open menu, zero time scale, or a finished match suspends it;
-- the startup and in-game load menus expose autosave separately and must never let it replace any manual slot;
-- the startup Continue button stays directly below New Game, ignores invalid candidates, and uses the same validated load paths rather than bypassing reconstruction;
-- the five-button startup main panel is centred 150 pixels below the viewport midpoint and displays `assets/ui/start_menu_frame.png` at a fixed 370x432 logical size; its centred 250x55 main buttons use 5-pixel separation, start 10 pixels higher than the previous layout, and retain safe side and bottom ornament clearance; startup button textures remain at 450x109 and startup-specific style resources scale each whole image into the control rather than nine-patching its centre; `canvas_items` stretch handles larger output resolutions; startup buttons/headings use Philosopher Bold and secondary labels use Philosopher Regular; translated in-game HUD/menu/result/creature UI follows the same Bold/Regular contract through `assets/ui/dyna_player_ui_theme.tres`, without applying it to F3-F8 developer overlays; hide the empty status row in the startup main state, but reveal it before showing Continue/load errors;
-- production buttons resolve normal to `dyna_button_normal.png`, hover/pressed/focus to `dyna_button_hover.png`, and disabled to `dyna_button_disabled.png` through shared `StyleBoxTexture` resources that scale the complete texture into each control; compact speed controls retain matching low-padding resources so integration never expands their 28-pixel width;
-- player-facing menus, save labels, nature/egg/flag controls, result UI, creature age, minimap tooltip, and compact HUD headers use `localization/ui.csv` through `TranslationServer`; supported locales are `ru`, `en`, `fr`, `de`, and `uk`, with `ru` as the first-run default and the selected locale stored separately in `user://dyna_locale.cfg`;
-- language selection is the first setting in both startup and in-game Settings and refreshes the open interface; F3-F8 overlays and internal diagnostics remain deliberately untranslated;
+- writes validate temporary JSON before replacing live files and retain recovery state;
+- autosave uses the same validated write path in its separate file;
+- autosave cadence uses simulation time and pauses with loading/menu/pause/finished match;
+- startup/in-game load UIs expose autosave separately and never replace manual slots;
 - invalid slots remain visible but cannot be loaded;
-- missing optional faction/flag/enemy/combat-reserve/match-end fields must not invalidate old saves;
-- empty manual entries show `Слот 1` through `Слот 3`; occupied manual entries omit the slot label and show only map plus timestamp in the form `М1 - ДД.ММ ЧЧ:ММ`, while the separate autosave uses `Автосохр. - М1 - ДД.ММ ЧЧ:ММ`;
-- save/load button text must shrink within its approved font-size range when necessary rather than expanding the fixed menu width;
-- occupied-entry map labels derive `М1`/`М2` from `level_id`; new saves store `saved_at_utc_offset_minutes` so their timestamp remains in the originating computer-local time, while old saves fall back to the current system UTC offset;
-- missing `level_id` defaults to level 1; an unavailable saved level must fail before scene replacement;
-- missing faction defaults to player; unknown non-empty faction becomes neutral;
-- static terrain and faction bases are not dynamic save entities;
-- temporary corpses, rain diagnostic contours, and base egg-launch projectiles are not saved;
-- enemy population snapshots and enemy rally-objective positions are derived and rebuilt;
-- returning to Main Menu must not delete slots and must allow a clean New Game;
-- changing map layout, schema, or persisted resource paths may require migration.
+- missing optional faction/flag/enemy/reserve/match-end fields remain backward compatible;
+- missing `level_id` falls back according to the existing compatibility path; unavailable levels must fail before scene replacement;
+- static terrain and faction bases are never dynamic save entities;
+- temporary corpses, diagnostic contours, base-launch projectiles, derived enemy snapshots, and enemy rally positions are not serialized;
+- display/audio/locale preference files are not gameplay save fields;
+- returning to Main Menu preserves slots and a subsequent New Game creates a clean session;
+- changing persisted schema/resource paths may require migration.
 
 ## Removed or obsolete paths
 
@@ -682,4 +510,4 @@ Do not reintroduce:
 - `res://data/species/predator.tres`;
 - `res://assets/sprites/creatures/predator/`.
 
-Trees are terrain. Species and factions are data/resource variants over shared scenes and systems.
+Trees are terrain. Species and factions are resource/data variants over shared scenes and systems.

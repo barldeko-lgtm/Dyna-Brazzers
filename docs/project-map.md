@@ -2,30 +2,31 @@
 
 This document is the repository path and ownership index.
 
-Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and cross-file rules belong in `docs/dependencies.md`. Tunable values should be read from their owning scripts/resources.
+Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and cross-file rules belong in `docs/dependencies.md`. Tunable values and current per-species animation coverage should be read from their owning scripts/resources.
 
 ## Project root
 
-- `project.godot` — Godot configuration, startup scene, and autoload registration.
+- `project.godot` — Godot configuration, startup scene, display defaults, translation registration, and autoload registration.
 - `default_bus_layout.tres` — shared audio-bus layout.
 - `AGENTS.md` — working rules for agents.
 - `docs/current-state.md` — implemented gameplay and player-visible behaviour.
 - `docs/project-map.md` — file, scene, resource, and asset ownership.
 - `docs/dependencies.md` — runtime flows, stable contracts, and refactor safety.
+- `docs/display-settings.md` — compatibility pointer only; display behaviour/ownership/contracts are canonical in the three documents above.
 - `docs/design_roadmap.md` — broader design roadmap; do not edit unless explicitly requested.
 
 ## Main scenes
 
 - `scenes/ui/start_screen.tscn` — startup menu, level selection, load slots, settings, and exit.
-- `scenes/main/main.tscn` — gameplay compositor with a dedicated world viewport, adaptive right-side HUD, camera, match flow, world, and debug overlays.
-- `scenes/ui/player_hud.tscn` — gameplay HUD, minimap, counters, nature-menu instance, and the two stretched right-panel texture layers.
+- `scenes/main/main.tscn` — gameplay compositor with dedicated world viewport, adaptive right-side HUD, camera, match flow, world, and debug overlays.
+- `scenes/ui/player_hud.tscn` — gameplay HUD, minimap, counters, nature-menu instance, and right-panel art.
 - `scenes/ui/creature_info_panel.tscn` — selected/hovered creature information.
 - `scenes/ui/nature_menu.tscn` — player energy, spells, time controls, and host area for runtime submenus.
 - `scenes/ui/game_result_overlay.tscn` — full-screen victory/defeat result presentation and main-menu action.
-- `scenes/world/world.tscn` — active authored world, terrain, DryGround, initial grass, creature/egg containers, and world grid.
+- `scenes/world/world.tscn` — active authored world, terrain, DryGround, initial grass, dynamic containers, markers, and world grid.
 - `scenes/world/player_base.tscn` — fixed player nature base.
 - `scenes/world/enemy_base.tscn` — fixed enemy base.
-- `scenes/resources/grass.tscn` — shared grass nodes and textures; timing is owned by `grass.gd`.
+- `scenes/resources/grass.tscn` — shared grass scene; lifecycle timing is owned by `grass.gd`.
 - `scenes/resources/egg.tscn` — shared egg scene.
 - `scenes/creatures/creature.tscn` — shared creature scene.
 - `scenes/debug/grid_debug_overlay.tscn` — F3 world diagnostics.
@@ -41,45 +42,45 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 
 - `scripts/main/main.gd` — gameplay viewport sizing, shared-world rendering, and render-layer isolation from the side panel.
 - `scripts/main/game_viewport_input_bridge.gd` — forwards unhandled game-area clicks to root-owned spell and flag targeting.
-- `scripts/world/world_grid.gd` — terrain queries, DryGround state, ground placement versus flight traversal, walkability, pathfinding, grass registry, footprints, blockers, creature occupancy, and movement reservations.
-- `scripts/world/start_map_world_grid.gd` — start-map bootstrap; creates both bases, enemy runtime controllers, enemy rally objectives, energy nodes, and world bounds.
+- `scripts/world/world_grid.gd` — terrain queries, DryGround state, placement/traversal, walkability, pathfinding, grass registry, blockers, occupancy, reservations, and footprint APIs.
+- `scripts/world/start_map_world_grid.gd` — selected-map bootstrap; creates bases, enemy runtime controllers, enemy rally objectives, energy nodes, and world bounds.
 - `scripts/world/start_map_layout.gd` — preserves authored level 1 and builds registered pixel-map levels before world-grid initialization.
-- `scripts/world/pixel_map_parser.gd` — exact-color map decoding and 2x2 base/tree marker validation.
-- `scripts/world/faction_base.gd` — shared base blocker, scaling, faction assignment, nearby egg placement, and direct startup of the faction-specific launch effect.
-- `scripts/world/player_base.gd` — player wrapper exposing `create_player_egg()`.
-- `scripts/world/enemy_base.gd` — enemy wrapper exposing `create_enemy_egg()`.
-- `scripts/world/nature_effects_system.gd` — successful lightning, rain, sun, and earthquake gameplay plus cast VFX/sounds. Rain uses a pre-cast grass snapshot.
+- `scripts/world/pixel_map_parser.gd` — exact-color map decoding and complete 2x2 base/tree marker validation.
+- `scripts/world/faction_base.gd` — shared base blocker, visuals/scaling, faction assignment, nearby egg placement, and base-egg launch startup.
+- `scripts/world/player_base.gd` — thin player wrapper exposing `create_player_egg()`.
+- `scripts/world/enemy_base.gd` — thin enemy wrapper exposing `create_enemy_egg()`.
+- `scripts/world/nature_effects_system.gd` — successful lightning, rain, sun, and earthquake gameplay plus VFX/sounds.
 - `scripts/camera/camera_controller.gd` — camera movement, zoom limits, save normalization, start position, and map clamping.
 
 ## Creature and resource scripts
 
-- `scripts/creatures/creature.gd` — creature FSM/survival coordinator, predator duel-victory rewards, and public facade.
-- `scripts/creatures/creature_species_data.gd` — biological species schema, including optional flight navigation capability.
+- `scripts/creatures/creature.gd` — creature FSM/survival coordinator, combat-victory rewards, and public facade.
+- `scripts/creatures/creature_species_data.gd` — biological species schema and optional navigation/visual/animation data.
 - `scripts/creatures/creature_faction.gd` — validated runtime ownership.
-- `scripts/creatures/behaviors/creature_movement_controller.gd` — queued routes, grid steps, reservations, indirect-order detour splicing, and delayed route shortening.
-- `scripts/creatures/behaviors/creature_grazing_logic.gd` — pasture cache, food candidate ranking, route search, and grazing target lifecycle.
-- `scripts/creatures/behaviors/creature_predator_logic.gd` — prey selection, active raptor protection of allied herbivores and egg eaters, existing-target intervention by attacker-role predators, approach routing, engagement, and combat handoff.
-- `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — edible-egg targeting and consumption.
+- `scripts/creatures/behaviors/creature_movement_controller.gd` — queued routes, grid steps, reservations, indirect-order rerouting, and route replacement.
+- `scripts/creatures/behaviors/creature_grazing_logic.gd` — pasture cache, food ranking, route search, and grazing target lifecycle.
+- `scripts/creatures/behaviors/creature_predator_logic.gd` — prey selection, protection/intervention rules, approach routing, engagement, and combat handoff.
+- `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — egg targeting, waiting, and consumption.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and natural egg spawning.
-- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional visuals, walk/eat/duel-attack animations, visual attack lunges, shadows, and optional transition/final death poses.
-- `scripts/creatures/behaviors/creature_interaction_controller.gd` — hover/selection visual and mouse bridge.
-- `scripts/combat/duel.gd` — one-on-one combat loop, single-intervention reservation, and post-hit fighter replacement handoff.
+- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional textures, optional walk/eat/attack animation playback, lunges, shadows, idle/death visuals, and fallbacks.
+- `scripts/creatures/behaviors/creature_interaction_controller.gd` — hover/selection world visual and mouse bridge.
+- `scripts/combat/duel.gd` — one-on-one combat loop, intervention reservation, fighter replacement, and damage timing.
 - `scripts/resources/grass.gd` — grass lifecycle, food value, spreading, registry sync, and nature-power reactions.
-- `scripts/resources/egg.gd` — egg lifecycle, optional base-landing gate, expansion/blocker state, hatching, and edible/destruction API.
+- `scripts/resources/egg.gd` — egg lifecycle, optional base-landing gate, expansion/blocker state, hatching, targeting, and destruction API.
 
 ## Catalogs, energy, enemy strategy, and match flow
 
 - `scripts/catalogs/player_species_catalog.gd` — ordered player roster, egg economy, player income, and flag presentation.
 - `scripts/catalogs/enemy_species_catalog.gd` — enemy resource roster and enemy economy values.
 - `scripts/player/player_energy.gd` — player reserve and income from eligible living player creatures.
-- `scripts/enemies/enemy_energy.gd` — ordinary enemy energy, gross income from eligible living enemy creatures, and threshold-based income splitting into the combat reserve.
+- `scripts/enemies/enemy_energy.gd` — ordinary enemy energy, gross creature income, and combat-reserve income split.
 - `scripts/enemies/enemy_egg_production_controller.gd` — disabled legacy producer retained only for save compatibility.
 - `scripts/enemies/enemy_ai_controller.gd` — periodic enemy population/satiety snapshot and egg-production decisions.
-- `scripts/enemies/enemy_spell_controller.gd` — single enemy-spell facade: subscribes to the strategic cadence, preserves spell priority, owns all spell tuning, combat reserve, save compatibility, runtime references, and merged public F5/F8 data.
-- `scripts/enemies/spells/enemy_lightning_spell.gd` — lightning target scanning, egg-eater/tyrannosaurus plan selection, delayed double strike, execution, and spell-specific diagnostics.
-- `scripts/enemies/spells/enemy_earthquake_spell.gd` — profitable player-egg zone search, deterministic ranking/revalidation, execution, and spell-specific diagnostics.
-- `scripts/enemies/spells/enemy_rain_spell.gd` — emergency-rain payment orchestration, ecological target scoring, world-space diagnostic contours, performance counters, and spell-specific diagnostics.
-- `scripts/gameplay/game_end_controller.gd` — simulation-time grace period, faction population checks, victory/defeat transition, duration tracking, and save API.
+- `scripts/enemies/enemy_spell_controller.gd` — strategic spell facade, spell priority/tuning, combat reserve, save compatibility, runtime references, and merged diagnostics.
+- `scripts/enemies/spells/enemy_lightning_spell.gd` — lightning plan selection, target validation, delayed double strike, execution, and diagnostics.
+- `scripts/enemies/spells/enemy_earthquake_spell.gd` — profitable player-egg zone search, ranking/revalidation, execution, and diagnostics.
+- `scripts/enemies/spells/enemy_rain_spell.gd` — rain payment orchestration, ecological target scoring, diagnostic contours, and performance data.
+- `scripts/gameplay/game_end_controller.gd` — grace period, faction population checks, victory/defeat transition, duration tracking, and save API.
 
 ## Flag systems
 
@@ -90,7 +91,7 @@ Player flags:
 - `scripts/flags/player_flag_ui_controller.gd` — menu, input, preview, and status text.
 - `scripts/flags/player_flag_assignment_service.gd` — eligibility, batching, commitments, retries, completion, and route application.
 - `scripts/flags/player_flag_target_allocator.gd` — destination candidates, pasture preference, reservations, and retry rotation.
-- `scripts/flags/player_flag_visual.gd` — world-space flag and area drawing.
+- `scripts/flags/player_flag_visual.gd` — world-space flag/area drawing.
 - `scripts/flags/raptor_guard_policy.gd` — shared player/enemy raptor leash rules.
 
 Enemy objectives:
@@ -99,11 +100,13 @@ Enemy objectives:
 - `scripts/flags/enemy_flag_assignment_service.gd` — enemy faction/resource eligibility and persistent-rally semantics.
 - `scripts/flags/enemy_flag_visual.gd` — player-base attack objective and enemy-base raptor guard drawing.
 
-## UI, audio, save, and debug scripts
+## UI, settings, localization, audio, save, and debug
 
-- `scripts/ui/start_screen.gd` — startup UI, level selection, slot loading, settings, and immediate locale refresh.
-- `scripts/localization/localization_manager.gd` — supported locale list, Russian first-run default, `TranslationServer` switching, and `user://dyna_locale.cfg` persistence.
-- `localization/ui.csv` — player-facing `ru`, `en`, `fr`, `de`, and `uk` translation catalog; F3-F8/debug diagnostics are intentionally excluded.
+- `scripts/ui/start_screen.gd` — startup UI, level selection, slot loading, base settings UI, and locale refresh.
+- `scripts/settings/display_settings.gd` — single runtime owner of display mode, supported window resolution, 16:9 scaling contract, display persistence, and startup Settings/Load layout normalization.
+- `scripts/localization/localization_manager.gd` — supported locale list, Russian first-run default, `TranslationServer` switching, and locale persistence.
+- `localization/ui.csv` — general player-facing translations for `ru`, `en`, `fr`, `de`, and `uk`.
+- `localization/display_settings.csv` — display-mode/resolution translations for the same five locales.
 - `scripts/ui/player_ui.gd` — minimap, counters, base focus, time controls, and egg-controller bootstrap.
 - `scripts/ui/creature_stats_ui.gd` — creature information, selection state, and lightning-target bridge.
 - `scripts/ui/player_egg_creation_ui.gd` — player egg submenu and purchases.
@@ -113,15 +116,17 @@ Enemy objectives:
 - `scripts/debug/grid_debug_overlay.gd` — F3 terrain/occupancy/path/flag diagnostics.
 - `scripts/debug/enemy_ai_debug_overlay.gd` — read-only F5 enemy strategy/spell panel.
 - `scripts/debug/performance_stats.gd` — runtime counters and F8 CSV recording.
-- `scripts/audio/audio_manager.gd` — global music, one-shot sounds, UI clicks, bus setup, fades, and settings.
-- `scripts/save/save_system.gd` — level routing, base slot persistence, and reconstruction.
-- `scripts/save/save_system_with_flags.gd` — faction, player-flag, completion, and audio-setting extensions.
-- `scripts/save/save_system_with_enemy.gd` — active final save layer for enemy energy, combat-reserve amount/capacity, strategic timing/legacy state, match-end state, and result-to-main-menu bridge.
+- `scripts/audio/audio_manager.gd` — global music, one-shot sounds, UI clicks, bus setup, fades, and audio settings.
+- `scripts/save/save_system.gd` — level routing, base slot persistence, validated writes, and reconstruction.
+- `scripts/save/save_system_with_flags.gd` — faction/player-flag save extensions plus the shared in-game system-menu foundation and legacy language/audio settings page.
+- `scripts/save/save_system_with_enemy.gd` — active final save layer for enemy/match state; currently also overrides the in-game Settings page presentation so it can expose language, display, resolution, music, and sound while delegating actual state to the global managers.
 - `scripts/effects/` — target previews and one-shot effect playback, including the base egg-launch projectile.
+
+The in-game Settings UI currently living in `save_system_with_enemy.gd` is an implementation-placement detail, not ownership of display/audio/locale state. `DisplaySettings`, `AudioManager`, and `LocalizationManager` remain the respective state owners.
 
 ## Data resources
 
-Player species:
+Player species resources:
 
 - `data/species/stegosaurus.tres`
 - `data/species/triceratops.tres`
@@ -141,56 +146,51 @@ Enemy variants:
 
 Enemy and player variants share biological `species_id` values but use distinct resource paths and runtime faction ids.
 
+Animation resources live under `data/animations/`. Do not maintain a per-species animation inventory in this document: each species `.tres` is the source of truth for which optional idle/walk/eat/attack/death data it currently references.
+
 ## Important assets
 
-Terrain:
+Terrain and map input:
 
 - `assets/maps/start_map_layout.png` — map-layout reference, not runtime terrain input.
-- `assets/maps/level_2_map.png` — exact-color 90x60 runtime layout for level 2.
+- `assets/maps/level_2_map.png` — exact-color runtime layout for level 2.
 - `assets/sprites/terrain/ground.png`
 - `assets/sprites/terrain/water_tiles_independent.png`
 - `assets/sprites/terrain/mountain_tiles_independent.png`
 - `assets/sprites/terrain/tree_tiles_independent.png`
 - `assets/sprites/terrain/grass_stage_1.png` ... `grass_stage_4.png`
-- `assets/sprites/terrain/dry_ground/dry_ground_01.png` ... `dry_ground_03.png`
-
-Stable terrain source ids in `world.tscn`:
-
-- `0` — ground;
-- `1` — water;
-- `2` — mountain;
-- `3` — tree.
+- `assets/sprites/terrain/dry_ground/`
 
 World/UI:
 
 - `assets/sprites/world/player_base.png`
 - `assets/sprites/world/enemy_base.png`
 - `assets/ui/start_screen_background.png`
-- `assets/ui/start_menu_frame.png` — transparent 720x840 startup menu frame, displayed at a fixed 370x432 UI size.
-- `assets/fonts/philosopher/Philosopher-Regular.ttf` and `Philosopher-Bold.ttf` — OFL-licensed player-facing UI fonts; license text lives beside them.
-- `assets/ui/buttons/` — supplied normal, hover, and disabled stone-frame button textures plus reusable regular/compact resources and startup-specific whole-image `StyleBoxTexture` resources.
-- `assets/ui/dyna_player_ui_theme.tres` — shared Philosopher and textured-button theme for translated in-game HUD, menus, creature information, and result UI; debug overlays are intentionally excluded.
-- `assets/ui/right_panel_top.png` — supplied 631x822 whole-image background for the minimap and creature-counter portion of the right HUD.
-- `assets/ui/right_panel_bottom.png` — supplied 637x723 whole-image background for the nature/menu portion of the right HUD.
+- `assets/ui/start_menu_frame.png`
+- `assets/ui/buttons/`
+- `assets/ui/dyna_player_ui_theme.tres`
+- `assets/ui/right_panel_top.png`
+- `assets/ui/right_panel_bottom.png`
 - `assets/ui/creature_selection_frame.png`
 - `assets/sprites/effects/rain/`
-- `assets/sprites/effects/base_egg_launch/player_base_egg.png` and `enemy_base_egg.png` — faction-specific visual projectiles used only during base-created egg flight.
+- `assets/sprites/effects/base_egg_launch/player_base_egg.png`
+- `assets/sprites/effects/base_egg_launch/enemy_base_egg.png`
+
+Player creature visuals live under `assets/sprites/creatures/<species>/`.
+Enemy creature visuals live under `assets/sprites/creatures/enemy/<species>/`.
+Generic egg fallbacks live under `assets/sprites/eggs/`; resource-selected custom stage textures normally stay with their species visuals.
 
 Audio:
 
 - `assets/audio/music/gameplay_theme.mp3`
-- `assets/audio/music/start_menu_theme.mp3` — looping startup-screen soundtrack routed through the Music bus.
+- `assets/audio/music/start_menu_theme.mp3`
 - `assets/audio/sfx/lightning_strike.wav`
 - `assets/audio/sfx/rain_cast.wav`
 - `assets/audio/sfx/sun_cast.wav`
 - `assets/audio/sfx/earthquake_cast.wav`
 - `assets/audio/ui/button_click.wav`
 
-Player creature visuals live under `assets/sprites/creatures/<species>/`; species animation resources live under `data/animations/`, including the current player stegosaurus, tyrannosaurus, raptor, and egg-eater attack frames plus the enemy stegosaurus, triceratops, tyrannosaurus, and raptor attack frames.
-Enemy visuals live under `assets/sprites/creatures/enemy/<species>/`; their `.tres` resources select faction-specific directional and egg textures.
-Generic egg fallback textures live under `assets/sprites/eggs/`; species-specific stage textures stay beside that species' player visuals.
-
-## Save files
+## Persistent user files
 
 Gameplay slots:
 
@@ -199,9 +199,11 @@ Gameplay slots:
 - `user://dyna_save_slot_2.json`
 - `user://dyna_save_slot_3.json`
 
-Audio settings:
+Independent preferences:
 
 - `user://audio_settings.cfg`
+- `user://display_settings.cfg`
+- `user://dyna_locale.cfg`
 
 On Windows, `user://` normally resolves under `%APPDATA%/Godot/app_userdata/Dyna/`.
 
