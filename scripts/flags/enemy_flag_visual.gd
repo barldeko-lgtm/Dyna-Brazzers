@@ -16,6 +16,12 @@ func _ready() -> void:
 	z_index = 4
 
 
+func _draw_flag(
+	center: Vector2, tile_size: Vector2i, species_id: StringName, base_color: Color, is_preview: bool
+) -> void:
+	_draw_procedural_flag(center, tile_size, species_id, base_color, is_preview)
+
+
 func _draw() -> void:
 	if world_grid == null or not is_instance_valid(world_grid):
 		return

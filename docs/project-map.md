@@ -175,6 +175,7 @@ World/UI:
 - `assets/sprites/effects/rain/`
 - `assets/sprites/effects/base_egg_launch/player_base_egg.png`
 - `assets/sprites/effects/base_egg_launch/enemy_base_egg.png`
+- `assets/sprites/flags/player/` — species-specific player flag art displayed at runtime at 120×120.
 
 Player creature visuals live under `assets/sprites/creatures/<species>/`.
 Enemy creature visuals live under `assets/sprites/creatures/enemy/<species>/`.

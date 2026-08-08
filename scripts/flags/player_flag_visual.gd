@@ -6,6 +6,15 @@ extends Node2D
 const FLAG_AREA_SIZE := Vector2i(11, 11)
 const RAPTOR_GUARD_AREA_SIZE := Vector2i(17, 17)
 const DEFAULT_TILE_SIZE := Vector2i(128, 128)
+const FLAG_DISPLAY_SIZE := Vector2(120.0, 120.0)
+const FLAG_TEXTURES := {
+	&"stegosaurus": preload("res://assets/sprites/flags/player/stegosaurus.png"),
+	&"triceratops": preload("res://assets/sprites/flags/player/triceratops.png"),
+	&"tyrannosaurus": preload("res://assets/sprites/flags/player/tyrannosaurus.png"),
+	&"raptor": preload("res://assets/sprites/flags/player/raptor.png"),
+	&"pterodactyl": preload("res://assets/sprites/flags/player/pterodactyl.png"),
+	&"egg_eater": preload("res://assets/sprites/flags/player/egg_eater.png")
+}
 
 var world_grid: Node = null
 var flags: Dictionary = {}
@@ -95,6 +104,21 @@ func get_flag_area_size(species_id: StringName) -> Vector2i:
 
 
 func _draw_flag(
+	center: Vector2, tile_size: Vector2i, species_id: StringName, base_color: Color, is_preview: bool
+) -> void:
+	var texture_variant: Variant = FLAG_TEXTURES.get(species_id)
+
+	if texture_variant is Texture2D:
+		var flag_texture := texture_variant as Texture2D
+		var flag_rect := Rect2(center - FLAG_DISPLAY_SIZE * 0.5, FLAG_DISPLAY_SIZE)
+		var alpha := 0.55 if is_preview else 1.0
+		draw_texture_rect(flag_texture, flag_rect, false, Color(1.0, 1.0, 1.0, alpha))
+		return
+
+	_draw_procedural_flag(center, tile_size, species_id, base_color, is_preview)
+
+
+func _draw_procedural_flag(
 	center: Vector2, tile_size: Vector2i, species_id: StringName, base_color: Color, is_preview: bool
 ) -> void:
 	var alpha := 0.55 if is_preview else 1.0
