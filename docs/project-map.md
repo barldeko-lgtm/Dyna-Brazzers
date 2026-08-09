@@ -17,11 +17,12 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 
 ## Main scenes
 
-- `scenes/ui/start_screen.tscn` — startup menu, level selection, load slots, settings, and exit.
+- `scenes/ui/start_screen.tscn` — startup menu, level selection, tutorial-choice prompt, load slots, settings, and exit.
 - `scenes/main/main.tscn` — gameplay compositor with dedicated world viewport, adaptive right-side HUD, camera, match flow, world, and debug overlays.
 - `scenes/ui/player_hud.tscn` — gameplay HUD, minimap, counters, nature-menu instance, and right-panel art.
 - `scenes/ui/creature_info_panel.tscn` — selected/hovered creature information.
 - `scenes/ui/nature_menu.tscn` — player energy, spells, time controls, and host area for runtime submenus.
+- `scenes/ui/tutorial_overlay.tscn` — shared dimmed tutorial presentation and per-step input blockers for the current ten-step flow.
 - `scenes/ui/game_result_overlay.tscn` — full-screen victory/defeat result presentation and main-menu action.
 - `scenes/world/world.tscn` — active authored world, terrain, DryGround, initial grass, dynamic containers, markers, and world grid.
 - `scenes/world/player_base.tscn` — fixed player nature base.
@@ -40,9 +41,9 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 
 ## World and camera scripts
 
-- `scripts/main/main.gd` — gameplay viewport sizing, shared-world rendering, and render-layer isolation from the side panel.
-- `scripts/main/game_viewport_input_bridge.gd` — forwards unhandled game-area clicks to root-owned spell and flag targeting.
-- `scripts/world/world_grid.gd` — terrain queries, DryGround state, placement/traversal, walkability, pathfinding, grass registry, blockers, occupancy, reservations, and footprint APIs.
+- `scripts/main/main.gd` — gameplay viewport sizing, shared-world rendering, render-layer isolation, root game-viewport bounds, and world-to-root rectangle projection for runtime tutorial targets.
+- `scripts/main/game_viewport_input_bridge.gd` — forwards game-subviewport motion/click coordinates to root-owned spell and flag targeting.
+- `scripts/world/world_grid.gd` — terrain queries, DryGround state, placement/traversal, walkability, pathfinding, grass registry, tile-region geometry, blockers, occupancy, reservations, and footprint APIs.
 - `scripts/world/start_map_world_grid.gd` — selected-map bootstrap; creates bases, enemy runtime controllers, enemy rally objectives, energy nodes, and world bounds.
 - `scripts/world/start_map_layout.gd` — preserves authored level 1 and builds registered pixel-map levels before world-grid initialization.
 - `scripts/world/pixel_map_parser.gd` — exact-color map decoding and complete 2x2 base/tree marker validation.
@@ -66,7 +67,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/creatures/behaviors/creature_interaction_controller.gd` — hover/selection world visual and mouse bridge.
 - `scripts/combat/duel.gd` — one-on-one combat loop, intervention reservation, fighter replacement, and damage timing.
 - `scripts/resources/grass.gd` — grass lifecycle, food value, spreading, registry sync, and nature-power reactions.
-- `scripts/resources/egg.gd` — egg lifecycle, optional base-landing gate, expansion/blocker state, hatching, targeting, and destruction API.
+- `scripts/resources/egg.gd` — egg lifecycle, optional base-landing gate, expansion/blocker state, registered-creature hatch signal, visual world bounds, targeting, and destruction API.
 
 ## Catalogs, energy, enemy strategy, and match flow
 
@@ -86,9 +87,9 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 
 Player flags:
 
-- `scripts/flags/player_flag_system.gd` — facade, placed data, scene attachment, and save/debug API.
+- `scripts/flags/player_flag_system.gd` — facade, placed data, scene attachment, species-button lookup, confirmed targeting/placement signals, and save/debug API.
 - `scripts/flags/player_flag_system_with_catalog.gd` — active catalog-backed autoload and placement revisions.
-- `scripts/flags/player_flag_ui_controller.gd` — menu, input, preview, and status text.
+- `scripts/flags/player_flag_ui_controller.gd` — menu, stable species-button registry, root/subviewport input conversion, preview, placement confirmation, and status text.
 - `scripts/flags/player_flag_assignment_service.gd` — eligibility, batching, commitments, retries, completion, and route application.
 - `scripts/flags/player_flag_target_allocator.gd` — destination candidates, pasture preference, reservations, and retry rotation.
 - `scripts/flags/player_flag_visual.gd` — world-space flag/area drawing.
@@ -103,14 +104,17 @@ Enemy objectives:
 ## UI, settings, localization, audio, save, and debug
 
 - `scripts/ui/start_screen.gd` — startup UI, level selection, slot loading, base settings UI, and locale refresh.
+- `scripts/tutorial/tutorial_manager.gd` — cross-scene tutorial start/active state and match-clock suspension policy.
+- `scripts/tutorial/tutorial_controller.gd` — gameplay tutorial lifecycle, localization, dynamic layouts, HUD/world target resolution, selective input gates, confirmed egg/hatch/rain/flag progression, completion handoff, Next, Skip, and pause ownership.
+- `scripts/tutorial/tutorial_spotlight.gd` — multi-rectangle dim mask and highlight outlines; the controller pairs it with full or one-control input gating per step.
 - `scripts/settings/display_settings.gd` — single runtime owner of display mode, supported window resolution, 16:9 scaling contract, display persistence, and startup Settings/Load layout normalization.
 - `scripts/localization/localization_manager.gd` — supported locale list, Russian first-run default, `TranslationServer` switching, and locale persistence.
 - `localization/ui.csv` — general player-facing translations for `ru`, `en`, `fr`, `de`, and `uk`.
 - `localization/display_settings.csv` — display-mode/resolution translations for the same five locales.
-- `scripts/ui/player_ui.gd` — minimap, counters, base focus, time controls, and egg-controller bootstrap.
+- `scripts/ui/player_ui.gd` — minimap, counters, base focus, time controls, egg-controller bootstrap, and stable tutorial access to minimap/counter controls.
 - `scripts/ui/creature_stats_ui.gd` — creature information, selection state, and lightning-target bridge.
-- `scripts/ui/player_egg_creation_ui.gd` — player egg submenu and purchases.
-- `scripts/ui/player_nature_ui.gd` — spell buttons, targeting/previews, named menu controls, and stable nested-UI access API.
+- `scripts/ui/player_egg_creation_ui.gd` — player egg submenu, purchases, post-payment success signal, automatic return action, and stable species-button lookup for tutorial targeting.
+- `scripts/ui/player_nature_ui.gd` — spell buttons, targeting/previews, confirmed rain signal, named egg/spell/flag/system controls, and stable tutorial APIs including rain-button lookup and preview alignment.
 - `scripts/ui/game_result_overlay.gd` — victory/defeat presentation and `main_menu_requested` signal.
 - `scripts/ui/debug_status_ui.gd` — compact FPS/status line and F4 text diagnostics.
 - `scripts/debug/grid_debug_overlay.gd` — F3 terrain/occupancy/path/flag diagnostics.
@@ -167,6 +171,7 @@ World/UI:
 - `assets/sprites/world/enemy_base.png`
 - `assets/ui/start_screen_background.png`
 - `assets/ui/start_menu_frame.png`
+- `assets/ui/tutorial/` — startup tutorial-choice and in-match tutorial-step panel art.
 - `assets/ui/buttons/`
 - `assets/ui/dyna_player_ui_theme.tres`
 - `assets/ui/right_panel_top.png`

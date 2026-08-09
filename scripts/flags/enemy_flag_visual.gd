@@ -1,7 +1,6 @@
 extends "res://scripts/flags/player_flag_visual.gd"
 
 # Attack flags share the player base objective; the raptor guards the enemy base.
-const ENEMY_FLAG_AREA_SIZE := Vector2i(11, 11)
 const DISPLAY_ORDER: Array[StringName] = [
 	&"tyrannosaurus",
 	&"pterodactyl",
@@ -14,6 +13,7 @@ const INVALID_ANCHOR := Vector2i(2147483647, 2147483647)
 func _ready() -> void:
 	super._ready()
 	z_index = 4
+	visible = false
 
 
 func _draw_flag(
@@ -44,7 +44,6 @@ func _draw() -> void:
 
 func _draw_attack_objective(flag_tile: Vector2i) -> void:
 	var tile_size := _get_tile_size()
-	_draw_enemy_area(flag_tile, tile_size)
 	var flag_center_world: Vector2 = world_grid.call("map_to_world_center", flag_tile)
 	var flag_center := to_local(flag_center_world)
 	var visible_species: Array[StringName] = []
@@ -87,30 +86,3 @@ func _get_shared_flag_tile() -> Vector2i:
 func get_raptor_flag_tile() -> Vector2i:
 	var tile_variant: Variant = flags.get(RAPTOR_ID, INVALID_ANCHOR)
 	return tile_variant if tile_variant is Vector2i else INVALID_ANCHOR
-
-
-func _draw_enemy_area(flag_tile: Vector2i, tile_size: Vector2i) -> void:
-	var area_min := flag_tile - Vector2i(
-		ENEMY_FLAG_AREA_SIZE.x / 2,
-		ENEMY_FLAG_AREA_SIZE.y / 2
-	)
-	var area_min_world: Vector2 = world_grid.call("map_to_world_center", area_min)
-	var top_left_world := area_min_world - Vector2(tile_size) * 0.5
-	var area_pixel_size := Vector2(
-		float(ENEMY_FLAG_AREA_SIZE.x * tile_size.x),
-		float(ENEMY_FLAG_AREA_SIZE.y * tile_size.y)
-	)
-	var area_rect := Rect2(to_local(top_left_world), area_pixel_size)
-	var enemy_area_color := Color(0.72, 0.12, 0.18, 1.0)
-
-	draw_rect(
-		area_rect,
-		Color(enemy_area_color.r, enemy_area_color.g, enemy_area_color.b, 0.035),
-		true
-	)
-	draw_rect(
-		area_rect,
-		Color(enemy_area_color.r, enemy_area_color.g, enemy_area_color.b, 0.48),
-		false,
-		3.0
-	)

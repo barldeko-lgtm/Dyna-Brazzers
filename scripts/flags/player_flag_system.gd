@@ -1,5 +1,8 @@
 extends Node
 
+signal flag_targeting_started(species_id: StringName)
+signal flag_placed(species_id: StringName, tile: Vector2i)
+
 # Stable facade for player species flags. UI targeting and route assignment live
 # in dedicated helpers; this node owns scene attachment, placed flag data,
 # public save/debug entry points, and world-visual synchronization.
@@ -71,6 +74,12 @@ func handle_game_viewport_input(event: InputEvent) -> bool:
 		return false
 
 	return bool(ui_controller.call("handle_unhandled_input", event))
+
+
+func handle_game_subviewport_input(event: InputEvent) -> bool:
+	if ui_controller == null:
+		return false
+	return bool(ui_controller.call("handle_game_subviewport_input", event))
 
 
 func _refresh_scene_attachment() -> void:
@@ -229,6 +238,18 @@ func get_species_flag_at_tile(tile: Vector2i) -> StringName:
 
 func get_flag_count() -> int:
 	return flags.size()
+
+
+func get_species_flag_button(species_id: StringName) -> Button:
+	return ui_controller.call("get_species_button", species_id) as Button if ui_controller != null else null
+
+
+func notify_flag_targeting_started(species_id: StringName) -> void:
+	flag_targeting_started.emit(species_id)
+
+
+func notify_flag_placed(species_id: StringName, tile: Vector2i) -> void:
+	flag_placed.emit(species_id, tile)
 
 
 func get_flag_tile(species_id: StringName) -> Vector2i:

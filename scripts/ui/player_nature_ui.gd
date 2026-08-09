@@ -1,12 +1,16 @@
 extends PanelContainer
 
+signal rain_applied(center_tile: Vector2i)
+
 const RAIN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/rain_target_preview.tscn"
 const SUN_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/sun_target_preview.tscn"
 const EARTHQUAKE_TARGET_PREVIEW_SCENE_PATH := "res://scenes/effects/earthquake_target_preview.tscn"
 
 const MENU_EGGS := &"eggs"
+const MENU_SPELLS := &"spells"
 const MENU_FLAGS := &"flags"
 const MENU_SYSTEM := &"system"
+const SPELL_RAIN := &"rain"
 
 # Player-facing nature powers HUD and stable access point for its nested menus.
 @export var lightning_energy_cost := 1000.0
@@ -15,6 +19,8 @@ const MENU_SYSTEM := &"system"
 @export var earthquake_energy_cost := 1700.0
 
 @onready var energy_value_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EnergyValueLabel")
+@onready var energy_icon: TextureRect = get_node_or_null("MarginContainer/VBoxContainer/EnergyIcon") as TextureRect
+@onready var time_controls_panel: PanelContainer = get_node_or_null("MarginContainer/VBoxContainer/TimeControlsPanel") as PanelContainer
 @onready var lightning_button: Button = get_node_or_null("MarginContainer/VBoxContainer/LightningButton")
 @onready var rain_button: Button = get_node_or_null("MarginContainer/VBoxContainer/RainButton")
 @onready var sun_button: Button = get_node_or_null("MarginContainer/VBoxContainer/SunButton")
@@ -22,6 +28,7 @@ const MENU_SYSTEM := &"system"
 @onready var menu_content_root: Control = get_node_or_null("MarginContainer/VBoxContainer") as Control
 @onready var main_menu_grid: GridContainer = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid") as GridContainer
 @onready var egg_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/EggMenuButton") as Button
+@onready var spell_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/SpellMenuButton") as Button
 @onready var flag_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/FlagMenuButton") as Button
 @onready var system_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/SystemMenuButton") as Button
 @onready var time_speed_buttons: Array[Button] = [
@@ -37,6 +44,8 @@ var rain_targeting_enabled := false
 var sun_targeting_enabled := false
 var earthquake_targeting_enabled := false
 var rain_target_preview: Node2D = null
+var rain_preview_tile_override_enabled := false
+var rain_preview_tile_override := Vector2i.ZERO
 var sun_target_preview: Node2D = null
 var earthquake_target_preview: Node2D = null
 
@@ -80,6 +89,8 @@ func get_menu_button(menu_id: StringName) -> Button:
 	match menu_id:
 		MENU_EGGS:
 			return egg_menu_button
+		MENU_SPELLS:
+			return spell_menu_button
 		MENU_FLAGS:
 			return flag_menu_button
 		MENU_SYSTEM:
@@ -88,8 +99,39 @@ func get_menu_button(menu_id: StringName) -> Button:
 	return null
 
 
+func get_spell_button(spell_id: StringName) -> Button:
+	match spell_id:
+		SPELL_RAIN:
+			return rain_button
+	return null
+
+
+func return_spell_menu_to_main() -> void:
+	if spell_menu_button != null and spell_menu_button.has_method("return_to_main_menu"):
+		spell_menu_button.call("return_to_main_menu")
+
+
+func set_rain_preview_tile_override(tile: Vector2i) -> void:
+	rain_preview_tile_override = tile
+	rain_preview_tile_override_enabled = true
+	_update_rain_target_preview()
+
+
 func get_time_speed_buttons() -> Array[Button]:
 	return time_speed_buttons
+
+
+func get_tutorial_energy_controls() -> Array[Control]:
+	var controls: Array[Control] = []
+	if energy_icon != null:
+		controls.append(energy_icon)
+	if energy_value_label != null:
+		controls.append(energy_value_label)
+	return controls
+
+
+func get_tutorial_time_controls() -> Control:
+	return time_controls_panel
 
 
 func setup_lightning_button() -> void:
@@ -292,6 +334,7 @@ func cancel_lightning_targeting() -> void:
 
 func cancel_rain_targeting() -> void:
 	rain_targeting_enabled = false
+	rain_preview_tile_override_enabled = false
 
 	if rain_button != null and rain_button.button_pressed:
 		rain_button.set_pressed_no_signal(false)
@@ -445,6 +488,10 @@ func _refresh_localized_text() -> void:
 
 
 func _try_apply_rain_at_mouse() -> bool:
+	return _try_apply_rain_at_world_position(_get_world_mouse_position())
+
+
+func _try_apply_rain_at_world_position(world_position: Vector2) -> bool:
 	if not rain_targeting_enabled:
 		return false
 
@@ -454,7 +501,7 @@ func _try_apply_rain_at_mouse() -> bool:
 	if world_grid == null or nature_effects == null:
 		return false
 
-	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
+	var center_tile: Vector2i = world_grid.call("world_to_map_tile", world_position)
 
 	if not nature_effects.has_method("can_apply_rain") or not bool(
 		nature_effects.call("can_apply_rain", center_tile)
@@ -468,6 +515,8 @@ func _try_apply_rain_at_mouse() -> bool:
 	if not bool(nature_effects.call("apply_rain", center_tile)):
 		add_energy(rain_energy_cost)
 		return false
+
+	rain_applied.emit(center_tile)
 
 	if not can_spend_energy(rain_energy_cost):
 		cancel_rain_targeting()
@@ -625,7 +674,9 @@ func _update_rain_target_preview() -> void:
 	if rain_target_preview == null or not is_instance_valid(rain_target_preview):
 		return
 
-	var center_tile: Vector2i = world_grid.call("world_to_map_tile", _get_world_mouse_position())
+	var center_tile := rain_preview_tile_override
+	if not rain_preview_tile_override_enabled:
+		center_tile = world_grid.call("world_to_map_tile", _get_world_mouse_position())
 	var nature_effects := _get_nature_effects_system()
 	var valid_target := nature_effects != null and nature_effects.has_method("can_apply_rain") and bool(
 		nature_effects.call("can_apply_rain", center_tile)
@@ -821,3 +872,29 @@ func handle_game_viewport_input(event: InputEvent) -> bool:
 		return _try_apply_earthquake_at_mouse()
 
 	return false
+
+
+func handle_game_subviewport_input(event: InputEvent) -> bool:
+	if event is InputEventMouseMotion and rain_targeting_enabled:
+		var motion_camera := get_tree().get_first_node_in_group("game_camera") as Camera2D
+		var motion_world_grid := _get_world_grid()
+		if motion_camera != null and motion_camera.has_method("game_screen_to_world") and motion_world_grid != null:
+			var motion_world_position: Vector2 = motion_camera.call("game_screen_to_world", event.position)
+			rain_preview_tile_override = motion_world_grid.call("world_to_map_tile", motion_world_position)
+			rain_preview_tile_override_enabled = true
+			_update_rain_target_preview()
+		return false
+	if not (event is InputEventMouseButton):
+		return false
+	if not is_targeting_enabled():
+		return false
+	if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+		cancel_all_targeting()
+		return true
+	if rain_targeting_enabled and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		var camera := get_tree().get_first_node_in_group("game_camera") as Camera2D
+		if camera == null or not camera.has_method("game_screen_to_world"):
+			return false
+		var world_position: Vector2 = camera.call("game_screen_to_world", event.position)
+		return _try_apply_rain_at_world_position(world_position)
+	return handle_game_viewport_input(event)

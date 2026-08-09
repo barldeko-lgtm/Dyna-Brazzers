@@ -169,7 +169,7 @@ Faction inheritance rules:
 - enemy-base eggs are assigned `enemy`;
 - hatchlings inherit the egg faction.
 
-Both bases use the shared `FactionBase` foundation. Each is a fixed 2x2 blocker, rejects grass on its footprint, uses common nearby egg-placement plumbing, and is static world setup rather than a dynamic save entity.
+Both bases use the shared `FactionBase` foundation. Each is a fixed 2x2 blocker, rejects grass on its footprint, uses common nearby egg-placement plumbing, and is static world setup rather than a dynamic save entity. Bases are not destructible and never become health-based match objectives.
 
 Base purchases use a two-part launch presentation:
 
@@ -309,7 +309,7 @@ Audio settings are stored independently from gameplay save slots.
 
 `project.godot` starts `scenes/ui/start_screen.tscn`.
 
-The startup screen provides New Game, Continue, Load, Settings, and Exit. New Game exposes the registered level list; currently available levels and disabled placeholders are defined by the startup implementation. Continue loads the newest valid candidate across autosave and manual slots.
+The startup screen provides New Game, Continue, Load, Settings, and Exit. New Game exposes the registered level list; after choosing an available level, a localized prompt asks whether to play the tutorial. No starts the selected level normally. Yes starts the same level with localized tutorial steps while simulation and the opening match clock are suspended. All tutorial body copy uses a fixed 20 px font; each frame layout is sized to its content rather than shrinking text. Step 1 uses a centered framed introduction over a 60%-opaque dim layer to explain the autonomous ecosystem, indirect influence, and match objective. Step 2 moves a smaller frame left and opens four visual-only spotlight areas over the inactive right HUD: minimap, creature counters, energy, and x1/x2/x3 simulation speed. Step 3 leaves only the real egg-menu button interactive; pressing it opens the ordinary egg submenu and advances the tutorial. Step 4 leaves only the real Stegosaurus egg button interactive and advances only after `PlayerEggCreationUI` confirms that the egg was created and paid for. Step 5 automatically returns the egg submenu to the ordinary main nature menu, raises a smaller frame clear of the runtime egg, resumes simulation at x1, spotlights the tracked egg, and permits only x1/x2/x3 input while the opening match clock remains suspended. The real egg hatch signal pauses simulation again and opens step 6, which explains spells and leaves only the real spell-menu button interactive. Its real click opens the ordinary spell menu and advances to step 7, which explains rain and leaves only the real rain button interactive. Selecting rain advances to step 8, automatically presses the ordinary spell-menu Back action, places a 20 px instruction frame above the world, and aligns the existing rain preview with a visible valid 5×5 area whose center tile contains grass. The whole 5×5 area is lit, the center tile is outlined separately, and world input is permitted throughout the area so the ordinary 5×5 rain preview follows the player's cursor. A successful real cast on any valid tile inside the allowed area emits `PlayerNatureUI.rain_applied`, confirms the effect and 50-energy payment, cancels targeting, and opens step 9. Step 9 explains species-specific flags and leaves only the real main-menu flag button interactive; its real click opens the ordinary flag menu and step 10. Step 10 explains the Stegosaurus flag and leaves only its real species button interactive. Confirmed selection raises a shorter placement instruction frame to the top, exposes the gameplay viewport, and forwards subviewport motion/click coordinates to the ordinary flag preview and placement system. A successful real Stegosaurus flag placement opens an unnumbered completion plaque while simulation and grace timing remain suspended. The completion plaque hides Skip and exposes only a centered Next action; pressing it closes tutorial state, cancels residual targeting, resumes x1 simulation, and starts the normal grace clock from zero. Skip on earlier steps closes the tutorial with the same targeting cleanup and normal-game handoff. Currently available levels and disabled placeholders are defined by the startup implementation. Continue loads the newest valid candidate across autosave and manual slots.
 
 The Load page exposes autosave, three manual slots, and Back. Startup and in-game system menus share the same save files and validated reconstruction path.
 
@@ -343,7 +343,6 @@ Not implemented yet:
 
 - complete final animation coverage for every species, direction, and action;
 - additional enemy spells beyond lightning, earthquake, and rain;
-- dynamic enemy attack planning and base damage;
 - dynamic enemy rally placement;
 - minimap markers for eggs and world events.
 

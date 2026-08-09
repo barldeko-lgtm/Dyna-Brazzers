@@ -1,6 +1,8 @@
 extends Node2D
 class_name Egg
 
+signal hatched(creature: Node2D)
+
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 # Egg lifecycle and hatch spawn.
 @onready var body_sprite: Sprite2D = $BodySprite
@@ -221,6 +223,25 @@ func get_current_footprint() -> Vector2i:
 	return STAGE_1_FOOTPRINT
 
 
+func get_world_visual_rect() -> Rect2:
+	if body_sprite == null:
+		return Rect2(global_position - Vector2(48.0, 48.0), Vector2(96.0, 96.0))
+
+	var local_rect := body_sprite.get_rect()
+	var corners: Array[Vector2] = [
+		body_sprite.to_global(local_rect.position),
+		body_sprite.to_global(Vector2(local_rect.end.x, local_rect.position.y)),
+		body_sprite.to_global(local_rect.end),
+		body_sprite.to_global(Vector2(local_rect.position.x, local_rect.end.y)),
+	]
+	var minimum := corners[0]
+	var maximum := corners[0]
+	for corner: Vector2 in corners:
+		minimum = minimum.min(corner)
+		maximum = maximum.max(corner)
+	return Rect2(minimum, maximum - minimum)
+
+
 func _on_stage_1_timer_timeout() -> void:
 	try_enter_stage_2()
 
@@ -343,6 +364,7 @@ func spawn_hatched_creature() -> bool:
 		creature_registered = bool(world_grid.call("is_creature_registered", new_creature))
 
 	if creature_registered:
+		hatched.emit(new_creature)
 		return true
 
 	if is_instance_valid(new_creature):

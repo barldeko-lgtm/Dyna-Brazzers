@@ -16,8 +16,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if (
 		nature_ui != null
-		and nature_ui.has_method("handle_game_viewport_input")
-		and bool(nature_ui.call("handle_game_viewport_input", event))
+		and nature_ui.has_method("handle_game_subviewport_input")
+		and bool(nature_ui.call("handle_game_subviewport_input", event))
 	):
 		get_viewport().set_input_as_handled()
 		return
@@ -26,7 +26,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if (
 		flag_system != null
-		and flag_system.has_method("handle_game_viewport_input")
-		and bool(flag_system.call("handle_game_viewport_input", event))
+		and flag_system.has_method("handle_game_subviewport_input")
+		and bool(flag_system.call("handle_game_subviewport_input", event))
 	):
 		get_viewport().set_input_as_handled()

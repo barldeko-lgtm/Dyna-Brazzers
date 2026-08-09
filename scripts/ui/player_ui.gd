@@ -59,6 +59,7 @@ const MINIMAP_OTHER_FACTION_COLOR := Color(0xc88ce8ff)
 const MINIMAP_MARKER_SHADOW_COLOR := Color(0x11151fff)
 
 @onready var minimap_placeholder: PanelContainer = get_node_or_null("MarginContainer/VBoxContainer/MiniMapArea/MiniMapPlaceholder") as PanelContainer
+@onready var entity_counts_panel: PanelContainer = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel") as PanelContainer
 @onready var player_herbivore_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerHerbivoreCountLabel")
 @onready var player_predator_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerPredatorCountLabel")
 @onready var player_egg_eater_count_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerEggEaterCountLabel")
@@ -103,6 +104,14 @@ func _ready() -> void:
 	minimap_entity_refresh_timer = 0.0
 	minimap_grass_refresh_timer = 0.0
 	call_deferred("initialize_terrain_minimap")
+
+
+func get_tutorial_minimap_control() -> Control:
+	return minimap_placeholder
+
+
+func get_tutorial_creature_counts_control() -> Control:
+	return entity_counts_panel
 
 
 func _process(delta: float) -> void:

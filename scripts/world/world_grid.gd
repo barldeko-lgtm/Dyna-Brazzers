@@ -498,6 +498,33 @@ func has_grass_at_tile(tile: Vector2i) -> bool:
 	return is_instance_valid(grass)
 
 
+func get_registered_grass_tiles() -> Array[Vector2i]:
+	ensure_initialized()
+	var tiles: Array[Vector2i] = []
+	for tile_variant: Variant in grass_by_tile:
+		var tile: Vector2i = tile_variant
+		if has_grass_at_tile(tile):
+			tiles.append(tile)
+	return tiles
+
+
+func is_tile_region_inside_map(center_tile: Vector2i, radius_tiles: int) -> bool:
+	ensure_initialized()
+	var radius := maxi(radius_tiles, 0)
+	return (
+		center_tile.x - radius >= map_min.x
+		and center_tile.y - radius >= map_min.y
+		and center_tile.x + radius <= map_max.x
+		and center_tile.y + radius <= map_max.y
+	)
+
+
+func get_tile_region_world_rect(center_tile: Vector2i, radius_tiles: int) -> Rect2:
+	var diameter := maxi(radius_tiles, 0) * 2 + 1
+	var region_size := Vector2(tile_size) * float(diameter)
+	return Rect2(map_to_world_center(center_tile) - region_size * 0.5, region_size)
+
+
 # Creature occupancy.
 func register_creature(creature: Node, anchor_tile: Vector2i, footprint_size: Vector2i) -> bool:
 	ensure_initialized()

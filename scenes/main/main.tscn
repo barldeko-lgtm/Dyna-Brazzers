@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://c66x7w4kpw6by"]
+[gd_scene load_steps=11 format=3 uid="uid://c66x7w4kpw6by"]
 
 [ext_resource type="PackedScene" uid="uid://dwlwta88eydnm" path="res://scenes/world/world.tscn" id="1_hyk8p"]
 [ext_resource type="Script" uid="uid://b7vbapxldrm6c" path="res://scripts/camera/camera_controller.gd" id="1_iuonh"]
@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/game_result_overlay.tscn" id="8_game_result_overlay"]
 [ext_resource type="Script" path="res://scripts/main/main.gd" id="9_main"]
 [ext_resource type="Script" path="res://scripts/main/game_viewport_input_bridge.gd" id="10_input_bridge"]
+[ext_resource type="PackedScene" path="res://scenes/ui/tutorial_overlay.tscn" id="11_tutorial_overlay"]
 
 [node name="Main" type="Node2D" unique_id=1646183539]
 script = ExtResource("9_main")
@@ -40,6 +41,8 @@ zoom = Vector2(0.6, 0.6)
 script = ExtResource("1_iuonh")
 
 [node name="UI" parent="." unique_id=288994034 instance=ExtResource("5_player_hud")]
+
+[node name="TutorialOverlay" parent="." instance=ExtResource("11_tutorial_overlay")]
 
 [node name="GameResultOverlay" parent="." instance=ExtResource("8_game_result_overlay")]
 

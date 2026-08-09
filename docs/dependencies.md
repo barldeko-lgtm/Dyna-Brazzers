@@ -81,6 +81,7 @@ Rules:
 
 - create exactly one runtime player base and one runtime enemy base;
 - both remain stationary, non-passable, shared-footprint world blockers and reject grass;
+- bases are never destructible, receive no health/damage system, and do not determine match results;
 - both are static world setup and never dynamic save entities;
 - shared blocker/placement/launch plumbing belongs in `faction_base.gd`;
 - `player_base.gd` and `enemy_base.gd` remain thin public wrappers;
@@ -410,6 +411,10 @@ Audio:
 Main files:
 
 - `res://scripts/gameplay/game_end_controller.gd`
+- `res://scripts/tutorial/tutorial_manager.gd`
+- `res://scripts/tutorial/tutorial_controller.gd`
+- `res://scripts/tutorial/tutorial_spotlight.gd`
+- `res://scenes/ui/tutorial_overlay.tscn`
 - `res://scripts/ui/game_result_overlay.gd`
 - `res://scenes/ui/game_result_overlay.tscn`
 - `res://scripts/save/save_system_with_enemy.gd`
@@ -421,6 +426,19 @@ Rules:
 - a faction stays alive while at least one living creature or one egg exists;
 - bases, energy, corpses, neutral entities, and future purchasing ability do not count;
 - grace period and match duration use simulation-scaled time;
+- while a requested or active tutorial suspends the match clock, `GameEndController` must not advance grace or result-check timing; Skip or the completion plaque's sole Next action ends that suspension and the ordinary grace clock starts from zero;
+- step-2 tutorial spotlight holes are presentation-only and keep the full HUD blocked; interactive tutorial steps replace the full blocker with four controls surrounding exactly one permitted target, then advance from that target's real `pressed` signal instead of invoking game mechanics directly;
+- the tutorial resolves minimap, population counters, energy, speed, egg-menu, and species-button targets through public UI APIs/groups rather than hard-coded main-scene paths;
+- `PlayerEggCreationUI.egg_created` is emitted only after a real egg exists and its energy payment succeeds; tutorial step 5 must not begin from the species-button press alone;
+- `Egg.hatched` is emitted only after the new creature is registered in the world grid; tutorial step 6 advances from that signal rather than an incubation timer guess;
+- tutorial step 5 may resume simulation and allow x1/x2/x3 while `TutorialManager` keeps grace/result timing suspended; its raised panel is positioned against the projected runtime egg bounds, not fixed map coordinates;
+- tutorial body text stays at 20 px across every layout; frame geometry absorbs content-length differences instead of per-step font scaling;
+- step 6 advances from the real spell-menu button click after the ordinary toggle opens its submenu; step 7 resolves and spotlights the existing rain button through the public nature-UI API without invoking rain itself;
+- step 8 begins only after the real rain toggle enables targeting, then invokes the existing Back-button action, chooses the visible valid grass-centered 5×5 region nearest the gameplay viewport center, and opens input throughout that region so the ordinary preview follows subviewport mouse-motion events;
+- `PlayerNatureUI.rain_applied(center_tile)` is emitted only after target validation, successful 50-energy payment, and successful `NatureEffectsSystem.apply_rain`; tutorial completion state must use that signal rather than the button or world click;
+- game-subviewport spell and flag motion/clicks use the event position delivered through `game_viewport_input_bridge.gd`, avoiding dependence on root/global mouse state when the world is rendered in a stretched `SubViewport`;
+- confirmed rain on any valid tile inside the allowed 5×5 region opens step 9; the real flag-menu click opens step 10, and `PlayerFlagSystem.flag_targeting_started` confirms the Stegosaurus species choice before the raised placement phase exposes the gameplay viewport;
+- `PlayerFlagSystem.flag_placed(species_id, tile)` is emitted only after ordinary flag validation and state update; only a confirmed Stegosaurus placement opens the unnumbered completion plaque, which keeps simulation paused, hides Skip, and exposes one Next action that hands control to normal x1 gameplay;
 - current result types are victory/defeat only;
 - finishing sets simulation speed to zero and displays the result once;
 - result overlay owns presentation and emits its public main-menu action; it does not decide populations;
@@ -442,9 +460,10 @@ Startup flow:
 
 1. `project.godot` starts `start_screen.tscn`.
 2. Continue chooses the newest valid autosave/manual candidate.
-3. New Game selects a registered level and opens gameplay.
-4. The gameplay scene builds the selected world layout.
-5. Load validates the saved level and delegates reconstruction to `SaveSystem`.
+3. New Game selects a registered level and asks whether to start the tutorial.
+4. No opens gameplay normally; Yes records a cross-scene tutorial request and opens the same selected level.
+5. The gameplay scene builds the selected world layout and its tutorial overlay consumes any pending request.
+6. Load validates the saved level and delegates reconstruction to `SaveSystem` without requesting a tutorial.
 
 Stable gameplay slot paths:
 

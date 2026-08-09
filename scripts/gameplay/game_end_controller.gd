@@ -39,6 +39,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if match_result != MatchResult.ACTIVE:
 		return
+	if TutorialManager.is_match_clock_suspended():
+		return
 
 	var simulation_delta := maxf(delta, 0.0)
 	elapsed_simulation_seconds += simulation_delta

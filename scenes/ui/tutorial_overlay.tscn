@@ -1,0 +1,141 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/tutorial/tutorial_controller.gd" id="1_controller"]
+[ext_resource type="Texture2D" path="res://assets/ui/tutorial/tutorial_step_frame.png" id="2_frame"]
+[ext_resource type="FontFile" path="res://assets/fonts/philosopher/Philosopher-Regular.ttf" id="3_regular"]
+[ext_resource type="FontFile" path="res://assets/fonts/philosopher/Philosopher-Bold.ttf" id="4_bold"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_normal.tres" id="5_button_normal"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_hover.tres" id="6_button_hover"]
+[ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_disabled.tres" id="7_button_disabled"]
+[ext_resource type="Script" path="res://scripts/tutorial/tutorial_spotlight.gd" id="8_spotlight"]
+
+[node name="TutorialOverlay" type="CanvasLayer" groups=["tutorial_overlay"]]
+layer = 200
+visible = false
+script = ExtResource("1_controller")
+
+[node name="Spotlight" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("8_spotlight")
+
+[node name="InputBlockers" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Top" type="Control" parent="InputBlockers"]
+visible = false
+mouse_filter = 0
+
+[node name="Bottom" type="Control" parent="InputBlockers"]
+visible = false
+mouse_filter = 0
+
+[node name="Left" type="Control" parent="InputBlockers"]
+visible = false
+mouse_filter = 0
+
+[node name="Right" type="Control" parent="InputBlockers"]
+visible = false
+mouse_filter = 0
+
+[node name="PanelCenter" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="Panel" type="Control" parent="PanelCenter"]
+custom_minimum_size = Vector2(1000, 686)
+layout_mode = 2
+
+[node name="FrameTexture" type="TextureRect" parent="PanelCenter/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_frame")
+expand_mode = 1
+
+[node name="HeaderLabel" type="Label" parent="PanelCenter/Panel"]
+layout_mode = 0
+offset_left = 105.0
+offset_top = 66.0
+offset_right = 895.0
+offset_bottom = 112.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_fonts/font = ExtResource("4_bold")
+theme_override_font_sizes/font_size = 30
+text = "TUTORIAL_STEP_PROGRESS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BodyLabel" type="Label" parent="PanelCenter/Panel"]
+layout_mode = 0
+offset_left = 112.0
+offset_top = 130.0
+offset_right = 888.0
+offset_bottom = 570.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("3_regular")
+theme_override_font_sizes/font_size = 22
+text = "TUTORIAL_INTRO_BODY"
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="SkipButton" type="Button" parent="PanelCenter/Panel"]
+layout_mode = 0
+offset_left = 805.0
+offset_top = 592.0
+offset_right = 975.0
+offset_bottom = 646.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("4_bold")
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = ExtResource("5_button_normal")
+theme_override_styles/hover = ExtResource("6_button_hover")
+theme_override_styles/pressed = ExtResource("6_button_hover")
+theme_override_styles/focus = ExtResource("6_button_hover")
+text = "TUTORIAL_SKIP"
+
+[node name="NextButton" type="Button" parent="PanelCenter/Panel"]
+layout_mode = 0
+offset_left = 615.0
+offset_top = 592.0
+offset_right = 785.0
+offset_bottom = 646.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.54, 0.58, 0.55, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("4_bold")
+theme_override_font_sizes/font_size = 22
+theme_override_styles/disabled = ExtResource("7_button_disabled")
+theme_override_styles/normal = ExtResource("5_button_normal")
+theme_override_styles/hover = ExtResource("6_button_hover")
+theme_override_styles/pressed = ExtResource("6_button_hover")
+theme_override_styles/focus = ExtResource("6_button_hover")
+text = "TUTORIAL_NEXT"

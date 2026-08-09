@@ -1,5 +1,7 @@
 extends Node
 
+signal egg_created(species_id: StringName, egg: Node2D)
+
 # Player egg-purchase submenu. The UI spends player energy only after the
 # player base successfully creates a real species egg near its footprint.
 const PLAYER_SPECIES_CATALOG := preload("res://scripts/catalogs/player_species_catalog.gd")
@@ -12,11 +14,13 @@ var egg_menu_button: Button = null
 var egg_menu_grid: GridContainer = null
 var status_label: Label = null
 var egg_buttons: Dictionary = {}
+var egg_button_by_species_id: Dictionary = {}
 var current_status_key := "EGG_SELECT_SPECIES"
 var current_status_species_key := ""
 
 
 func _ready() -> void:
+	add_to_group("player_egg_creation_ui")
 	nature_ui = get_tree().get_first_node_in_group("player_nature_ui")
 	player_energy = get_tree().get_first_node_in_group("player_energy")
 
@@ -87,6 +91,7 @@ func _build_egg_menu() -> void:
 		species_button.pressed.connect(_on_species_button_pressed.bind(species_data, energy_cost))
 		egg_menu_grid.add_child(species_button)
 		egg_buttons[species_button] = energy_cost
+		egg_button_by_species_id[species_data.species_id] = species_button
 
 	var back_button := _duplicate_menu_button()
 	back_button.name = "EggMenuBackButton"
@@ -119,6 +124,14 @@ func _duplicate_menu_button() -> Button:
 	duplicated_button.focus_mode = Control.FOCUS_NONE
 	duplicated_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return duplicated_button
+
+
+func get_species_button(species_id: StringName) -> Button:
+	return egg_button_by_species_id.get(species_id) as Button
+
+
+func return_to_main_menu() -> void:
+	_on_back_button_pressed()
 
 
 func _on_egg_menu_button_pressed() -> void:
@@ -164,6 +177,7 @@ func _on_species_button_pressed(species_data: CreatureSpeciesData, energy_cost: 
 	var catalog_entry := PLAYER_SPECIES_CATALOG.get_entry(species_data.species_id)
 	_set_status_key("EGG_CREATED", String(catalog_entry.get("species_name_key", "")))
 	_update_species_buttons()
+	egg_created.emit(species_data.species_id, created_egg)
 
 
 func _can_spend_energy(energy_cost: float) -> bool:

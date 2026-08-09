@@ -49,6 +49,11 @@ func _on_back_button_pressed() -> void:
 	_apply_open_state(false)
 
 
+func return_to_main_menu() -> void:
+	if back_button != null and back_button.visible:
+		back_button.pressed.emit()
+
+
 func _apply_open_state(is_open: bool) -> void:
 	# The button can either hide only itself, or hide the whole main action menu
 	# when menu_to_hide_paths is configured.

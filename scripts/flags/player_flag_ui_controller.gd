@@ -16,6 +16,9 @@ var current_status_value := -1
 
 var targeting_species_id := StringName()
 var removal_targeting_enabled := false
+var species_buttons: Dictionary = {}
+var preview_tile_override_enabled := false
+var preview_tile_override := Vector2i.ZERO
 
 
 func _init(owner_system: Node) -> void:
@@ -58,6 +61,7 @@ func detach() -> void:
 	flag_menu_button = null
 	flag_menu_grid = null
 	status_label = null
+	species_buttons.clear()
 
 
 func handle_unhandled_input(event: InputEvent) -> bool:
@@ -65,6 +69,25 @@ func handle_unhandled_input(event: InputEvent) -> bool:
 		return false
 
 	return _handle_targeting_mouse(event as InputEventMouseButton)
+
+
+func handle_game_subviewport_input(event: InputEvent) -> bool:
+	if not is_targeting():
+		return false
+	if not (event is InputEventMouseMotion) and not (event is InputEventMouseButton):
+		return false
+	var world_grid: Node = owner.call("get_world_grid")
+	var camera := owner.get_tree().get_first_node_in_group("game_camera") as Camera2D
+	if world_grid == null or camera == null or not camera.has_method("game_screen_to_world"):
+		return false
+	var world_position: Vector2 = camera.call("game_screen_to_world", event.position)
+	var target_tile: Vector2i = world_grid.call("world_to_map_tile", world_position)
+	preview_tile_override = target_tile
+	preview_tile_override_enabled = true
+	if event is InputEventMouseMotion:
+		update_targeting_preview()
+		return false
+	return _handle_targeting_mouse_at_tile(event as InputEventMouseButton, target_tile)
 
 
 func update_targeting_preview() -> void:
@@ -86,10 +109,12 @@ func update_targeting_preview() -> void:
 	if flag_visual == null or not is_instance_valid(flag_visual):
 		return
 
-	var target_tile: Vector2i = world_grid.call(
-		"world_to_map_tile",
-		owner.call("get_flag_mouse_world_position")
-	)
+	var target_tile := preview_tile_override
+	if not preview_tile_override_enabled:
+		target_tile = world_grid.call(
+			"world_to_map_tile",
+			owner.call("get_flag_mouse_world_position")
+		)
 	var is_valid := bool(owner.call("is_valid_flag_tile", target_tile))
 
 	if flag_visual.has_method("set_preview"):
@@ -99,11 +124,16 @@ func update_targeting_preview() -> void:
 func cancel_targeting() -> void:
 	targeting_species_id = StringName()
 	removal_targeting_enabled = false
+	preview_tile_override_enabled = false
 	_hide_preview()
 
 
 func is_targeting() -> bool:
 	return targeting_species_id != StringName() or removal_targeting_enabled
+
+
+func get_species_button(species_id: StringName) -> Button:
+	return species_buttons.get(species_id) as Button
 
 
 func refresh_status() -> void:
@@ -133,6 +163,7 @@ func _build_flag_menu(menu_entries: Array[Dictionary]) -> void:
 	flag_menu_grid.add_theme_constant_override("v_separation", 6)
 	flag_menu_grid.visible = false
 	nature_content.add_child(flag_menu_grid)
+	species_buttons.clear()
 
 	for entry: Dictionary in menu_entries:
 		var species_id := StringName(String(entry.get("species_id", "")))
@@ -152,6 +183,7 @@ func _build_flag_menu(menu_entries: Array[Dictionary]) -> void:
 		species_button.add_theme_font_size_override("font_size", 11)
 		species_button.pressed.connect(_on_species_flag_pressed.bind(species_id))
 		flag_menu_grid.add_child(species_button)
+		species_buttons[species_id] = species_button
 
 	var remove_button := _duplicate_menu_button()
 	remove_button.name = "RemoveSpeciesFlagButton"
@@ -224,6 +256,7 @@ func _on_species_flag_pressed(species_id: StringName) -> void:
 	targeting_species_id = species_id
 	_set_status_key("FLAG_PLACE_HINT")
 	update_targeting_preview()
+	owner.call("notify_flag_targeting_started", species_id)
 
 
 func _on_remove_flag_pressed() -> void:
@@ -255,6 +288,16 @@ func _handle_targeting_mouse(mouse_event: InputEventMouseButton) -> bool:
 	return _apply_left_click_targeting()
 
 
+func _handle_targeting_mouse_at_tile(mouse_event: InputEventMouseButton, target_tile: Vector2i) -> bool:
+	if not mouse_event.pressed:
+		return false
+	if mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+		return _cancel_targeting_from_mouse()
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT:
+		return false
+	return _apply_left_click_targeting_at_tile(target_tile)
+
+
 func _cancel_targeting_from_mouse() -> bool:
 	cancel_targeting()
 	_set_status_key("FLAG_CANCELLED")
@@ -272,9 +315,12 @@ func _apply_left_click_targeting() -> bool:
 		owner.call("get_flag_mouse_world_position")
 	)
 
+	return _apply_left_click_targeting_at_tile(target_tile)
+
+
+func _apply_left_click_targeting_at_tile(target_tile: Vector2i) -> bool:
 	if removal_targeting_enabled:
 		return _try_remove_flag_at(target_tile)
-
 	return _try_place_flag_at(target_tile)
 
 
@@ -296,7 +342,9 @@ func _try_place_flag_at(target_tile: Vector2i) -> bool:
 		_set_status_key("FLAG_FREE_TILE_REQUIRED")
 		return false
 
-	owner.call("set_flag", targeting_species_id, target_tile)
+	var placed_species_id := targeting_species_id
+	owner.call("set_flag", placed_species_id, target_tile)
+	owner.call("notify_flag_placed", placed_species_id, target_tile)
 	cancel_targeting()
 	_set_status_key("FLAG_PLACED")
 	return true

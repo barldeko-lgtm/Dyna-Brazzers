@@ -30,6 +30,11 @@ const LANGUAGE_OPTIONS := [
 @onready var load_status_area: Control = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadStatusArea
 @onready var load_status_label: Label = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadStatusArea/LoadStatusLabel
 @onready var status_label: Label = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/StatusLabel
+@onready var main_menu_center: CenterContainer = $CenterContainer
+@onready var tutorial_choice_layer: Control = $TutorialChoiceLayer
+@onready var tutorial_choice_title: Label = $TutorialChoiceLayer/CenterContainer/TutorialChoiceSlot/TutorialChoicePanel/TitleLabel
+@onready var tutorial_yes_button: Button = $TutorialChoiceLayer/CenterContainer/TutorialChoiceSlot/TutorialChoicePanel/YesButton
+@onready var tutorial_no_button: Button = $TutorialChoiceLayer/CenterContainer/TutorialChoiceSlot/TutorialChoicePanel/NoButton
 
 var load_slot_buttons: Array[Button] = []
 var level_selection_controls: Array[Control] = []
@@ -42,6 +47,7 @@ var music_volume_slider: HSlider = null
 var sound_volume_label: Label = null
 var sound_volume_slider: HSlider = null
 var settings_back_button: Button = null
+var pending_new_game_level_id := 0
 
 
 func _ready() -> void:
@@ -68,6 +74,8 @@ func _ready() -> void:
 	continue_button.pressed.connect(_on_continue_pressed)
 	level_1_button.pressed.connect(_on_level_1_pressed)
 	level_2_button.pressed.connect(_on_level_2_pressed)
+	tutorial_yes_button.pressed.connect(_on_tutorial_yes_pressed)
+	tutorial_no_button.pressed.connect(_on_tutorial_no_pressed)
 	level_back_button.pressed.connect(_on_level_back_pressed)
 	load_button.pressed.connect(_on_load_pressed)
 	menu_button.pressed.connect(_on_menu_pressed)
@@ -93,17 +101,48 @@ func _on_new_game_pressed() -> void:
 
 
 func _on_level_1_pressed() -> void:
-	var error: Error = SaveSystem.start_new_game(1)
-
-	if error != OK:
-		status_label.text = tr("STATUS_NEW_GAME_FAILED")
+	_show_tutorial_choice(1)
 
 
 func _on_level_2_pressed() -> void:
-	var error: Error = SaveSystem.start_new_game(2)
+	_show_tutorial_choice(2)
 
-	if error != OK:
-		status_label.text = tr("STATUS_NEW_GAME_FAILED")
+
+func _on_tutorial_yes_pressed() -> void:
+	TutorialManager.request_tutorial_start()
+	_start_pending_new_game()
+
+
+func _on_tutorial_no_pressed() -> void:
+	TutorialManager.cancel_tutorial_start()
+	_start_pending_new_game()
+
+
+func _show_tutorial_choice(level_id: int) -> void:
+	pending_new_game_level_id = level_id
+	main_menu_center.visible = false
+	tutorial_choice_layer.visible = true
+	tutorial_yes_button.disabled = false
+	tutorial_no_button.disabled = false
+
+
+func _start_pending_new_game() -> void:
+	if pending_new_game_level_id <= 0:
+		return
+
+	tutorial_yes_button.disabled = true
+	tutorial_no_button.disabled = true
+	var error: Error = SaveSystem.start_new_game(pending_new_game_level_id)
+
+	if error == OK:
+		return
+
+	TutorialManager.cancel_tutorial_start()
+	tutorial_choice_layer.visible = false
+	main_menu_center.visible = true
+	_show_level_selection()
+	status_label.visible = true
+	status_label.text = tr("STATUS_NEW_GAME_FAILED")
 
 
 func _on_level_back_pressed() -> void:
@@ -207,6 +246,9 @@ func _on_autosave_pressed() -> void:
 
 
 func _show_main_buttons() -> void:
+	main_menu_center.visible = true
+	tutorial_choice_layer.visible = false
+	pending_new_game_level_id = 0
 	menu_margin.add_theme_constant_override("margin_top", 58)
 	load_status_area.visible = false
 	new_game_button.visible = true
@@ -228,6 +270,8 @@ func _show_main_buttons() -> void:
 
 
 func _show_level_selection() -> void:
+	main_menu_center.visible = true
+	tutorial_choice_layer.visible = false
 	menu_margin.add_theme_constant_override("margin_top", 33)
 	new_game_button.visible = false
 	continue_button.visible = false
@@ -521,6 +565,9 @@ func _refresh_localized_text() -> void:
 	level_3_button.text = tr("LEVEL_3")
 	level_4_button.text = tr("LEVEL_4")
 	level_back_button.text = tr("MENU_BACK")
+	tutorial_choice_title.text = tr("TUTORIAL_CHOICE_TITLE")
+	tutorial_yes_button.text = tr("TUTORIAL_CHOICE_YES")
+	tutorial_no_button.text = tr("TUTORIAL_CHOICE_NO")
 	load_back_button.text = tr("MENU_BACK")
 	var settings_title := menu_vbox.get_node_or_null("AudioSettingsTitle") as Label
 	if settings_title != null:

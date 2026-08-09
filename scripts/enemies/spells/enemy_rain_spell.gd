@@ -1,8 +1,8 @@
 extends Node2D
 class_name EnemyRainSpell
 
-# Emergency-rain payment, ecological target scoring and non-blocking diagnostic
-# contours. Strategic cadence and reserve storage remain in EnemySpellController.
+# Emergency-rain payment, ecological target scoring and cast diagnostics.
+# Strategic cadence and reserve storage remain in EnemySpellController.
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const ENEMY_SPECIES_CATALOG := preload("res://scripts/catalogs/enemy_species_catalog.gd")
 
@@ -92,18 +92,6 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	if has_search_area_bounds:
-		var search_rect := _tile_bounds_to_local_rect(search_area_bounds)
-
-		if search_rect.size.x > 0.0 and search_rect.size.y > 0.0:
-			draw_rect(
-				search_rect,
-				controller.search_area_frame_color,
-				false,
-				maxf(controller.search_area_frame_line_width, 1.0),
-				true
-			)
-
 	if (
 		visible_rain_frame_tile == INVALID_TILE
 		or rain_frame_remaining_seconds <= 0.0
@@ -203,7 +191,6 @@ func try_cast_for_hungry_herd() -> bool:
 		return false
 
 	last_rain_target_tile = target_tile
-	_show_rain_area_frame(target_tile)
 	last_action_text = (
 		"дождь (%s): %s, балл %.1f = база %d × спрос %.2f × близость %.3f; прогноз +%d / реально +%d"
 		% [

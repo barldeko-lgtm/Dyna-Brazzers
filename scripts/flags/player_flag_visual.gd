@@ -1,6 +1,6 @@
 extends Node2D
 
-# Runtime world-space drawing for species flags and their influence areas.
+# Runtime world-space drawing for species flags and placement previews.
 # The visual never blocks tiles and has no gameplay authority of its own.
 
 const FLAG_AREA_SIZE := Vector2i(11, 11)
@@ -81,20 +81,6 @@ func _draw_flag_area(
 	flag_tile: Vector2i, species_id: StringName, base_color: Color, is_preview: bool
 ) -> void:
 	var tile_size := _get_tile_size()
-	var area_size := get_flag_area_size(species_id)
-	var area_min := flag_tile - Vector2i(area_size.x / 2, area_size.y / 2)
-	var area_min_world: Vector2 = world_grid.call("map_to_world_center", area_min)
-	var top_left_world := area_min_world - Vector2(tile_size) * 0.5
-	var area_pixel_size := Vector2(
-		float(area_size.x * tile_size.x), float(area_size.y * tile_size.y)
-	)
-	var area_rect := Rect2(to_local(top_left_world), area_pixel_size)
-	var fill_alpha := 0.035 if not is_preview else 0.055
-	var border_alpha := 0.36 if not is_preview else 0.72
-
-	draw_rect(area_rect, Color(base_color.r, base_color.g, base_color.b, fill_alpha), true)
-	draw_rect(area_rect, Color(base_color.r, base_color.g, base_color.b, border_alpha), false, 3.0)
-
 	var flag_center_world: Vector2 = world_grid.call("map_to_world_center", flag_tile)
 	_draw_flag(to_local(flag_center_world), tile_size, species_id, base_color, is_preview)
 
