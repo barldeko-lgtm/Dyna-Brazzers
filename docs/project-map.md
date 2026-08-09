@@ -43,7 +43,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 
 - `scripts/main/main.gd` — gameplay viewport sizing, shared-world rendering, render-layer isolation, root game-viewport bounds, and world-to-root rectangle projection for runtime tutorial targets.
 - `scripts/main/game_viewport_input_bridge.gd` — forwards game-subviewport motion/click coordinates to root-owned spell and flag targeting.
-- `scripts/world/world_grid.gd` — terrain queries, DryGround state, placement/traversal, walkability, pathfinding, grass registry, tile-region geometry, blockers, occupancy, reservations, and footprint APIs.
+- `scripts/world/world_grid.gd` — terrain queries, DryGround state, placement/traversal, walkability, pathfinding, grass registry, tile-region geometry, blockers, occupancy, reservations, atomic defeated-anchor transfer, and footprint APIs.
 - `scripts/world/start_map_world_grid.gd` — selected-map bootstrap; creates bases, enemy runtime controllers, enemy rally objectives, energy nodes, and world bounds.
 - `scripts/world/start_map_layout.gd` — preserves authored level 1 and builds registered pixel-map levels before world-grid initialization.
 - `scripts/world/pixel_map_parser.gd` — exact-color map decoding and complete 2x2 base/tree marker validation.
@@ -55,7 +55,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 
 ## Creature and resource scripts
 
-- `scripts/creatures/creature.gd` — creature FSM/survival coordinator, combat-victory rewards, and public facade.
+- `scripts/creatures/creature.gd` — creature FSM/survival coordinator, post-duel advance/relocation, corpse eating and rewards, and public facade.
 - `scripts/creatures/creature_species_data.gd` — biological species schema and optional navigation/visual/animation data.
 - `scripts/creatures/creature_faction.gd` — validated runtime ownership.
 - `scripts/creatures/behaviors/creature_movement_controller.gd` — queued routes, grid steps, reservations, indirect-order rerouting, and route replacement.
@@ -63,7 +63,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/creatures/behaviors/creature_predator_logic.gd` — prey selection, protection/intervention rules, approach routing, engagement, and combat handoff.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — egg targeting, waiting, and consumption.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and natural egg spawning.
-- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional textures, optional walk/eat/attack animation playback, lunges, shadows, idle/death visuals, and fallbacks.
+- `scripts/creatures/behaviors/creature_visual_controller.gd` — directional textures, optional walk/corpse-eating/attack animation playback, lunges, shadows, idle/death visuals, and fallbacks.
 - `scripts/creatures/behaviors/creature_interaction_controller.gd` — hover/selection world visual and mouse bridge.
 - `scripts/combat/duel.gd` — one-on-one combat loop, intervention reservation, fighter replacement, and damage timing.
 - `scripts/resources/grass.gd` — grass lifecycle, food value, spreading, registry sync, and nature-power reactions.

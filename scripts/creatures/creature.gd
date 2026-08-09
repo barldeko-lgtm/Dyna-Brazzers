@@ -11,6 +11,9 @@ const CreatureMovementController = preload("res://scripts/creatures/behaviors/cr
 const CreatureInteractionController = preload("res://scripts/creatures/behaviors/creature_interaction_controller.gd")
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const PREDATOR_VICTORY_HEAL := 15.0
+const CORPSE_EATING_DURATION := 1.5
+const CORPSE_REWARD_TIME := CORPSE_EATING_DURATION * 0.5
+const CORPSE_EXTRA_ADVANCE_DURATION := 0.5
 const RAPTOR_SPECIES_ID: StringName = &"raptor"
 const RAPTOR_BASE_GUARD_RADIUS_TILES := 20.0
 const RAPTOR_OUTSIDE_BASE_ATTACK_PENALTY := 2.0
@@ -24,6 +27,7 @@ const RAPTOR_GUARD_ICON_Z_INDEX := 20
 @onready var walk_right_sprite: AnimatedSprite2D = $WalkRightSprite
 
 @onready var eating_timer: Timer = $EatingTimer
+@onready var corpse_reward_timer: Timer = $CorpseRewardTimer
 
 @onready var egg_laying_timer: Timer = $EggLayingTimer
 
@@ -142,6 +146,9 @@ var pending_egg_anchor := Vector2i.ZERO
 var current_duel: Duel = null
 var pending_duel_opponent: Node = null
 var combat_engagement_hunter: Node = null
+var corpse_eating_target: Node = null
+var corpse_eating_reward_pending := false
+var corpse_eating_approach_active := false
 var grazing_logic: RefCounted
 var visual_controller: RefCounted
 var reproduction_logic: RefCounted
@@ -207,6 +214,9 @@ func _ready() -> void:
 
 	if not eating_timer.timeout.is_connected(_on_eating_timer_timeout):
 		eating_timer.timeout.connect(_on_eating_timer_timeout)
+
+	if not corpse_reward_timer.timeout.is_connected(_on_corpse_reward_timer_timeout):
+		corpse_reward_timer.timeout.connect(_on_corpse_reward_timer_timeout)
 
 
 	if not egg_laying_timer.timeout.is_connected(_on_egg_laying_timer_timeout):
@@ -492,9 +502,89 @@ func enter_hungry_behavior() -> void:
 
 func enter_eating() -> void:
 	eating_anchor_tile = anchor_tile
+	corpse_eating_target = null
+	corpse_eating_reward_pending = false
+	corpse_eating_approach_active = false
+	corpse_reward_timer.stop()
 	clear_path()
 	change_state(State.EATING)
 	eating_timer.start(species_data.eating_duration)
+
+
+func enter_corpse_eating(corpse: Node, use_extra_advance: bool = false) -> void:
+	if corpse == null or not is_instance_valid(corpse):
+		return
+
+	corpse_eating_target = corpse
+	corpse_eating_reward_pending = true
+	corpse_eating_approach_active = use_extra_advance and visual_controller != null
+	face_target(corpse)
+	clear_path()
+	change_state(State.EATING)
+
+	if corpse_eating_approach_active:
+		visual_controller.advance_action_visual_offset(
+			direction.normalized() * CreatureVisualController.ATTACK_LUNGE_DISTANCE,
+			CORPSE_EXTRA_ADVANCE_DURATION,
+			Callable(self, "_on_corpse_eating_approach_finished")
+		)
+		return
+
+	start_corpse_eating_animation()
+
+
+func _on_corpse_eating_approach_finished() -> void:
+	if state != State.EATING or not is_instance_valid(corpse_eating_target):
+		corpse_eating_approach_active = false
+		return
+
+	corpse_eating_approach_active = false
+	update_sprite_visual()
+	start_corpse_eating_animation()
+
+
+func start_corpse_eating_animation() -> void:
+	corpse_reward_timer.start(CORPSE_REWARD_TIME)
+	eating_timer.start(CORPSE_EATING_DURATION)
+	if visual_controller != null:
+		visual_controller.settle_action_visual_offset(CORPSE_EATING_DURATION)
+
+
+func relocate_to_defeated_creature(corpse: Node) -> bool:
+	if (
+		world_grid == null
+		or corpse == null
+		or not is_instance_valid(corpse)
+		or not world_grid.has_method("transfer_defeated_creature_anchor")
+	):
+		return false
+
+	var old_global_position := global_position
+	var target_anchor: Vector2i = corpse.get("anchor_tile")
+	var target_global_position: Vector2 = corpse.global_position
+	if not bool(world_grid.call(
+		"transfer_defeated_creature_anchor",
+		corpse,
+		self,
+		corpse.get("footprint_size"),
+		footprint_size
+	)):
+		return false
+
+	anchor_tile = target_anchor
+	pending_anchor_tile = target_anchor
+	is_moving = false
+	global_position = target_global_position
+	movement_target_position = target_global_position
+
+	if visual_controller != null:
+		var hit_offset := direction.normalized() * CreatureVisualController.ATTACK_LUNGE_DISTANCE
+		var preserved_visual_position := old_global_position + hit_offset
+		visual_controller.set_action_visual_offset(
+			preserved_visual_position - target_global_position
+		)
+
+	return true
 
 
 func enter_laying_egg(egg_anchor: Vector2i) -> void:
@@ -523,6 +613,12 @@ func enter_dead() -> void:
 	cancel_combat_engagement()
 	clear_path()
 	eating_timer.stop()
+	corpse_reward_timer.stop()
+	corpse_eating_target = null
+	corpse_eating_reward_pending = false
+	corpse_eating_approach_active = false
+	if visual_controller != null:
+		visual_controller.stop_attack_lunge()
 	egg_laying_timer.stop()
 	release_world_occupancy_for_corpse()
 	disable_corpse_collision()
@@ -686,6 +782,10 @@ func cancel_indirect_order_route() -> void:
 
 
 func _on_eating_timer_timeout() -> void:
+	if corpse_eating_target != null:
+		finish_corpse_eating()
+		return
+
 	if world_grid == null:
 		enter_walk()
 		return
@@ -700,6 +800,49 @@ func _on_eating_timer_timeout() -> void:
 		return
 
 	enter_walk()
+
+
+func _on_corpse_reward_timer_timeout() -> void:
+	if not corpse_eating_reward_pending:
+		return
+	if state != State.EATING or not is_instance_valid(corpse_eating_target):
+		corpse_eating_reward_pending = false
+		return
+
+	corpse_eating_reward_pending = false
+	hunger = clamp(
+		hunger + species_data.hunger_restore_amount,
+		0.0,
+		species_data.max_hunger
+	)
+	health = clamp(health + PREDATOR_VICTORY_HEAL, 0.0, species_data.max_health)
+
+
+func finish_corpse_eating() -> void:
+	var corpse := corpse_eating_target
+	corpse_eating_target = null
+	corpse_eating_reward_pending = false
+	corpse_eating_approach_active = false
+	corpse_reward_timer.stop()
+	if visual_controller != null:
+		visual_controller.set_action_visual_offset(Vector2.ZERO)
+
+	if is_instance_valid(corpse) and corpse.has_method("consume_corpse"):
+		corpse.consume_corpse()
+
+	if state == State.DEAD:
+		return
+	if hunger <= species_data.hunger_search_threshold:
+		enter_hungry_behavior()
+		return
+
+	enter_walk()
+
+
+func consume_corpse() -> void:
+	if state != State.DEAD:
+		return
+	queue_free()
 
 
 func _on_egg_laying_timer_timeout() -> void:
@@ -926,15 +1069,18 @@ func face_target(target: Node) -> void:
 	update_sprite_visual()
 
 
-func _on_duel_finished(duel: Duel, winner: Node, _loser: Node) -> void:
+func _on_duel_finished(duel: Duel, winner: Node, loser: Node) -> void:
 	if duel != current_duel and current_duel != null:
 		return
 
 	if winner != self or not species_data.is_predator():
 		return
+	if loser == null or not is_instance_valid(loser):
+		return
 
-	hunger = clamp(hunger + species_data.hunger_restore_amount, 0.0, species_data.max_hunger)
-	health = clamp(health + PREDATOR_VICTORY_HEAL, 0.0, species_data.max_health)
+	face_target(loser)
+	var relocated := relocate_to_defeated_creature(loser)
+	enter_corpse_eating(loser, relocated)
 
 
 func find_world_grid() -> Node:

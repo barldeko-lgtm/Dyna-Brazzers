@@ -206,7 +206,11 @@ Predator and egg-eater rules:
 - attacker-role predators never acquire/switch solely for protection;
 - one protector may reserve a handoff; the replacement duel cannot recursively trigger another intervention;
 - predator-versus-predator duels are not protection candidates;
-- only the final winner of a completed duel receives victory rewards;
+- a completed duel connects both fighters to settlement so a predator winner is handled whether it initiated the duel or defended;
+- a predator winner atomically inherits its own defeated opponent's anchor when both use the same footprint; the old winner footprint is released and the corpse is removed from occupancy in the same world-grid operation;
+- after the lethal 64-pixel attack lunge, the winner visually advances another 64 pixels, starts a 1.5-second eating animation, and settles onto its already-transferred logical position without changing collision or pathfinding through visual offsets;
+- the winner receives satiety/health once at the eating midpoint, removes the corpse at the end, then resumes autonomous behaviour from the victim's coordinates;
+- intervention handoffs, null winners, and non-predator winners receive no corpse-eating reward;
 - egg eaters may track stage-one eggs but consume only stage two;
 - egg-eater faction/species rules must remain identical during acquisition, waiting, revalidation, and consumption;
 - final combat engagement remains exclusive even when several hunters pursue one prey.
@@ -238,6 +242,7 @@ Death ordering:
 - disable collision/picking;
 - then show optional transition/final corpse visuals;
 - corpse visuals remain non-blocking;
+- a claimed duel victim remains visible through its predator winner's eating phase and is removed when that phase ends;
 - do not delay occupancy release until `queue_free()`.
 
 ## Player flags and enemy rally objectives

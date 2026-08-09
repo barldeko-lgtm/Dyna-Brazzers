@@ -23,6 +23,10 @@ z_index = 1
 wait_time = 3.0
 one_shot = true
 
+[node name="CorpseRewardTimer" type="Timer" parent="."]
+wait_time = 0.75
+one_shot = true
+
 [node name="EggLayingTimer" type="Timer" parent="."]
 wait_time = 5.0
 one_shot = true

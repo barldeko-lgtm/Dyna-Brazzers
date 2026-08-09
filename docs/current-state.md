@@ -106,7 +106,7 @@ Predators select reachable prey through shared route and duel systems. Predator 
 
 Tyrannosaurus and pterodactyl use attacker-role behaviour. Raptors use defender-role behaviour and may guard their faction base. Defender raptors may also replace an allied herbivore or egg eater in an eligible duel against an opposing predator. Attacker-role predators never search for a fight solely to protect an ally, although an already selected opposing predator may still become an intervention target.
 
-Only the eventual winner of a completed duel receives the configured satiety/health victory reward.
+When a completed duel has a predator winner, the winner advances through the finishing lunge and atomically takes over its victim's released grid anchor. The 1.5-second eating animation settles the rendered body onto that new logical position. Satiety and health are granted once at the animation midpoint; the non-blocking corpse disappears at the end, then the predator resumes autonomous behaviour from the victim's coordinates. Intervention handoffs grant no reward.
 
 Egg eaters are a separate diet category. Their strategic behaviour targets opposing-faction eggs, while critical hunger broadens the allowed egg set according to shared faction/species rules. Stage-one eggs may be tracked but only stage two is edible.
 
@@ -118,7 +118,7 @@ Species resources may provide optional directional walk, eat, duel-attack, idle,
 
 Right-facing action resources may be mirrored for the corresponding left-facing action when the shared visual controller supports that action.
 
-Death stops normal behaviour immediately, releases world-grid occupancy, disables collision and picking, and leaves a short non-blocking corpse visual before removal. Optional transition and final corpse poses are species data.
+Death stops normal behaviour immediately, releases world-grid occupancy, disables collision and picking, and leaves a short non-blocking corpse visual before removal. A predator duel winner keeps its victim visible through the post-duel eating phase and removes it when eating finishes. Optional transition and final corpse poses are species data.
 
 Creature contour shadows follow static or animated visuals and never affect gameplay.
 

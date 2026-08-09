@@ -269,6 +269,48 @@ func stop_attack_lunge() -> void:
 	_set_attack_lunge_offset(Vector2.ZERO)
 
 
+func set_action_visual_offset(offset: Vector2) -> void:
+	if attack_lunge_tween != null and attack_lunge_tween.is_valid():
+		attack_lunge_tween.kill()
+	attack_lunge_tween = null
+	_set_attack_lunge_offset(offset)
+
+
+func advance_action_visual_offset(
+	delta_offset: Vector2,
+	duration: float,
+	completed: Callable
+) -> void:
+	if attack_lunge_tween != null and attack_lunge_tween.is_valid():
+		attack_lunge_tween.kill()
+
+	var start_offset := attack_lunge_offset
+	var target_offset := start_offset + delta_offset
+	attack_lunge_tween = creature.create_tween()
+	attack_lunge_tween.tween_method(
+		_set_attack_lunge_offset,
+		start_offset,
+		target_offset,
+		maxf(duration, 0.0)
+	)
+	if completed.is_valid():
+		attack_lunge_tween.tween_callback(completed)
+
+
+func settle_action_visual_offset(duration: float) -> void:
+	if attack_lunge_tween != null and attack_lunge_tween.is_valid():
+		attack_lunge_tween.kill()
+
+	var start_offset := attack_lunge_offset
+	attack_lunge_tween = creature.create_tween()
+	attack_lunge_tween.tween_method(
+		_set_attack_lunge_offset,
+		start_offset,
+		Vector2.ZERO,
+		maxf(duration, 0.0)
+	)
+
+
 func stop_attack_animation() -> void:
 	stop_attack_lunge()
 	attack_animation_active = false
@@ -441,7 +483,10 @@ func _should_play_walk_animation() -> bool:
 
 
 func _should_play_eating_animation() -> bool:
-	return creature.state == creature.State.EATING
+	return (
+		creature.state == creature.State.EATING
+		and not bool(creature.get("corpse_eating_approach_active"))
+	)
 
 
 func _has_valid_animation(sprite_frames: SpriteFrames) -> bool:

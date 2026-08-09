@@ -36,6 +36,8 @@ func setup(
 	current_attacker = initiator
 	attack_in_progress = true
 	tick_remaining = minf(ATTACK_HIT_DELAY, tick_interval)
+	_connect_finished_listener(fighter_a)
+	_connect_finished_listener(fighter_b)
 
 	if fighter_a != null and fighter_a.has_method("attach_duel"):
 		fighter_a.attach_duel(self)
@@ -46,6 +48,15 @@ func setup(
 	is_active = true
 	set_process(true)
 	emit_signal("attack_started", self, current_attacker, _get_other_fighter(current_attacker))
+
+
+func _connect_finished_listener(fighter: Node) -> void:
+	if fighter == null or not fighter.has_method("_on_duel_finished"):
+		return
+
+	var finished_callable := Callable(fighter, "_on_duel_finished")
+	if not duel_finished.is_connected(finished_callable):
+		duel_finished.connect(finished_callable)
 
 
 func _ready() -> void:

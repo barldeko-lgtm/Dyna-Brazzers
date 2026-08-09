@@ -571,6 +571,43 @@ func move_creature(creature: Node, new_anchor_tile: Vector2i, footprint_size: Ve
 	return true
 
 
+func transfer_defeated_creature_anchor(
+	defeated: Node,
+	winner: Node,
+	defeated_footprint: Vector2i,
+	winner_footprint: Vector2i
+) -> bool:
+	if (
+		defeated == null
+		or winner == null
+		or defeated == winner
+		or defeated_footprint != winner_footprint
+		or not creature_anchors.has(defeated)
+		or not creature_anchors.has(winner)
+	):
+		return false
+
+	var defeated_anchor: Vector2i = creature_anchors[defeated]
+	var winner_anchor: Vector2i = creature_anchors[winner]
+
+	for tile: Vector2i in get_footprint_tiles(defeated_anchor, winner_footprint):
+		var occupant: Variant = occupied_by_tile.get(tile, null)
+		var reserver: Variant = reserved_by_tile.get(tile, null)
+		if occupant != null and occupant != defeated and occupant != winner:
+			return false
+		if reserver != null and reserver != defeated and reserver != winner:
+			return false
+
+	release_movement_reservation(defeated, defeated_footprint)
+	release_movement_reservation(winner, winner_footprint)
+	_release_tiles(winner_anchor, winner_footprint, winner)
+	_release_tiles(defeated_anchor, defeated_footprint, defeated)
+	creature_anchors.erase(defeated)
+	creature_anchors[winner] = defeated_anchor
+	_reserve_tiles(defeated_anchor, winner_footprint, winner)
+	return true
+
+
 # Extra blocking objects, e.g. eggs.
 func register_blocker(blocker: Node, anchor_tile: Vector2i, footprint_size: Vector2i) -> bool:
 	ensure_initialized()
