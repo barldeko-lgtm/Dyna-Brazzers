@@ -118,7 +118,7 @@ Species resources may provide optional directional walk, eat, duel-attack, idle,
 
 Right-facing action resources may be mirrored for the corresponding left-facing action when the shared visual controller supports that action.
 
-Death stops normal behaviour immediately, releases world-grid occupancy, disables collision and picking, and leaves a short non-blocking corpse visual before removal. A predator duel winner keeps its victim visible through the post-duel eating phase and removes it when eating finishes. Optional transition and final corpse poses are species data.
+Death stops normal behaviour immediately, releases world-grid occupancy, disables collision and picking, and leaves a short non-blocking corpse visual one render layer below living creatures before removal. A predator duel winner keeps its victim visible through the post-duel eating phase and removes it when eating finishes. Optional transition and final corpse poses are species data.
 
 Creature contour shadows follow static or animated visuals and never affect gameplay.
 
@@ -132,6 +132,7 @@ Core grass rules:
 - edible grass returns to the first stage when consumed;
 - mature grass may spread cardinally;
 - grass may occupy valid normal ground but not blocked terrain, DryGround, or faction-base footprints;
+- grass renders above the ground surface but below corpse and living-creature visuals;
 - initial grass nodes are starting seeds, not an allowed-growth mask;
 - grass registration/removal and edible-stage changes refresh only affected pasture-cache entries.
 

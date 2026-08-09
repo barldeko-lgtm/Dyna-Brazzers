@@ -234,12 +234,14 @@ Rules:
 - visual attack movement changes only rendered body/animation/shadow state, never logical anchor, occupancy, collision, or pathfinding position;
 - interaction controller owns world-space hover/highlight input bridge; UI owns selected information;
 - dead/corpse creatures are non-selectable;
+- world render priority keeps grass below corpse visuals and corpse visuals below living creatures;
 - shadows/highlights never affect navigation or collision.
 
 Death ordering:
 
 - release occupancy first;
 - disable collision/picking;
+- lower the corpse below living creatures regardless of scene-tree insertion order;
 - then show optional transition/final corpse visuals;
 - corpse visuals remain non-blocking;
 - a claimed duel victim remains visible through its predator winner's eating phase and is removed when that phase ends;

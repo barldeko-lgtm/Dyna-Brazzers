@@ -14,6 +14,7 @@ const PREDATOR_VICTORY_HEAL := 15.0
 const CORPSE_EATING_DURATION := 1.5
 const CORPSE_REWARD_TIME := CORPSE_EATING_DURATION * 0.5
 const CORPSE_EXTRA_ADVANCE_DURATION := 0.5
+const CORPSE_Z_INDEX := -1
 const RAPTOR_SPECIES_ID: StringName = &"raptor"
 const RAPTOR_BASE_GUARD_RADIUS_TILES := 20.0
 const RAPTOR_OUTSIDE_BASE_ATTACK_PENALTY := 2.0
@@ -599,6 +600,7 @@ func enter_dead() -> void:
 		return
 
 	change_state(State.DEAD)
+	z_index = CORPSE_Z_INDEX
 	raptor_guard_buff_active = false
 	set_raptor_guard_icon_visible(false)
 

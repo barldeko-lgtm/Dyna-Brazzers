@@ -120,6 +120,7 @@ position = Vector2(2368, 8448)
 [node name="Creatures" type="Node2D" parent="." unique_id=1940305396]
 
 [node name="Grasses" type="Node2D" parent="." unique_id=137972346]
+z_index = -1
 
 [node name="Grass_01" parent="Grasses" unique_id=1108167341 instance=ExtResource("3_grass_scene")]
 position = Vector2(2624, 7616)
