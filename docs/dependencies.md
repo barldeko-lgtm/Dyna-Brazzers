@@ -358,7 +358,7 @@ Main files:
 - `res://scripts/main/game_viewport_input_bridge.gd`
 - `res://scripts/ui/player_nature_ui.gd`
 - `res://scripts/settings/display_settings.gd`
-- `res://scripts/save/save_system_with_enemy.gd`
+- `res://scripts/ui/in_game_system_menu.gd`
 - `res://localization/display_settings.csv`
 
 Stable wiring:
@@ -383,7 +383,7 @@ Display ownership:
 - free-form resizing/maximizing remains disabled while the settings list owns supported window sizes;
 - display settings are independent of gameplay save slots.
 
-The startup settings presentation is normalized by `display_settings.gd`. The current in-game settings presentation is overridden in `save_system_with_enemy.gd`, but that file must not become a competing owner of display, audio, or locale state. It only calls `DisplaySettings`, `AudioManager`, and `LocalizationManager`.
+The startup settings presentation is normalized by `display_settings.gd`. The in-game presentation lives in `in_game_system_menu.gd`, which only calls the owning `DisplaySettings`, `AudioManager`, and `LocalizationManager` services.
 
 Layout pixel offsets inside Settings/Load are implementation details and should not be copied into this document. Read the current UI code/scene before layout changes.
 
@@ -418,7 +418,7 @@ Main files:
 - `res://scenes/ui/tutorial_overlay.tscn`
 - `res://scripts/ui/game_result_overlay.gd`
 - `res://scenes/ui/game_result_overlay.tscn`
-- `res://scripts/save/save_system_with_enemy.gd`
+- `res://scripts/save/save_system.gd`
 
 Rules:
 
@@ -454,8 +454,9 @@ Main files:
 - `res://scenes/ui/start_screen.tscn`
 - `res://scripts/ui/start_screen.gd`
 - `res://scripts/save/save_system.gd`
-- `res://scripts/save/save_system_with_flags.gd`
-- `res://scripts/save/save_system_with_enemy.gd`
+- `res://scripts/save/save_storage.gd`
+- `res://scripts/save/world_save_codec.gd`
+- `res://scripts/ui/in_game_system_menu.gd`
 
 Startup flow:
 
@@ -488,9 +489,10 @@ Independent preference files:
 
 Save ownership:
 
-- `save_system.gd` — base slot validation, temporary-write/backup safety, level routing, and entity reconstruction;
-- `save_system_with_flags.gd` — faction/player-flag/completion extensions and shared in-game system-menu foundation;
-- `save_system_with_enemy.gd` — enemy energy/reserve/strategic compatibility, match-end state, and current in-game Settings presentation override.
+- `save_system.gd` — active facade for autosave cadence, level routing, public save/load API, and ordered feature-state orchestration;
+- `save_storage.gd` — slot paths, validated JSON I/O, temporary-write/backup safety, and newest-save selection;
+- `world_save_codec.gd` — base dynamic-world collection and reconstruction;
+- `in_game_system_menu.gd` — in-game Save/Load/Settings/Main Menu presentation only.
 
 Loading order:
 
@@ -503,11 +505,11 @@ Loading order:
 7. restore eggs/blockers;
 8. restore creatures and mutable state from exact resource paths;
 9. preserve already spawned static faction bases;
-10. restore energies, camera, and simulation speed;
+10. restore energies and camera while simulation remains paused;
 11. reapply factions and player flag state;
 12. restore enemy strategic/legacy timing and combat-reserve state against that clock;
 13. restore match-end time/result after entity reconstruction;
-14. keep the legacy producer disabled and rebuild derived snapshots/objectives from runtime state.
+14. keep the legacy producer disabled, rebuild derived snapshots/objectives from runtime state, then resume at x1.
 
 Save rules:
 
@@ -517,7 +519,7 @@ Save rules:
 - startup/in-game load UIs expose autosave separately and never replace manual slots;
 - invalid slots remain visible but cannot be loaded;
 - missing optional faction/flag/enemy/reserve/match-end fields remain backward compatible;
-- creature faction/flag-completion fields and egg faction fields are added while each base entity record is created; save extensions must never correlate a second group traversal by array index;
+- creature faction/flag-completion fields and egg faction fields are added while each base entity record is created; no save path may correlate a second scene-group traversal by array index;
 - a restored stage-two egg remains in the world only after its 2x2 blocker registration succeeds; conflicting or invalid records are skipped with a warning;
 - missing `level_id` falls back according to the existing compatibility path; unavailable levels must fail before scene replacement;
 - static terrain and faction bases are never dynamic save entities;

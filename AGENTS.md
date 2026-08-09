@@ -102,12 +102,14 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 - `scripts/ui/player_egg_creation_ui.gd` — egg submenu, temporary species prices, and base purchase requests.
 - `scripts/flags/player_flag_system.gd` — `PlayerFlags` autoload for all-species flag UI, placement, save state, and soft attraction.
 - `scripts/flags/player_flag_visual.gd` — non-blocking world-space flag and 11x11 area visual.
-- `scripts/save/save_system_with_flags.gd` — flag-aware extension of the base save system.
+- `scripts/save/save_system.gd` — active save/load facade and ordered feature-state orchestration.
+- `scripts/save/save_storage.gd` — validated JSON slot, temporary-file, and backup storage.
+- `scripts/save/world_save_codec.gd` — core world-state collection and reconstruction.
 - `scripts/ui/player_nature_ui.gd` — spell buttons, targeting, and previews.
 - `scripts/player/player_energy.gd` — session-owned player energy, spending API, and living-dinosaur income.
 - `scripts/world/nature_effects_system.gd` — world-side lightning, rain, sun, and spell VFX application.
 - `scripts/ui/debug_status_ui.gd` — compact and detailed text debug.
-- `scripts/save/save_system.gd` — save/load persistence and in-game menu integration.
+- `scripts/ui/in_game_system_menu.gd` — in-game Save/Load/Settings/Main Menu UI.
 - `scripts/debug/performance_stats.gd` and `grid_debug_overlay.gd` — diagnostics.
 
 ## Recommended read order for a new agent/session

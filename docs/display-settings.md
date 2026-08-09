@@ -13,7 +13,7 @@ Canonical locations:
 The implementation source of truth remains:
 
 - `res://scripts/settings/display_settings.gd`;
-- `res://scripts/save/save_system_with_enemy.gd` for the current in-game Settings presentation;
+- `res://scripts/ui/in_game_system_menu.gd` for the in-game Settings presentation;
 - `res://localization/display_settings.csv`;
 - `res://project.godot`.
 

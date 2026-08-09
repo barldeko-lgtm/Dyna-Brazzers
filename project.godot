@@ -22,7 +22,7 @@ DisplaySettings="*res://scripts/settings/display_settings.gd"
 AudioManager="*res://scripts/audio/audio_manager.gd"
 PerformanceStats="*res://scripts/debug/performance_stats.gd"
 PlayerFlags="*res://scripts/flags/player_flag_system_with_catalog.gd"
-SaveSystem="*res://scripts/save/save_system_with_enemy.gd"
+SaveSystem="*res://scripts/save/save_system.gd"
 TutorialManager="*res://scripts/tutorial/tutorial_manager.gd"
 
 [display]

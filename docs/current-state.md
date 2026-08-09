@@ -319,6 +319,8 @@ Opening the in-game menu pauses simulation. Closing it restores the previously s
 
 One protected autosave is written on its simulation-time cadence during an active match. Loading, pause/menu state, or a finished match suspends that cadence.
 
+The active `SaveSystem` is an orchestration facade. `SaveStorage` owns validated slot I/O and backup recovery, `WorldSaveCodec` owns core world collection/reconstruction, and `InGameSystemMenu` owns the in-game Save/Load/Settings presentation. Loading keeps simulation paused until world, faction, enemy, and match state have all been restored, then resumes at x1.
+
 Saved dynamic state includes:
 
 - creatures and mutable creature state;

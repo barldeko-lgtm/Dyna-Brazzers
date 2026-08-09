@@ -121,12 +121,13 @@ Enemy objectives:
 - `scripts/debug/enemy_ai_debug_overlay.gd` — read-only F5 enemy strategy/spell panel.
 - `scripts/debug/performance_stats.gd` — runtime counters and F8 CSV recording.
 - `scripts/audio/audio_manager.gd` — global music, one-shot sounds, UI clicks, bus setup, fades, and audio settings.
-- `scripts/save/save_system.gd` — level routing, optional preloaded-scene transitions, base slot persistence, validated writes, and reconstruction.
-- `scripts/save/save_system_with_flags.gd` — faction/player-flag save extensions plus the shared in-game system-menu foundation and legacy language/audio settings page.
-- `scripts/save/save_system_with_enemy.gd` — active final save layer for enemy/match state; currently also overrides the in-game Settings page presentation so it can expose language, display, resolution, music, and sound while delegating actual state to the global managers.
+- `scripts/save/save_system.gd` — active SaveSystem facade: autosave cadence, level routing, public slot API, and ordered restoration of world, faction, enemy, and match state.
+- `scripts/save/save_storage.gd` — validated JSON reads/writes, slot paths, temporary/backup recovery, and newest-save selection.
+- `scripts/save/world_save_codec.gd` — collection and reconstruction of camera, energy, DryGround deltas, grass, eggs, and creatures.
+- `scripts/ui/in_game_system_menu.gd` — in-game Save/Load/Settings/Main Menu presentation; display/audio/locale state remains owned by the global managers.
 - `scripts/effects/` — target previews and one-shot effect playback, including the base egg-launch projectile.
 
-The in-game Settings UI currently living in `save_system_with_enemy.gd` is an implementation-placement detail, not ownership of display/audio/locale state. `DisplaySettings`, `AudioManager`, and `LocalizationManager` remain the respective state owners.
+`DisplaySettings`, `AudioManager`, and `LocalizationManager` remain the respective owners of display, audio, and locale state; the extracted in-game system menu only presents and changes those settings.
 
 ## Data resources
 
