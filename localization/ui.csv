@@ -13,6 +13,7 @@ MENU_BACK,Назад,Back,Retour,Zurück,Назад
 TUTORIAL_CHOICE_TITLE,Пройти обучение?,Play the tutorial?,Suivre le didacticiel?,Tutorial spielen?,Пройти навчання?
 TUTORIAL_CHOICE_YES,Да,Yes,Oui,Ja,Так
 TUTORIAL_CHOICE_NO,Нет,No,Non,Nein,Ні
+LOADING_TITLE,Загрузка,Loading,Chargement,Laden,Завантаження
 TUTORIAL_STEP_PROGRESS,Обучение — шаг %d из %d,Tutorial — Step %d of %d,Tutoriel — étape %d sur %d,Tutorial — Schritt %d von %d,Навчання — крок %d із %d
 TUTORIAL_SKIP,Пропустить,Skip,Passer,Überspringen,Пропустити
 TUTORIAL_NEXT,Дальше,Next,Suivant,Weiter,Далі

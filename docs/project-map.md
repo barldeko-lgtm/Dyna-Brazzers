@@ -17,7 +17,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 
 ## Main scenes
 
-- `scenes/ui/start_screen.tscn` — startup menu, level selection, tutorial-choice prompt, load slots, settings, and exit.
+- `scenes/ui/start_screen.tscn` — startup menu, level selection, tutorial-choice prompt, threaded loading presentation, load slots, settings, and exit.
 - `scenes/main/main.tscn` — gameplay compositor with dedicated world viewport, adaptive right-side HUD, camera, match flow, world, and debug overlays.
 - `scenes/ui/player_hud.tscn` — gameplay HUD, minimap, counters, nature-menu instance, and right-panel art.
 - `scenes/ui/creature_info_panel.tscn` — selected/hovered creature information.
@@ -103,7 +103,7 @@ Enemy objectives:
 
 ## UI, settings, localization, audio, save, and debug
 
-- `scripts/ui/start_screen.gd` — startup UI, level selection, slot loading, base settings UI, and locale refresh.
+- `scripts/ui/start_screen.gd` — startup UI, level selection, threaded gameplay-scene loading/progress, slot loading, base settings UI, and locale refresh.
 - `scripts/tutorial/tutorial_manager.gd` — cross-scene tutorial start/active state and match-clock suspension policy.
 - `scripts/tutorial/tutorial_controller.gd` — gameplay tutorial lifecycle, localization, dynamic layouts, HUD/world target resolution, selective input gates, confirmed egg/hatch/rain/flag progression, completion handoff, Next, Skip, and pause ownership.
 - `scripts/tutorial/tutorial_spotlight.gd` — multi-rectangle dim mask and highlight outlines; the controller pairs it with full or one-control input gating per step.
@@ -121,7 +121,7 @@ Enemy objectives:
 - `scripts/debug/enemy_ai_debug_overlay.gd` — read-only F5 enemy strategy/spell panel.
 - `scripts/debug/performance_stats.gd` — runtime counters and F8 CSV recording.
 - `scripts/audio/audio_manager.gd` — global music, one-shot sounds, UI clicks, bus setup, fades, and audio settings.
-- `scripts/save/save_system.gd` — level routing, base slot persistence, validated writes, and reconstruction.
+- `scripts/save/save_system.gd` — level routing, optional preloaded-scene transitions, base slot persistence, validated writes, and reconstruction.
 - `scripts/save/save_system_with_flags.gd` — faction/player-flag save extensions plus the shared in-game system-menu foundation and legacy language/audio settings page.
 - `scripts/save/save_system_with_enemy.gd` — active final save layer for enemy/match state; currently also overrides the in-game Settings page presentation so it can expose language, display, resolution, music, and sound while delegating actual state to the global managers.
 - `scripts/effects/` — target previews and one-shot effect playback, including the base egg-launch projectile.

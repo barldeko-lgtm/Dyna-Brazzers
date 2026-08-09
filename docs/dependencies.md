@@ -465,6 +465,13 @@ Startup flow:
 5. The gameplay scene builds the selected world layout and its tutorial overlay consumes any pending request.
 6. Load validates the saved level and delegates reconstruction to `SaveSystem` without requesting a tutorial.
 
+Startup loading rules:
+
+- New Game, Continue, autosave, and manual-slot entry from the startup screen resolve the target level before scene replacement;
+- `start_screen.gd` owns the visible loading frame and threaded `PackedScene` request while the startup background remains alive;
+- `SaveSystem` accepts that validated preloaded scene for the actual transition and falls back to file-based loading for existing callers;
+- save reconstruction still begins only after the gameplay scene has replaced the startup screen.
+
 Stable gameplay slot paths:
 
 - `user://dyna_autosave.json`
@@ -509,6 +516,7 @@ Save rules:
 - startup/in-game load UIs expose autosave separately and never replace manual slots;
 - invalid slots remain visible but cannot be loaded;
 - missing optional faction/flag/enemy/reserve/match-end fields remain backward compatible;
+- a restored stage-two egg remains in the world only after its 2x2 blocker registration succeeds; conflicting or invalid records are skipped with a warning;
 - missing `level_id` falls back according to the existing compatibility path; unavailable levels must fail before scene replacement;
 - static terrain and faction bases are never dynamic save entities;
 - temporary corpses, diagnostic contours, base-launch projectiles, derived enemy snapshots, and enemy rally positions are not serialized;

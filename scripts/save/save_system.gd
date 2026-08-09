@@ -574,16 +574,42 @@ func has_continue_save() -> bool:
 	return not get_most_recent_save_candidate().is_empty()
 
 
-func load_most_recent_save() -> bool:
+func load_most_recent_save(preloaded_scene: PackedScene = null) -> bool:
 	var selected := get_most_recent_save_candidate()
 
 	if selected.is_empty():
 		return false
 
 	if String(selected.get("kind", "")) == "autosave":
-		return await load_autosave()
+		return await load_autosave(preloaded_scene)
 
-	return await load_game(int(selected.get("slot_index", 0)))
+	return await load_game(int(selected.get("slot_index", 0)), preloaded_scene)
+
+
+func get_most_recent_save_level_id() -> int:
+	var selected := get_most_recent_save_candidate()
+	if selected.is_empty():
+		return 0
+	if String(selected.get("kind", "")) == "autosave":
+		return get_autosave_level_id()
+	return get_save_slot_level_id(int(selected.get("slot_index", 0)))
+
+
+func get_save_slot_level_id(slot_index: int) -> int:
+	if slot_index < 1 or slot_index > SLOT_COUNT:
+		return 0
+	var save_data := _read_save_dictionary(slot_index)
+	if not _is_valid_save_data(save_data):
+		return 0
+	return get_saved_level_id(save_data)
+
+
+func get_autosave_level_id() -> int:
+	_recover_save_backup(get_autosave_path(), get_autosave_backup_path())
+	var save_data := _read_save_dictionary_at_path(get_autosave_path())
+	if not _is_valid_save_data(save_data):
+		return 0
+	return get_saved_level_id(save_data)
 
 
 func get_slot_button_text(slot_index: int) -> String:
@@ -859,7 +885,7 @@ func get_saved_level_id(save_data: Dictionary) -> int:
 	return maxi(int(level_id), 1)
 
 
-func start_new_game(level_id: int) -> Error:
+func start_new_game(level_id: int, preloaded_scene: PackedScene = null) -> Error:
 	var level_scene_path: String = get_level_scene_path(level_id)
 
 	if level_scene_path.is_empty():
@@ -869,7 +895,7 @@ func start_new_game(level_id: int) -> Error:
 	current_level_id = level_id
 	autosave_elapsed = 0.0
 	Engine.time_scale = 1.0
-	var scene_error: Error = get_tree().change_scene_to_file(level_scene_path)
+	var scene_error: Error = _change_scene_to_level(level_scene_path, preloaded_scene)
 
 	if scene_error != OK:
 		current_level_id = previous_level_id
@@ -877,7 +903,7 @@ func start_new_game(level_id: int) -> Error:
 	return scene_error
 
 
-func load_game(slot_index: int) -> bool:
+func load_game(slot_index: int, preloaded_scene: PackedScene = null) -> bool:
 	if slot_index < 1 or slot_index > SLOT_COUNT:
 		return false
 
@@ -887,10 +913,10 @@ func load_game(slot_index: int) -> bool:
 		push_error("SaveSystem: slot %d is missing or invalid." % slot_index)
 		return false
 
-	return await _load_save_data(save_data)
+	return await _load_save_data(save_data, preloaded_scene)
 
 
-func load_autosave() -> bool:
+func load_autosave(preloaded_scene: PackedScene = null) -> bool:
 	_recover_save_backup(get_autosave_path(), get_autosave_backup_path())
 	var save_data := _read_save_dictionary_at_path(get_autosave_path())
 
@@ -898,10 +924,10 @@ func load_autosave() -> bool:
 		push_error("SaveSystem: autosave is missing or invalid.")
 		return false
 
-	return await _load_save_data(save_data)
+	return await _load_save_data(save_data, preloaded_scene)
 
 
-func _load_save_data(save_data: Dictionary) -> bool:
+func _load_save_data(save_data: Dictionary, preloaded_scene: PackedScene = null) -> bool:
 	load_in_progress = true
 	autosave_elapsed = 0.0
 	var saved_level_id: int = get_saved_level_id(save_data)
@@ -921,7 +947,7 @@ func _load_save_data(save_data: Dictionary) -> bool:
 	):
 		var previous_level_id: int = current_level_id
 		current_level_id = saved_level_id
-		var scene_error: Error = get_tree().change_scene_to_file(level_scene_path)
+		var scene_error: Error = _change_scene_to_level(level_scene_path, preloaded_scene)
 
 		if scene_error != OK:
 			current_level_id = previous_level_id
@@ -941,6 +967,18 @@ func _load_save_data(save_data: Dictionary) -> bool:
 
 	load_in_progress = false
 	return load_succeeded
+
+
+func _change_scene_to_level(
+	level_scene_path: String,
+	preloaded_scene: PackedScene = null
+) -> Error:
+	if (
+		preloaded_scene != null
+		and preloaded_scene.resource_path == level_scene_path
+	):
+		return get_tree().change_scene_to_packed(preloaded_scene)
+	return get_tree().change_scene_to_file(level_scene_path)
 
 
 func _reset_loaded_time_speed() -> void:
@@ -1410,7 +1448,14 @@ func _restore_eggs(
 				anchor,
 				Vector2i(2, 2)
 			))
-			egg_node.set("is_registered_as_blocker", blocker_registered)
+			if not blocker_registered:
+				push_warning(
+					"SaveSystem: skipped a stage-two egg at %s because its blocker could not be restored."
+					% [anchor]
+				)
+				egg_node.queue_free()
+				continue
+			egg_node.set("is_registered_as_blocker", true)
 
 			var stage_2_world_position: Vector2 = world_grid.call(
 				"anchor_to_world_position",

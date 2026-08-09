@@ -35,6 +35,9 @@ const LANGUAGE_OPTIONS := [
 @onready var tutorial_choice_title: Label = $TutorialChoiceLayer/CenterContainer/TutorialChoiceSlot/TutorialChoicePanel/TitleLabel
 @onready var tutorial_yes_button: Button = $TutorialChoiceLayer/CenterContainer/TutorialChoiceSlot/TutorialChoicePanel/YesButton
 @onready var tutorial_no_button: Button = $TutorialChoiceLayer/CenterContainer/TutorialChoiceSlot/TutorialChoicePanel/NoButton
+@onready var loading_layer: Control = $LoadingLayer
+@onready var loading_label: Label = $LoadingLayer/CenterContainer/LoadingSlot/LoadingPanel/LoadingLabel
+@onready var loading_progress: ProgressBar = $LoadingLayer/CenterContainer/LoadingSlot/LoadingPanel/LoadingProgress
 
 var load_slot_buttons: Array[Button] = []
 var level_selection_controls: Array[Control] = []
@@ -132,14 +135,24 @@ func _start_pending_new_game() -> void:
 
 	tutorial_yes_button.disabled = true
 	tutorial_no_button.disabled = true
-	var error: Error = SaveSystem.start_new_game(pending_new_game_level_id)
+	var level_scene_path: String = SaveSystem.get_level_scene_path(pending_new_game_level_id)
+	var packed_scene: PackedScene = await _load_packed_scene(level_scene_path)
+
+	if packed_scene == null:
+		_restore_level_selection_after_failed_start()
+		return
+
+	var error: Error = SaveSystem.start_new_game(pending_new_game_level_id, packed_scene)
 
 	if error == OK:
 		return
 
+	_restore_level_selection_after_failed_start()
+
+
+func _restore_level_selection_after_failed_start() -> void:
 	TutorialManager.cancel_tutorial_start()
-	tutorial_choice_layer.visible = false
-	main_menu_center.visible = true
+	_hide_loading_screen()
 	_show_level_selection()
 	status_label.visible = true
 	status_label.text = tr("STATUS_NEW_GAME_FAILED")
@@ -157,14 +170,22 @@ func _on_continue_pressed() -> void:
 	if not SaveSystem.has_continue_save():
 		return
 
-	status_label.visible = true
-	status_label.text = tr("STATUS_LOADING_LATEST")
 	_set_main_buttons_disabled(true)
-	var load_succeeded: bool = await SaveSystem.load_most_recent_save()
+	var level_id: int = SaveSystem.get_most_recent_save_level_id()
+	var packed_scene: PackedScene = await _load_packed_scene(
+		SaveSystem.get_level_scene_path(level_id)
+	)
+	var load_succeeded := false
+
+	if packed_scene != null:
+		load_succeeded = await SaveSystem.load_most_recent_save(packed_scene)
 
 	if load_succeeded:
 		return
 
+	_hide_loading_screen()
+	main_menu_center.visible = true
+	status_label.visible = true
 	status_label.text = tr("STATUS_LOAD_LATEST_FAILED")
 	_set_main_buttons_disabled(false)
 
@@ -216,14 +237,21 @@ func _on_load_slot_pressed(slot_index: int) -> void:
 	if not SaveSystem.has_save(slot_index):
 		return
 
-	load_status_label.text = tr("STATUS_LOADING_SLOT") % slot_index
 	_set_load_slot_buttons_disabled(true)
+	var level_id: int = SaveSystem.get_save_slot_level_id(slot_index)
+	var packed_scene: PackedScene = await _load_packed_scene(
+		SaveSystem.get_level_scene_path(level_id)
+	)
+	var load_succeeded := false
 
-	var load_succeeded: bool = await SaveSystem.load_game(slot_index)
+	if packed_scene != null:
+		load_succeeded = await SaveSystem.load_game(slot_index, packed_scene)
 
 	if load_succeeded:
 		return
 
+	_hide_loading_screen()
+	main_menu_center.visible = true
 	load_status_label.text = tr("STATUS_LOAD_SLOT_FAILED") % slot_index
 	_set_load_slot_buttons_disabled(false)
 	load_back_button.grab_focus()
@@ -233,16 +261,73 @@ func _on_autosave_pressed() -> void:
 	if not SaveSystem.has_autosave():
 		return
 
-	load_status_label.text = tr("STATUS_LOADING_AUTOSAVE")
 	_set_load_slot_buttons_disabled(true)
-	var load_succeeded: bool = await SaveSystem.load_autosave()
+	var level_id: int = SaveSystem.get_autosave_level_id()
+	var packed_scene: PackedScene = await _load_packed_scene(
+		SaveSystem.get_level_scene_path(level_id)
+	)
+	var load_succeeded := false
+
+	if packed_scene != null:
+		load_succeeded = await SaveSystem.load_autosave(packed_scene)
 
 	if load_succeeded:
 		return
 
+	_hide_loading_screen()
+	main_menu_center.visible = true
 	load_status_label.text = tr("STATUS_LOAD_AUTOSAVE_FAILED")
 	_set_load_slot_buttons_disabled(false)
 	load_back_button.grab_focus()
+
+
+func _load_packed_scene(scene_path: String) -> PackedScene:
+	if scene_path.is_empty():
+		return null
+
+	_show_loading_screen()
+	await get_tree().process_frame
+
+	var request_error: Error = ResourceLoader.load_threaded_request(
+		scene_path,
+		"PackedScene",
+		true
+	)
+	if request_error != OK:
+		return null
+
+	var progress: Array = []
+	while true:
+		var status: ResourceLoader.ThreadLoadStatus = ResourceLoader.load_threaded_get_status(
+			scene_path,
+			progress
+		)
+		if not progress.is_empty():
+			loading_progress.value = clampf(float(progress[0]) * 100.0, 0.0, 100.0)
+
+		match status:
+			ResourceLoader.THREAD_LOAD_LOADED:
+				loading_progress.value = 100.0
+				await get_tree().process_frame
+				return ResourceLoader.load_threaded_get(scene_path) as PackedScene
+			ResourceLoader.THREAD_LOAD_FAILED, ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+				return null
+
+		await get_tree().process_frame
+
+	return null
+
+
+func _show_loading_screen() -> void:
+	main_menu_center.visible = false
+	tutorial_choice_layer.visible = false
+	loading_label.text = tr("LOADING_TITLE")
+	loading_progress.value = 0.0
+	loading_layer.visible = true
+
+
+func _hide_loading_screen() -> void:
+	loading_layer.visible = false
 
 
 func _show_main_buttons() -> void:
@@ -568,6 +653,7 @@ func _refresh_localized_text() -> void:
 	tutorial_choice_title.text = tr("TUTORIAL_CHOICE_TITLE")
 	tutorial_yes_button.text = tr("TUTORIAL_CHOICE_YES")
 	tutorial_no_button.text = tr("TUTORIAL_CHOICE_NO")
+	loading_label.text = tr("LOADING_TITLE")
 	load_back_button.text = tr("MENU_BACK")
 	var settings_title := menu_vbox.get_node_or_null("AudioSettingsTitle") as Label
 	if settings_title != null:

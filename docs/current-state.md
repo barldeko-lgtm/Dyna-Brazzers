@@ -313,6 +313,8 @@ The startup screen provides New Game, Continue, Load, Settings, and Exit. New Ga
 
 The Load page exposes autosave, three manual slots, and Back. Startup and in-game system menus share the same save files and validated reconstruction path.
 
+Starting a selected level, Continue, and startup save-slot loading keep the startup background visible while the gameplay scene is loaded through Godot's threaded resource loader. A centered loading panel reuses the tutorial-choice frame and shows real resource progress before the scene switch.
+
 Opening the in-game menu pauses simulation. Closing it restores the previously selected simulation speed.
 
 One protected autosave is written on its simulation-time cadence during an active match. Loading, pause/menu state, or a finished match suspends that cadence.

@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/start_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/ui/start_screen_background.png" id="2_background"]
@@ -14,6 +14,25 @@
 [ext_resource type="Texture2D" path="res://assets/ui/tutorial/tutorial_choice_frame.png" id="12_tutorial_choice_frame"]
 
 [sub_resource type="StyleBoxEmpty" id="Panel"]
+
+[sub_resource type="StyleBoxFlat" id="LoadingProgressBackground"]
+bg_color = Color(0.055, 0.075, 0.065, 0.92)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.14, 0.2, 0.16, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="LoadingProgressFill"]
+bg_color = Color(0.39, 0.69, 0.32, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [sub_resource type="Theme" id="StartScreenTheme"]
 Button/fonts/font = ExtResource("5_philosopher_bold")
@@ -434,3 +453,75 @@ theme_override_styles/hover = ExtResource("7_button_hover")
 theme_override_styles/pressed = ExtResource("7_button_hover")
 theme_override_styles/focus = ExtResource("7_button_hover")
 text = "TUTORIAL_CHOICE_NO"
+
+[node name="LoadingLayer" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="CenterContainer" type="CenterContainer" parent="LoadingLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 100.0
+offset_bottom = 100.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LoadingSlot" type="Control" parent="LoadingLayer/CenterContainer"]
+custom_minimum_size = Vector2(400, 227.2)
+layout_mode = 2
+
+[node name="LoadingPanel" type="Control" parent="LoadingLayer/CenterContainer/LoadingSlot"]
+layout_mode = 0
+offset_right = 500.0
+offset_bottom = 284.0
+scale = Vector2(0.8, 0.8)
+
+[node name="FrameTexture" type="TextureRect" parent="LoadingLayer/CenterContainer/LoadingSlot/LoadingPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("12_tutorial_choice_frame")
+expand_mode = 1
+
+[node name="LoadingLabel" type="Label" parent="LoadingLayer/CenterContainer/LoadingSlot/LoadingPanel"]
+layout_mode = 0
+offset_left = 70.0
+offset_top = 74.0
+offset_right = 430.0
+offset_bottom = 134.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_fonts/font = ExtResource("5_philosopher_bold")
+theme_override_font_sizes/font_size = 33
+text = "LOADING_TITLE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LoadingProgress" type="ProgressBar" parent="LoadingLayer/CenterContainer/LoadingSlot/LoadingPanel"]
+layout_mode = 0
+offset_left = 84.0
+offset_top = 157.0
+offset_right = 416.0
+offset_bottom = 187.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("5_philosopher_bold")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/background = SubResource("LoadingProgressBackground")
+theme_override_styles/fill = SubResource("LoadingProgressFill")
+show_percentage = true
