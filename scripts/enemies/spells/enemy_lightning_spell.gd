@@ -168,7 +168,7 @@ func _collect_lightning_scan_data() -> Dictionary:
 			egg_eater_threats.append(candidate)
 		elif (
 			species_id == PLAYER_TYRANNOSAURUS_ID
-			and health <= maxf(controller.lightning_damage_threshold, 0.0)
+			and health <= _get_lightning_damage()
 			and base_distance <= maxf(controller.tyrannosaurus_base_radius_tiles, 0.0)
 		):
 			tyrannosaurus_candidates.append(candidate)
@@ -411,7 +411,7 @@ func _tile_distance(from_tile: Vector2i, to_tile: Vector2i) -> float:
 
 func _get_required_egg_eater_lightning_strikes(health: float) -> int:
 	var safe_health := maxf(health, 0.0)
-	var one_strike_damage := maxf(controller.lightning_damage_threshold, 0.0)
+	var one_strike_damage := _get_lightning_damage()
 
 	if safe_health <= 0.0 or one_strike_damage <= 0.0:
 		return 0
@@ -420,6 +420,17 @@ func _get_required_egg_eater_lightning_strikes(health: float) -> int:
 	if safe_health <= one_strike_damage * 2.0 + 0.001:
 		return 2
 	return 0
+
+
+func _get_lightning_damage() -> float:
+	if controller == null or not is_instance_valid(controller):
+		return 0.0
+	var nature_effects: Node = controller.nature_effects
+	if nature_effects == null or not is_instance_valid(nature_effects):
+		return 0.0
+	if not nature_effects.has_method("get_lightning_damage"):
+		return 0.0
+	return maxf(float(nature_effects.call("get_lightning_damage")), 0.0)
 
 
 func _get_lightning_cost() -> float:

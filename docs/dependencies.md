@@ -333,6 +333,7 @@ Spell targeting contracts:
 
 - preserve the controller's one-action strategic priority, including completion of an active delayed lightning sequence before another strategic action;
 - lightning validates living player targets from stable creature state and preserves egg-eater priority over opportunistic tyrannosaurus spending;
+- lightning kill planning reads the actual per-strike damage from `NatureEffectsSystem`; the enemy controller must not keep a duplicate damage threshold;
 - delayed two-strike lightning must reserve/validate its approved kill plan without wall-time dependence and spend each successful strike separately;
 - earthquake scans valid landed player eggs, derives their values from `PlayerSpeciesCatalog`, rejects contaminated/non-profitable zones, revalidates before application, and spends only after success;
 - rain checks complete affordability before target work, keeps target scoring in `EnemyRainSpell`, uses world/grass public APIs including DryGround progress, and refunds the same store if application fails;
@@ -516,6 +517,7 @@ Save rules:
 - startup/in-game load UIs expose autosave separately and never replace manual slots;
 - invalid slots remain visible but cannot be loaded;
 - missing optional faction/flag/enemy/reserve/match-end fields remain backward compatible;
+- creature faction/flag-completion fields and egg faction fields are added while each base entity record is created; save extensions must never correlate a second group traversal by array index;
 - a restored stage-two egg remains in the world only after its 2x2 blocker registration succeeds; conflicting or invalid records are skipped with a warning;
 - missing `level_id` falls back according to the existing compatibility path; unavailable levels must fail before scene replacement;
 - static terrain and faction bases are never dynamic save entities;

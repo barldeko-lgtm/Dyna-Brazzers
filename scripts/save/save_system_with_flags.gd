@@ -195,8 +195,6 @@ func _refresh_menu_tooltip() -> void:
 
 func _collect_save_data() -> Dictionary:
 	var save_data: Dictionary = super._collect_save_data()
-	_add_creature_factions_to_save_records(save_data.get("creatures", []) as Array)
-	_add_egg_factions_to_save_records(save_data.get("eggs", []) as Array)
 
 	var player_flags := get_node_or_null("/root/PlayerFlags")
 
@@ -224,55 +222,15 @@ func _apply_save_data(save_data: Dictionary) -> bool:
 	return true
 
 
-func _add_creature_factions_to_save_records(saved_records: Array) -> void:
-	var record_index := 0
-
-	for creature: Node in get_tree().get_nodes_in_group("creatures"):
-		if not is_instance_valid(creature) or creature.is_queued_for_deletion():
-			continue
-
-		if int(creature.get("state")) == Creature.State.DEAD:
-			continue
-
-		var species_data := creature.get("species_data") as Resource
-
-		if species_data == null or species_data.resource_path.is_empty():
-			continue
-
-		if record_index >= saved_records.size():
-			break
-
-		var record_variant: Variant = saved_records[record_index]
-
-		if record_variant is Dictionary:
-			var record := record_variant as Dictionary
-			record["faction_id"] = String(CREATURE_FACTION.get_id(creature))
-			record["flag_completed_revision"] = int(
-				creature.get_meta(FLAG_COMPLETION_REVISION_META, -1)
-			)
-			saved_records[record_index] = record
-
-		record_index += 1
+func _enrich_creature_save_record(record: Dictionary, creature: Node) -> void:
+	record["faction_id"] = String(CREATURE_FACTION.get_id(creature))
+	record["flag_completed_revision"] = int(
+		creature.get_meta(FLAG_COMPLETION_REVISION_META, -1)
+	)
 
 
-func _add_egg_factions_to_save_records(saved_records: Array) -> void:
-	var record_index := 0
-
-	for egg: Node in get_tree().get_nodes_in_group("eggs"):
-		if not is_instance_valid(egg) or egg.is_queued_for_deletion():
-			continue
-
-		if record_index >= saved_records.size():
-			break
-
-		var record_variant: Variant = saved_records[record_index]
-
-		if record_variant is Dictionary:
-			var record := record_variant as Dictionary
-			record["faction_id"] = String(CREATURE_FACTION.get_id(egg))
-			saved_records[record_index] = record
-
-		record_index += 1
+func _enrich_egg_save_record(record: Dictionary, egg: Node) -> void:
+	record["faction_id"] = String(CREATURE_FACTION.get_id(egg))
 
 
 func _restore_entity_factions(save_data: Dictionary) -> void:

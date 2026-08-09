@@ -1087,7 +1087,7 @@ func _collect_creature_data() -> Array[Dictionary]:
 		if scene_path.is_empty():
 			scene_path = DEFAULT_CREATURE_SCENE_PATH
 
-		creatures_data.append({
+		var creature_record: Dictionary = {
 			"scene_path": scene_path,
 			"species_path": species_data.resource_path,
 			"anchor_x": anchor_tile.x,
@@ -1100,9 +1100,15 @@ func _collect_creature_data() -> Array[Dictionary]:
 				creature_node.get("reproduction_cooldown_remaining")
 			),
 			"reproduction_progress": float(creature_node.get("reproduction_progress"))
-		})
+		}
+		_enrich_creature_save_record(creature_record, creature_node)
+		creatures_data.append(creature_record)
 
 	return creatures_data
+
+
+func _enrich_creature_save_record(_record: Dictionary, _creature: Node) -> void:
+	pass
 
 
 func _collect_grass_data() -> Array[Dictionary]:
@@ -1167,7 +1173,7 @@ func _collect_egg_data() -> Array[Dictionary]:
 		if scene_path.is_empty():
 			scene_path = DEFAULT_EGG_SCENE_PATH
 
-		eggs_data.append({
+		var egg_record: Dictionary = {
 			"scene_path": scene_path,
 			"species_id": String(egg_node.get("species_id")),
 			"hatch_species_path": hatch_species_path,
@@ -1178,9 +1184,15 @@ func _collect_egg_data() -> Array[Dictionary]:
 			"stage_1_time_left": stage_1_timer.time_left if stage_1_timer != null else 0.0,
 			"retry_time_left": retry_timer.time_left if retry_timer != null else 0.0,
 			"hatch_time_left": hatch_timer.time_left if hatch_timer != null else 0.0
-		})
+		}
+		_enrich_egg_save_record(egg_record, egg_node)
+		eggs_data.append(egg_record)
 
 	return eggs_data
+
+
+func _enrich_egg_save_record(_record: Dictionary, _egg: Node) -> void:
+	pass
 
 
 # ---------------------------------------------------------------------------

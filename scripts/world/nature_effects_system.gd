@@ -44,6 +44,10 @@ func get_earthquake_radius_tiles() -> int:
 	return earthquake_radius_tiles
 
 
+func get_lightning_damage() -> float:
+	return lightning_damage
+
+
 func can_apply_lightning(creature: Node) -> bool:
 	return (
 		creature != null
@@ -58,7 +62,7 @@ func apply_lightning(creature: Node) -> bool:
 
 	_spawn_lightning_effect(creature)
 	AudioManager.play_sfx(LIGHTNING_SOUND)
-	creature.call("take_direct_damage", lightning_damage)
+	creature.call("take_direct_damage", get_lightning_damage())
 	return true
 
 
