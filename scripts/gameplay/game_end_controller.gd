@@ -159,8 +159,8 @@ func _cancel_active_nature_targeting() -> void:
 func _on_main_menu_requested() -> void:
 	var save_system := get_node_or_null("/root/SaveSystem")
 
-	if save_system != null and save_system.has_method("return_to_main_menu_from_result"):
-		save_system.call("return_to_main_menu_from_result")
+	if save_system != null and save_system.has_method("return_to_main_menu"):
+		save_system.call("return_to_main_menu")
 		return
 
 	# Defensive fallback for a missing autoload bridge.

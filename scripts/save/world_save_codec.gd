@@ -391,6 +391,7 @@ func _restore_eggs(
 			Vector2i(1, 2)
 		)
 		egg_node.position = container.to_local(stage_1_world_position)
+		save_system.call("_prepare_egg_restore_record", egg_record, egg_node)
 		container.add_child(egg_node)
 
 		var stage_1_timer: Timer = egg_node.get_node_or_null("Stage1Timer") as Timer
@@ -501,6 +502,7 @@ func _restore_creatures(
 		creature_node.set("health", float(creature_record.get("health", 1.0)))
 		creature_node.set("hunger", float(creature_record.get("hunger", 1.0)))
 		creature_node.position = container.to_local(world_position)
+		save_system.call("_prepare_creature_restore_record", creature_record, creature_node)
 		container.add_child(creature_node)
 
 		creature_node.set("age", float(creature_record.get("age", 0.0)))

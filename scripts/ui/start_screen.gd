@@ -1,5 +1,7 @@
 extends Control
 
+const BUTTON_TEXT_FITTER := preload("res://scripts/ui/button_text_fitter.gd")
+
 const SLOT_COUNT: int = 3
 const LANGUAGE_OPTIONS := [
 	{"locale": "ru", "name": "Русский"},
@@ -215,10 +217,10 @@ func _on_language_selected(index: int) -> void:
 func _on_locale_changed(_locale: String) -> void:
 	_refresh_localized_text()
 	if level_1_button.visible:
-		SaveSystem.apply_save_button_text(level_1_button, level_1_button.text, 22, 13)
-		SaveSystem.apply_save_button_text(level_2_button, level_2_button.text, 22, 13)
-		SaveSystem.apply_save_button_text(level_3_button, level_3_button.text, 22, 13)
-		SaveSystem.apply_save_button_text(level_4_button, level_4_button.text, 22, 13)
+		BUTTON_TEXT_FITTER.apply(level_1_button, level_1_button.text, 22, 13)
+		BUTTON_TEXT_FITTER.apply(level_2_button, level_2_button.text, 22, 13)
+		BUTTON_TEXT_FITTER.apply(level_3_button, level_3_button.text, 22, 13)
+		BUTTON_TEXT_FITTER.apply(level_4_button, level_4_button.text, 22, 13)
 
 
 func _on_music_volume_changed(value: float) -> void:
@@ -373,10 +375,10 @@ func _show_level_selection() -> void:
 
 	_set_settings_controls_visible(false)
 	_set_level_selection_visible(true)
-	SaveSystem.apply_save_button_text(level_1_button, level_1_button.text, 22, 13)
-	SaveSystem.apply_save_button_text(level_2_button, level_2_button.text, 22, 13)
-	SaveSystem.apply_save_button_text(level_3_button, level_3_button.text, 22, 13)
-	SaveSystem.apply_save_button_text(level_4_button, level_4_button.text, 22, 13)
+	BUTTON_TEXT_FITTER.apply(level_1_button, level_1_button.text, 22, 13)
+	BUTTON_TEXT_FITTER.apply(level_2_button, level_2_button.text, 22, 13)
+	BUTTON_TEXT_FITTER.apply(level_3_button, level_3_button.text, 22, 13)
+	BUTTON_TEXT_FITTER.apply(level_4_button, level_4_button.text, 22, 13)
 	level_1_button.grab_focus()
 
 
@@ -396,7 +398,7 @@ func _show_load_slots() -> void:
 	var autosave_exists: bool = SaveSystem.has_autosave()
 	autosave_button.visible = true
 	autosave_button.disabled = not autosave_exists
-	SaveSystem.apply_save_button_text(
+	BUTTON_TEXT_FITTER.apply(
 		autosave_button,
 		SaveSystem.get_autosave_button_text(),
 		19,
@@ -412,7 +414,7 @@ func _show_load_slots() -> void:
 		var slot_has_save: bool = SaveSystem.has_save(slot_number)
 		slot_button.visible = true
 		slot_button.disabled = not slot_has_save
-		SaveSystem.apply_save_button_text(
+		BUTTON_TEXT_FITTER.apply(
 			slot_button,
 			SaveSystem.get_slot_button_text(slot_number),
 			21,

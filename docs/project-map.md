@@ -121,10 +121,11 @@ Enemy objectives:
 - `scripts/debug/enemy_ai_debug_overlay.gd` — read-only F5 enemy strategy/spell panel.
 - `scripts/debug/performance_stats.gd` — runtime counters and F8 CSV recording.
 - `scripts/audio/audio_manager.gd` — global music, one-shot sounds, UI clicks, bus setup, fades, and audio settings.
-- `scripts/save/save_system.gd` — active SaveSystem facade: autosave cadence, level routing, public slot API, and ordered restoration of world, faction, enemy, and match state.
+- `scripts/save/save_system.gd` — active SaveSystem facade: autosave cadence, level/session routing, public slot API, and ordered restoration of world, faction, enemy, and match state.
 - `scripts/save/save_storage.gd` — validated JSON reads/writes, slot paths, temporary/backup recovery, and newest-save selection.
 - `scripts/save/world_save_codec.gd` — collection and reconstruction of camera, energy, DryGround deltas, grass, eggs, and creatures.
 - `scripts/ui/in_game_system_menu.gd` — in-game Save/Load/Settings/Main Menu presentation; display/audio/locale state remains owned by the global managers.
+- `scripts/ui/button_text_fitter.gd` — shared localized button-text fitting for startup and in-game UI.
 - `scripts/effects/` — target previews and one-shot effect playback, including the base egg-launch projectile.
 
 `DisplaySettings`, `AudioManager`, and `LocalizationManager` remain the respective owners of display, audio, and locale state; the extracted in-game system menu only presents and changes those settings.

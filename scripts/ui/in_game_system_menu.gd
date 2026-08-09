@@ -1,6 +1,7 @@
 extends Node
 
-const START_SCREEN_SCENE_PATH := "res://scenes/ui/start_screen.tscn"
+const BUTTON_TEXT_FITTER := preload("res://scripts/ui/button_text_fitter.gd")
+
 const SLOT_COUNT := 3
 const NATURE_MENU_ATTACH_RETRY_FRAMES := 16
 const MENU_ROOT_POSITION := Vector2(-2.0, 94.0)
@@ -215,7 +216,7 @@ func _show_slot_menu() -> void:
 		autosave_button.disabled = not bool(save_system.call("has_autosave"))
 		autosave_button.pressed.connect(_on_autosave_slot_pressed)
 		menu_vbox.add_child(autosave_button)
-		apply_save_button_text(autosave_button, String(save_system.call("get_autosave_button_text")), 18, 12)
+		BUTTON_TEXT_FITTER.apply(autosave_button, String(save_system.call("get_autosave_button_text")), 18, 12)
 
 	for slot_index: int in range(1, SLOT_COUNT + 1):
 		var slot_button: Button = _create_styled_button()
@@ -228,7 +229,7 @@ func _show_slot_menu() -> void:
 
 		slot_button.pressed.connect(_on_slot_pressed.bind(slot_index))
 		menu_vbox.add_child(slot_button)
-		apply_save_button_text(slot_button, String(save_system.call("get_slot_button_text", slot_index)), 18, 12)
+		BUTTON_TEXT_FITTER.apply(slot_button, String(save_system.call("get_slot_button_text", slot_index)), 18, 12)
 
 	_add_menu_button("MENU_BACK", _on_slots_back_pressed, 40.0)
 	_place_menu_root()
@@ -267,11 +268,7 @@ func _on_close_menu_pressed() -> void:
 	_close_menu(true)
 
 func _on_main_menu_pressed() -> void:
-	save_system.call("_reset_active_game_session")
-
-	var scene_error: Error = get_tree().change_scene_to_file(
-		START_SCREEN_SCENE_PATH
-	)
+	var scene_error: Error = save_system.call("return_to_main_menu") as Error
 
 	if scene_error == OK:
 		return
@@ -748,37 +745,6 @@ func _refresh_menu_tooltip() -> void:
 		return
 
 	menu_button.tooltip_text = tr("MENU_TOOLTIP_WITH_SETTINGS")
-
-func apply_save_button_text(
-	button: Button,
-	text: String,
-	preferred_font_size: int,
-	minimum_font_size: int
-) -> void:
-	if button == null:
-		return
-
-	button.text = text
-	var preferred_size := maxi(preferred_font_size, 1)
-	var minimum_size := clampi(minimum_font_size, 1, preferred_size)
-	var font := button.get_theme_font("font")
-	var stylebox := button.get_theme_stylebox("normal")
-	var horizontal_padding := stylebox.get_minimum_size().x if stylebox != null else 0.0
-	var available_width := maxf(button.custom_minimum_size.x - horizontal_padding - 8.0, 1.0)
-	var fitted_size := preferred_size
-
-	while (
-		fitted_size > minimum_size
-		and font.get_string_size(
-			text,
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1.0,
-			fitted_size
-		).x > available_width
-	):
-		fitted_size -= 1
-
-	button.add_theme_font_size_override("font_size", fitted_size)
 
 func _cancel_active_nature_targeting() -> void:
 	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")

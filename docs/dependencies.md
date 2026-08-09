@@ -359,6 +359,7 @@ Main files:
 - `res://scripts/ui/player_nature_ui.gd`
 - `res://scripts/settings/display_settings.gd`
 - `res://scripts/ui/in_game_system_menu.gd`
+- `res://scripts/ui/button_text_fitter.gd`
 - `res://localization/display_settings.csv`
 
 Stable wiring:
@@ -383,7 +384,7 @@ Display ownership:
 - free-form resizing/maximizing remains disabled while the settings list owns supported window sizes;
 - display settings are independent of gameplay save slots.
 
-The startup settings presentation is normalized by `display_settings.gd`. The in-game presentation lives in `in_game_system_menu.gd`, which only calls the owning `DisplaySettings`, `AudioManager`, and `LocalizationManager` services.
+The startup settings presentation is normalized by `display_settings.gd`. The in-game presentation lives in `in_game_system_menu.gd`, which only calls the owning `DisplaySettings`, `AudioManager`, and `LocalizationManager` services. Both UI layers use `button_text_fitter.gd` directly for localized button labels; SaveSystem does not own text layout.
 
 Layout pixel offsets inside Settings/Load are implementation details and should not be copied into this document. Read the current UI code/scene before layout changes.
 
@@ -519,7 +520,7 @@ Save rules:
 - startup/in-game load UIs expose autosave separately and never replace manual slots;
 - invalid slots remain visible but cannot be loaded;
 - missing optional faction/flag/enemy/reserve/match-end fields remain backward compatible;
-- creature faction/flag-completion fields and egg faction fields are added while each base entity record is created; no save path may correlate a second scene-group traversal by array index;
+- creature faction/flag-completion fields and egg faction fields are added while each base entity record is created, then applied from that same record before the restored node enters the scene tree; no save path may correlate a second scene-group traversal by array index or reconstructed key;
 - a restored stage-two egg remains in the world only after its 2x2 blocker registration succeeds; conflicting or invalid records are skipped with a warning;
 - missing `level_id` falls back according to the existing compatibility path; unavailable levels must fail before scene replacement;
 - static terrain and faction bases are never dynamic save entities;
