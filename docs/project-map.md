@@ -64,7 +64,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — egg targeting, waiting, and consumption.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and natural egg spawning.
 - `scripts/creatures/behaviors/creature_visual_controller.gd` — directional textures, optional walk/corpse-eating/attack animation playback, lunges, shadows, idle/death visuals, and fallbacks.
-- `scripts/creatures/behaviors/creature_interaction_controller.gd` — hover/selection world visual and mouse bridge.
+- `scripts/creatures/behaviors/creature_interaction_controller.gd` — hover/selection world visual, 270×270 lightning target frame, and mouse bridge.
 - `scripts/combat/duel.gd` — one-on-one combat loop, intervention reservation, fighter replacement, and damage timing.
 - `scripts/resources/grass.gd` — grass lifecycle, food value, spreading, registry sync, and nature-power reactions.
 - `scripts/resources/egg.gd` — egg lifecycle, optional base-landing gate, expansion/blocker state, registered-creature hatch signal, visual world bounds, targeting, and destruction API.
@@ -112,7 +112,7 @@ Enemy objectives:
 - `localization/ui.csv` — general player-facing translations for `ru`, `en`, `fr`, `de`, and `uk`.
 - `localization/display_settings.csv` — display-mode/resolution translations for the same five locales.
 - `scripts/ui/player_ui.gd` — minimap, counters, base focus, time controls, egg-controller bootstrap, and stable tutorial access to minimap/counter controls.
-- `scripts/ui/creature_stats_ui.gd` — creature information, selection state, and lightning-target bridge.
+- `scripts/ui/creature_stats_ui.gd` — creature information, selection state, and live hovered-creature lightning-target bridge.
 - `scripts/ui/player_egg_creation_ui.gd` — player egg submenu, purchases, post-payment success signal, automatic return action, and stable species-button lookup for tutorial targeting.
 - `scripts/ui/player_nature_ui.gd` — spell buttons, targeting/previews, confirmed rain signal, named egg/spell/flag/system controls, and stable tutorial APIs including rain-button lookup and preview alignment.
 - `scripts/ui/game_result_overlay.gd` — victory/defeat presentation and `main_menu_requested` signal.

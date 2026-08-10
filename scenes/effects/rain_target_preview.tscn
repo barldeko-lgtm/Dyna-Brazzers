@@ -1,9 +1,14 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/effects/rain_target_preview.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/effects/rain/rain.png" id="2_valid"]
+[ext_resource type="Texture2D" path="res://assets/sprites/effects/rain/rain-2.png" id="3_invalid"]
 
 [node name="RainTargetPreview" type="Node2D"]
 visible = false
 z_index = 180
 script = ExtResource("1_script")
 radius = 1
+valid_frame_texture = ExtResource("2_valid")
+invalid_frame_texture = ExtResource("3_invalid")
+frame_visual_size = Vector2(655, 655)

@@ -41,6 +41,7 @@ const SPELL_RAIN := &"rain"
 var player_energy: Node = null
 var lightning_targeting_enabled := false
 var rain_targeting_enabled := false
+var rain_center_grass_required := false
 var sun_targeting_enabled := false
 var earthquake_targeting_enabled := false
 var rain_target_preview: Node2D = null
@@ -114,6 +115,11 @@ func return_spell_menu_to_main() -> void:
 func set_rain_preview_tile_override(tile: Vector2i) -> void:
 	rain_preview_tile_override = tile
 	rain_preview_tile_override_enabled = true
+	_update_rain_target_preview()
+
+
+func set_rain_center_grass_required(required: bool) -> void:
+	rain_center_grass_required = required
 	_update_rain_target_preview()
 
 
@@ -287,6 +293,19 @@ func is_targeting_enabled() -> bool:
 	return lightning_targeting_enabled or rain_targeting_enabled or sun_targeting_enabled or earthquake_targeting_enabled
 
 
+func can_target_lightning_creature(creature: Node) -> bool:
+	if not lightning_targeting_enabled or creature == null or not is_instance_valid(creature):
+		return false
+	if not can_spend_energy(lightning_energy_cost):
+		return false
+	var nature_effects := _get_nature_effects_system()
+	return (
+		nature_effects != null
+		and nature_effects.has_method("can_apply_lightning")
+		and bool(nature_effects.call("can_apply_lightning", creature))
+	)
+
+
 func try_apply_lightning_to_creature(creature: Node) -> bool:
 	if not lightning_targeting_enabled:
 		return false
@@ -334,6 +353,7 @@ func cancel_lightning_targeting() -> void:
 
 func cancel_rain_targeting() -> void:
 	rain_targeting_enabled = false
+	rain_center_grass_required = false
 	rain_preview_tile_override_enabled = false
 
 	if rain_button != null and rain_button.button_pressed:
@@ -503,9 +523,7 @@ func _try_apply_rain_at_world_position(world_position: Vector2) -> bool:
 
 	var center_tile: Vector2i = world_grid.call("world_to_map_tile", world_position)
 
-	if not nature_effects.has_method("can_apply_rain") or not bool(
-		nature_effects.call("can_apply_rain", center_tile)
-	):
+	if not _is_rain_target_valid(center_tile, world_grid, nature_effects):
 		return false
 
 	if not spend_energy(rain_energy_cost):
@@ -520,6 +538,20 @@ func _try_apply_rain_at_world_position(world_position: Vector2) -> bool:
 
 	if not can_spend_energy(rain_energy_cost):
 		cancel_rain_targeting()
+	return true
+
+
+func _is_rain_target_valid(center_tile: Vector2i, world_grid: Node, nature_effects: Node) -> bool:
+	if nature_effects == null or not nature_effects.has_method("can_apply_rain"):
+		return false
+	if not bool(nature_effects.call("can_apply_rain", center_tile)):
+		return false
+	if rain_center_grass_required:
+		return (
+			world_grid != null
+			and world_grid.has_method("has_grass_at_tile")
+			and bool(world_grid.call("has_grass_at_tile", center_tile))
+		)
 	return true
 
 
@@ -678,9 +710,7 @@ func _update_rain_target_preview() -> void:
 	if not rain_preview_tile_override_enabled:
 		center_tile = world_grid.call("world_to_map_tile", _get_world_mouse_position())
 	var nature_effects := _get_nature_effects_system()
-	var valid_target := nature_effects != null and nature_effects.has_method("can_apply_rain") and bool(
-		nature_effects.call("can_apply_rain", center_tile)
-	)
+	var valid_target := _is_rain_target_valid(center_tile, world_grid, nature_effects)
 
 	if rain_target_preview.has_method("set_center_tile"):
 		rain_target_preview.set_center_tile(center_tile, valid_target)

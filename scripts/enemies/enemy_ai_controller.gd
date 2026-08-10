@@ -37,17 +37,50 @@ var last_action_text := "ожидание первого хода"
 var enemy_base: Node = null
 var enemy_energy: Node = null
 var next_late_predator_id: StringName = TYRANNOSAURUS_ID
+var tutorial_strategy_suspended := false
 
 
 func _ready() -> void:
 	add_to_group("enemy_ai")
 	latest_snapshot = _create_empty_snapshot()
 	_refresh_runtime_references()
+	_bind_tutorial_lifecycle()
 	_setup_turn_timer()
+	_set_tutorial_strategy_suspended(TutorialManager.is_match_clock_suspended())
 
 
 func _process(delta: float) -> void:
+	if tutorial_strategy_suspended:
+		return
 	elapsed_simulation_seconds += maxf(delta, 0.0)
+
+
+func _bind_tutorial_lifecycle() -> void:
+	if not TutorialManager.tutorial_started.is_connected(_on_tutorial_started):
+		TutorialManager.tutorial_started.connect(_on_tutorial_started)
+	if not TutorialManager.tutorial_finished.is_connected(_on_tutorial_finished):
+		TutorialManager.tutorial_finished.connect(_on_tutorial_finished)
+
+
+func _on_tutorial_started() -> void:
+	_set_tutorial_strategy_suspended(true)
+
+
+func _on_tutorial_finished() -> void:
+	_set_tutorial_strategy_suspended(false, true)
+
+
+func _set_tutorial_strategy_suspended(suspended: bool, restart_timer := false) -> void:
+	tutorial_strategy_suspended = suspended
+	if turn_timer == null:
+		return
+	turn_timer.paused = suspended
+	if suspended or not restart_timer:
+		return
+	turn_timer.stop()
+	turn_timer.one_shot = false
+	turn_timer.wait_time = get_turn_interval()
+	turn_timer.start()
 
 
 func _setup_turn_timer() -> void:
@@ -60,6 +93,8 @@ func _setup_turn_timer() -> void:
 
 
 func _on_turn_timer_timeout() -> void:
+	if tutorial_strategy_suspended:
+		return
 	if turn_timer != null and turn_timer.one_shot:
 		turn_timer.one_shot = false
 		turn_timer.wait_time = get_turn_interval()

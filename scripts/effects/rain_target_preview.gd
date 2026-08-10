@@ -6,6 +6,9 @@ extends Node2D
 @export var valid_border_color := Color(0.45, 0.8, 1.0, 0.9)
 @export var invalid_fill_color := Color(1.0, 0.25, 0.2, 0.18)
 @export var invalid_border_color := Color(1.0, 0.35, 0.25, 0.85)
+@export var valid_frame_texture: Texture2D = null
+@export var invalid_frame_texture: Texture2D = null
+@export var frame_visual_size := Vector2.ZERO
 
 var tile_size := Vector2(128.0, 128.0)
 var world_grid: Node = null
@@ -35,6 +38,17 @@ func hide_preview() -> void:
 	queue_redraw()
 
 
+func get_active_frame_texture() -> Texture2D:
+	return valid_frame_texture if is_valid_target else invalid_frame_texture
+
+
+func _get_preview_rect() -> Rect2:
+	var area_size := tile_size * float(radius * 2 + 1)
+	if frame_visual_size.x > 0.0 and frame_visual_size.y > 0.0:
+		area_size = frame_visual_size
+	return Rect2(-area_size * 0.5, area_size)
+
+
 
 func _update_tile_size() -> void:
 	if world_grid == null:
@@ -50,6 +64,10 @@ func _update_tile_size() -> void:
 
 func _draw() -> void:
 	if not visible:
+		return
+	var frame_texture := get_active_frame_texture()
+	if frame_texture != null:
+		draw_texture_rect(frame_texture, _get_preview_rect(), false)
 		return
 
 	var fill_color := valid_fill_color if is_valid_target else invalid_fill_color

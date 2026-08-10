@@ -16,7 +16,7 @@ const RAIN_TARGET_PANEL_SHIFT_LEFT := 150.0
 const RAIN_TARGET_PANEL_SHIFT_UP := 249.0
 const FLAG_PLACEMENT_PANEL_SHIFT_LEFT := 150.0
 const FLAG_PLACEMENT_PANEL_SHIFT_UP := 224.0
-const RAIN_TARGET_RADIUS_TILES := 2
+const RAIN_OBSERVATION_DELAY_SECONDS := 2.0
 const HIGHLIGHT_PADDING := 5.0
 
 @onready var spotlight: Control = $Spotlight
@@ -37,10 +37,8 @@ var owns_active_tutorial := false
 var current_step := 1
 var egg_menu_button: Button = null
 var tracked_egg: Node2D = null
-var rain_target_center_tile := Vector2i.ZERO
-var rain_target_area_screen_rect := Rect2()
-var rain_target_tile_screen_rect := Rect2()
 var rain_completed := false
+var rain_transition_pending := false
 var stegosaurus_flag_selected := false
 var flag_placement_active := false
 var showing_completion := false
@@ -80,6 +78,7 @@ func _start_if_requested() -> void:
 
 
 func _show_step(step_number: int) -> void:
+	rain_transition_pending = false
 	current_step = clampi(step_number, 1, TOTAL_STEPS)
 	showing_completion = false
 	flag_placement_active = false
@@ -148,11 +147,10 @@ func _apply_intro_layout() -> void:
 	panel_center.offset_top = 0.0
 	panel_center.offset_bottom = 0.0
 	_set_control_rect(header_label, Vector2(105.0, 66.0), Vector2(790.0, 46.0))
-	_set_control_rect(body_label, Vector2(112.0, 130.0), Vector2(776.0, 440.0))
+	_set_body_rect_below_header(112.0, 570.0, 776.0)
 	body_label.add_theme_font_size_override("font_size", 20)
-	body_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_set_control_rect(next_button, Vector2(305.0, 587.0), Vector2(170.0, 54.0))
-	_set_control_rect(skip_button, Vector2(525.0, 587.0), Vector2(170.0, 54.0))
+	_set_control_rect(next_button, Vector2(285.0, 587.0), Vector2(170.0, 54.0))
+	_set_control_rect(skip_button, Vector2(545.0, 587.0), Vector2(170.0, 54.0))
 
 
 func _apply_interface_layout() -> void:
@@ -162,11 +160,10 @@ func _apply_interface_layout() -> void:
 	panel_center.offset_top = 0.0
 	panel_center.offset_bottom = 0.0
 	_set_control_rect(header_label, Vector2(90.0, 52.0), Vector2(720.0, 42.0))
-	_set_control_rect(body_label, Vector2(96.0, 108.0), Vector2(708.0, 390.0))
+	_set_body_rect_below_header(96.0, 498.0, 708.0)
 	body_label.add_theme_font_size_override("font_size", 20)
-	body_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	_set_control_rect(next_button, Vector2(250.0, 530.0), Vector2(170.0, 52.0))
-	_set_control_rect(skip_button, Vector2(480.0, 530.0), Vector2(170.0, 52.0))
+	_set_control_rect(next_button, Vector2(240.0, 530.0), Vector2(170.0, 52.0))
+	_set_control_rect(skip_button, Vector2(490.0, 530.0), Vector2(170.0, 52.0))
 
 
 func _apply_instruction_layout() -> void:
@@ -176,11 +173,10 @@ func _apply_instruction_layout() -> void:
 	panel_center.offset_top = 0.0
 	panel_center.offset_bottom = 0.0
 	_set_control_rect(header_label, Vector2(70.0, 48.0), Vector2(560.0, 42.0))
-	_set_control_rect(body_label, Vector2(78.0, 108.0), Vector2(544.0, 230.0))
+	_set_body_rect_below_header(78.0, 338.0, 544.0)
 	body_label.add_theme_font_size_override("font_size", 20)
-	body_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_set_control_rect(next_button, Vector2(155.0, 385.0), Vector2(170.0, 52.0))
-	_set_control_rect(skip_button, Vector2(375.0, 385.0), Vector2(170.0, 52.0))
+	_set_control_rect(next_button, Vector2(145.0, 385.0), Vector2(170.0, 52.0))
+	_set_control_rect(skip_button, Vector2(385.0, 385.0), Vector2(170.0, 52.0))
 
 
 func _apply_wait_layout() -> void:
@@ -190,11 +186,10 @@ func _apply_wait_layout() -> void:
 	panel_center.offset_top = -WAIT_PANEL_SHIFT_UP
 	panel_center.offset_bottom = -WAIT_PANEL_SHIFT_UP
 	_set_control_rect(header_label, Vector2(70.0, 28.0), Vector2(560.0, 38.0))
-	_set_control_rect(body_label, Vector2(78.0, 72.0), Vector2(544.0, 120.0))
+	_set_body_rect_below_header(78.0, 192.0, 544.0)
 	body_label.add_theme_font_size_override("font_size", 20)
-	body_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_set_control_rect(next_button, Vector2(155.0, 215.0), Vector2(170.0, 48.0))
-	_set_control_rect(skip_button, Vector2(375.0, 215.0), Vector2(170.0, 48.0))
+	_set_control_rect(next_button, Vector2(145.0, 215.0), Vector2(170.0, 48.0))
+	_set_control_rect(skip_button, Vector2(385.0, 215.0), Vector2(170.0, 48.0))
 
 
 func _apply_rain_target_layout() -> void:
@@ -204,11 +199,10 @@ func _apply_rain_target_layout() -> void:
 	panel_center.offset_top = -RAIN_TARGET_PANEL_SHIFT_UP
 	panel_center.offset_bottom = -RAIN_TARGET_PANEL_SHIFT_UP
 	_set_control_rect(header_label, Vector2(60.0, 14.0), Vector2(640.0, 32.0))
-	_set_control_rect(body_label, Vector2(50.0, 48.0), Vector2(660.0, 144.0))
+	_set_body_rect_below_header(50.0, 192.0, 660.0)
 	body_label.add_theme_font_size_override("font_size", 20)
-	body_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_set_control_rect(next_button, Vector2(185.0, 210.0), Vector2(170.0, 44.0))
-	_set_control_rect(skip_button, Vector2(405.0, 210.0), Vector2(170.0, 44.0))
+	_set_control_rect(next_button, Vector2(175.0, 210.0), Vector2(170.0, 44.0))
+	_set_control_rect(skip_button, Vector2(415.0, 210.0), Vector2(170.0, 44.0))
 
 
 func _apply_flag_placement_layout() -> void:
@@ -218,11 +212,10 @@ func _apply_flag_placement_layout() -> void:
 	panel_center.offset_top = -FLAG_PLACEMENT_PANEL_SHIFT_UP
 	panel_center.offset_bottom = -FLAG_PLACEMENT_PANEL_SHIFT_UP
 	_set_control_rect(header_label, Vector2(60.0, 14.0), Vector2(640.0, 32.0))
-	_set_control_rect(body_label, Vector2(50.0, 48.0), Vector2(660.0, 198.0))
+	_set_body_rect_below_header(50.0, 246.0, 660.0)
 	body_label.add_theme_font_size_override("font_size", 20)
-	body_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_set_control_rect(next_button, Vector2(185.0, 260.0), Vector2(170.0, 44.0))
-	_set_control_rect(skip_button, Vector2(405.0, 260.0), Vector2(170.0, 44.0))
+	_set_control_rect(next_button, Vector2(175.0, 260.0), Vector2(170.0, 44.0))
+	_set_control_rect(skip_button, Vector2(415.0, 260.0), Vector2(170.0, 44.0))
 
 
 func _apply_completion_layout() -> void:
@@ -232,9 +225,8 @@ func _apply_completion_layout() -> void:
 	panel_center.offset_top = 0.0
 	panel_center.offset_bottom = 0.0
 	_set_control_rect(header_label, Vector2(90.0, 58.0), Vector2(670.0, 48.0))
-	_set_control_rect(body_label, Vector2(95.0, 128.0), Vector2(660.0, 260.0))
+	_set_body_rect_below_header(95.0, 388.0, 660.0)
 	body_label.add_theme_font_size_override("font_size", 20)
-	body_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_set_control_rect(next_button, Vector2(340.0, 430.0), Vector2(170.0, 52.0))
 	skip_button.visible = false
 
@@ -242,6 +234,12 @@ func _apply_completion_layout() -> void:
 func _set_control_rect(control: Control, position: Vector2, control_size: Vector2) -> void:
 	control.position = position
 	control.size = control_size
+
+
+func _set_body_rect_below_header(left: float, bottom: float, width: float) -> void:
+	var top := header_label.position.y + header_label.size.y + 14.0
+	_set_control_rect(body_label, Vector2(left, top), Vector2(width, bottom - top))
+	body_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 
 
 func _refresh_interface_highlights() -> void:
@@ -253,30 +251,40 @@ func _refresh_interface_highlights() -> void:
 	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
 
 	if player_ui != null:
-		_append_control_highlight(
-			highlight_rects,
-			player_ui.call("get_tutorial_minimap_control") as Control
-		)
-		_append_control_highlight(
-			highlight_rects,
-			player_ui.call("get_tutorial_creature_counts_control") as Control
-		)
+		var minimap_rect := Rect2()
+		var minimap_control := player_ui.call("get_tutorial_minimap_control") as Control
+		if minimap_control != null and minimap_control.is_visible_in_tree():
+			minimap_rect = _global_rect_to_spotlight(minimap_control.get_global_rect()).grow(
+				HIGHLIGHT_PADDING
+			)
+			highlight_rects.append(minimap_rect)
+		var creature_counts := player_ui.call("get_tutorial_creature_counts_control") as Control
+		if creature_counts != null and creature_counts.is_visible_in_tree():
+			var counts_rect := _global_rect_to_spotlight(creature_counts.get_global_rect()).grow(
+				HIGHLIGHT_PADDING
+			)
+			if minimap_rect.size.x > 0.0:
+				counts_rect.position.x = minimap_rect.position.x
+				counts_rect.size.x = minimap_rect.size.x
+			highlight_rects.append(counts_rect)
 
 	if nature_ui != null:
+		var energy_and_speed_controls: Array = []
 		var energy_controls_variant: Variant = nature_ui.call("get_tutorial_energy_controls")
 		if energy_controls_variant is Array:
-			var energy_rect := _get_controls_global_rect(energy_controls_variant as Array)
-			if energy_rect.size.x > 0.0 and energy_rect.size.y > 0.0:
-				highlight_rects.append(_global_rect_to_spotlight(energy_rect).grow(HIGHLIGHT_PADDING))
+			energy_and_speed_controls.append_array(energy_controls_variant as Array)
+		var time_controls := nature_ui.call("get_tutorial_time_controls") as Control
+		if time_controls != null:
+			energy_and_speed_controls.append(time_controls)
+		var energy_and_speed_rect := _get_controls_global_rect(energy_and_speed_controls)
+		if energy_and_speed_rect.size.x > 0.0 and energy_and_speed_rect.size.y > 0.0:
+			highlight_rects.append(
+				_global_rect_to_spotlight(energy_and_speed_rect).grow(HIGHLIGHT_PADDING)
+			)
 
-		_append_control_highlight(
-			highlight_rects,
-			nature_ui.call("get_tutorial_time_controls") as Control
-		)
-
-	if highlight_rects.size() != 4:
+	if highlight_rects.size() != 3:
 		push_warning(
-			"Tutorial step 2 resolved %d of 4 interface highlights." % highlight_rects.size()
+			"Tutorial step 2 resolved %d of 3 interface highlights." % highlight_rects.size()
 		)
 
 	spotlight.call("set_hole_rects", highlight_rects)
@@ -468,86 +476,31 @@ func _configure_rain_target_step() -> void:
 	if not nature_ui.is_connected("rain_applied", _on_tutorial_rain_applied):
 		nature_ui.connect("rain_applied", _on_tutorial_rain_applied)
 	nature_ui.call("return_spell_menu_to_main")
-
-	var world_grid := get_tree().get_first_node_in_group("world_grid")
-	var main_scene := get_tree().current_scene
-	if world_grid == null or main_scene == null or not main_scene.has_method("world_rect_to_root_viewport_rect"):
-		push_warning("Tutorial step 8 could not resolve the world-grid projection API.")
-		nature_ui.call("cancel_rain_targeting")
-		_finish_tutorial()
-		return
-
-	var target_data := _find_centered_grass_rain_target(world_grid, main_scene)
-	if target_data.is_empty():
-		push_warning("Tutorial step 8 found no visible grass-centered 5x5 rain target.")
-		nature_ui.call("cancel_rain_targeting")
-		_finish_tutorial()
-		return
-
-	rain_target_center_tile = target_data["tile"]
-	rain_target_area_screen_rect = target_data["area_rect"]
-	rain_target_tile_screen_rect = target_data["tile_rect"]
+	nature_ui.call("set_rain_center_grass_required", true)
 	rain_completed = false
-	nature_ui.call("set_rain_preview_tile_override", rain_target_center_tile)
-	_set_world_target_highlight(rain_target_area_screen_rect, rain_target_tile_screen_rect)
+	if not _set_world_gameplay_input():
+		push_warning("Tutorial step 8 could not resolve the game viewport for rain targeting.")
+		nature_ui.call("cancel_rain_targeting")
+		_finish_tutorial()
 
 
-func _find_centered_grass_rain_target(world_grid: Node, main_scene: Node) -> Dictionary:
-	var grass_tiles_variant: Variant = world_grid.call("get_registered_grass_tiles")
-	if not (grass_tiles_variant is Array):
-		return {}
-	var game_rect: Rect2 = main_scene.call("get_game_viewport_root_rect")
-	var panel_rect := panel.get_global_rect().grow(8.0)
-	var nature_effects := get_tree().get_first_node_in_group("nature_effects_system")
-	var best_data: Dictionary = {}
-	var best_distance := INF
-
-	for tile_variant: Variant in grass_tiles_variant:
-		var tile: Vector2i = tile_variant
-		if not bool(world_grid.call("is_tile_region_inside_map", tile, RAIN_TARGET_RADIUS_TILES)):
-			continue
-		if nature_effects == null or not bool(nature_effects.call("can_apply_rain", tile)):
-			continue
-		var area_world_rect: Rect2 = world_grid.call(
-			"get_tile_region_world_rect", tile, RAIN_TARGET_RADIUS_TILES
-		)
-		var tile_world_rect: Rect2 = world_grid.call("get_tile_region_world_rect", tile, 0)
-		var area_rect: Rect2 = main_scene.call("world_rect_to_root_viewport_rect", area_world_rect)
-		var tile_rect: Rect2 = main_scene.call("world_rect_to_root_viewport_rect", tile_world_rect)
-		if not game_rect.encloses(area_rect) or area_rect.intersects(panel_rect):
-			continue
-		var distance := area_rect.get_center().distance_squared_to(game_rect.get_center())
-		if distance >= best_distance:
-			continue
-		best_distance = distance
-		best_data = {
-			"tile": tile,
-			"area_rect": area_rect,
-			"tile_rect": tile_rect,
-		}
-
-	return best_data
-
-
-func _set_world_target_highlight(area_global_rect: Rect2, target_global_rect: Rect2) -> void:
-	var area_rect := _global_rect_to_spotlight(area_global_rect)
-	var target_rect := _global_rect_to_spotlight(target_global_rect)
-	spotlight.call("set_hole_rects", [area_rect, target_rect])
-	spotlight.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_input_blockers_around(area_rect)
-
-
-func _on_tutorial_rain_applied(center_tile: Vector2i) -> void:
-	if current_step != 8:
-		return
-	var offset := center_tile - rain_target_center_tile
-	if absi(offset.x) > RAIN_TARGET_RADIUS_TILES or absi(offset.y) > RAIN_TARGET_RADIUS_TILES:
+func _on_tutorial_rain_applied(_center_tile: Vector2i) -> void:
+	if current_step != 8 or rain_transition_pending:
 		return
 	rain_completed = true
+	rain_transition_pending = true
 	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
 	if nature_ui != null:
 		nature_ui.call("cancel_rain_targeting")
+	await get_tree().create_timer(
+		RAIN_OBSERVATION_DELAY_SECONDS,
+		true,
+		false,
+		true
+	).timeout
+	if current_step != 8 or not rain_transition_pending or not owns_active_tutorial or not visible:
+		return
+	rain_transition_pending = false
 	_show_step(9)
 
 
@@ -601,16 +554,21 @@ func _on_flag_targeting_started(species_id: StringName) -> void:
 
 
 func _set_world_flag_placement_input() -> void:
+	if not _set_world_gameplay_input():
+		push_warning("Tutorial step 10 could not resolve the game viewport for flag placement.")
+
+
+func _set_world_gameplay_input() -> bool:
 	var main_scene := get_tree().current_scene
 	if main_scene == null or not main_scene.has_method("get_game_viewport_root_rect"):
-		push_warning("Tutorial step 10 could not resolve the game viewport for flag placement.")
-		return
+		return false
 	var game_global_rect: Rect2 = main_scene.call("get_game_viewport_root_rect")
 	var game_rect := _global_rect_to_spotlight(game_global_rect)
 	spotlight.call("set_hole_rects", [game_rect])
 	spotlight.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_set_input_blockers_around(game_rect)
+	return true
 
 
 func _on_tutorial_flag_placed(species_id: StringName, _tile: Vector2i) -> void:
@@ -721,6 +679,7 @@ func _on_skip_pressed() -> void:
 
 func _finish_tutorial() -> void:
 	owns_active_tutorial = false
+	rain_transition_pending = false
 	tracked_egg = null
 	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
 	if nature_ui != null:

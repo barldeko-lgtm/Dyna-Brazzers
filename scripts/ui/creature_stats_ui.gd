@@ -195,6 +195,7 @@ func _process(_delta: float) -> void:
 		hovered_creature = null
 
 	sync_creature_highlights()
+	_refresh_hovered_targeting_highlight()
 
 	if is_instance_valid(selected_creature):
 		current_creature = selected_creature
@@ -247,7 +248,7 @@ func sync_creature_highlights() -> void:
 	var desired_selected: Node = selected_creature if is_instance_valid(selected_creature) else null
 	var desired_hover: Node = hovered_creature if is_instance_valid(hovered_creature) else null
 
-	if desired_hover == desired_selected:
+	if desired_hover == desired_selected and not _is_lightning_targeting_enabled():
 		desired_hover = null
 
 	if last_hover_highlighted != desired_hover:
@@ -267,6 +268,23 @@ func apply_highlight_flag(creature: Node, method_name: String, enabled: bool) ->
 
 	if creature.has_method(method_name):
 		creature.call(method_name, enabled)
+
+
+func _is_lightning_targeting_enabled() -> bool:
+	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
+	return (
+		nature_ui != null
+		and nature_ui.has_method("is_lightning_targeting_enabled")
+		and bool(nature_ui.call("is_lightning_targeting_enabled"))
+	)
+
+
+func _refresh_hovered_targeting_highlight() -> void:
+	if (
+		is_instance_valid(hovered_creature)
+		and hovered_creature.has_method("refresh_interaction_highlight")
+	):
+		hovered_creature.call("refresh_interaction_highlight")
 
 
 func update_stats_text() -> void:

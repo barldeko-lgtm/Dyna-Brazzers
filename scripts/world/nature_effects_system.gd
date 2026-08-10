@@ -8,7 +8,7 @@ const RAIN_SOUND := preload("res://assets/audio/sfx/rain_cast.wav")
 const SUN_SOUND := preload("res://assets/audio/sfx/sun_cast.wav")
 const EARTHQUAKE_SOUND := preload("res://assets/audio/sfx/earthquake_cast.wav")
 
-@export var lightning_damage := 50.0
+@export var lightning_damage := 55.0
 @export var rain_radius_tiles := 2
 @export var sun_radius_tiles := 3
 @export var sun_spread_reset_radius_tiles := 4

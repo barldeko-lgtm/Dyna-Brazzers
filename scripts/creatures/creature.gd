@@ -1113,6 +1113,11 @@ func clear_interaction_highlights() -> void:
 		interaction_controller.clear_interaction_highlights()
 
 
+func refresh_interaction_highlight() -> void:
+	if interaction_controller != null:
+		interaction_controller.refresh_interaction_highlight()
+
+
 # UI helpers.
 func get_species_id() -> String:
 	return species_data.species_id
