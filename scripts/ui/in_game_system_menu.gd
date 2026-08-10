@@ -23,6 +23,17 @@ const INGAME_SETTINGS_LABEL_FONT_SIZE := 14
 const INGAME_SETTINGS_LABEL_MIN_FONT_SIZE := 10
 const INGAME_SETTINGS_OPTION_FONT_SIZE := 14
 const INGAME_SETTINGS_OUTLINE_SIZE := 2
+const ACTION_MENU_ROOT_POSITION := Vector2(-2.0, 84.0)
+const ACTION_MENU_ROOT_SIZE := Vector2(260.0, 255.0)
+const ACTION_MENU_BUTTON_HEIGHT := 40.0
+const ACTION_MENU_BUTTON_SEPARATION := 3
+
+const CONFIRMATION_FRAME_TEXTURE := preload("res://assets/ui/tutorial/tutorial_choice_frame.png")
+const CONFIRMATION_BUTTON_NORMAL := preload("res://assets/ui/buttons/dyna_button_normal.tres")
+const CONFIRMATION_BUTTON_HOVER := preload("res://assets/ui/buttons/dyna_button_hover.tres")
+const CONFIRMATION_FONT := preload("res://assets/fonts/philosopher/Philosopher-Bold.ttf")
+const CONFIRM_ACTION_MAIN_MENU := &"main_menu"
+const CONFIRM_ACTION_QUIT_GAME := &"quit_game"
 
 var save_system: Node = null
 var attached_scene_id := 0
@@ -36,6 +47,11 @@ var menu_previous_time_scale := 1.0
 var current_slot_mode := ""
 var status_message := ""
 var ingame_transparent_option_arrow: ImageTexture = null
+var confirmation_layer: CanvasLayer = null
+var confirmation_title_label: Label = null
+var confirmation_yes_button: Button = null
+var confirmation_back_button: Button = null
+var pending_confirmation_action := StringName()
 
 
 func setup(owner_save_system: Node) -> void:
@@ -81,7 +97,6 @@ func _attach_to_game_scene(scene: Node) -> void:
 			return
 
 		var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
-
 		if (
 			nature_ui != null
 			and nature_ui.has_method("get_menu_content_root")
@@ -91,28 +106,25 @@ func _attach_to_game_scene(scene: Node) -> void:
 			var found_content_root := nature_ui.call("get_menu_content_root") as Control
 			var found_main_grid := nature_ui.call("get_main_menu_grid") as Control
 			var found_menu_button := nature_ui.call("get_menu_button", &"system") as Button
-
 			if found_content_root != null and found_main_grid != null and found_menu_button != null:
 				main_menu_grid = found_main_grid
 				menu_button = found_menu_button
 				button_template = found_menu_button
-
 				if not menu_button.pressed.is_connected(_on_menu_button_pressed):
 					menu_button.pressed.connect(_on_menu_button_pressed)
-
 				_create_menu_root(found_content_root)
 				_refresh_menu_tooltip()
 				return
-
 		await get_tree().process_frame
 
 	push_warning("SaveSystem: nature-menu API or system-menu controls were not found.")
 
+
 func _detach_menu_references() -> void:
 	if menu_open:
 		Engine.time_scale = menu_previous_time_scale
-
 	menu_open = false
+	_clear_confirmation_dialog()
 	menu_button = null
 	main_menu_grid = null
 	menu_root = null
@@ -120,6 +132,7 @@ func _detach_menu_references() -> void:
 	button_template = null
 	current_slot_mode = ""
 	status_message = ""
+
 
 func _create_menu_root(content_root: Control) -> void:
 	var existing_root: Control = content_root.get_node_or_null("SaveLoadMenuRoot") as Control
@@ -157,56 +170,65 @@ func _create_menu_root(content_root: Control) -> void:
 	if menu_vbox != null:
 		menu_vbox.add_theme_constant_override("separation", 3)
 
+
 func _on_menu_button_pressed() -> void:
 	if menu_open:
 		return
-
 	_cancel_active_nature_targeting()
-
 	menu_previous_time_scale = Engine.time_scale
-
 	if menu_previous_time_scale <= 0.0:
 		menu_previous_time_scale = 1.0
-
 	Engine.time_scale = 0.0
 	menu_open = true
 	status_message = ""
-
 	if main_menu_grid != null:
 		main_menu_grid.visible = false
-
 	if menu_root != null:
 		menu_root.visible = true
-
 	_show_action_menu()
+
 
 func _show_action_menu() -> void:
 	current_slot_mode = ""
 	_clear_menu_vbox()
-	_add_title_label("MENU_TITLE")
-	_add_menu_button("MENU_SAVE", _on_save_mode_pressed, 27.0)
-	_add_menu_button("MENU_LOAD_ACTION", _on_load_mode_pressed, 27.0)
-	_add_menu_button("MENU_SETTINGS", _on_audio_settings_pressed, 27.0)
-	_add_menu_button("MENU_MAIN_MENU", _on_main_menu_pressed, 27.0)
-	_add_menu_button("MENU_QUIT_GAME", _on_quit_game_pressed, 27.0)
-	_add_menu_button("MENU_BACK", _on_close_menu_pressed, 27.0)
-
+	menu_vbox.add_theme_constant_override("separation", ACTION_MENU_BUTTON_SEPARATION)
+	# Final action-menu layout: no title, 3 px gaps, six 40 px buttons.
+	# The action page alone spans y=84..339 so Save is 10 px higher than
+	# the previous polish pass and Back reaches 5 px below the old layout.
+	_add_menu_button("MENU_SAVE", _on_save_mode_pressed, ACTION_MENU_BUTTON_HEIGHT)
+	_add_menu_button("MENU_LOAD_ACTION", _on_load_mode_pressed, ACTION_MENU_BUTTON_HEIGHT)
+	_add_menu_button("MENU_SETTINGS", _on_audio_settings_pressed, ACTION_MENU_BUTTON_HEIGHT)
+	_add_menu_button("MENU_MAIN_MENU", _on_main_menu_pressed, ACTION_MENU_BUTTON_HEIGHT)
+	_add_menu_button("MENU_QUIT_GAME", _on_quit_game_pressed, ACTION_MENU_BUTTON_HEIGHT)
+	_add_menu_button("MENU_BACK", _on_close_menu_pressed, ACTION_MENU_BUTTON_HEIGHT)
 	if not status_message.is_empty():
 		_add_status_label(status_message)
+	_place_action_menu_root()
+
+
+func _place_action_menu_root() -> void:
+	if menu_root == null or not is_instance_valid(menu_root):
+		return
+	menu_root.size = ACTION_MENU_ROOT_SIZE
+	menu_root.position = ACTION_MENU_ROOT_POSITION
+	menu_root.set_deferred("size", ACTION_MENU_ROOT_SIZE)
+	menu_root.set_deferred("position", ACTION_MENU_ROOT_POSITION)
+
 
 func _on_save_mode_pressed() -> void:
 	current_slot_mode = "save"
 	status_message = ""
 	_show_slot_menu()
 
+
 func _on_load_mode_pressed() -> void:
 	current_slot_mode = "load"
 	status_message = ""
 	_show_slot_menu()
 
+
 func _show_slot_menu() -> void:
 	_clear_menu_vbox()
-
 	if current_slot_mode == "save":
 		_add_title_label("MENU_SAVE")
 	else:
@@ -217,109 +239,273 @@ func _show_slot_menu() -> void:
 		autosave_button.pressed.connect(_on_autosave_slot_pressed)
 		menu_vbox.add_child(autosave_button)
 		BUTTON_TEXT_FITTER.apply(autosave_button, String(save_system.call("get_autosave_button_text")), 18, 12)
-
 	for slot_index: int in range(1, SLOT_COUNT + 1):
-		var slot_button: Button = _create_styled_button()
+		var slot_button := _create_styled_button()
 		slot_button.custom_minimum_size = Vector2(260.0, 40.0)
-
-		var slot_is_empty: bool = not bool(save_system.call("has_save", slot_index))
-
+		var slot_is_empty := not bool(save_system.call("has_save", slot_index))
 		if current_slot_mode == "load":
 			slot_button.disabled = slot_is_empty
-
 		slot_button.pressed.connect(_on_slot_pressed.bind(slot_index))
 		menu_vbox.add_child(slot_button)
 		BUTTON_TEXT_FITTER.apply(slot_button, String(save_system.call("get_slot_button_text", slot_index)), 18, 12)
-
 	_add_menu_button("MENU_BACK", _on_slots_back_pressed, 40.0)
 	_place_menu_root()
+
 
 func _place_menu_root() -> void:
 	if menu_root == null or not is_instance_valid(menu_root):
 		return
-
 	menu_root.size = MENU_ROOT_SIZE
 	menu_root.position = MENU_ROOT_POSITION
-	# VBox minimum-size propagation is deferred by Godot. Reapply the approved
-	# top-left corner after that pass so the Menu page does not jump upward.
 	menu_root.set_deferred("size", MENU_ROOT_SIZE)
 	menu_root.set_deferred("position", MENU_ROOT_POSITION)
+
 
 func _on_autosave_slot_pressed() -> void:
 	if not bool(save_system.call("has_autosave")):
 		return
-
 	status_message = tr("STATUS_LOADING_AUTOSAVE")
 	_show_slot_menu()
 	var load_succeeded: bool = await save_system.call("load_autosave")
-
 	if load_succeeded:
 		_close_menu(false)
 		return
-
 	status_message = tr("STATUS_LOAD_AUTOSAVE_FAILED")
 	_show_slot_menu()
+
 
 func _on_slots_back_pressed() -> void:
 	status_message = ""
 	_show_action_menu()
 
+
 func _on_close_menu_pressed() -> void:
 	_close_menu(true)
 
-func _on_main_menu_pressed() -> void:
-	var scene_error: Error = save_system.call("return_to_main_menu") as Error
 
+func _on_main_menu_pressed() -> void:
+	_show_confirmation(CONFIRM_ACTION_MAIN_MENU)
+
+
+func _on_quit_game_pressed() -> void:
+	_show_confirmation(CONFIRM_ACTION_QUIT_GAME)
+
+
+func _show_confirmation(action: StringName) -> void:
+	if action != CONFIRM_ACTION_MAIN_MENU and action != CONFIRM_ACTION_QUIT_GAME:
+		return
+
+	if not _ensure_confirmation_dialog():
+		return
+
+	pending_confirmation_action = action
+	confirmation_title_label.text = _get_confirmation_text()
+	confirmation_yes_button.text = tr("TUTORIAL_CHOICE_YES")
+	confirmation_back_button.text = tr("MENU_BACK")
+	confirmation_yes_button.disabled = false
+	confirmation_back_button.disabled = false
+	# Show the dialog without assigning keyboard focus so neither action
+	# appears preselected when the confirmation opens.
+	confirmation_layer.visible = true
+
+
+func _ensure_confirmation_dialog() -> bool:
+	if confirmation_layer != null and is_instance_valid(confirmation_layer):
+		return true
+
+	var current_scene := get_tree().current_scene
+	if current_scene == null:
+		return false
+
+	confirmation_layer = CanvasLayer.new()
+	confirmation_layer.name = "SystemConfirmationDialog"
+	confirmation_layer.layer = 100
+	confirmation_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	current_scene.add_child(confirmation_layer)
+
+	var overlay := Control.new()
+	overlay.name = "Overlay"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	confirmation_layer.add_child(overlay)
+
+	var center_container := CenterContainer.new()
+	center_container.name = "CenterContainer"
+	center_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Unlike the startup tutorial prompt, the in-game confirmation must sit
+	# on the exact geometric center of the screen.
+	overlay.add_child(center_container)
+
+	var choice_slot := Control.new()
+	choice_slot.name = "ConfirmationChoiceSlot"
+	choice_slot.custom_minimum_size = Vector2(400.0, 227.2)
+	center_container.add_child(choice_slot)
+
+	var choice_panel := Control.new()
+	choice_panel.name = "ConfirmationChoicePanel"
+	choice_panel.position = Vector2.ZERO
+	choice_panel.size = Vector2(500.0, 284.0)
+	choice_panel.scale = Vector2(0.8, 0.8)
+	choice_slot.add_child(choice_panel)
+
+	var frame_texture := TextureRect.new()
+	frame_texture.name = "FrameTexture"
+	frame_texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	frame_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame_texture.texture = CONFIRMATION_FRAME_TEXTURE
+	frame_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	choice_panel.add_child(frame_texture)
+
+	confirmation_title_label = Label.new()
+	confirmation_title_label.name = "TitleLabel"
+	confirmation_title_label.position = Vector2(70.0, 66.0)
+	confirmation_title_label.size = Vector2(360.0, 60.0)
+	confirmation_title_label.add_theme_color_override("font_color", Color.WHITE)
+	confirmation_title_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	confirmation_title_label.add_theme_constant_override("outline_size", 4)
+	confirmation_title_label.add_theme_font_override("font", CONFIRMATION_FONT)
+	confirmation_title_label.add_theme_font_size_override("font_size", 30)
+	confirmation_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	confirmation_title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	choice_panel.add_child(confirmation_title_label)
+
+	confirmation_yes_button = _create_confirmation_button(
+		"YesButton",
+		Vector2(96.0, 151.0),
+		Vector2(126.0, 57.0)
+	)
+	confirmation_yes_button.pressed.connect(_on_confirmation_yes_pressed)
+	choice_panel.add_child(confirmation_yes_button)
+
+	confirmation_back_button = _create_confirmation_button(
+		"BackButton",
+		Vector2(278.0, 151.0),
+		Vector2(126.0, 57.0)
+	)
+	confirmation_back_button.pressed.connect(_on_confirmation_back_pressed)
+	choice_panel.add_child(confirmation_back_button)
+
+	confirmation_layer.visible = false
+	return true
+
+
+func _create_confirmation_button(
+	button_name: String,
+	button_position: Vector2,
+	button_size: Vector2
+) -> Button:
+	var button := Button.new()
+	button.name = button_name
+	button.position = button_position
+	button.size = button_size
+	button.add_theme_color_override("font_color", Color.WHITE)
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_outline_color", Color.BLACK)
+	button.add_theme_constant_override("outline_size", 3)
+	button.add_theme_font_override("font", CONFIRMATION_FONT)
+	button.add_theme_font_size_override("font_size", 24)
+	button.add_theme_stylebox_override("normal", CONFIRMATION_BUTTON_NORMAL)
+	button.add_theme_stylebox_override("hover", CONFIRMATION_BUTTON_HOVER)
+	button.add_theme_stylebox_override("pressed", CONFIRMATION_BUTTON_HOVER)
+	button.add_theme_stylebox_override("focus", CONFIRMATION_BUTTON_HOVER)
+	button.focus_mode = Control.FOCUS_NONE
+	return button
+
+
+func _on_confirmation_back_pressed() -> void:
+	pending_confirmation_action = StringName()
+	if confirmation_layer != null and is_instance_valid(confirmation_layer):
+		confirmation_layer.visible = false
+
+
+func _on_confirmation_yes_pressed() -> void:
+	var confirmed_action := pending_confirmation_action
+	pending_confirmation_action = StringName()
+
+	if confirmation_yes_button != null:
+		confirmation_yes_button.disabled = true
+	if confirmation_back_button != null:
+		confirmation_back_button.disabled = true
+	if confirmation_layer != null and is_instance_valid(confirmation_layer):
+		confirmation_layer.visible = false
+
+	match confirmed_action:
+		CONFIRM_ACTION_MAIN_MENU:
+			_confirm_return_to_main_menu()
+		CONFIRM_ACTION_QUIT_GAME:
+			Engine.time_scale = 1.0
+			get_tree().quit()
+
+
+func _confirm_return_to_main_menu() -> void:
+	var scene_error: Error = save_system.call("return_to_main_menu") as Error
 	if scene_error == OK:
 		return
 
-	# If the scene switch failed, restore the in-game menu.
 	menu_open = true
 	Engine.time_scale = 0.0
 	status_message = tr("STATUS_MAIN_MENU_FAILED")
 	_show_action_menu()
 
-func _on_quit_game_pressed() -> void:
-	Engine.time_scale = 1.0
-	get_tree().quit()
+
+func _get_confirmation_text() -> String:
+	match LocalizationManager.get_current_locale():
+		"en":
+			return "Are you sure?"
+		"fr":
+			return "Êtes-vous sûr ?"
+		"de":
+			return "Bist du sicher?"
+		"uk":
+			return "Ви впевнені?"
+		_:
+			return "Вы уверены?"
+
+
+func _clear_confirmation_dialog() -> void:
+	pending_confirmation_action = StringName()
+	if confirmation_layer != null and is_instance_valid(confirmation_layer):
+		confirmation_layer.queue_free()
+	confirmation_layer = null
+	confirmation_title_label = null
+	confirmation_yes_button = null
+	confirmation_back_button = null
+
 
 func _close_menu(restore_previous_speed: bool) -> void:
 	menu_open = false
 	current_slot_mode = ""
 	status_message = ""
-
 	if menu_root != null:
 		menu_root.visible = false
-
 	if main_menu_grid != null:
 		main_menu_grid.visible = true
-
 	if restore_previous_speed:
 		Engine.time_scale = menu_previous_time_scale
+
 
 func _on_slot_pressed(slot_index: int) -> void:
 	if current_slot_mode == "save":
 		var save_succeeded: bool = bool(save_system.call("save_game", slot_index))
-
 		if save_succeeded:
 			status_message = tr("STATUS_SAVE_OK") % slot_index
 		else:
 			status_message = tr("STATUS_SAVE_FAILED") % slot_index
-
 		_show_slot_menu()
 		return
 
 	if current_slot_mode == "load":
 		var load_succeeded: bool = await save_system.call("load_game", slot_index)
-
 		if load_succeeded:
 			_close_menu(false)
 		else:
 			status_message = tr("STATUS_LOAD_SLOT_FAILED") % slot_index
 			_show_slot_menu()
 
+
 func _add_title_label(title_text: String) -> void:
-	var title_label: Label = Label.new()
+	var title_label := Label.new()
 	title_label.theme_type_variation = &"HeaderLabel"
 	title_label.custom_minimum_size = Vector2(260.0, 24.0)
 	title_label.text = tr(title_text)
@@ -328,8 +514,9 @@ func _add_title_label(title_text: String) -> void:
 	title_label.add_theme_font_size_override("font_size", 18)
 	menu_vbox.add_child(title_label)
 
+
 func _add_status_label(message: String) -> void:
-	var status_label: Label = Label.new()
+	var status_label := Label.new()
 	status_label.custom_minimum_size = Vector2(260.0, 28.0)
 	status_label.text = message
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -338,23 +525,20 @@ func _add_status_label(message: String) -> void:
 	status_label.add_theme_font_size_override("font_size", 13)
 	menu_vbox.add_child(status_label)
 
-func _add_menu_button(
-	button_text: String,
-	callback: Callable,
-	height: float = 44.0
-) -> Button:
-	var button: Button = _create_styled_button()
+
+func _add_menu_button(button_text: String, callback: Callable, height: float = 44.0) -> Button:
+	var button := _create_styled_button()
 	button.custom_minimum_size = Vector2(260.0, height)
 	button.text = tr(button_text)
 	button.pressed.connect(callback)
 	menu_vbox.add_child(button)
 	return button
 
+
 func _create_styled_button() -> Button:
 	if button_template != null and is_instance_valid(button_template):
 		var duplicated_node: Node = button_template.duplicate()
-		var duplicated_button: Button = duplicated_node as Button
-
+		var duplicated_button := duplicated_node as Button
 		if duplicated_button != null:
 			duplicated_button.name = "DynamicMenuButton"
 			duplicated_button.tooltip_text = ""
@@ -362,19 +546,19 @@ func _create_styled_button() -> Button:
 			duplicated_button.focus_mode = Control.FOCUS_ALL
 			duplicated_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			return duplicated_button
-
-	var fallback_button: Button = Button.new()
+	var fallback_button := Button.new()
 	fallback_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	fallback_button.add_theme_font_size_override("font_size", 18)
 	return fallback_button
 
+
 func _clear_menu_vbox() -> void:
 	if menu_vbox == null:
 		return
-
 	for child: Node in menu_vbox.get_children():
 		menu_vbox.remove_child(child)
 		child.queue_free()
+
 
 func _on_audio_settings_pressed() -> void:
 	status_message = ""
