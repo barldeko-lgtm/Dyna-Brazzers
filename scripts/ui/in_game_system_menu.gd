@@ -27,6 +27,8 @@ const ACTION_MENU_ROOT_POSITION := Vector2(-2.0, 84.0)
 const ACTION_MENU_ROOT_SIZE := Vector2(260.0, 255.0)
 const ACTION_MENU_BUTTON_HEIGHT := 40.0
 const ACTION_MENU_BUTTON_SEPARATION := 3
+const SETTINGS_BACK_BUTTON_HEIGHT := 45.0
+const SETTINGS_BACK_SPACER_HEIGHT := 20.0
 
 const CONFIRMATION_FRAME_TEXTURE := preload("res://assets/ui/tutorial/tutorial_choice_frame.png")
 const CONFIRMATION_BUTTON_NORMAL := preload("res://assets/ui/buttons/dyna_button_normal.tres")
@@ -566,6 +568,10 @@ func _on_audio_settings_pressed() -> void:
 
 func _show_audio_settings_menu() -> void:
 	_clear_menu_vbox()
+	menu_vbox.add_theme_constant_override(
+		"separation",
+		ACTION_MENU_BUTTON_SEPARATION
+	)
 	_add_title_label("SETTINGS_TITLE")
 
 	var title_label := menu_vbox.get_child(
@@ -591,7 +597,20 @@ func _show_audio_settings_menu() -> void:
 		AudioManager.get_sound_volume(),
 		"sounds"
 	)
-	_add_menu_button("MENU_BACK", _on_audio_settings_back_pressed, 27.0)
+
+	# Keep the Settings Back button 10 px higher than in the previous layout.
+	# Button height stays unchanged; only the spacer above it is reduced by 10 px.
+	var back_spacer := Control.new()
+	back_spacer.name = "SettingsBackSpacer"
+	back_spacer.custom_minimum_size = Vector2(260.0, SETTINGS_BACK_SPACER_HEIGHT)
+	back_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	menu_vbox.add_child(back_spacer)
+	_add_menu_button(
+		"MENU_BACK",
+		_on_audio_settings_back_pressed,
+		SETTINGS_BACK_BUTTON_HEIGHT
+	)
+	_place_action_menu_root()
 
 func _add_language_control() -> void:
 	var row := _create_ingame_settings_row("InGameLanguageRow")

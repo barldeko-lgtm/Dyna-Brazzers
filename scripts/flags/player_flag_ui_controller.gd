@@ -156,11 +156,11 @@ func _build_flag_menu(menu_entries: Array[Dictionary]) -> void:
 
 	flag_menu_grid = GridContainer.new()
 	flag_menu_grid.name = "SpeciesFlagMenu"
-	flag_menu_grid.position = Vector2(-2.0, 116.0)
-	flag_menu_grid.size = Vector2(260.0, 218.0)
-	flag_menu_grid.columns = 3
-	flag_menu_grid.add_theme_constant_override("h_separation", 6)
-	flag_menu_grid.add_theme_constant_override("v_separation", 6)
+	flag_menu_grid.position = Vector2(-2.0, 84.0)
+	flag_menu_grid.size = Vector2(260.0, 245.0)
+	flag_menu_grid.columns = 2
+	flag_menu_grid.add_theme_constant_override("h_separation", 8)
+	flag_menu_grid.add_theme_constant_override("v_separation", 7)
 	flag_menu_grid.visible = false
 	nature_content.add_child(flag_menu_grid)
 	species_buttons.clear()
@@ -173,32 +173,22 @@ func _build_flag_menu(menu_entries: Array[Dictionary]) -> void:
 
 		var species_button := _duplicate_menu_button()
 		species_button.name = "%sFlagButton" % String(species_id).capitalize()
-		species_button.custom_minimum_size = Vector2(80.0, 52.0)
-		var button_key := String(entry.get("button_key", "FLAG_DEFAULT_BUTTON"))
+		species_button.custom_minimum_size = Vector2(126.0, 56.0)
+		var species_name_key := "SPECIES_%s" % String(species_id).to_upper()
 		var tooltip_key := String(entry.get("tooltip_key", "FLAG_DEFAULT_TOOLTIP"))
-		species_button.set_meta(&"translation_key", button_key)
+		species_button.set_meta(&"translation_key", species_name_key)
 		species_button.set_meta(&"tooltip_translation_key", tooltip_key)
-		species_button.text = tr(button_key)
+		species_button.text = tr(species_name_key)
 		species_button.tooltip_text = tr(tooltip_key)
-		species_button.add_theme_font_size_override("font_size", 11)
+		species_button.add_theme_font_size_override("font_size", 14)
 		species_button.pressed.connect(_on_species_flag_pressed.bind(species_id))
 		flag_menu_grid.add_child(species_button)
 		species_buttons[species_id] = species_button
 
-	var remove_button := _duplicate_menu_button()
-	remove_button.name = "RemoveSpeciesFlagButton"
-	remove_button.custom_minimum_size = Vector2(80.0, 52.0)
-	remove_button.set_meta(&"translation_key", "FLAG_REMOVE_BUTTON")
-	remove_button.set_meta(&"tooltip_translation_key", "FLAG_REMOVE_TOOLTIP")
-	remove_button.text = tr("FLAG_REMOVE_BUTTON")
-	remove_button.tooltip_text = tr("FLAG_REMOVE_TOOLTIP")
-	remove_button.add_theme_font_size_override("font_size", 12)
-	remove_button.pressed.connect(_on_remove_flag_pressed)
-	flag_menu_grid.add_child(remove_button)
-
+	# Fourth row matches the egg menu: Back on the left, remove flag on the right.
 	var back_button := _duplicate_menu_button()
 	back_button.name = "FlagMenuBackButton"
-	back_button.custom_minimum_size = Vector2(80.0, 52.0)
+	back_button.custom_minimum_size = Vector2(126.0, 56.0)
 	back_button.set_meta(&"translation_key", "BACK_ARROW")
 	back_button.set_meta(&"tooltip_translation_key", "BACK_TOOLTIP")
 	back_button.text = tr("BACK_ARROW")
@@ -207,14 +197,20 @@ func _build_flag_menu(menu_entries: Array[Dictionary]) -> void:
 	back_button.pressed.connect(_on_back_button_pressed)
 	flag_menu_grid.add_child(back_button)
 
-	status_label = Label.new()
-	status_label.name = "FlagStatusLabel"
-	status_label.custom_minimum_size = Vector2(80.0, 52.0)
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	status_label.add_theme_font_size_override("font_size", 11)
-	flag_menu_grid.add_child(status_label)
+	var remove_button := _duplicate_menu_button()
+	remove_button.name = "RemoveSpeciesFlagButton"
+	remove_button.custom_minimum_size = Vector2(126.0, 56.0)
+	remove_button.set_meta(&"translation_key", "FLAG_REMOVE_BUTTON")
+	remove_button.set_meta(&"tooltip_translation_key", "FLAG_REMOVE_TOOLTIP")
+	remove_button.text = tr("FLAG_REMOVE_BUTTON")
+	remove_button.tooltip_text = tr("FLAG_REMOVE_TOOLTIP")
+	remove_button.add_theme_font_size_override("font_size", 12)
+	remove_button.pressed.connect(_on_remove_flag_pressed)
+	flag_menu_grid.add_child(remove_button)
+
+	# Status is still tracked internally for targeting logic/tutorial flow, but
+	# no standalone status label is shown in the compact HUD menu.
+	status_label = null
 	refresh_status()
 
 
