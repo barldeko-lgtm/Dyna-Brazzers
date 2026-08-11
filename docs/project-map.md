@@ -20,7 +20,8 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scenes/ui/start_screen.tscn` — startup menu, level selection, tutorial-choice prompt, threaded loading presentation, load slots, settings, and exit.
 - `scenes/main/main.tscn` — gameplay compositor with dedicated world viewport, adaptive right-side HUD, camera, match flow, world, and debug overlays.
 - `scenes/ui/player_hud.tscn` — gameplay HUD, minimap, counters, nature-menu instance, and right-panel art.
-- `scenes/ui/creature_info_panel.tscn` — selected/hovered creature information.
+- `scenes/ui/creature_info_card.tscn` — reusable creature-info presentation: tutorial-frame background, health, satiety, reproduction progress, and age.
+- `scenes/ui/creature_info_panel.tscn` — host for the primary selected/hover card and the right-side hover comparison card.
 - `scenes/ui/nature_menu.tscn` — player energy, spells, time controls, and host area for runtime submenus.
 - `scenes/ui/tutorial_overlay.tscn` — shared dimmed tutorial presentation and per-step input blockers for the current ten-step flow.
 - `scenes/ui/game_result_overlay.tscn` — full-screen victory/defeat result presentation and main-menu action.
@@ -60,7 +61,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/creatures/creature_faction.gd` — validated runtime ownership.
 - `scripts/creatures/behaviors/creature_movement_controller.gd` — queued routes, grid steps, reservations, indirect-order rerouting, and route replacement.
 - `scripts/creatures/behaviors/creature_grazing_logic.gd` — pasture cache, food ranking, route search, and grazing target lifecycle.
-- `scripts/creatures/behaviors/creature_predator_logic.gd` — prey selection, protection/intervention rules, approach routing, engagement, and combat handoff.
+- `scripts/creatures/behaviors/creature_predator_logic.gd` — prey selection, the acquisition-only strategic pterodactyl-versus-tyrannosaurus health gate, protection/intervention rules, approach routing, engagement, and combat handoff.
 - `scripts/creatures/behaviors/creature_egg_eater_logic.gd` — egg targeting, waiting, exclusive consumption claims, and eating-sequence handoff.
 - `scripts/creatures/behaviors/creature_reproduction_logic.gd` — reproduction and natural egg spawning.
 - `scripts/creatures/behaviors/creature_visual_controller.gd` — directional textures, optional walk/eating/attack animation playback, action advances, shadows, idle/death visuals, and fallbacks.
@@ -112,7 +113,7 @@ Enemy objectives:
 - `localization/ui.csv` — general player-facing translations for `ru`, `en`, `fr`, `de`, and `uk`.
 - `localization/display_settings.csv` — display-mode/resolution translations for the same five locales.
 - `scripts/ui/player_ui.gd` — minimap, counters, base focus, time controls, egg-controller bootstrap, and stable tutorial access to minimap/counter controls.
-- `scripts/ui/creature_stats_ui.gd` — creature information, selection state, and live hovered-creature lightning-target bridge.
+- `scripts/ui/creature_stats_ui.gd` — live dual-card creature-stat binding, hover/selection priority, and hovered-creature lightning-target bridge; visual composition stays in the shared card scene.
 - `scripts/ui/player_egg_creation_ui.gd` — player egg submenu, purchases, post-payment success signal, automatic return action, and stable species-button lookup for tutorial targeting.
 - `scripts/ui/player_nature_ui.gd` — spell buttons, targeting/previews, confirmed rain signal, named egg/spell/flag/system controls, and stable tutorial APIs including rain-button lookup and preview alignment.
 - `scripts/ui/game_result_overlay.gd` — victory/defeat presentation and `main_menu_requested` signal.

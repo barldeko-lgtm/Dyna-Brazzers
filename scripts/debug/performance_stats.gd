@@ -1,7 +1,7 @@
 extends Node
 
 # Lightweight runtime counters for debugging simulation spikes.
-# The counters are sampled twice per real second and displayed by creature_stats_ui.gd.
+# The counters are sampled twice per real second and displayed by debug_status_ui.gd.
 # Press F8 to toggle CSV recording.
 #
 # In the editor logs are written to:

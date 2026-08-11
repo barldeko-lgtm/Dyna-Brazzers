@@ -158,7 +158,7 @@ func _on_hover_area_mouse_entered() -> void:
 func _on_hover_area_mouse_exited() -> void:
 	var stats_ui := _get_stats_ui()
 	if stats_ui != null and stats_ui.has_method("hide_creature_stats"):
-		stats_ui.call("hide_creature_stats")
+		stats_ui.call("hide_creature_stats", creature)
 
 
 func _on_hover_area_input_event(

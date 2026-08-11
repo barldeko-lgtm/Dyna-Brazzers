@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dse8ajbhpm7od"
-path="res://.godot/imported/creature_hunger_icon.svg-c093050744a555eb4ddacb9b20e593e3.ctex"
+uid="uid://h3x5ohiv1yu7"
+path="res://.godot/imported/satiety_grass.png-2ae2ec5f18e6c620a336c3de004db900.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/creature_hunger_icon.svg"
-dest_files=["res://.godot/imported/creature_hunger_icon.svg-c093050744a555eb4ddacb9b20e593e3.ctex"]
+source_file="res://assets/ui/creature_stats/satiety_grass.png"
+dest_files=["res://.godot/imported/satiety_grass.png-2ae2ec5f18e6c620a336c3de004db900.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

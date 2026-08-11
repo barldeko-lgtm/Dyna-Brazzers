@@ -107,6 +107,8 @@ Predators select reachable prey through shared route and duel systems. Predator 
 
 Tyrannosaurus and pterodactyl use attacker-role behaviour. Raptors use defender-role behaviour and may guard their faction base. Defender raptors may also replace an allied herbivore or egg eater in an eligible duel against an opposing predator. Attacker-role predators never search for a fight solely to protect an ally, although an already selected opposing predator may still become an intervention target.
 
+During strategic target acquisition, a pterodactyl skips tyrannosauruses above 70 health and continues evaluating other prey. A tyrannosaurus at 70 health or below is eligible; once selected, its later health changes do not cancel pursuit. Critical-hunger acquisition does not use this limit.
+
 When a completed duel has a predator winner, the winner advances through the finishing lunge and atomically takes over its victim's released grid anchor. The 1.5-second eating animation settles the rendered body onto that new logical position. Satiety and health are granted once at the animation midpoint; the non-blocking corpse disappears at the end, then the predator resumes autonomous behaviour from the victim's coordinates. Intervention handoffs grant no reward.
 
 Egg eaters are a separate diet category. Their strategic behaviour targets opposing-faction eggs, while critical hunger broadens the allowed egg set according to shared faction/species rules. Stage-one eggs may be tracked but only stage two is edible. A stage-two egg is claimed exclusively before eating: the egg eater visually advances onto it while logical occupancy stays unchanged, then atomically inherits the egg's released grid anchor when eating finishes and satiety is granted.
@@ -264,6 +266,7 @@ Match elapsed time and an already-finished result are saved. Older saves without
 The gameplay UI is split into dedicated scenes:
 
 - `player_hud.tscn`;
+- `creature_info_card.tscn`;
 - `creature_info_panel.tscn`;
 - `nature_menu.tscn`;
 - `game_result_overlay.tscn`.
@@ -271,6 +274,8 @@ The gameplay UI is split into dedicated scenes:
 Dynamic save, flag, egg, time-control, and system menus resolve the nature panel through the stable `player_nature_ui` API rather than deep scene paths.
 
 The HUD provides player/enemy creature and egg counters, minimap, player energy and nature controls, time controls, base focus, and creature information.
+
+Creature information uses one shared visual card. Hover without selection uses the primary card; while a creature is selected, a different hovered creature appears in a second card immediately to its right.
 
 The right-side HUD remains a fixed logical side panel made from the supplied top and bottom art while the gameplay viewport dynamically ends at its live left edge.
 

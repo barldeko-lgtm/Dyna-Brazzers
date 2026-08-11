@@ -113,11 +113,8 @@ FLAG_PTERODACTYL_BUTTON,Птеро\nпатруль,Ptero\npatrol,Ptéro\npatroui
 FLAG_PTERODACTYL_TOOLTIP,Поставить или перенести патрульный флаг птеродактилей,Place or move the pterodactyl patrol flag,Placer ou déplacer le drapeau de patrouille des ptérodactyles,Patrouillenflagge der Pterodaktylen setzen oder verschieben,Поставити або перенести патрульний прапорець птеродактилів
 FLAG_EGG_EATER_BUTTON,Яйцеед\nпоиск,Egg eater\nsearch,Mangeur\nrecherche,Eierfresser\nSuche,Яйцеїд\nпошук
 FLAG_EGG_EATER_TOOLTIP,Поставить или перенести флаг поиска яйцеедов,Place or move the egg eater search flag,Placer ou déplacer le drapeau de recherche des mangeurs d'œufs,Suchflagge der Eierfresser setzen oder verschieben,Поставити або перенести пошуковий прапорець яйцеїдів
-CREATURE_GENERIC,Существо,Creature,Créature,Kreatur,Істота
 CREATURE_AGE,Возраст: %d,Age: %d,Âge : %d,Alter: %d,Вік: %d
 CREATURE_AGE_UNKNOWN,Возраст: ?,Age: ?,Âge : ?,Alter: ?,Вік: ?
-HEALTH_LABEL,Здоровье,Health,Santé,Gesundheit,Здоров'я
-HUNGER_LABEL,Сытость,Satiety,Satiété,Sättigung,Ситість
 HUD_HERBIVORE_SHORT,Тр,Her,Her,Pfl,Тр
 HUD_PREDATOR_SHORT,Хщ,Pred,Pré,Räu,Хиж
 HUD_EGG_EATER_SHORT,Яц,EggE,Ovf,Efr,Яїд

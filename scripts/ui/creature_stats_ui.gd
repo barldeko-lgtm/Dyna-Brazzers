@@ -1,30 +1,23 @@
-extends PanelContainer
+extends Control
 
 # Creature info window + creature selection.
-# Keep this script focused on the selected/hovered creature panel only.
+# Presentation lives in creature_info_panel.tscn; this script only updates data
+# and preserves hover/selection behavior.
 
-const HEALTH_ICON_TEXTURE := preload("res://assets/ui/creature_health_icon.svg")
-const HUNGER_ICON_TEXTURE := preload("res://assets/ui/creature_hunger_icon.svg")
+const SATIETY_GRASS_TEXTURE := preload(
+	"res://assets/ui/creature_stats/satiety_grass.png"
+)
+const SATIETY_MEAT_TEXTURE := preload(
+	"res://assets/ui/creature_stats/satiety_meat.png"
+)
+const SATIETY_EGG_TEXTURE := preload(
+	"res://assets/ui/creature_stats/satiety_egg.png"
+)
 
-@onready var panel: PanelContainer = self
-@onready var stats_vbox: VBoxContainer = $MarginContainer/VBoxContainer
-@onready var title_label: Label = $MarginContainer/VBoxContainer/TitleLabel
-@onready var age_label: Label = $MarginContainer/VBoxContainer/AgeLabel
-@onready var health_label: Label = $MarginContainer/VBoxContainer/HealthLabel
-@onready var hunger_label: Label = $MarginContainer/VBoxContainer/HungerLabel
-@onready var legacy_health_bar: ProgressBar = $MarginContainer/VBoxContainer/HealthBar
-@onready var legacy_health_value_label: Label = $MarginContainer/VBoxContainer/HealthBar/HealthValueLabel
-@onready var legacy_hunger_bar: ProgressBar = $MarginContainer/VBoxContainer/HungerBar
-@onready var legacy_hunger_value_label: Label = $MarginContainer/VBoxContainer/HungerBar/HungerValueLabel
-
-var health_bar: ProgressBar
-var health_percent_label: Label
-var hunger_bar: ProgressBar
-var hunger_percent_label: Label
-var reproduction_row: HBoxContainer
-var reproduction_bar: ProgressBar
-var reproduction_percent_label: Label
-var reproduction_icon: TextureRect
+@onready var panel: Control = self
+@onready var primary_card: Control = $PrimaryCard
+@onready var hover_card: Control = $HoverCard
+@onready var age_label: Label = $PrimaryCard/ContentMargin/StatsVBox/AgeLabel
 
 var current_creature: Node = null
 var hovered_creature: Node = null
@@ -36,157 +29,14 @@ var last_selected_highlighted: Node = null
 
 func _ready() -> void:
 	add_to_group("creature_stats_ui")
-	configure_compact_stats_layout()
 	_refresh_localized_text()
 	LocalizationManager.locale_changed.connect(_on_locale_changed)
+	hover_card.visible = false
 	panel.visible = false
 
 
-func configure_compact_stats_layout() -> void:
-	title_label.visible = false
-	health_label.visible = false
-	hunger_label.visible = false
-	legacy_health_bar.visible = false
-	legacy_hunger_bar.visible = false
-	legacy_health_value_label.visible = false
-	legacy_hunger_value_label.visible = false
-
-	stats_vbox.add_theme_constant_override("separation", 7)
-	panel.custom_minimum_size = Vector2(268.0, 0.0)
-	panel.size = Vector2(268.0, 122.0)
-	apply_panel_style()
-
-	age_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	age_label.add_theme_color_override("font_color", Color(0.72, 0.78, 0.88, 1.0))
-	age_label.add_theme_font_size_override("font_size", 13)
-
-	var health_row_data := create_stat_row(HEALTH_ICON_TEXTURE, legacy_health_bar)
-	var health_row := health_row_data["row"] as HBoxContainer
-	health_bar = health_row_data["bar"] as ProgressBar
-	health_percent_label = health_row_data["label"] as Label
-
-	var hunger_row_data := create_stat_row(HUNGER_ICON_TEXTURE, legacy_hunger_bar)
-	var hunger_row := hunger_row_data["row"] as HBoxContainer
-	hunger_bar = hunger_row_data["bar"] as ProgressBar
-	hunger_percent_label = hunger_row_data["label"] as Label
-
-	var reproduction_row_data := create_stat_row(null, legacy_hunger_bar)
-	reproduction_row = reproduction_row_data["row"] as HBoxContainer
-	reproduction_bar = reproduction_row_data["bar"] as ProgressBar
-	reproduction_percent_label = reproduction_row_data["label"] as Label
-	reproduction_icon = reproduction_row_data["icon"] as TextureRect
-	apply_reproduction_bar_style(reproduction_bar)
-
-	stats_vbox.move_child(health_row, 0)
-	stats_vbox.move_child(hunger_row, 1)
-	stats_vbox.move_child(reproduction_row, 2)
-	stats_vbox.move_child(age_label, 3)
-
-
-func create_stat_row(icon_texture: Texture2D, template_bar: ProgressBar) -> Dictionary:
-	var row := HBoxContainer.new()
-	row.custom_minimum_size = Vector2(0.0, 30.0)
-	row.add_theme_constant_override("separation", 8)
-	stats_vbox.add_child(row)
-
-	var icon_frame := PanelContainer.new()
-	icon_frame.custom_minimum_size = Vector2(28.0, 28.0)
-	icon_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	icon_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_frame.add_theme_stylebox_override("panel", create_icon_frame_style())
-	row.add_child(icon_frame)
-
-	var icon := TextureRect.new()
-	icon.custom_minimum_size = Vector2(20.0, 20.0)
-	icon.texture = icon_texture
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_frame.add_child(icon)
-
-	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(134.0, 18.0)
-	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	bar.max_value = 100.0
-	bar.value = 100.0
-	bar.show_percentage = false
-	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	copy_bar_style(template_bar, bar)
-	row.add_child(bar)
-
-	var percent_label := Label.new()
-	percent_label.custom_minimum_size = Vector2(52.0, 18.0)
-	percent_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	percent_label.text = "100%"
-	percent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	percent_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	percent_label.add_theme_color_override("font_color", Color(0.94, 0.96, 1.0, 1.0))
-	percent_label.add_theme_font_size_override("font_size", 14)
-	percent_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(percent_label)
-
-	return {"row": row, "bar": bar, "label": percent_label, "icon": icon}
-
-
-func apply_reproduction_bar_style(bar: ProgressBar) -> void:
-	var fill_style := bar.get_theme_stylebox("fill").duplicate() as StyleBoxFlat
-
-	if fill_style == null:
-		return
-
-	fill_style.bg_color = Color(0.94, 0.68, 0.2, 1.0)
-	bar.add_theme_stylebox_override("fill", fill_style)
-
-
-func apply_panel_style() -> void:
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.025, 0.045, 0.075, 0.94)
-	panel_style.border_width_left = 1
-	panel_style.border_width_top = 1
-	panel_style.border_width_right = 1
-	panel_style.border_width_bottom = 1
-	panel_style.border_color = Color(0.22, 0.32, 0.46, 0.95)
-	panel_style.corner_radius_top_left = 9
-	panel_style.corner_radius_top_right = 9
-	panel_style.corner_radius_bottom_right = 9
-	panel_style.corner_radius_bottom_left = 9
-	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.45)
-	panel_style.shadow_size = 6
-	panel_style.shadow_offset = Vector2(2.0, 3.0)
-	panel.add_theme_stylebox_override("panel", panel_style)
-
-
-func create_icon_frame_style() -> StyleBoxFlat:
-	var icon_style := StyleBoxFlat.new()
-	icon_style.bg_color = Color(0.075, 0.095, 0.135, 0.98)
-	icon_style.border_width_left = 1
-	icon_style.border_width_top = 1
-	icon_style.border_width_right = 1
-	icon_style.border_width_bottom = 1
-	icon_style.border_color = Color(0.25, 0.34, 0.46, 0.9)
-	icon_style.corner_radius_top_left = 14
-	icon_style.corner_radius_top_right = 14
-	icon_style.corner_radius_bottom_right = 14
-	icon_style.corner_radius_bottom_left = 14
-	icon_style.content_margin_left = 4.0
-	icon_style.content_margin_top = 4.0
-	icon_style.content_margin_right = 4.0
-	icon_style.content_margin_bottom = 4.0
-	return icon_style
-
-
-func copy_bar_style(source_bar: ProgressBar, target_bar: ProgressBar) -> void:
-	var background_style := source_bar.get_theme_stylebox("background")
-	if background_style != null:
-		target_bar.add_theme_stylebox_override("background", background_style.duplicate())
-
-	var fill_style := source_bar.get_theme_stylebox("fill")
-	if fill_style != null:
-		target_bar.add_theme_stylebox_override("fill", fill_style.duplicate())
-
-
-# Prefer selected creature over hover.
+# Selected creature stays in the primary card; a different hovered creature
+# uses the comparison card to its right.
 func _process(_delta: float) -> void:
 	if not is_instance_valid(selected_creature):
 		selected_creature = null
@@ -201,8 +51,10 @@ func _process(_delta: float) -> void:
 		current_creature = selected_creature
 		panel.visible = true
 		update_stats_text()
+		_update_hover_card()
 		return
 
+	hover_card.visible = false
 	if is_instance_valid(hovered_creature):
 		current_creature = hovered_creature
 		panel.visible = true
@@ -220,16 +72,22 @@ func show_creature_stats(creature: Node) -> void:
 	sync_creature_highlights()
 
 	if is_instance_valid(selected_creature):
+		_update_hover_card()
 		return
 
 	current_creature = creature
 	panel.visible = true
+	hover_card.visible = false
 	update_stats_text()
 
 
-func hide_creature_stats() -> void:
+func hide_creature_stats(exited_creature: Node = null) -> void:
+	if exited_creature != null and hovered_creature != exited_creature:
+		return
+
 	hovered_creature = null
 	sync_creature_highlights()
+	hover_card.visible = false
 
 	if is_instance_valid(selected_creature):
 		return
@@ -290,42 +148,86 @@ func _refresh_hovered_targeting_highlight() -> void:
 func update_stats_text() -> void:
 	if not is_instance_valid(current_creature):
 		return
+	_update_card_stats(primary_card, current_creature)
 
-	if current_creature.has_method("get_age"):
-		age_label.text = tr("CREATURE_AGE") % int(current_creature.get_age())
+
+func _update_hover_card() -> void:
+	var should_show := (
+		is_instance_valid(selected_creature)
+		and is_instance_valid(hovered_creature)
+		and hovered_creature != selected_creature
+	)
+	hover_card.visible = should_show
+	if should_show:
+		_update_card_stats(hover_card, hovered_creature)
+
+
+func _update_card_stats(card: Control, creature: Node) -> void:
+	var stats := card.get_node("ContentMargin/StatsVBox")
+	var card_age_label := stats.get_node("AgeLabel") as Label
+	var card_health_bar := stats.get_node("HealthRow/HealthBar") as ProgressBar
+	var card_health_label := card_health_bar.get_node("PercentLabel") as Label
+	var card_hunger_bar := stats.get_node("HungerRow/HungerBar") as ProgressBar
+	var card_hunger_label := card_hunger_bar.get_node("PercentLabel") as Label
+	var card_reproduction_bar := stats.get_node(
+		"ReproductionRow/ReproductionBar"
+	) as ProgressBar
+	var card_reproduction_label := card_reproduction_bar.get_node(
+		"PercentLabel"
+	) as Label
+	var card_reproduction_icon := stats.get_node(
+		"ReproductionRow/EggIconSlot/EggIcon"
+	) as TextureRect
+
+	if creature.has_method("get_age"):
+		card_age_label.text = tr("CREATURE_AGE") % int(creature.get_age())
 	else:
-		age_label.text = tr("CREATURE_AGE_UNKNOWN")
+		card_age_label.text = tr("CREATURE_AGE_UNKNOWN")
 
 	var health_percent := 0.0
-	if current_creature.has_method("get_health_percent"):
-		health_percent = float(current_creature.get_health_percent())
-
-	health_bar.value = health_percent
-	health_percent_label.text = "%d%%" % int(round(health_percent))
+	if creature.has_method("get_health_percent"):
+		health_percent = clampf(float(creature.get_health_percent()), 0.0, 100.0)
+	card_health_bar.value = health_percent
+	card_health_label.text = "%d%%" % int(round(health_percent))
 
 	var hunger_percent := 0.0
-	if current_creature.has_method("get_hunger_percent"):
-		hunger_percent = float(current_creature.get_hunger_percent())
+	if creature.has_method("get_hunger_percent"):
+		hunger_percent = clampf(float(creature.get_hunger_percent()), 0.0, 100.0)
+	card_hunger_bar.value = hunger_percent
+	card_hunger_label.text = "%d%%" % int(round(hunger_percent))
+	_update_satiety_icon(card, creature)
 
-	hunger_bar.value = hunger_percent
-	hunger_percent_label.text = "%d%%" % int(round(hunger_percent))
-
-	var show_reproduction_progress := (
-		current_creature.has_method("uses_reproduction_progress")
-		and bool(current_creature.call("uses_reproduction_progress"))
-	)
-	reproduction_row.visible = show_reproduction_progress
-	panel.custom_minimum_size.y = 159.0 if show_reproduction_progress else 122.0
-
-	if show_reproduction_progress:
-		var reproduction_percent := float(
-			current_creature.call("get_reproduction_progress_percent")
+	var reproduction_percent := 0.0
+	if creature.has_method("get_reproduction_progress_percent"):
+		reproduction_percent = clampf(
+			float(creature.call("get_reproduction_progress_percent")),
+			0.0,
+			100.0
 		)
-		reproduction_bar.value = reproduction_percent
-		reproduction_percent_label.text = "%d%%" % int(round(reproduction_percent))
-		reproduction_icon.texture = current_creature.call(
+	card_reproduction_bar.value = reproduction_percent
+	card_reproduction_label.text = "%d%%" % int(round(reproduction_percent))
+
+	if creature.has_method("get_reproduction_egg_texture"):
+		card_reproduction_icon.texture = creature.call(
 			"get_reproduction_egg_texture"
 		) as Texture2D
+	else:
+		card_reproduction_icon.texture = null
+
+
+func _update_satiety_icon(card: Control, creature: Node) -> void:
+	var card_hunger_icon := card.get_node(
+		"ContentMargin/StatsVBox/HungerRow/HungerIcon"
+	) as TextureRect
+	if creature.has_method("is_egg_eater") and bool(creature.call("is_egg_eater")):
+		card_hunger_icon.texture = SATIETY_EGG_TEXTURE
+		return
+
+	if creature.has_method("get_is_predator") and bool(creature.call("get_is_predator")):
+		card_hunger_icon.texture = SATIETY_MEAT_TEXTURE
+		return
+
+	card_hunger_icon.texture = SATIETY_GRASS_TEXTURE
 
 
 func _on_locale_changed(_locale: String) -> void:
@@ -333,13 +235,11 @@ func _on_locale_changed(_locale: String) -> void:
 
 
 func _refresh_localized_text() -> void:
-	title_label.text = tr("CREATURE_GENERIC")
-	health_label.text = tr("HEALTH_LABEL")
-	hunger_label.text = tr("HUNGER_LABEL")
 	if is_instance_valid(current_creature):
 		update_stats_text()
 	else:
 		age_label.text = tr("CREATURE_AGE_UNKNOWN")
+	_update_hover_card()
 
 
 # Compatibility hook for creature click input.
@@ -374,11 +274,13 @@ func toggle_creature_selection(creature: Node) -> void:
 	current_creature = creature
 	panel.visible = true
 	update_stats_text()
+	_update_hover_card()
 
 
 func clear_selected_creature() -> void:
 	selected_creature = null
 	sync_creature_highlights()
+	hover_card.visible = false
 
 	if is_instance_valid(hovered_creature):
 		current_creature = hovered_creature

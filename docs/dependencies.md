@@ -202,6 +202,7 @@ Predator and egg-eater rules:
 - combat approach anchors always require normal ground placement, including for flying pterodactyls;
 - predator role, hunger thresholds, strategic/guard behaviour, and hunting radii are species data;
 - attacker-role and defender-role target rules must be applied consistently during acquisition and revalidation;
+- strategic pterodactyl acquisition skips tyrannosauruses above 70 health before candidate ranking, while current-target revalidation and critical-hunger acquisition deliberately ignore that limit;
 - defender raptor protection is allowed only for eligible allied herbivore/egg-eater versus opposing-predator duels;
 - attacker-role predators never acquire/switch solely for protection;
 - one protector may reserve a handoff; the replacement duel cannot recursively trigger another intervention;
@@ -362,6 +363,7 @@ Main files:
 
 - `res://scenes/main/main.tscn`
 - `res://scenes/ui/player_hud.tscn`
+- `res://scenes/ui/creature_info_card.tscn`
 - `res://scenes/ui/creature_info_panel.tscn`
 - `res://scenes/ui/nature_menu.tscn`
 - `res://scripts/main/main.gd`
@@ -379,6 +381,8 @@ Stable wiring:
 - gameplay camera consumers use the gameplay-viewport API rather than assuming root viewport dimensions;
 - root-owned spell/flag clicks pass through `game_viewport_input_bridge.gd`;
 - nested menus resolve nature/system controls through the `player_nature_ui` group/API;
+- `creature_info_card.tscn` owns one card's visual composition, while `creature_info_panel.tscn` owns the primary selected/hover card and the right-side hover comparison instance;
+- creature hover-exit wiring passes the originating creature so a stale exit cannot clear a newer hovered target;
 - base focus resolves bases through stable groups;
 - debug overlays remain separate from player-facing UI.
 

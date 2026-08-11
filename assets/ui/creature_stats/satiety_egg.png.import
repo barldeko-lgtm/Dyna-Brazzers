@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1nuag8uifsfm"
-path="res://.godot/imported/creature_health_icon.svg-66db1f289eb88cdd70df69cbaaa61719.ctex"
+uid="uid://clixubifj1ts7"
+path="res://.godot/imported/satiety_egg.png-d7c52196b45a2a0cbba5eb840bd814d7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/creature_health_icon.svg"
-dest_files=["res://.godot/imported/creature_health_icon.svg-66db1f289eb88cdd70df69cbaaa61719.ctex"]
+source_file="res://assets/ui/creature_stats/satiety_egg.png"
+dest_files=["res://.godot/imported/satiety_egg.png-d7c52196b45a2a0cbba5eb840bd814d7.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

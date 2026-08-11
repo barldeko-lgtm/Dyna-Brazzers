@@ -11,6 +11,9 @@ const FAILED_TARGET_RECHECK_INTERVAL := 3.0
 const TARGET_SWITCH_ADVANTAGE_STEPS := 2
 const TARGET_CANDIDATE_LIMIT := 3
 const APPROACH_RECHECK_DISTANCE := 4
+const PTERODACTYL_TYRANNOSAURUS_TARGET_MAX_HEALTH := 70.0
+const PTERODACTYL_SPECIES_ID := "pterodactyl"
+const TYRANNOSAURUS_SPECIES_ID := "tyrannosaurus"
 const PLAYER_FLAG_COMMITMENT_META := &"player_flag_committed_revision"
 const ENEMY_FLAG_COMMITMENT_META := &"enemy_flag_committed_revision"
 
@@ -922,6 +925,7 @@ func find_nearest_prey_candidates(
 		if (
 			candidate == excluded_prey
 			or not is_valid_prey(candidate)
+			or not _is_allowed_new_prey_candidate(candidate)
 			or _is_prey_temporarily_unreachable(candidate)
 		):
 			continue
@@ -953,6 +957,28 @@ func find_nearest_prey_candidates(
 			result.append(prey)
 
 	return result
+
+
+func _is_allowed_new_prey_candidate(candidate: Node) -> bool:
+	if hunt_mode != HuntMode.STRATEGIC:
+		return true
+
+	var hunter_species := creature.species_data as CreatureSpeciesData
+	var candidate_species := candidate.get("species_data") as CreatureSpeciesData
+
+	if (
+		hunter_species == null
+		or candidate_species == null
+		or hunter_species.species_id != PTERODACTYL_SPECIES_ID
+		or candidate_species.species_id != TYRANNOSAURUS_SPECIES_ID
+	):
+		return true
+
+	var candidate_health: Variant = candidate.get("health")
+	return (
+		candidate_health != null
+		and float(candidate_health) <= PTERODACTYL_TYRANNOSAURUS_TARGET_MAX_HEALTH
+	)
 
 
 func _mark_prey_temporarily_unreachable(prey: Node) -> void:
