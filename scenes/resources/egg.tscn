@@ -10,7 +10,7 @@ stage_1_texture = ExtResource("2_egg_stage_1")
 stage_2_texture = ExtResource("3_egg_stage_2")
 
 [node name="BodySprite" type="Sprite2D" parent="."]
-z_index = 1
+z_index = 0
 texture = ExtResource("2_egg_stage_1")
 modulate = Color(0.862745, 0.823529, 0.611765, 1)
 

@@ -14,6 +14,8 @@ const PREDATOR_VICTORY_HEAL := 15.0
 const CORPSE_EATING_DURATION := 1.5
 const CORPSE_REWARD_TIME := CORPSE_EATING_DURATION * 0.5
 const CORPSE_EXTRA_ADVANCE_DURATION := 0.5
+const EGG_EATING_APPROACH_DURATION := 0.5
+const EGG_EATING_DURATION := 0.5
 const CORPSE_Z_INDEX := -1
 const RAPTOR_SPECIES_ID: StringName = &"raptor"
 const RAPTOR_BASE_GUARD_RADIUS_TILES := 20.0
@@ -150,6 +152,8 @@ var combat_engagement_hunter: Node = null
 var corpse_eating_target: Node = null
 var corpse_eating_reward_pending := false
 var corpse_eating_approach_active := false
+var egg_eating_target: Node = null
+var egg_eating_approach_active := false
 var grazing_logic: RefCounted
 var visual_controller: RefCounted
 var reproduction_logic: RefCounted
@@ -248,6 +252,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	release_egg_eating_claim()
 	if world_grid != null:
 		world_grid.unregister_creature(self, footprint_size)
 
@@ -502,6 +507,7 @@ func enter_hungry_behavior() -> void:
 
 
 func enter_eating() -> void:
+	release_egg_eating_claim()
 	eating_anchor_tile = anchor_tile
 	corpse_eating_target = null
 	corpse_eating_reward_pending = false
@@ -512,7 +518,139 @@ func enter_eating() -> void:
 	eating_timer.start(species_data.eating_duration)
 
 
+func enter_egg_eating(egg: Node) -> bool:
+	if (
+		egg == null
+		or not is_instance_valid(egg)
+		or not egg.has_method("is_consumption_claimed_by")
+		or not bool(egg.call("is_consumption_claimed_by", self))
+	):
+		return false
+
+	egg_eating_target = egg
+	egg_eating_approach_active = true
+	face_target(egg)
+	clear_path()
+	change_state(State.EATING)
+
+	if visual_controller == null:
+		_on_egg_eating_approach_finished()
+		return true
+
+	visual_controller.advance_action_visual_offset(
+		egg.global_position - global_position,
+		EGG_EATING_APPROACH_DURATION,
+		Callable(self, "_on_egg_eating_approach_finished")
+	)
+	return true
+
+
+func _on_egg_eating_approach_finished() -> void:
+	if (
+		state != State.EATING
+		or not is_instance_valid(egg_eating_target)
+		or not egg_eating_target.has_method("is_consumption_claimed_by")
+		or not bool(egg_eating_target.call("is_consumption_claimed_by", self))
+	):
+		cancel_egg_eating_sequence()
+		return
+
+	egg_eating_approach_active = false
+	update_sprite_visual()
+	eating_timer.start(EGG_EATING_DURATION)
+
+
+func relocate_to_consumed_egg(egg: Node) -> bool:
+	if (
+		world_grid == null
+		or egg == null
+		or not is_instance_valid(egg)
+		or not egg.has_method("get_current_footprint")
+		or not world_grid.has_method("transfer_blocker_anchor_to_creature")
+	):
+		return false
+
+	var egg_footprint: Vector2i = egg.call("get_current_footprint")
+	var target_anchor: Vector2i = egg.get("anchor_tile")
+	var target_global_position: Vector2 = egg.global_position
+	if not bool(world_grid.call(
+		"transfer_blocker_anchor_to_creature",
+		egg,
+		self,
+		egg_footprint,
+		footprint_size
+	)):
+		return false
+
+	egg.set("is_registered_as_blocker", false)
+	anchor_tile = target_anchor
+	pending_anchor_tile = target_anchor
+	is_moving = false
+	global_position = target_global_position
+	movement_target_position = target_global_position
+	return true
+
+
+func finish_egg_eating() -> void:
+	var egg := egg_eating_target
+	var relocated := (
+		is_instance_valid(egg)
+		and egg.has_method("is_consumption_claimed_by")
+		and bool(egg.call("is_consumption_claimed_by", self))
+		and relocate_to_consumed_egg(egg)
+	)
+	var consumed := (
+		relocated
+		and egg.has_method("finish_consumption")
+		and bool(egg.call("finish_consumption", self))
+	)
+	if (
+		not consumed
+		and is_instance_valid(egg)
+		and egg.has_method("cancel_consumption_claim")
+	):
+		egg.call("cancel_consumption_claim", self)
+
+	egg_eating_target = null
+	egg_eating_approach_active = false
+	if visual_controller != null:
+		visual_controller.set_action_visual_offset(Vector2.ZERO)
+	if consumed:
+		hunger = clamp(
+			hunger + species_data.hunger_restore_amount,
+			0.0,
+			species_data.max_hunger
+		)
+
+	if state == State.DEAD:
+		return
+	if hunger <= species_data.hunger_search_threshold:
+		enter_hungry_behavior()
+		return
+	enter_walk()
+
+
+func release_egg_eating_claim() -> void:
+	if (
+		is_instance_valid(egg_eating_target)
+		and egg_eating_target.has_method("cancel_consumption_claim")
+	):
+		egg_eating_target.call("cancel_consumption_claim", self)
+	egg_eating_target = null
+	egg_eating_approach_active = false
+
+
+func cancel_egg_eating_sequence() -> void:
+	release_egg_eating_claim()
+	eating_timer.stop()
+	if visual_controller != null:
+		visual_controller.set_action_visual_offset(Vector2.ZERO)
+	if state != State.DEAD:
+		enter_walk()
+
+
 func enter_corpse_eating(corpse: Node, use_extra_advance: bool = false) -> void:
+	release_egg_eating_claim()
 	if corpse == null or not is_instance_valid(corpse):
 		return
 
@@ -600,6 +738,7 @@ func enter_dead() -> void:
 		return
 
 	change_state(State.DEAD)
+	release_egg_eating_claim()
 	z_index = CORPSE_Z_INDEX
 	raptor_guard_buff_active = false
 	set_raptor_guard_icon_visible(false)
@@ -784,6 +923,10 @@ func cancel_indirect_order_route() -> void:
 
 
 func _on_eating_timer_timeout() -> void:
+	if egg_eating_target != null:
+		finish_egg_eating()
+		return
+
 	if corpse_eating_target != null:
 		finish_corpse_eating()
 		return

@@ -38,6 +38,7 @@ const CSV_HEADER_COLUMNS := [
 	"node_count",
 	"object_count",
 	"creature_count",
+	"herbivore_count",
 	"grass_count",
 	"grass_spread_per_sec",
 	"grass_neighbor_checks_per_sec",
@@ -344,10 +345,20 @@ func build_csv_sample_row() -> Array[String]:
 	var world_grid := get_tree().get_first_node_in_group("world_grid")
 	var grass_count := 0
 	var creature_count := 0
+	var herbivore_count := 0
 
 	if world_grid != null:
 		grass_count = world_grid.grass_by_tile.size()
 		creature_count = world_grid.creature_anchors.size()
+
+		for creature_variant: Variant in world_grid.creature_anchors:
+			var creature := creature_variant as Node
+			if creature == null or not is_instance_valid(creature):
+				continue
+
+			var species_data := creature.get("species_data") as CreatureSpeciesData
+			if species_data != null and species_data.is_herbivore():
+				herbivore_count += 1
 
 	var f3_mode := "off"
 	var focused_path_steps := 0
@@ -369,6 +380,7 @@ func build_csv_sample_row() -> Array[String]:
 	row.append(str(get_node_count()))
 	row.append(str(get_object_count()))
 	row.append(str(creature_count))
+	row.append(str(herbivore_count))
 	row.append(str(grass_count))
 	row.append(str(get_rate("grass_spread_events")))
 	row.append(str(get_rate("grass_neighbor_checks")))

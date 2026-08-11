@@ -3,9 +3,16 @@ extends RefCounted
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
 const EGG_STAGE_1_FOOTPRINT := Vector2i(1, 2)
 const INVALID_ANCHOR := Vector2i(2147483647, 2147483647)
-const LOW_SATIETY_LIMIT := 50.0
-const LOW_SATIETY_PROGRESS_RATE := 0.5
-const HIGH_SATIETY_PROGRESS_RATE := 1.0
+const HERBIVORE_NO_PROGRESS_SATIETY_MAX := 10.0
+const HERBIVORE_LOW_SATIETY_MAX := 30.0
+const HERBIVORE_MEDIUM_SATIETY_MAX := 50.0
+const HERBIVORE_HIGH_SATIETY_MAX := 80.0
+const HERBIVORE_LOW_PROGRESS_RATE := 0.3
+const HERBIVORE_MEDIUM_PROGRESS_RATE := 0.5
+const HERBIVORE_HIGH_PROGRESS_RATE := 0.7
+const DEFAULT_LOW_SATIETY_LIMIT := 50.0
+const DEFAULT_LOW_SATIETY_PROGRESS_RATE := 0.5
+const FULL_SATIETY_PROGRESS_RATE := 1.0
 
 var creature: Node
 
@@ -49,15 +56,37 @@ func update_reproduction_progress(delta: float) -> void:
 	if creature.hunger <= 0.0 or creature.reproduction_progress >= progress_max:
 		return
 
-	var progress_rate := HIGH_SATIETY_PROGRESS_RATE
+	var progress_rate := _get_reproduction_progress_rate()
 
-	if creature.hunger < LOW_SATIETY_LIMIT:
-		progress_rate = LOW_SATIETY_PROGRESS_RATE
+	if progress_rate <= 0.0:
+		return
 
 	creature.reproduction_progress = min(
 		creature.reproduction_progress + progress_rate * delta,
 		progress_max
 	)
+
+
+func _get_reproduction_progress_rate() -> float:
+	if creature.species_data.is_herbivore():
+		if creature.hunger <= HERBIVORE_NO_PROGRESS_SATIETY_MAX:
+			return 0.0
+
+		if creature.hunger <= HERBIVORE_LOW_SATIETY_MAX:
+			return HERBIVORE_LOW_PROGRESS_RATE
+
+		if creature.hunger <= HERBIVORE_MEDIUM_SATIETY_MAX:
+			return HERBIVORE_MEDIUM_PROGRESS_RATE
+
+		if creature.hunger <= HERBIVORE_HIGH_SATIETY_MAX:
+			return HERBIVORE_HIGH_PROGRESS_RATE
+
+		return FULL_SATIETY_PROGRESS_RATE
+
+	if creature.hunger < DEFAULT_LOW_SATIETY_LIMIT:
+		return DEFAULT_LOW_SATIETY_PROGRESS_RATE
+
+	return FULL_SATIETY_PROGRESS_RATE
 
 
 func has_reproduction_priority_over_strategic_hunt() -> bool:

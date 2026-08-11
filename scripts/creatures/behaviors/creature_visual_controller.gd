@@ -122,6 +122,10 @@ func update_sprite_visual() -> void:
 		return
 
 	if creature.state == creature.State.EATING:
+		if bool(creature.get("egg_eating_approach_active")):
+			set_walk_animation_active(false)
+			_apply_static_directional_visual(body_sprite)
+			return
 		if _should_play_eating_animation() and can_use_eating_right_animation():
 			body_sprite.visible = false
 			set_walk_animation_active(
@@ -486,7 +490,34 @@ func _should_play_eating_animation() -> bool:
 	return (
 		creature.state == creature.State.EATING
 		and not bool(creature.get("corpse_eating_approach_active"))
+		and not bool(creature.get("egg_eating_approach_active"))
 	)
+
+
+func _apply_static_directional_visual(body_sprite: Sprite2D) -> void:
+	var direction: Vector2 = creature.direction
+	var abs_x := absf(direction.x)
+	var abs_y := absf(direction.y)
+	var faces_left := direction.x < -0.01
+
+	if abs_x <= 0.01 and abs_y <= 0.01:
+		_apply_static_texture(body_sprite, creature.species_data.down_texture, false)
+		return
+	if abs_y > abs_x:
+		_apply_static_texture(
+			body_sprite,
+			creature.species_data.up_texture if direction.y < 0.0 else creature.species_data.down_texture,
+			false
+		)
+		return
+	if abs_x > abs_y:
+		_apply_static_texture(body_sprite, creature.species_data.right_texture, faces_left)
+		return
+	if direction.y < 0.0:
+		set_ground_shadow_upward_diagonal(true)
+		_apply_static_texture(body_sprite, creature.species_data.up_right_texture, faces_left)
+		return
+	_apply_static_texture(body_sprite, creature.species_data.down_right_texture, faces_left)
 
 
 func _has_valid_animation(sprite_frames: SpriteFrames) -> bool:

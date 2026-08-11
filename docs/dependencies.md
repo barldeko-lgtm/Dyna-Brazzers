@@ -213,6 +213,9 @@ Predator and egg-eater rules:
 - intervention handoffs, null winners, and non-predator winners receive no corpse-eating reward;
 - egg eaters may track stage-one eggs but consume only stage two;
 - egg-eater faction/species rules must remain identical during acquisition, waiting, revalidation, and consumption;
+- only one egg eater may claim a stage-two egg; claiming pauses hatching without discarding the remaining timer, and cancellation resumes it;
+- egg eating keeps both logical footprints unchanged through the visual approach and timed eating phase, so saving mid-sequence remains conflict-free;
+- the egg stays visible through eating, then claimant-authorized completion atomically transfers its 2x2 blocker anchor to the eater and grants satiety;
 - final combat engagement remains exclusive even when several hunters pursue one prey.
 
 ## Creature visuals and interaction

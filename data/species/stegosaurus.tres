@@ -62,4 +62,4 @@ egg_laying_duration = 5.0
 reproduction_min_health = 30.0
 reproduction_min_hunger = 60.0
 reproduction_min_age = 3.0
-reproduction_progress_max = 60.0
+reproduction_progress_max = 70.0

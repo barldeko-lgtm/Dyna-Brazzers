@@ -109,7 +109,7 @@ Tyrannosaurus and pterodactyl use attacker-role behaviour. Raptors use defender-
 
 When a completed duel has a predator winner, the winner advances through the finishing lunge and atomically takes over its victim's released grid anchor. The 1.5-second eating animation settles the rendered body onto that new logical position. Satiety and health are granted once at the animation midpoint; the non-blocking corpse disappears at the end, then the predator resumes autonomous behaviour from the victim's coordinates. Intervention handoffs grant no reward.
 
-Egg eaters are a separate diet category. Their strategic behaviour targets opposing-faction eggs, while critical hunger broadens the allowed egg set according to shared faction/species rules. Stage-one eggs may be tracked but only stage two is edible.
+Egg eaters are a separate diet category. Their strategic behaviour targets opposing-faction eggs, while critical hunger broadens the allowed egg set according to shared faction/species rules. Stage-one eggs may be tracked but only stage two is edible. A stage-two egg is claimed exclusively before eating: the egg eater visually advances onto it while logical occupancy stays unchanged, then atomically inherits the egg's released grid anchor when eating finishes and satiety is granted.
 
 ### Combat, death, and visuals
 

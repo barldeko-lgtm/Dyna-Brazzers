@@ -320,6 +320,12 @@ func is_valid_egg_target(candidate: Node) -> bool:
 	elif not candidate.has_method("can_be_eaten") or not bool(candidate.can_be_eaten()):
 		return false
 
+	if (
+		candidate.has_method("can_be_claimed_for_consumption")
+		and not bool(candidate.call("can_be_claimed_for_consumption", creature))
+	):
+		return false
+
 	var hunt_mode := _get_hunt_mode()
 
 	if hunt_mode == EggHuntMode.NONE:
@@ -634,21 +640,23 @@ func _append_unique_anchor(
 
 
 func consume_egg(egg: Node) -> void:
-	if egg == null or not is_instance_valid(egg) or not egg.has_method("consume"):
+	if (
+		egg == null
+		or not is_instance_valid(egg)
+		or not egg.has_method("try_claim_for_consumption")
+		or not creature.has_method("enter_egg_eating")
+	):
 		clear_target()
 		return
 
-	if not egg.consume():
+	if not bool(egg.call("try_claim_for_consumption", creature)):
 		clear_target()
 		return
 
 	target_egg = null
-	creature.hunger = clamp(
-		creature.hunger + creature.species_data.hunger_restore_amount,
-		0.0,
-		creature.species_data.max_hunger
-	)
-	creature.enter_walk()
+	if not bool(creature.call("enter_egg_eating", egg)):
+		egg.call("cancel_consumption_claim", creature)
+		creature.enter_walk()
 
 
 func clear_target() -> void:

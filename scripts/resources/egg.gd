@@ -45,6 +45,8 @@ var is_registered_as_blocker := false
 
 var awaiting_base_landing := false
 
+var consumption_claimant: Node = null
+
 const STAGE_1_FOOTPRINT := Vector2i(1, 2)
 
 const STAGE_2_FOOTPRINT := Vector2i(2, 2)
@@ -124,8 +126,54 @@ func can_be_tracked_by_egg_eater() -> bool:
 	return has_landed() and not is_queued_for_deletion()
 
 
+func can_be_claimed_for_consumption(eater: Node) -> bool:
+	if not can_be_eaten() or eater == null or not is_instance_valid(eater):
+		return false
+
+	if consumption_claimant != null and not is_instance_valid(consumption_claimant):
+		consumption_claimant = null
+		hatch_timer.paused = false
+
+	return consumption_claimant == null or consumption_claimant == eater
+
+
+func try_claim_for_consumption(eater: Node) -> bool:
+	if not can_be_claimed_for_consumption(eater):
+		return false
+
+	consumption_claimant = eater
+	hatch_timer.paused = true
+	return true
+
+
+func is_consumption_claimed_by(eater: Node) -> bool:
+	return (
+		eater != null
+		and is_instance_valid(eater)
+		and consumption_claimant == eater
+	)
+
+
+func cancel_consumption_claim(eater: Node) -> void:
+	if not is_consumption_claimed_by(eater):
+		return
+
+	consumption_claimant = null
+	hatch_timer.paused = false
+
+
+func finish_consumption(eater: Node) -> bool:
+	if not is_consumption_claimed_by(eater) or not can_be_eaten():
+		return false
+
+	consumption_claimant = null
+	hatch_timer.paused = false
+	queue_free()
+	return true
+
+
 func consume() -> bool:
-	if not can_be_eaten():
+	if not can_be_eaten() or consumption_claimant != null:
 		return false
 
 	queue_free()
