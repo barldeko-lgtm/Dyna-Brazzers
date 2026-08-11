@@ -65,8 +65,11 @@ func _try_cast_priority_lightning(target_mode: StringName) -> bool:
 	):
 		last_lightning_action_text = "отложена: общий эффект молнии недоступен"
 		return false
-	if controller.get_combat_reserve() + 0.001 < _get_lightning_cost():
-		last_lightning_action_text = "ожидание: в резерве меньше 1000 энки"
+	var lightning_cost := _get_lightning_cost()
+	if controller.get_combat_reserve() + 0.001 < lightning_cost:
+		last_lightning_action_text = (
+			"ожидание: в резерве меньше %d энки" % floori(lightning_cost)
+		)
 		return false
 
 	var scan := _collect_lightning_scan_data()

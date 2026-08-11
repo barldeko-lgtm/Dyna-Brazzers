@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/ui/creature_info_panel.tscn" id="1_creature_info_panel"]
 [ext_resource type="PackedScene" path="res://scenes/ui/nature_menu.tscn" id="2_nature_menu"]
@@ -7,6 +7,9 @@
 [ext_resource type="Theme" path="res://assets/ui/dyna_player_ui_theme.tres" id="5_player_ui_theme"]
 [ext_resource type="Texture2D" path="res://assets/ui/right_panel_top.png" id="6_right_panel_top"]
 [ext_resource type="Texture2D" path="res://assets/ui/right_panel_bottom.png" id="7_right_panel_bottom"]
+[ext_resource type="Texture2D" path="res://assets/ui/creature_stats/satiety_grass.png" id="8_counter_grass"]
+[ext_resource type="Texture2D" path="res://assets/ui/creature_stats/satiety_meat.png" id="9_counter_meat"]
+[ext_resource type="Texture2D" path="res://assets/ui/entity_counter_icons/egg_eater.png" id="10_counter_egg"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_player_side_panel_bg"]
 bg_color = Color(0, 0, 0, 0)
@@ -124,26 +127,29 @@ columns = 6
 custom_minimum_size = Vector2(28, 18)
 layout_mode = 2
 
-[node name="HerbivoreIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="HerbivoreIconTexture" type="TextureRect" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(40, 18)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.72, 1, 0.42, 1)
-text = "Тр"
-horizontal_alignment = 1
+mouse_filter = 2
+texture = ExtResource("8_counter_grass")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="PredatorIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="PredatorIconTexture" type="TextureRect" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(40, 18)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.42, 0.32, 1)
-text = "Хщ"
-horizontal_alignment = 1
+mouse_filter = 2
+texture = ExtResource("9_counter_meat")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="EggEaterIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="EggEaterIconTexture" type="TextureRect" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(40, 18)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.17, 0.39, 1, 1)
-text = "Яц"
-horizontal_alignment = 1
+mouse_filter = 2
+texture = ExtResource("10_counter_egg")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="EggIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(40, 18)

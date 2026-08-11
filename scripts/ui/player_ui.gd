@@ -145,9 +145,6 @@ func _refresh_localized_hud_text() -> void:
 	) as GridContainer
 	if grid != null:
 		var label_keys := {
-			"HerbivoreIconLabel": "HUD_HERBIVORE_SHORT",
-			"PredatorIconLabel": "HUD_PREDATOR_SHORT",
-			"EggEaterIconLabel": "HUD_EGG_EATER_SHORT",
 			"EggIconLabel": "HUD_EGG_SHORT",
 			"TotalIconLabel": "HUD_TOTAL_SHORT",
 		}

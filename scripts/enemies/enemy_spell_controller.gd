@@ -55,7 +55,7 @@ const COMBAT_RESERVE_SAVE_VERSION := 2
 @export var combat_reserve_minimum_after_cast := 500.0
 
 @export_group("Enemy Lightning")
-@export var lightning_energy_cost := 1000.0
+@export var lightning_energy_cost := 850.0
 @export var lightning_double_strike_delay_seconds := 2.0
 @export var tyrannosaurus_base_radius_tiles := 30.0
 @export var tyrannosaurus_raptor_guard_radius_tiles := 20.0
