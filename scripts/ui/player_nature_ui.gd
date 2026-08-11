@@ -16,7 +16,7 @@ const SPELL_RAIN := &"rain"
 @export var lightning_energy_cost := 1000.0
 @export var rain_energy_cost := 50.0
 @export var sun_energy_cost := 500.0
-@export var earthquake_energy_cost := 1700.0
+@export var earthquake_energy_cost := 1800.0
 
 @onready var energy_value_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EnergyValueLabel")
 @onready var energy_icon: TextureRect = get_node_or_null("MarginContainer/VBoxContainer/EnergyIcon") as TextureRect

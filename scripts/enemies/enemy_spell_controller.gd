@@ -62,7 +62,7 @@ const COMBAT_RESERVE_SAVE_VERSION := 2
 @export var egg_eater_base_radius_tiles := 20.0
 
 @export_group("Enemy Earthquake")
-@export var earthquake_energy_cost := 1700.0
+@export var earthquake_energy_cost := 1800.0
 @export var minimum_earthquake_player_eggs := 2
 
 var world_grid: Node = null

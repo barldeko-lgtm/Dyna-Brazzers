@@ -61,7 +61,7 @@ func apply_lightning(creature: Node) -> bool:
 		return false
 
 	_spawn_lightning_effect(creature)
-	AudioManager.play_sfx(LIGHTNING_SOUND)
+	_play_world_sfx_at_node(LIGHTNING_SOUND, creature)
 	creature.call("take_direct_damage", get_lightning_damage())
 	return true
 
@@ -142,7 +142,7 @@ func apply_rain(center_tile: Vector2i) -> bool:
 	PerformanceStats.add_counter("rain_dry_ground_cleared", int(dry_ground_result.get("cleared_tiles", 0)))
 	PerformanceStats.add_counter("rain_dry_ground_spread_reset", reset_spread_grass)
 	_spawn_rain_cast_effect(center_tile)
-	AudioManager.play_sfx(RAIN_SOUND)
+	_play_world_sfx_at_tile(RAIN_SOUND, center_tile)
 	return true
 
 
@@ -206,7 +206,7 @@ func apply_sun(center_tile: Vector2i) -> bool:
 	PerformanceStats.add_counter("sun_grass_reverted", reverted_grass)
 	PerformanceStats.add_counter("sun_grass_removed", removed_grass)
 	PerformanceStats.add_counter("sun_grass_spread_reset", reset_spread_grass)
-	AudioManager.play_sfx(SUN_SOUND)
+	_play_world_sfx_at_tile(SUN_SOUND, center_tile)
 	return true
 
 
@@ -237,8 +237,24 @@ func apply_earthquake(center_tile: Vector2i) -> bool:
 	if destroyed_eggs <= 0:
 		return false
 
-	AudioManager.play_sfx(EARTHQUAKE_SOUND)
+	_play_world_sfx_at_tile(EARTHQUAKE_SOUND, center_tile)
 	return true
+
+
+func _play_world_sfx_at_node(stream: AudioStream, source: Node) -> void:
+	if source is Node2D:
+		AudioManager.play_world_sfx(stream, (source as Node2D).global_position)
+		return
+
+	AudioManager.play_sfx(stream)
+
+
+func _play_world_sfx_at_tile(stream: AudioStream, tile: Vector2i) -> void:
+	if world_grid != null and world_grid.has_method("map_to_world_center"):
+		AudioManager.play_world_sfx(stream, world_grid.call("map_to_world_center", tile))
+		return
+
+	AudioManager.play_sfx(stream)
 
 
 func _get_earthquake_targets(center_tile: Vector2i) -> Array[Node]:

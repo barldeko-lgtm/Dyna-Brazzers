@@ -414,6 +414,7 @@ Audio:
 - `AudioManager` is the only global audio state owner;
 - preserve the current bus hierarchy and global shared music/SFX/UI paths;
 - music/fades remain active through simulation pause;
+- world-origin SFX use the actual gameplay SubViewport canvas transform and play only while their source projects inside its visible rectangle; music, UI, and result cues bypass this gate;
 - one-shot cast sounds play only after successful gameplay application;
 - audio settings live in `user://audio_settings.cfg`, not gameplay saves;
 - settings UI calls `AudioManager`, not scene-local competing state.

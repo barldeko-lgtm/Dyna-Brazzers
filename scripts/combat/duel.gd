@@ -4,6 +4,8 @@ class_name Duel
 signal duel_finished(duel: Duel, winner: Node, loser: Node)
 signal attack_started(duel: Duel, attacker: Node, defender: Node)
 
+const HIT_SOUND := preload("res://assets/audio/sfx/duel_hit.wav")
+const HIT_EXTRA_GAIN_DB := -6.020599913279624
 const ATTACK_HIT_DELAY := 0.5
 
 var fighter_a: Node = null
@@ -103,6 +105,7 @@ func resolve_next_turn() -> void:
 	var damage: float = max(1.0, attack_value - defense_value)
 
 	if defender.has_method("take_duel_damage"):
+		_play_hit_sound(attacker, defender)
 		defender.take_duel_damage(damage, attacker)
 
 	if not _is_fighter_available(defender):
@@ -114,6 +117,18 @@ func resolve_next_turn() -> void:
 
 	attack_in_progress = false
 	tick_remaining = maxf(tick_interval - minf(ATTACK_HIT_DELAY, tick_interval), 0.0)
+
+
+func _play_hit_sound(attacker: Node, defender: Node) -> void:
+	if attacker is Node2D and defender is Node2D:
+		var hit_position := (
+			(attacker as Node2D).global_position
+			+ (defender as Node2D).global_position
+		) * 0.5
+		AudioManager.play_world_sfx(HIT_SOUND, hit_position, HIT_EXTRA_GAIN_DB)
+		return
+
+	AudioManager.play_sfx(HIT_SOUND, HIT_EXTRA_GAIN_DB)
 
 
 func begin_next_turn() -> void:

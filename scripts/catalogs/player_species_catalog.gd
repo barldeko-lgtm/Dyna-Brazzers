@@ -39,7 +39,7 @@ const TRICERATOPS_ENTRY: Dictionary = {
 const TYRANNOSAURUS_ENTRY: Dictionary = {
 	"species_data": TYRANNOSAURUS,
 	"species_name_key": "SPECIES_TYRANNOSAURUS",
-	"egg_purchase_cost": 1300.0,
+	"egg_purchase_cost": 1400.0,
 	"energy_income_per_second": 0.3,
 	"flag_button_key": "FLAG_TYRANNOSAURUS_BUTTON",
 	"flag_tooltip_key": "FLAG_TYRANNOSAURUS_TOOLTIP",

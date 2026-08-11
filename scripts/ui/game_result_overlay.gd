@@ -5,6 +5,8 @@ signal main_menu_requested
 
 const VICTORY_TITLE_COLOR := Color(0.42, 1.0, 0.48, 1.0)
 const DEFEAT_TITLE_COLOR := Color(1.0, 0.35, 0.30, 1.0)
+const VICTORY_SOUND := preload("res://assets/audio/sfx/result_victory.mp3")
+const DEFEAT_SOUND := preload("res://assets/audio/sfx/result_defeat.mp3")
 
 @onready var title_label: Label = $Dimmer/CenterContainer/ResultPanel/MarginContainer/VBoxContainer/TitleLabel
 @onready var message_label: Label = $Dimmer/CenterContainer/ResultPanel/MarginContainer/VBoxContainer/MessageLabel
@@ -35,6 +37,7 @@ func show_result(
 		VICTORY_TITLE_COLOR if is_victory else DEFEAT_TITLE_COLOR
 	)
 	visible = true
+	AudioManager.play_sfx(VICTORY_SOUND if is_victory else DEFEAT_SOUND)
 	main_menu_button.grab_focus()
 
 

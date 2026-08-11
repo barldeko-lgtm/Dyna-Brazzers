@@ -4,6 +4,7 @@ class_name Egg
 signal hatched(creature: Node2D)
 
 const CREATURE_FACTION := preload("res://scripts/creatures/creature_faction.gd")
+const HATCH_SOUND := preload("res://assets/audio/sfx/egg_hatch.mp3")
 # Egg lifecycle and hatch spawn.
 @onready var body_sprite: Sprite2D = $BodySprite
 
@@ -47,6 +48,8 @@ var awaiting_base_landing := false
 
 var consumption_claimant: Node = null
 
+var hatch_sound_started := false
+
 const STAGE_1_FOOTPRINT := Vector2i(1, 2)
 
 const STAGE_2_FOOTPRINT := Vector2i(2, 2)
@@ -88,6 +91,10 @@ func _exit_tree() -> void:
 	if world_grid != null and is_registered_as_blocker:
 		world_grid.unregister_blocker(self, STAGE_2_FOOTPRINT)
 		is_registered_as_blocker = false
+
+
+func _process(_delta: float) -> void:
+	_try_start_hatch_sound()
 
 
 func prepare_base_launch_wait() -> void:
@@ -319,7 +326,7 @@ func try_enter_stage_2() -> void:
 		is_registered_as_blocker = true
 		current_stage = Stage.STAGE_2
 		apply_current_stage_visual()
-		hatch_timer.start(STAGE_2_DURATION)
+		_start_hatch_timer(STAGE_2_DURATION)
 		global_position = world_grid.anchor_to_world_position(anchor_tile, STAGE_2_FOOTPRINT)
 		return
 
@@ -338,7 +345,33 @@ func _on_hatch_timer_timeout() -> void:
 
 	# Keep the stage-2 egg and try again later if the world is completely full.
 	if not is_queued_for_deletion():
-		hatch_timer.start(EXPAND_RETRY_INTERVAL)
+		_start_hatch_timer(EXPAND_RETRY_INTERVAL)
+
+
+func _start_hatch_timer(duration: float) -> void:
+	hatch_sound_started = false
+	hatch_timer.start(duration)
+
+
+func _try_start_hatch_sound() -> void:
+	if (
+		hatch_sound_started
+		or current_stage != Stage.STAGE_2
+		or awaiting_base_landing
+		or hatch_timer == null
+		or hatch_timer.is_stopped()
+		or hatch_timer.paused
+		or Engine.time_scale <= 0.0
+	):
+		return
+
+	var half_sound_duration := HATCH_SOUND.get_length() * 0.5
+	var simulation_lead_time := half_sound_duration * Engine.time_scale
+	if hatch_timer.time_left > simulation_lead_time:
+		return
+
+	hatch_sound_started = true
+	AudioManager.play_world_sfx(HATCH_SOUND, global_position)
 
 
 func spawn_hatched_creature() -> bool:

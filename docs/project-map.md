@@ -120,7 +120,7 @@ Enemy objectives:
 - `scripts/debug/grid_debug_overlay.gd` — F3 terrain/occupancy/path/flag diagnostics.
 - `scripts/debug/enemy_ai_debug_overlay.gd` — read-only F5 enemy strategy/spell panel.
 - `scripts/debug/performance_stats.gd` — runtime counters and F8 CSV recording.
-- `scripts/audio/audio_manager.gd` — global music, one-shot sounds, UI clicks, bus setup, fades, and audio settings.
+- `scripts/audio/audio_manager.gd` — global music, viewport-gated world SFX, UI/result cues, bus setup, fades, and audio settings.
 - `scripts/save/save_system.gd` — active SaveSystem facade: autosave cadence, level/session routing, public slot API, and ordered restoration of world, faction, enemy, and match state.
 - `scripts/save/save_storage.gd` — validated JSON reads/writes, slot paths, temporary/backup recovery, and newest-save selection.
 - `scripts/save/world_save_codec.gd` — collection and reconstruction of camera, energy, DryGround deltas, grass, eggs, and creatures.
@@ -196,6 +196,11 @@ Audio:
 - `assets/audio/sfx/rain_cast.wav`
 - `assets/audio/sfx/sun_cast.wav`
 - `assets/audio/sfx/earthquake_cast.wav`
+- `assets/audio/sfx/result_victory.mp3`
+- `assets/audio/sfx/result_defeat.mp3`
+- `assets/audio/sfx/egg_hatch.mp3`
+- `assets/audio/sfx/duel_hit.wav` — trimmed runtime cue.
+- `assets/audio/sfx/duel_hit_source.mp3` — preserved supplied master.
 - `assets/audio/ui/button_click.wav`
 
 ## Persistent user files

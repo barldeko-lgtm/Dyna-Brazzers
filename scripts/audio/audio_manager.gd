@@ -17,6 +17,7 @@ const UI_BUS := &"UI"
 const DEFAULT_MUSIC_VOLUME: float = 0.45
 const DEFAULT_SOUND_VOLUME: float = 1.0
 const MUSIC_FADE_SECONDS: float = 1.25
+const GLOBAL_OUTPUT_GAIN_DB: float = -6.020599913279624
 const MUSIC_TRACK_GAIN_DB: float = -6.020599913279624
 const SILENT_VOLUME_DB: float = -80.0
 
@@ -109,6 +110,33 @@ func play_sfx(
 	_play_one_shot(stream, SFX_BUS, volume_db, pitch_scale)
 
 
+func play_world_sfx(
+	stream: AudioStream,
+	world_position: Vector2,
+	volume_db: float = 0.0,
+	pitch_scale: float = 1.0
+) -> bool:
+	if not is_world_position_visible(world_position):
+		return false
+
+	play_sfx(stream, volume_db, pitch_scale)
+	return true
+
+
+func is_world_position_visible(world_position: Vector2) -> bool:
+	var game_viewport := get_tree().get_first_node_in_group("game_viewport") as Viewport
+	if game_viewport == null:
+		# Keep world sounds available during startup ordering and isolated probes.
+		return true
+
+	var visible_rect := game_viewport.get_visible_rect()
+	if visible_rect.size.x <= 0.0 or visible_rect.size.y <= 0.0:
+		return true
+
+	var screen_position := game_viewport.get_canvas_transform() * world_position
+	return visible_rect.has_point(screen_position)
+
+
 func play_ui_sfx(
 	stream: AudioStream,
 	volume_db: float = 0.0,
@@ -145,7 +173,7 @@ func set_sound_volume(value: float) -> void:
 
 
 func set_master_volume(value: float) -> void:
-	_set_bus_volume_linear(MASTER_BUS, value)
+	_set_bus_volume_linear_with_gain(MASTER_BUS, value, GLOBAL_OUTPUT_GAIN_DB)
 
 
 func set_ambient_volume(value: float) -> void:
@@ -326,6 +354,7 @@ func _ensure_audio_buses() -> void:
 	_set_bus_send(SFX_BUS, SOUNDS_BUS)
 	_set_bus_send(UI_BUS, SOUNDS_BUS)
 
+	_set_bus_volume_db(MASTER_BUS, GLOBAL_OUTPUT_GAIN_DB)
 	_set_bus_volume_db(AMBIENT_BUS, -3.0)
 	_set_bus_volume_db(SFX_BUS, 0.0)
 	_set_bus_volume_db(UI_BUS, -2.0)
@@ -392,6 +421,14 @@ func _save_audio_settings() -> void:
 
 
 func _set_bus_volume_linear(bus_name: StringName, value: float) -> void:
+	_set_bus_volume_linear_with_gain(bus_name, value, 0.0)
+
+
+func _set_bus_volume_linear_with_gain(
+	bus_name: StringName,
+	value: float,
+	fixed_gain_db: float
+) -> void:
 	var bus_index: int = AudioServer.get_bus_index(bus_name)
 
 	if bus_index < 0:
@@ -402,7 +439,10 @@ func _set_bus_volume_linear(bus_name: StringName, value: float) -> void:
 	AudioServer.set_bus_mute(bus_index, should_mute)
 
 	if not should_mute:
-		AudioServer.set_bus_volume_db(bus_index, linear_to_db(normalized_value))
+		AudioServer.set_bus_volume_db(
+			bus_index,
+			linear_to_db(normalized_value) + fixed_gain_db
+		)
 
 
 func _set_bus_volume_db(bus_name: StringName, value_db: float) -> void:

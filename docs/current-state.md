@@ -301,9 +301,9 @@ Debug UI reads public state but must not make strategic decisions or mutate simu
 
 ## Audio
 
-`AudioManager` is the single global owner of music, one-shot world sounds, UI clicks, audio-bus setup, and persistent Music/Sounds settings.
+`AudioManager` is the single global owner of music, one-shot world sounds, UI clicks, audio-bus setup, and persistent Music/Sounds settings. The victory and defeat result overlays play distinct one-shot cues when they appear. Eggs start their hatch cue early enough for its midpoint to align with the actual hatch at the active simulation speed. Duels play their shared hit cue when scheduled damage actually lands.
 
-The startup menu and gameplay use separate music tracks through the shared Music bus and fade path. Music and one-shot effects continue independently of simulation speed, and opening the in-game menu does not interrupt music or fades.
+The startup menu and gameplay use separate music tracks through the shared Music bus and fade path. Music and one-shot effects continue independently of simulation speed, and opening the in-game menu does not interrupt music or fades. World-origin cues for duels, hatching, and nature effects play only when their projected source is inside the gameplay viewport; music, UI clicks, and result cues are not visibility-gated.
 
 Audio settings are stored independently from gameplay save slots.
 

@@ -92,7 +92,7 @@ func should_engage_target() -> bool:
 		and creature.is_moving
 		and creature.pending_anchor_tile == locked_approach_anchor
 		and _remaining_route_steps() == 1
-		and _is_locked_approach_adjacent_to_target()
+		and _is_prey_in_duel_range_from_anchor(target_prey, locked_approach_anchor)
 	)
 
 
@@ -179,6 +179,13 @@ func update_predator_behavior(delta: float) -> void:
 	# immediately. The same update may then select a different target.
 	if target_prey != null and not _has_valid_hunt_target():
 		_clear_hunt_target()
+
+	# A predator may reach a valid side position while a flying target is
+	# currently over terrain where normal creatures cannot stand. Keep the target
+	# locked and wait in place instead of starting combat, dropping the target, or
+	# rebuilding the same empty approach route every retry interval.
+	if target_prey != null and _should_wait_for_ground_combat_target():
+		return
 
 	if target_prey == null:
 		target_recheck_remaining -= delta
@@ -1038,6 +1045,34 @@ func is_prey_in_duel_range(prey: Node) -> bool:
 	return _is_prey_in_duel_range_from_anchor(prey, creature.anchor_tile)
 
 
+func _should_wait_for_ground_combat_target() -> bool:
+	return (
+		is_instance_valid(target_prey)
+		and has_locked_approach
+		and not creature.is_moving
+		and creature.anchor_tile == locked_approach_anchor
+		and _remaining_route_steps() == 0
+		and _is_locked_approach_adjacent_to_target()
+		and not _is_prey_on_ground_combat_anchor(target_prey)
+	)
+
+
+func _is_prey_on_ground_combat_anchor(prey: Node) -> bool:
+	if (
+		creature.world_grid == null
+		or not is_instance_valid(prey)
+		or not creature.world_grid.creature_anchors.has(prey)
+	):
+		return false
+
+	var prey_anchor: Vector2i = creature.world_grid.creature_anchors[prey]
+	return bool(creature.world_grid.can_place_footprint(
+		prey_anchor,
+		prey.footprint_size,
+		prey
+	))
+
+
 func _is_prey_in_duel_range_from_anchor(prey: Node, hunter_anchor: Vector2i) -> bool:
 	if (
 		creature.world_grid == null
@@ -1051,6 +1086,9 @@ func _is_prey_in_duel_range_from_anchor(prey: Node, hunter_anchor: Vector2i) -> 
 		creature.footprint_size,
 		creature
 	):
+		return false
+
+	if not _is_prey_on_ground_combat_anchor(prey):
 		return false
 
 	var prey_anchor: Vector2i = creature.world_grid.creature_anchors[prey]
