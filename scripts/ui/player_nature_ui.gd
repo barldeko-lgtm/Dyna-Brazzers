@@ -25,6 +25,10 @@ const SPELL_RAIN := &"rain"
 @onready var rain_button: Button = get_node_or_null("MarginContainer/VBoxContainer/RainButton")
 @onready var sun_button: Button = get_node_or_null("MarginContainer/VBoxContainer/SunButton")
 @onready var earthquake_button: Button = get_node_or_null("MarginContainer/VBoxContainer/EarthquakeButton")
+@onready var lightning_cost_label: Label = get_node_or_null("MarginContainer/VBoxContainer/LightningButton/CostLabel")
+@onready var rain_cost_label: Label = get_node_or_null("MarginContainer/VBoxContainer/RainButton/CostLabel")
+@onready var sun_cost_label: Label = get_node_or_null("MarginContainer/VBoxContainer/SunButton/CostLabel")
+@onready var earthquake_cost_label: Label = get_node_or_null("MarginContainer/VBoxContainer/EarthquakeButton/CostLabel")
 @onready var menu_content_root: Control = get_node_or_null("MarginContainer/VBoxContainer") as Control
 @onready var main_menu_grid: GridContainer = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid") as GridContainer
 @onready var egg_menu_button: Button = get_node_or_null("MarginContainer/VBoxContainer/MainMenuGrid/EggMenuButton") as Button
@@ -425,6 +429,7 @@ func _update_energy_ui() -> void:
 
 
 func _update_spell_buttons() -> void:
+	_update_spell_cost_labels()
 	if lightning_button != null:
 		lightning_button.text = _get_lightning_button_text()
 
@@ -455,6 +460,18 @@ func _update_spell_buttons() -> void:
 			earthquake_button.disabled = false
 		else:
 			earthquake_button.disabled = not can_spend_energy(earthquake_energy_cost)
+
+
+func _update_spell_cost_labels() -> void:
+	_set_spell_cost_label(lightning_cost_label, lightning_energy_cost)
+	_set_spell_cost_label(rain_cost_label, rain_energy_cost)
+	_set_spell_cost_label(sun_cost_label, sun_energy_cost)
+	_set_spell_cost_label(earthquake_cost_label, earthquake_energy_cost)
+
+
+func _set_spell_cost_label(label: Label, energy_cost: float) -> void:
+	if label != null:
+		label.text = tr("EGG_ENERGY_COST") % floori(energy_cost)
 
 
 func _get_lightning_button_text() -> String:
@@ -499,6 +516,7 @@ func _refresh_localized_text() -> void:
 		"MarginContainer/VBoxContainer/MainMenuGrid/BaseMenuButton": "NATURE_BASE_BUTTON",
 		"MarginContainer/VBoxContainer/MainMenuGrid/EnemyMenuButton": "NATURE_ENEMY_BUTTON",
 		"MarginContainer/VBoxContainer/MainMenuGrid/SystemMenuButton": "NATURE_MENU_BUTTON",
+		"MarginContainer/VBoxContainer/SpellBackButton": "BACK_ARROW",
 	}
 	for node_path: String in button_text_keys:
 		var button := get_node_or_null(node_path) as Button

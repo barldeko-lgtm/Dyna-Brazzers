@@ -123,6 +123,10 @@ func _duplicate_menu_button() -> Button:
 	if duplicated_button == null:
 		duplicated_button = Button.new()
 
+	var decorative_icon := duplicated_button.get_node_or_null("IconTexture")
+	if decorative_icon != null:
+		decorative_icon.free()
+
 	duplicated_button.toggle_mode = false
 	duplicated_button.button_pressed = false
 	duplicated_button.focus_mode = Control.FOCUS_NONE

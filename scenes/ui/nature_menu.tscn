@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/player_nature_ui.gd" id="1_player_nature_ui"]
 [ext_resource type="Script" path="res://scripts/ui/spell_menu_toggle.gd" id="2_spell_menu_toggle"]
@@ -10,6 +10,13 @@
 [ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_compact_normal.tres" id="8_button_compact_normal"]
 [ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_compact_hover.tres" id="9_button_compact_hover"]
 [ext_resource type="StyleBoxTexture" path="res://assets/ui/buttons/dyna_button_compact_disabled.tres" id="10_button_compact_disabled"]
+[ext_resource type="Texture2D" path="res://assets/ui/main_menu_icons/spell.png" id="11_spell_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/main_menu_icons/egg.png" id="12_egg_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/main_menu_icons/flag.png" id="13_flag_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/spell_icons/earth.png" id="14_earth_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/spell_icons/light.png" id="15_light_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/spell_icons/rain.png" id="16_rain_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/spell_icons/sun.png" id="17_spell_icon"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_nature_panel"]
 
@@ -119,15 +126,15 @@ text = "x5"
 [node name="MainMenuGrid" type="GridContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 0
 offset_left = -2.0
-offset_top = 116.0
+offset_top = 96.0
 offset_right = 258.0
-offset_bottom = 334.0
+offset_bottom = 314.0
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 2
 
 [node name="EggMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
-custom_minimum_size = Vector2(126, 66)
+custom_minimum_size = Vector2(126, 71)
 layout_mode = 2
 tooltip_text = "NATURE_EGG"
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
@@ -136,10 +143,21 @@ theme_override_styles/normal = ExtResource("5_button_normal")
 theme_override_styles/pressed = ExtResource("6_button_hover")
 theme_override_styles/hover = ExtResource("6_button_hover")
 theme_override_styles/disabled = ExtResource("7_button_disabled")
-text = "🥚"
+text = ""
+
+[node name="IconTexture" type="TextureRect" parent="MarginContainer/VBoxContainer/MainMenuGrid/EggMenuButton"]
+layout_mode = 0
+offset_left = 37.0
+offset_top = 9.0
+offset_right = 89.0
+offset_bottom = 61.0
+mouse_filter = 2
+texture = ExtResource("12_egg_icon")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="BaseMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
-custom_minimum_size = Vector2(126, 66)
+custom_minimum_size = Vector2(126, 71)
 layout_mode = 2
 tooltip_text = "NATURE_BASE"
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
@@ -151,7 +169,7 @@ theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "NATURE_BASE_BUTTON"
 
 [node name="SpellMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
-custom_minimum_size = Vector2(126, 66)
+custom_minimum_size = Vector2(126, 71)
 layout_mode = 2
 tooltip_text = "NATURE_SPELLS"
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
@@ -162,14 +180,25 @@ theme_override_styles/normal = ExtResource("5_button_normal")
 theme_override_styles/pressed = ExtResource("6_button_hover")
 theme_override_styles/hover = ExtResource("6_button_hover")
 theme_override_styles/disabled = ExtResource("7_button_disabled")
-text = "✦"
+text = ""
 script = ExtResource("2_spell_menu_toggle")
 spell_button_paths = Array[NodePath]([NodePath("../../LightningButton"), NodePath("../../RainButton"), NodePath("../../SunButton"), NodePath("../../EarthquakeButton")])
 back_button_path = NodePath("../../SpellBackButton")
 menu_to_hide_paths = Array[NodePath]([NodePath("..")])
 
+[node name="IconTexture" type="TextureRect" parent="MarginContainer/VBoxContainer/MainMenuGrid/SpellMenuButton"]
+layout_mode = 0
+offset_left = 37.0
+offset_top = 9.0
+offset_right = 89.0
+offset_bottom = 61.0
+mouse_filter = 2
+texture = ExtResource("11_spell_icon")
+expand_mode = 1
+stretch_mode = 5
+
 [node name="EnemyMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
-custom_minimum_size = Vector2(126, 66)
+custom_minimum_size = Vector2(126, 71)
 layout_mode = 2
 tooltip_text = "NATURE_ENEMY"
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
@@ -181,7 +210,7 @@ theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "NATURE_ENEMY_BUTTON"
 
 [node name="FlagMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
-custom_minimum_size = Vector2(126, 66)
+custom_minimum_size = Vector2(126, 71)
 layout_mode = 2
 tooltip_text = "NATURE_FLAG"
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
@@ -190,10 +219,21 @@ theme_override_styles/normal = ExtResource("5_button_normal")
 theme_override_styles/pressed = ExtResource("6_button_hover")
 theme_override_styles/hover = ExtResource("6_button_hover")
 theme_override_styles/disabled = ExtResource("7_button_disabled")
-text = "⚑"
+text = ""
+
+[node name="IconTexture" type="TextureRect" parent="MarginContainer/VBoxContainer/MainMenuGrid/FlagMenuButton"]
+layout_mode = 0
+offset_left = 37.0
+offset_top = 9.0
+offset_right = 89.0
+offset_bottom = 61.0
+mouse_filter = 2
+texture = ExtResource("13_flag_icon")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="SystemMenuButton" type="Button" parent="MarginContainer/VBoxContainer/MainMenuGrid"]
-custom_minimum_size = Vector2(126, 66)
+custom_minimum_size = Vector2(126, 71)
 layout_mode = 2
 tooltip_text = "NATURE_MENU"
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
@@ -206,12 +246,12 @@ text = "NATURE_MENU_BUTTON"
 
 [node name="LightningButton" type="Button" parent="MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(78, 44)
+custom_minimum_size = Vector2(126, 71)
 layout_mode = 0
 offset_left = -2.0
-offset_top = 116.0
-offset_right = 76.0
-offset_bottom = 160.0
+offset_top = 175.0
+offset_right = 124.0
+offset_bottom = 246.0
 tooltip_text = "SPELL_LIGHTNING"
 theme_override_colors/font_color = Color(0, 0, 0, 0)
 theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
@@ -226,24 +266,39 @@ theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "SPELL_LIGHTNING"
 clip_text = true
 
-[node name="IconLabel" type="Label" parent="MarginContainer/VBoxContainer/LightningButton"]
+[node name="IconTexture" type="TextureRect" parent="MarginContainer/VBoxContainer/LightningButton"]
 layout_mode = 0
+offset_left = 44.0
+offset_top = 7.0
+offset_right = 82.0
+offset_bottom = 45.0
+mouse_filter = 2
+texture = ExtResource("15_light_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CostLabel" type="Label" parent="MarginContainer/VBoxContainer/LightningButton"]
+layout_mode = 0
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = -28.0
+offset_bottom = -6.0
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
-theme_override_font_sizes/font_size = 26
-text = "⚡"
+theme_override_font_sizes/font_size = 14
+text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="RainButton" type="Button" parent="MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(78, 44)
+custom_minimum_size = Vector2(126, 71)
 layout_mode = 0
-offset_left = 89.0
-offset_top = 116.0
-offset_right = 167.0
-offset_bottom = 160.0
+offset_left = -2.0
+offset_top = 96.0
+offset_right = 124.0
+offset_bottom = 167.0
 tooltip_text = "SPELL_RAIN"
 theme_override_colors/font_color = Color(0, 0, 0, 0)
 theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
@@ -258,24 +313,39 @@ theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "SPELL_RAIN"
 clip_text = true
 
-[node name="IconLabel" type="Label" parent="MarginContainer/VBoxContainer/RainButton"]
+[node name="IconTexture" type="TextureRect" parent="MarginContainer/VBoxContainer/RainButton"]
 layout_mode = 0
+offset_left = 44.0
+offset_top = 7.0
+offset_right = 82.0
+offset_bottom = 45.0
+mouse_filter = 2
+texture = ExtResource("16_rain_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CostLabel" type="Label" parent="MarginContainer/VBoxContainer/RainButton"]
+layout_mode = 0
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = -28.0
+offset_bottom = -6.0
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
-theme_override_font_sizes/font_size = 26
-text = "☁"
+theme_override_font_sizes/font_size = 14
+text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="SunButton" type="Button" parent="MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(78, 44)
+custom_minimum_size = Vector2(126, 71)
 layout_mode = 0
-offset_left = 180.0
-offset_top = 116.0
+offset_left = 132.0
+offset_top = 96.0
 offset_right = 258.0
-offset_bottom = 160.0
+offset_bottom = 167.0
 tooltip_text = "SPELL_SUN"
 theme_override_colors/font_color = Color(0, 0, 0, 0)
 theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
@@ -290,24 +360,39 @@ theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "SPELL_SUN"
 clip_text = true
 
-[node name="IconLabel" type="Label" parent="MarginContainer/VBoxContainer/SunButton"]
+[node name="IconTexture" type="TextureRect" parent="MarginContainer/VBoxContainer/SunButton"]
 layout_mode = 0
+offset_left = 44.0
+offset_top = 7.0
+offset_right = 82.0
+offset_bottom = 45.0
+mouse_filter = 2
+texture = ExtResource("17_spell_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CostLabel" type="Label" parent="MarginContainer/VBoxContainer/SunButton"]
+layout_mode = 0
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = -28.0
+offset_bottom = -6.0
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
-theme_override_font_sizes/font_size = 26
-text = "☀"
+theme_override_font_sizes/font_size = 14
+text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="EarthquakeButton" type="Button" parent="MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(78, 44)
+custom_minimum_size = Vector2(126, 71)
 layout_mode = 0
-offset_left = 89.0
-offset_top = 170.0
-offset_right = 167.0
-offset_bottom = 214.0
+offset_left = 132.0
+offset_top = 175.0
+offset_right = 258.0
+offset_bottom = 246.0
 tooltip_text = "SPELL_EARTHQUAKE"
 theme_override_colors/font_color = Color(0, 0, 0, 0)
 theme_override_colors/font_focus_color = Color(0, 0, 0, 0)
@@ -322,31 +407,46 @@ theme_override_styles/disabled = ExtResource("7_button_disabled")
 text = "SPELL_EARTHQUAKE"
 clip_text = true
 
-[node name="IconLabel" type="Label" parent="MarginContainer/VBoxContainer/EarthquakeButton"]
+[node name="IconTexture" type="TextureRect" parent="MarginContainer/VBoxContainer/EarthquakeButton"]
 layout_mode = 0
+offset_left = 44.0
+offset_top = 7.0
+offset_right = 82.0
+offset_bottom = 45.0
+mouse_filter = 2
+texture = ExtResource("14_earth_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CostLabel" type="Label" parent="MarginContainer/VBoxContainer/EarthquakeButton"]
+layout_mode = 0
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = -28.0
+offset_bottom = -6.0
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
-theme_override_font_sizes/font_size = 26
-text = "≋"
+theme_override_font_sizes/font_size = 14
+text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="SpellBackButton" type="Button" parent="MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(78, 44)
+custom_minimum_size = Vector2(126, 71)
 layout_mode = 0
 offset_left = -2.0
-offset_top = 170.0
-offset_right = 76.0
-offset_bottom = 214.0
+offset_top = 254.0
+offset_right = 124.0
+offset_bottom = 325.0
 tooltip_text = "MENU_BACK"
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_pressed_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(0.92, 0.96, 0.9, 1)
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = ExtResource("5_button_normal")
 theme_override_styles/pressed = ExtResource("6_button_hover")
 theme_override_styles/hover = ExtResource("6_button_hover")
 theme_override_styles/disabled = ExtResource("7_button_disabled")
-text = "←"
+text = "BACK_ARROW"
