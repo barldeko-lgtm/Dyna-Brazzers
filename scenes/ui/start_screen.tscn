@@ -189,9 +189,16 @@ text = "MENU_LEVEL_SELECT"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Level1Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
+[node name="LevelGrid" type="GridContainer" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(286, 55)
+custom_minimum_size = Vector2(286, 235)
+layout_mode = 2
+theme_override_constants/h_separation = 5
+theme_override_constants/v_separation = 5
+columns = 2
+
+[node name="Level1Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid"]
+custom_minimum_size = Vector2(140.5, 55)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -203,9 +210,8 @@ theme_override_styles/pressed = ExtResource("7_button_hover")
 theme_override_styles/focus = ExtResource("7_button_hover")
 text = "LEVEL_1"
 
-[node name="Level2Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-visible = false
-custom_minimum_size = Vector2(286, 55)
+[node name="Level2Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid"]
+custom_minimum_size = Vector2(140.5, 55)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -217,9 +223,8 @@ theme_override_styles/pressed = ExtResource("7_button_hover")
 theme_override_styles/focus = ExtResource("7_button_hover")
 text = "LEVEL_2"
 
-[node name="Level3Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-visible = false
-custom_minimum_size = Vector2(286, 55)
+[node name="Level3Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid"]
+custom_minimum_size = Vector2(140.5, 55)
 layout_mode = 2
 disabled = true
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
@@ -229,9 +234,8 @@ theme_override_styles/disabled = ExtResource("8_button_disabled")
 theme_override_styles/normal = ExtResource("6_button_normal")
 text = "LEVEL_3"
 
-[node name="Level4Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
-visible = false
-custom_minimum_size = Vector2(286, 55)
+[node name="Level4Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid"]
+custom_minimum_size = Vector2(140.5, 55)
 layout_mode = 2
 disabled = true
 theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
@@ -240,6 +244,50 @@ theme_override_font_sizes/font_size = 22
 theme_override_styles/disabled = ExtResource("8_button_disabled")
 theme_override_styles/normal = ExtResource("6_button_normal")
 text = "LEVEL_4"
+
+[node name="Level5Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid"]
+custom_minimum_size = Vector2(140.5, 55)
+layout_mode = 2
+disabled = true
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_disabled_color = Color(0.48, 0.54, 0.51, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/disabled = ExtResource("8_button_disabled")
+theme_override_styles/normal = ExtResource("6_button_normal")
+text = "LEVEL_5"
+
+[node name="Level6Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid"]
+custom_minimum_size = Vector2(140.5, 55)
+layout_mode = 2
+disabled = true
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_disabled_color = Color(0.48, 0.54, 0.51, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/disabled = ExtResource("8_button_disabled")
+theme_override_styles/normal = ExtResource("6_button_normal")
+text = "LEVEL_6"
+
+[node name="Level7Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid"]
+custom_minimum_size = Vector2(140.5, 55)
+layout_mode = 2
+disabled = true
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_disabled_color = Color(0.48, 0.54, 0.51, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/disabled = ExtResource("8_button_disabled")
+theme_override_styles/normal = ExtResource("6_button_normal")
+text = "LEVEL_7"
+
+[node name="Level8Button" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid"]
+custom_minimum_size = Vector2(140.5, 55)
+layout_mode = 2
+disabled = true
+theme_override_colors/font_color = Color(0.92, 0.96, 0.9, 1)
+theme_override_colors/font_disabled_color = Color(0.48, 0.54, 0.51, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/disabled = ExtResource("8_button_disabled")
+theme_override_styles/normal = ExtResource("6_button_normal")
+text = "LEVEL_8"
 
 [node name="LevelBackButton" type="Button" parent="CenterContainer/MenuPanel/MarginContainer/VBoxContainer"]
 visible = false

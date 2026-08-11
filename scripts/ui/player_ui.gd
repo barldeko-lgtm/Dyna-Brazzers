@@ -140,18 +140,6 @@ func _on_locale_changed(_locale: String) -> void:
 
 
 func _refresh_localized_hud_text() -> void:
-	var grid := get_node_or_null(
-		"PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"
-	) as GridContainer
-	if grid != null:
-		var label_keys := {
-			"EggIconLabel": "HUD_EGG_SHORT",
-			"TotalIconLabel": "HUD_TOTAL_SHORT",
-		}
-		for label_name: String in label_keys:
-			var label := grid.get_node_or_null(label_name) as Label
-			if label != null:
-				label.text = tr(String(label_keys[label_name]))
 	if minimap_placeholder != null:
 		minimap_placeholder.tooltip_text = tr("MINIMAP_TOOLTIP")
 

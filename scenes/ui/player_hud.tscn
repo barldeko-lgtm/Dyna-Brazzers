@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/ui/creature_info_panel.tscn" id="1_creature_info_panel"]
 [ext_resource type="PackedScene" path="res://scenes/ui/nature_menu.tscn" id="2_nature_menu"]
@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" path="res://assets/ui/creature_stats/satiety_grass.png" id="8_counter_grass"]
 [ext_resource type="Texture2D" path="res://assets/ui/creature_stats/satiety_meat.png" id="9_counter_meat"]
 [ext_resource type="Texture2D" path="res://assets/ui/entity_counter_icons/egg_eater.png" id="10_counter_egg"]
+[ext_resource type="Texture2D" path="res://assets/ui/creature_stats/satiety_egg.png" id="11_counter_plain_egg"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_player_side_panel_bg"]
 bg_color = Color(0, 0, 0, 0)
@@ -123,48 +124,6 @@ theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 4
 columns = 6
 
-[node name="CornerLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
-custom_minimum_size = Vector2(28, 18)
-layout_mode = 2
-
-[node name="HerbivoreIconTexture" type="TextureRect" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
-custom_minimum_size = Vector2(40, 18)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("8_counter_grass")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="PredatorIconTexture" type="TextureRect" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
-custom_minimum_size = Vector2(40, 18)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("9_counter_meat")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="EggEaterIconTexture" type="TextureRect" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
-custom_minimum_size = Vector2(40, 18)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("10_counter_egg")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="EggIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
-custom_minimum_size = Vector2(40, 18)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.92, 0.58, 1)
-text = "Яй"
-horizontal_alignment = 1
-
-[node name="TotalIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
-custom_minimum_size = Vector2(40, 18)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.84, 1, 1)
-text = "Вс"
-horizontal_alignment = 1
-
 [node name="PlayerSideIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(34, 22)
 layout_mode = 2
@@ -198,6 +157,46 @@ horizontal_alignment = 1
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
+
+[node name="CornerLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(28, 18)
+layout_mode = 2
+
+[node name="HerbivoreIconTexture" type="TextureRect" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(40, 18)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("8_counter_grass")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PredatorIconTexture" type="TextureRect" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(40, 18)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("9_counter_meat")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="EggEaterIconTexture" type="TextureRect" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(40, 18)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("10_counter_egg")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="EggIconTexture" type="TextureRect" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(40, 18)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("11_counter_plain_egg")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TotalIconSpacer" type="Control" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+custom_minimum_size = Vector2(40, 18)
+layout_mode = 2
 
 [node name="EnemySideIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(34, 22)

@@ -19,10 +19,15 @@ const LANGUAGE_OPTIONS := [
 @onready var menu_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/MenuButton
 @onready var exit_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/ExitButton
 @onready var level_select_title: Label = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelSelectTitle
-@onready var level_1_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/Level1Button
-@onready var level_2_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/Level2Button
-@onready var level_3_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/Level3Button
-@onready var level_4_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/Level4Button
+@onready var level_grid: GridContainer = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid
+@onready var level_1_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid/Level1Button
+@onready var level_2_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid/Level2Button
+@onready var level_3_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid/Level3Button
+@onready var level_4_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid/Level4Button
+@onready var level_5_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid/Level5Button
+@onready var level_6_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid/Level6Button
+@onready var level_7_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid/Level7Button
+@onready var level_8_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelGrid/Level8Button
 @onready var level_back_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LevelBackButton
 @onready var autosave_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/AutosaveButton
 @onready var load_slot_1_button: Button = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer/LoadSlot1Button
@@ -63,10 +68,7 @@ func _ready() -> void:
 	]
 	level_selection_controls = [
 		level_select_title,
-		level_1_button,
-		level_2_button,
-		level_3_button,
-		level_4_button,
+		level_grid,
 		level_back_button
 	]
 
@@ -221,6 +223,10 @@ func _on_locale_changed(_locale: String) -> void:
 		BUTTON_TEXT_FITTER.apply(level_2_button, level_2_button.text, 22, 13)
 		BUTTON_TEXT_FITTER.apply(level_3_button, level_3_button.text, 22, 13)
 		BUTTON_TEXT_FITTER.apply(level_4_button, level_4_button.text, 22, 13)
+		BUTTON_TEXT_FITTER.apply(level_5_button, level_5_button.text, 22, 13)
+		BUTTON_TEXT_FITTER.apply(level_6_button, level_6_button.text, 22, 13)
+		BUTTON_TEXT_FITTER.apply(level_7_button, level_7_button.text, 22, 13)
+		BUTTON_TEXT_FITTER.apply(level_8_button, level_8_button.text, 22, 13)
 
 
 func _on_music_volume_changed(value: float) -> void:
@@ -379,6 +385,10 @@ func _show_level_selection() -> void:
 	BUTTON_TEXT_FITTER.apply(level_2_button, level_2_button.text, 22, 13)
 	BUTTON_TEXT_FITTER.apply(level_3_button, level_3_button.text, 22, 13)
 	BUTTON_TEXT_FITTER.apply(level_4_button, level_4_button.text, 22, 13)
+	BUTTON_TEXT_FITTER.apply(level_5_button, level_5_button.text, 22, 13)
+	BUTTON_TEXT_FITTER.apply(level_6_button, level_6_button.text, 22, 13)
+	BUTTON_TEXT_FITTER.apply(level_7_button, level_7_button.text, 22, 13)
+	BUTTON_TEXT_FITTER.apply(level_8_button, level_8_button.text, 22, 13)
 	level_1_button.grab_focus()
 
 
@@ -649,8 +659,13 @@ func _refresh_localized_text() -> void:
 	level_select_title.text = tr("MENU_LEVEL_SELECT")
 	level_1_button.text = tr("LEVEL_1")
 	level_2_button.text = tr("LEVEL_2")
-	level_3_button.text = tr("LEVEL_3")
-	level_4_button.text = tr("LEVEL_4")
+	var in_progress_text := tr("LEVEL_IN_PROGRESS")
+	level_3_button.text = "%s\n%s" % [tr("LEVEL_3"), in_progress_text]
+	level_4_button.text = "%s\n%s" % [tr("LEVEL_4"), in_progress_text]
+	level_5_button.text = "%s\n%s" % [tr("LEVEL_5"), in_progress_text]
+	level_6_button.text = "%s\n%s" % [tr("LEVEL_6"), in_progress_text]
+	level_7_button.text = "%s\n%s" % [tr("LEVEL_7"), in_progress_text]
+	level_8_button.text = "%s\n%s" % [tr("LEVEL_8"), in_progress_text]
 	level_back_button.text = tr("MENU_BACK")
 	tutorial_choice_title.text = tr("TUTORIAL_CHOICE_TITLE")
 	tutorial_yes_button.text = tr("TUTORIAL_CHOICE_YES")
