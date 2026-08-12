@@ -893,11 +893,6 @@ func _get_active_target_radius() -> int:
 	return maxi(int(creature.species_data.predator_target_radius), 0)
 
 
-func find_nearest_prey() -> Node:
-	var candidates := find_nearest_prey_candidates(1)
-	return candidates[0] if not candidates.is_empty() else null
-
-
 func find_nearest_prey_candidates(
 	max_candidates: int = TARGET_CANDIDATE_LIMIT,
 	excluded_prey: Node = null
@@ -1192,19 +1187,6 @@ func are_footprints_side_adjacent(
 		return true
 
 	return false
-
-
-func build_path_to_prey(prey: Node) -> void:
-	var plan := _find_best_approach_plan(prey, creature.get_navigation_anchor())
-
-	if plan.is_empty():
-		if has_hunt_route:
-			_clear_predator_route()
-		has_hunt_route = false
-		return
-
-	has_hunt_route = true
-	_replace_predator_route(plan.get("path", []) as Array)
 
 
 func _find_best_approach_plan(prey: Node, origin_anchor: Vector2i) -> Dictionary:

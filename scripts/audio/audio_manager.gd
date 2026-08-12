@@ -172,22 +172,6 @@ func set_sound_volume(value: float) -> void:
 	_save_audio_settings()
 
 
-func set_master_volume(value: float) -> void:
-	_set_bus_volume_linear_with_gain(MASTER_BUS, value, GLOBAL_OUTPUT_GAIN_DB)
-
-
-func set_ambient_volume(value: float) -> void:
-	_set_bus_volume_linear(AMBIENT_BUS, value)
-
-
-func set_sfx_volume(value: float) -> void:
-	_set_bus_volume_linear(SFX_BUS, value)
-
-
-func set_ui_volume(value: float) -> void:
-	_set_bus_volume_linear(UI_BUS, value)
-
-
 func _sync_scene_audio() -> void:
 	_current_scene_path = _get_current_scene_path()
 

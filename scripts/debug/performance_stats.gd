@@ -303,10 +303,6 @@ func stop_csv_recording() -> void:
 		csv_file = null
 
 
-func is_csv_recording_enabled() -> bool:
-	return csv_recording_enabled
-
-
 func get_csv_status_text() -> String:
 	if csv_recording_enabled:
 		return "CSV: REC (F8) | logs/%s" % csv_absolute_path.get_file()
@@ -315,10 +311,6 @@ func get_csv_status_text() -> String:
 		return "CSV: saved | logs/%s" % last_saved_csv_absolute_path.get_file()
 
 	return "CSV: idle (F8)"
-
-
-func get_last_saved_csv_absolute_path() -> String:
-	return last_saved_csv_absolute_path
 
 
 func get_log_directory_absolute() -> String:

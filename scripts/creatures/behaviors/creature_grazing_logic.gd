@@ -908,12 +908,6 @@ func _apply_grazing_plan(plan: Dictionary) -> void:
 	_replace_grazing_route(path)
 
 
-# Compatibility entry point retained for creature.gd and older callers. A fresh
-# shared search replaces the old saved-runner-up loop.
-func advance_to_next_grazing_candidate() -> void:
-	try_acquire_grazing_target(true)
-
-
 func apply_grazing_target(target_data: Dictionary) -> void:
 	if target_data.has("path"):
 		_apply_grazing_plan(target_data)

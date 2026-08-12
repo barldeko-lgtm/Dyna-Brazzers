@@ -70,10 +70,6 @@ static func is_enemy(entity: Node) -> bool:
 	return get_id(entity) == ENEMY
 
 
-static func is_neutral(entity: Node) -> bool:
-	return get_id(entity) == NEUTRAL
-
-
 static func _normalize_id(faction_id: StringName) -> StringName:
 	if faction_id == StringName():
 		return PLAYER

@@ -82,15 +82,6 @@ const ENTRY_BY_ID: Dictionary = {
 	&"egg_eater": EGG_EATER_ENTRY
 }
 
-const SUPPORTED_IDS: Array[StringName] = [
-	&"stegosaurus",
-	&"triceratops",
-	&"tyrannosaurus",
-	&"raptor",
-	&"pterodactyl",
-	&"egg_eater"
-]
-
 # Preserve the current visible order of both menus without rebuilding arrays.
 const EGG_ENTRIES: Array[Dictionary] = [
 	STEGOSAURUS_ENTRY,
@@ -117,10 +108,6 @@ static func get_entry(species_id: StringName) -> Dictionary:
 
 static func has_species(species_id: StringName) -> bool:
 	return ENTRY_BY_ID.has(species_id)
-
-
-static func get_supported_ids() -> Array[StringName]:
-	return SUPPORTED_IDS
 
 
 static func get_egg_entries() -> Array[Dictionary]:

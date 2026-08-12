@@ -399,10 +399,6 @@ func set_walk_animation_active(
 	walk_sprite.frame = 0
 
 
-func set_walk_right_animation_active(active: bool, flip_h: bool = false) -> void:
-	set_walk_animation_active(active, flip_h, creature.species_data.walk_right_frames)
-
-
 func set_ground_shadow_upward_diagonal(enabled: bool) -> void:
 	ground_shadow_uses_upward_diagonal = enabled
 

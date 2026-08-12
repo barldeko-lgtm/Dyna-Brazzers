@@ -264,20 +264,6 @@ func configure_walk_animation() -> void:
 	visual_controller.configure_walk_animation()
 
 
-func can_use_walk_right_animation() -> bool:
-	if visual_controller == null:
-		return false
-
-	return visual_controller.can_use_walk_right_animation()
-
-
-func set_walk_right_animation_active(active: bool, flip_h: bool = false) -> void:
-	if visual_controller == null:
-		return
-
-	visual_controller.set_walk_right_animation_active(active, flip_h)
-
-
 func _physics_process(delta: float) -> void:
 	PerformanceStats.add_counter("creature_physics_ticks")
 
@@ -994,10 +980,6 @@ func _on_egg_laying_timer_timeout() -> void:
 	reproduction_logic.on_egg_laying_timer_timeout()
 
 
-func find_nearest_prey() -> Node:
-	return predator_logic.find_nearest_prey()
-
-
 func is_valid_prey(candidate: Node) -> bool:
 	return predator_logic.is_valid_prey(candidate)
 
@@ -1010,31 +992,12 @@ func are_footprints_side_adjacent(a_anchor: Vector2i, a_size: Vector2i, b_anchor
 	return predator_logic.are_footprints_side_adjacent(a_anchor, a_size, b_anchor, b_size)
 
 
-func build_path_to_prey(prey: Node) -> void:
-	predator_logic.build_path_to_prey(prey)
-
-
 func update_reproduction_behavior() -> void:
 	reproduction_logic.update_reproduction_behavior()
 
 
 func get_egg_spawn_anchor() -> Vector2i:
 	return reproduction_logic.get_egg_spawn_anchor()
-
-
-func get_facing_tile_direction() -> Vector2i:
-	if absf(direction.x) >= absf(direction.y):
-		if direction.x < -0.01:
-			return Vector2i.LEFT
-		if direction.x > 0.01:
-			return Vector2i.RIGHT
-	else:
-		if direction.y < -0.01:
-			return Vector2i.UP
-		if direction.y > 0.01:
-			return Vector2i.DOWN
-
-	return Vector2i.DOWN
 
 
 # Egg spawn.
@@ -1114,10 +1077,6 @@ func cancel_pending_duel(expected_opponent: Node = null) -> void:
 		return
 
 	pending_duel_opponent = null
-
-
-func is_in_duel() -> bool:
-	return current_duel != null
 
 
 func attach_duel(duel: Duel) -> void:
@@ -1262,20 +1221,8 @@ func refresh_interaction_highlight() -> void:
 
 
 # UI helpers.
-func get_species_id() -> String:
-	return species_data.species_id
-
-
-func get_species_name() -> String:
-	return species_data.species_name
-
-
 func get_age() -> float:
 	return age
-
-
-func get_max_age() -> float:
-	return species_data.max_age
 
 
 func get_creature_name() -> String:
@@ -1318,10 +1265,6 @@ func is_guard_raptor() -> bool:
 		and StringName(species_data.species_id) == RAPTOR_SPECIES_ID
 		and species_data.is_defensive_predator()
 	)
-
-
-func has_raptor_base_guard_buff() -> bool:
-	return is_guard_raptor() and raptor_guard_buff_active
 
 
 func update_raptor_base_guard_state(delta: float, force_base_refresh: bool = false) -> void:
@@ -1457,20 +1400,6 @@ func set_raptor_guard_icon_visible(visible_state: bool) -> void:
 		return
 
 	raptor_guard_icon.visible = visible_state
-
-
-func get_max_health() -> float:
-	if species_data == null:
-		return 0.0
-
-	return species_data.max_health
-
-
-func get_max_hunger() -> float:
-	if species_data == null:
-		return 0.0
-
-	return species_data.max_hunger
 
 
 func get_health_percent() -> float:
