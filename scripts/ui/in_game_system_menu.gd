@@ -6,6 +6,10 @@ const SLOT_COUNT := 3
 const NATURE_MENU_ATTACH_RETRY_FRAMES := 16
 const MENU_ROOT_POSITION := Vector2(-2.0, 94.0)
 const MENU_ROOT_SIZE := Vector2(260.0, 218.0)
+const LOAD_MENU_ROOT_POSITION := Vector2(-2.0, 84.0)
+const LOAD_MENU_ROOT_SIZE := Vector2(260.0, 247.0)
+const LOAD_MENU_BUTTON_HEIGHT := 47.0
+const LOAD_MENU_BUTTON_SEPARATION := 3
 const LANGUAGE_OPTIONS := [
 	{"locale": "ru", "name": "Русский"},
 	{"locale": "en", "name": "English"},
@@ -25,8 +29,11 @@ const INGAME_SETTINGS_OPTION_FONT_SIZE := 14
 const INGAME_SETTINGS_OUTLINE_SIZE := 2
 const ACTION_MENU_ROOT_POSITION := Vector2(-2.0, 84.0)
 const ACTION_MENU_ROOT_SIZE := Vector2(260.0, 255.0)
-const ACTION_MENU_BUTTON_HEIGHT := 40.0
-const ACTION_MENU_BUTTON_SEPARATION := 3
+const ACTION_GRID_ROOT_POSITION := Vector2(-2.0, 96.0)
+const ACTION_GRID_ROOT_SIZE := Vector2(260.0, 229.0)
+const ACTION_MENU_BUTTON_SIZE := Vector2(126.0, 71.0)
+const ACTION_MENU_BUTTON_SEPARATION := 8
+const SETTINGS_MENU_ROW_SEPARATION := 3
 const SETTINGS_BACK_BUTTON_HEIGHT := 45.0
 const SETTINGS_BACK_SPACER_HEIGHT := 20.0
 
@@ -43,6 +50,7 @@ var menu_button: Button = null
 var main_menu_grid: Control = null
 var menu_root: Control = null
 var menu_vbox: VBoxContainer = null
+var action_menu_grid: GridContainer = null
 var button_template: Button = null
 var menu_open := false
 var menu_previous_time_scale := 1.0
@@ -131,6 +139,7 @@ func _detach_menu_references() -> void:
 	main_menu_grid = null
 	menu_root = null
 	menu_vbox = null
+	action_menu_grid = null
 	button_template = null
 	current_slot_mode = ""
 	status_message = ""
@@ -142,6 +151,7 @@ func _create_menu_root(content_root: Control) -> void:
 	if existing_root != null:
 		menu_root = existing_root
 		menu_vbox = existing_root.get_node_or_null("MenuVBox") as VBoxContainer
+		action_menu_grid = existing_root.get_node_or_null("ActionMenuGrid") as GridContainer
 		menu_root.grow_horizontal = Control.GROW_DIRECTION_END
 		menu_root.grow_vertical = Control.GROW_DIRECTION_END
 		_place_menu_root()
@@ -164,6 +174,15 @@ func _create_menu_root(content_root: Control) -> void:
 	menu_root.add_child(menu_vbox)
 	menu_vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	menu_vbox.add_theme_constant_override("separation", 6)
+
+	action_menu_grid = GridContainer.new()
+	action_menu_grid.name = "ActionMenuGrid"
+	action_menu_grid.columns = 2
+	action_menu_grid.visible = false
+	action_menu_grid.add_theme_constant_override("h_separation", ACTION_MENU_BUTTON_SEPARATION)
+	action_menu_grid.add_theme_constant_override("v_separation", ACTION_MENU_BUTTON_SEPARATION)
+	menu_root.add_child(action_menu_grid)
+	action_menu_grid.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_place_menu_root()
 
 	if menu_root != null:
@@ -193,28 +212,25 @@ func _on_menu_button_pressed() -> void:
 func _show_action_menu() -> void:
 	current_slot_mode = ""
 	_clear_menu_vbox()
-	menu_vbox.add_theme_constant_override("separation", ACTION_MENU_BUTTON_SEPARATION)
-	# Final action-menu layout: no title, 3 px gaps, six 40 px buttons.
-	# The action page alone spans y=84..339 so Save is 10 px higher than
-	# the previous polish pass and Back reaches 5 px below the old layout.
-	_add_menu_button("MENU_SAVE", _on_save_mode_pressed, ACTION_MENU_BUTTON_HEIGHT)
-	_add_menu_button("MENU_LOAD_ACTION", _on_load_mode_pressed, ACTION_MENU_BUTTON_HEIGHT)
-	_add_menu_button("MENU_SETTINGS", _on_audio_settings_pressed, ACTION_MENU_BUTTON_HEIGHT)
-	_add_menu_button("MENU_MAIN_MENU", _on_main_menu_pressed, ACTION_MENU_BUTTON_HEIGHT)
-	_add_menu_button("MENU_QUIT_GAME", _on_quit_game_pressed, ACTION_MENU_BUTTON_HEIGHT)
-	_add_menu_button("MENU_BACK", _on_close_menu_pressed, ACTION_MENU_BUTTON_HEIGHT)
-	if not status_message.is_empty():
-		_add_status_label(status_message)
+	_clear_action_menu_grid()
+	menu_vbox.visible = false
+	action_menu_grid.visible = true
+	_add_action_menu_button("MENU_SAVE", _on_save_mode_pressed, "SaveButton")
+	_add_action_menu_button("MENU_LOAD_ACTION", _on_load_mode_pressed, "LoadButton")
+	_add_action_menu_button("MENU_SETTINGS", _on_audio_settings_pressed, "SettingsButton")
+	_add_action_menu_button("MENU_MAIN_MENU", _on_main_menu_pressed, "MainMenuButton")
+	_add_action_menu_button("MENU_BACK", _on_close_menu_pressed, "BackButton")
+	_add_action_menu_button("MENU_QUIT_GAME", _on_quit_game_pressed, "QuitGameButton")
 	_place_action_menu_root()
 
 
 func _place_action_menu_root() -> void:
 	if menu_root == null or not is_instance_valid(menu_root):
 		return
-	menu_root.size = ACTION_MENU_ROOT_SIZE
-	menu_root.position = ACTION_MENU_ROOT_POSITION
-	menu_root.set_deferred("size", ACTION_MENU_ROOT_SIZE)
-	menu_root.set_deferred("position", ACTION_MENU_ROOT_POSITION)
+	menu_root.size = ACTION_GRID_ROOT_SIZE
+	menu_root.position = ACTION_GRID_ROOT_POSITION
+	menu_root.set_deferred("size", ACTION_GRID_ROOT_SIZE)
+	menu_root.set_deferred("position", ACTION_GRID_ROOT_POSITION)
 
 
 func _on_save_mode_pressed() -> void:
@@ -230,28 +246,40 @@ func _on_load_mode_pressed() -> void:
 
 
 func _show_slot_menu() -> void:
+	_prepare_vbox_menu()
 	_clear_menu_vbox()
 	if current_slot_mode == "save":
-		_add_title_label("MENU_SAVE")
+		menu_vbox.add_theme_constant_override("separation", LOAD_MENU_BUTTON_SEPARATION)
+		_add_save_menu_title()
 	else:
-		_add_title_label("MENU_LOAD_ACTION")
+		menu_vbox.add_theme_constant_override("separation", LOAD_MENU_BUTTON_SEPARATION)
 		var autosave_button := _create_styled_button()
-		autosave_button.custom_minimum_size = Vector2(260.0, 34.0)
+		autosave_button.custom_minimum_size = Vector2(260.0, LOAD_MENU_BUTTON_HEIGHT)
 		autosave_button.disabled = not bool(save_system.call("has_autosave"))
 		autosave_button.pressed.connect(_on_autosave_slot_pressed)
 		menu_vbox.add_child(autosave_button)
 		BUTTON_TEXT_FITTER.apply(autosave_button, String(save_system.call("get_autosave_button_text")), 18, 12)
 	for slot_index: int in range(1, SLOT_COUNT + 1):
 		var slot_button := _create_styled_button()
-		slot_button.custom_minimum_size = Vector2(260.0, 40.0)
+		slot_button.custom_minimum_size = Vector2(260.0, LOAD_MENU_BUTTON_HEIGHT)
 		var slot_is_empty := not bool(save_system.call("has_save", slot_index))
 		if current_slot_mode == "load":
 			slot_button.disabled = slot_is_empty
 		slot_button.pressed.connect(_on_slot_pressed.bind(slot_index))
 		menu_vbox.add_child(slot_button)
 		BUTTON_TEXT_FITTER.apply(slot_button, String(save_system.call("get_slot_button_text", slot_index)), 18, 12)
-	_add_menu_button("MENU_BACK", _on_slots_back_pressed, 40.0)
-	_place_menu_root()
+	var back_height := LOAD_MENU_BUTTON_HEIGHT
+	_add_menu_button("MENU_BACK", _on_slots_back_pressed, back_height)
+	_place_load_menu_root()
+
+
+func _place_load_menu_root() -> void:
+	if menu_root == null or not is_instance_valid(menu_root):
+		return
+	menu_root.size = LOAD_MENU_ROOT_SIZE
+	menu_root.position = LOAD_MENU_ROOT_POSITION
+	menu_root.set_deferred("size", LOAD_MENU_ROOT_SIZE)
+	menu_root.set_deferred("position", LOAD_MENU_ROOT_POSITION)
 
 
 func _place_menu_root() -> void:
@@ -506,6 +534,18 @@ func _on_slot_pressed(slot_index: int) -> void:
 			_show_slot_menu()
 
 
+func _add_save_menu_title() -> void:
+	var title_label := Label.new()
+	title_label.name = "SaveMenuTitle"
+	title_label.theme_type_variation = &"HeaderLabel"
+	title_label.custom_minimum_size = Vector2(260.0, LOAD_MENU_BUTTON_HEIGHT)
+	title_label.text = tr("MENU_SAVE")
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", 19)
+	menu_vbox.add_child(title_label)
+
+
 func _add_title_label(title_text: String) -> void:
 	var title_label := Label.new()
 	title_label.theme_type_variation = &"HeaderLabel"
@@ -537,6 +577,30 @@ func _add_menu_button(button_text: String, callback: Callable, height: float = 4
 	return button
 
 
+func _add_action_menu_button(
+	button_text: String,
+	callback: Callable,
+	button_name: String
+) -> Button:
+	var button := _create_styled_button()
+	button.name = button_name
+	button.custom_minimum_size = ACTION_MENU_BUTTON_SIZE
+	button.text = _get_action_menu_button_text(button_text)
+	button.pressed.connect(callback)
+	action_menu_grid.add_child(button)
+	return button
+
+
+func _get_action_menu_button_text(translation_key: String) -> String:
+	var translated_text := tr(translation_key)
+	if translation_key != "MENU_MAIN_MENU" and translation_key != "MENU_QUIT_GAME":
+		return translated_text
+	var separator_index := translated_text.find(" ")
+	if separator_index < 0:
+		return translated_text
+	return translated_text.left(separator_index) + "\n" + translated_text.substr(separator_index + 1)
+
+
 func _create_styled_button() -> Button:
 	if button_template != null and is_instance_valid(button_template):
 		var duplicated_node: Node = button_template.duplicate()
@@ -562,15 +626,31 @@ func _clear_menu_vbox() -> void:
 		child.queue_free()
 
 
+func _clear_action_menu_grid() -> void:
+	if action_menu_grid == null:
+		return
+	for child: Node in action_menu_grid.get_children():
+		action_menu_grid.remove_child(child)
+		child.queue_free()
+
+
+func _prepare_vbox_menu() -> void:
+	if action_menu_grid != null:
+		action_menu_grid.visible = false
+	if menu_vbox != null:
+		menu_vbox.visible = true
+
+
 func _on_audio_settings_pressed() -> void:
 	status_message = ""
 	_show_audio_settings_menu()
 
 func _show_audio_settings_menu() -> void:
+	_prepare_vbox_menu()
 	_clear_menu_vbox()
 	menu_vbox.add_theme_constant_override(
 		"separation",
-		ACTION_MENU_BUTTON_SEPARATION
+		SETTINGS_MENU_ROW_SEPARATION
 	)
 	_add_title_label("SETTINGS_TITLE")
 
@@ -610,7 +690,16 @@ func _show_audio_settings_menu() -> void:
 		_on_audio_settings_back_pressed,
 		SETTINGS_BACK_BUTTON_HEIGHT
 	)
-	_place_action_menu_root()
+	_place_settings_menu_root()
+
+
+func _place_settings_menu_root() -> void:
+	if menu_root == null or not is_instance_valid(menu_root):
+		return
+	menu_root.size = ACTION_MENU_ROOT_SIZE
+	menu_root.position = ACTION_MENU_ROOT_POSITION
+	menu_root.set_deferred("size", ACTION_MENU_ROOT_SIZE)
+	menu_root.set_deferred("position", ACTION_MENU_ROOT_POSITION)
 
 func _add_language_control() -> void:
 	var row := _create_ingame_settings_row("InGameLanguageRow")

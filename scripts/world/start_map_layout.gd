@@ -15,7 +15,7 @@ const PLAYER_BASE_ANCHOR_INDEX_BY_LEVEL: Dictionary = {
 	3: 0,
 }
 const PIXEL_MAP_PARSER := preload("res://scripts/world/pixel_map_parser.gd")
-const GRASS_SCENE := preload("res://scenes/resources/grass.tscn")
+const GRASS_SCENE_PATH := "res://scenes/resources/grass.tscn"
 
 const TERRAIN_GROUND := 0
 const TERRAIN_WATER := 1
@@ -289,6 +289,15 @@ func _rebuild_pixel_map_grass(grass_tiles: Array, level_id: int) -> void:
 		push_error("StartMapLayout: Grasses container is unavailable for level %d." % level_id)
 		return
 
+	var grass_scene := ResourceLoader.get_cached_ref(GRASS_SCENE_PATH) as PackedScene
+
+	if grass_scene == null:
+		grass_scene = ResourceLoader.load(GRASS_SCENE_PATH, "PackedScene") as PackedScene
+
+	if grass_scene == null:
+		push_error("StartMapLayout: grass scene is unavailable for level %d." % level_id)
+		return
+
 	for authored_grass in grasses.get_children():
 		authored_grass.free()
 
@@ -297,7 +306,7 @@ func _rebuild_pixel_map_grass(grass_tiles: Array, level_id: int) -> void:
 			continue
 
 		var tile: Vector2i = tile_variant
-		var grass := GRASS_SCENE.instantiate() as Node2D
+		var grass := grass_scene.instantiate() as Node2D
 
 		if grass == null:
 			continue

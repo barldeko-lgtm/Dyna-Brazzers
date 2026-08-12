@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=16 format=3]
+[gd_resource type="Resource" script_class="CreatureSpeciesData" load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/creatures/creature_species_data.gd" id="1_species_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/stegosaurus/stegosaurus_down.png" id="2_down"]
@@ -14,6 +14,9 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/creatures/enemy/stegosaurus/stegosaurus_dead.png" id="12_death"]
 [ext_resource type="SpriteFrames" path="res://data/animations/enemy_stegosaurus_attack_right_frames.tres" id="13_attack_right_frames"]
 [ext_resource type="SpriteFrames" path="res://data/animations/enemy_stegosaurus_eating_right_frames.tres" id="14_eating_right_frames"]
+[ext_resource type="SpriteFrames" path="res://data/animations/enemy_stegosaurus_walk_right_frames.tres" id="15_walk_right_frames"]
+[ext_resource type="SpriteFrames" path="res://data/animations/enemy_stegosaurus_walk_down_right_frames.tres" id="16_walk_down_right_frames"]
+[ext_resource type="SpriteFrames" path="res://data/animations/enemy_stegosaurus_walk_up_right_frames.tres" id="17_walk_up_right_frames"]
 
 [resource]
 script = ExtResource("1_species_script")
@@ -27,6 +30,9 @@ right_texture = ExtResource("4_right")
 up_right_texture = ExtResource("5_up_right")
 down_right_texture = ExtResource("6_down_right")
 idle_texture = ExtResource("10_idle")
+walk_right_frames = ExtResource("15_walk_right_frames")
+walk_up_right_frames = ExtResource("17_walk_up_right_frames")
+walk_down_right_frames = ExtResource("16_walk_down_right_frames")
 walk_animation_fps = 4.0
 eating_right_frames = ExtResource("14_eating_right_frames")
 eating_animation_fps = 4.0

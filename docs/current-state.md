@@ -36,7 +36,7 @@ Implemented foundations include:
 - enemy lightning, earthquake, and rain strategy with diagnostics;
 - startup and in-game settings, three manual save slots plus autosave, global audio, minimap, HUD, debug overlays, and elimination-based victory/defeat results.
 
-Roadmap block `0.5 — Visuals and game interface` is complete. Later creature, player-expansion, and enemy work is partially implemented. `docs/design_roadmap.md` remains the design roadmap and must not be edited unless explicitly requested.
+Roadmap blocks `0.1–0.8` are complete. Version `0.9` is now in final polish, performance, stability, and release-preparation work. `docs/design_roadmap.md` remains the design roadmap and must not be edited unless explicitly requested.
 
 ## Design direction
 
