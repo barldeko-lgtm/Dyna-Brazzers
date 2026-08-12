@@ -30,7 +30,7 @@ const STEGOSAURUS_ENTRY: Dictionary = {
 const TRICERATOPS_ENTRY: Dictionary = {
 	"species_data": TRICERATOPS,
 	"species_name_key": "SPECIES_TRICERATOPS",
-	"egg_purchase_cost": 450.0,
+	"egg_purchase_cost": 420.0,
 	"energy_income_per_second": 0.8,
 	"flag_button_key": "FLAG_TRICERATOPS_BUTTON",
 	"flag_tooltip_key": "FLAG_TRICERATOPS_TOOLTIP",
@@ -82,7 +82,6 @@ const ENTRY_BY_ID: Dictionary = {
 	&"egg_eater": EGG_EATER_ENTRY
 }
 
-# Preserve the current visible order of both menus without rebuilding arrays.
 const EGG_ENTRIES: Array[Dictionary] = [
 	STEGOSAURUS_ENTRY,
 	TRICERATOPS_ENTRY,

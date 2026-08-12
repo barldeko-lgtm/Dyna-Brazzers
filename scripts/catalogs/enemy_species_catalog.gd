@@ -19,7 +19,7 @@ const STEGOSAURUS_ENTRY: Dictionary = {
 }
 const TRICERATOPS_ENTRY: Dictionary = {
 	"species_data": TRICERATOPS,
-	"egg_purchase_cost": 450.0,
+	"egg_purchase_cost": 420.0,
 	"energy_income_per_second": 0.8
 }
 const TYRANNOSAURUS_ENTRY: Dictionary = {
@@ -61,7 +61,6 @@ const SUPPORTED_IDS: Array[StringName] = [
 	&"egg_eater"
 ]
 
-# Keep production deterministic for the temporary scaffold.
 const SPECIES_ENTRIES: Array[Dictionary] = [
 	STEGOSAURUS_ENTRY,
 	TRICERATOPS_ENTRY,

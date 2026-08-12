@@ -8,3 +8,6 @@ logs/*.csv
 
 # Local-only diagnostic probes
 tests/
+
+# Local export builds
+build/
