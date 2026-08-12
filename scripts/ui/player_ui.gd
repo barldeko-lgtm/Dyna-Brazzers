@@ -33,6 +33,9 @@ const MINIMAP_GRASS_REFRESH_INTERVAL := 1.0
 const MINIMAP_CREATURE_MARKER_SIZE := 6
 const MINIMAP_CREATURE_MARKER_HALF_SIZE := 3.0
 const MINIMAP_CORNER_RADIUS_PIXELS := 3
+const PLAYER_COUNT_ROW_VISUAL_OFFSET := Vector2(0.0, 2.0)
+const ENEMY_COUNT_ROW_VISUAL_OFFSET := Vector2(0.0, -2.0)
+const TOTAL_COUNT_COLUMN_VISUAL_OFFSET := Vector2(-14.0, 0.0)
 
 const TERRAIN_GROUND := 0
 const TERRAIN_WATER := 1
@@ -97,6 +100,7 @@ func _ready() -> void:
 	setup_time_speed_controls()
 	setup_base_navigation_controls()
 	setup_player_egg_creation_ui()
+	call_deferred("_apply_entity_count_visual_offsets")
 	_refresh_localized_hud_text()
 	LocalizationManager.locale_changed.connect(_on_locale_changed)
 	update_entity_counts_text()
@@ -133,6 +137,37 @@ func _process(delta: float) -> void:
 	if minimap_grass_refresh_timer <= 0.0:
 		minimap_grass_refresh_timer = MINIMAP_GRASS_REFRESH_INTERVAL
 		refresh_minimap_grass_layer()
+
+
+func _apply_entity_count_visual_offsets() -> void:
+	await get_tree().process_frame
+	var player_labels: Array[Label] = [
+		player_herbivore_count_label,
+		player_predator_count_label,
+		player_egg_eater_count_label,
+		player_egg_count_label,
+		player_total_count_label,
+	]
+	var enemy_labels: Array[Label] = [
+		enemy_herbivore_count_label,
+		enemy_predator_count_label,
+		enemy_egg_eater_count_label,
+		enemy_egg_count_label,
+		enemy_total_count_label,
+	]
+
+	for label: Label in player_labels:
+		if label != null:
+			label.position += PLAYER_COUNT_ROW_VISUAL_OFFSET
+
+	for label: Label in enemy_labels:
+		if label != null:
+			label.position += ENEMY_COUNT_ROW_VISUAL_OFFSET
+
+	if player_total_count_label != null:
+		player_total_count_label.position += TOTAL_COUNT_COLUMN_VISUAL_OFFSET
+	if enemy_total_count_label != null:
+		enemy_total_count_label.position += TOTAL_COUNT_COLUMN_VISUAL_OFFSET
 
 
 func _on_locale_changed(_locale: String) -> void:

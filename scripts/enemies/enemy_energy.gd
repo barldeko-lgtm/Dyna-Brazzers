@@ -117,10 +117,6 @@ func get_combat_reserve_income_share() -> float:
 	return clampf(combat_reserve_income_share, 0.0, 1.0)
 
 
-func get_last_income_to_combat_reserve() -> float:
-	return maxf(last_income_to_combat_reserve, 0.0)
-
-
 func get_last_income_to_ordinary_energy() -> float:
 	return maxf(last_income_to_ordinary_energy, 0.0)
 

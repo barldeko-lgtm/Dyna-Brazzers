@@ -144,12 +144,6 @@ func refresh_status() -> void:
 	_set_status_key("FLAG_COUNT", int(owner.call("get_flag_count")))
 
 
-func set_status(message: String) -> void:
-	current_status_key = ""
-	current_status_value = -1
-	_set_status(message)
-
-
 func _build_flag_menu(menu_entries: Array[Dictionary]) -> void:
 	if nature_content == null or flag_menu_button == null:
 		return
