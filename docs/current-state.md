@@ -24,7 +24,7 @@ Dyna is a Godot 4.7 autonomous 2D ecosystem simulation.
 
 Implemented foundations include:
 
-- two selectable tile-based level layouts sharing one world scene and gameplay stack;
+- three selectable pixel-map level layouts sharing one world scene and gameplay stack;
 - one fixed player nature base and one fixed enemy base;
 - six current species: stegosaurus, triceratops, tyrannosaurus, raptor, pterodactyl, and egg eater;
 - shared player/enemy creature biology with separate resource variants and runtime faction ownership;
@@ -56,11 +56,13 @@ Do not turn Dyna into a standard RTS or create enemy-only copies of common creat
 
 The active world is `scenes/world/world.tscn`.
 
-Level 1 preserves the authored TileMap. Level 2 is built at runtime from `assets/maps/level_2_map.png`, where one exact-color pixel represents one tile. The pixel-map layout defines terrain, DryGround, grass, complete 2x2 trees, and both faction-base footprints.
+Levels 1–3 are built at runtime from `assets/maps/level_1.png`, `level_2.png`, and `level_3.png`, where one exact-color pixel represents one tile. Their sizes are 60x60, 80x80, and 90x90. Each layout defines terrain, DryGround, grass, complete 2x2 trees, and both faction-base footprints.
+
+Base ownership is level-authored: the player starts at the upper-right base on level 1, the left base on level 2, and the upper base on level 3.
 
 Water, mountains, trees, faction-base footprints, and occupied DryGround cells are unavailable to normal ground movement and grass placement.
 
-`start_map_layout.gd` preserves level 1. For a registered pixel-map level it replaces only the runtime Ground/DryGround layout before world-grid initialization and rebuilds map-defined grass and base markers.
+For every registered pixel-map level, `start_map_layout.gd` replaces the runtime Ground/DryGround layout before world-grid initialization and rebuilds map-defined grass and base markers.
 
 Trees are TileMap terrain, not separate resource nodes. Each visual tree occupies a complete blocked terrain footprint.
 

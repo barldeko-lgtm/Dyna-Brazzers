@@ -1,12 +1,19 @@
 @tool
 extends TileMapLayer
 
-# Fixed 85×85 start map authored from assets/maps/start_map_layout.png.
-# One character equals one 128×128 world tile.
+# Pixel-map levels use one exact-color image pixel per 128×128 world tile.
 const MAP_WIDTH := 85
 const MAP_HEIGHT := 85
-const LEVEL_2_ID := 2
-const LEVEL_2_MAP_TEXTURE := preload("res://assets/maps/level_2_map.png")
+const PIXEL_MAP_TEXTURES: Dictionary = {
+	1: preload("res://assets/maps/level_1.png"),
+	2: preload("res://assets/maps/level_2.png"),
+	3: preload("res://assets/maps/level_3.png"),
+}
+const PLAYER_BASE_ANCHOR_INDEX_BY_LEVEL: Dictionary = {
+	1: 1,
+	2: 0,
+	3: 0,
+}
 const PIXEL_MAP_PARSER := preload("res://scripts/world/pixel_map_parser.gd")
 const GRASS_SCENE := preload("res://scenes/resources/grass.tscn")
 
@@ -109,8 +116,9 @@ var active_map_rows: Array[String] = []
 
 
 func _enter_tree() -> void:
-	if _is_level_2_active():
-		_build_level_2_map()
+	var level_id := _get_active_pixel_map_level_id()
+	if level_id > 0:
+		_build_pixel_map(level_id)
 		return
 
 	if tile_set == null:
@@ -163,25 +171,27 @@ func _build_static_map() -> void:
 		_place_tree(anchor, _variant_for_tile(anchor, 4))
 
 
-func _is_level_2_active() -> bool:
+func _get_active_pixel_map_level_id() -> int:
 	var save_system := get_node_or_null("/root/SaveSystem")
 
 	if save_system == null:
-		return false
+		return 0
 
-	return int(save_system.get("current_level_id")) == LEVEL_2_ID
+	var level_id := int(save_system.get("current_level_id"))
+	return level_id if PIXEL_MAP_TEXTURES.has(level_id) else 0
 
 
-func _build_level_2_map() -> void:
+func _build_pixel_map(level_id: int) -> void:
 	if tile_set == null:
-		push_error("StartMapLayout: level 2 TileSet is unavailable.")
+		push_error("StartMapLayout: level %d TileSet is unavailable." % level_id)
 		return
 
 	var parser := PIXEL_MAP_PARSER.new() as RefCounted
-	var map_data: Dictionary = parser.parse_image(LEVEL_2_MAP_TEXTURE.get_image())
+	var map_texture := PIXEL_MAP_TEXTURES.get(level_id) as Texture2D
+	var map_data: Dictionary = parser.parse_image(map_texture.get_image())
 
 	if not bool(map_data.get("ok", false)):
-		push_error("StartMapLayout: invalid level 2 pixel map: %s" % str(map_data.get("errors", [])))
+		push_error("StartMapLayout: invalid level %d pixel map: %s" % [level_id, str(map_data.get("errors", []))])
 		return
 
 	var rows_variant: Variant = map_data.get("rows", [])
@@ -201,7 +211,7 @@ func _build_level_2_map() -> void:
 	var dry_ground := get_parent().get_node_or_null("DryGround") as TileMapLayer
 
 	if dry_ground == null or dry_ground.tile_set == null:
-		push_error("StartMapLayout: DryGround layer is unavailable for level 2.")
+		push_error("StartMapLayout: DryGround layer is unavailable for level %d." % level_id)
 		return
 
 	dry_ground.clear()
@@ -233,13 +243,15 @@ func _build_level_2_map() -> void:
 	var base_anchors_variant: Variant = map_data.get("base_anchors", [])
 
 	if base_anchors_variant is Array and base_anchors_variant.size() == 2:
-		_set_base_marker_position("CameraStart", base_anchors_variant[0])
-		_set_base_marker_position("EnemyBaseStart", base_anchors_variant[1])
+		var player_base_index := int(PLAYER_BASE_ANCHOR_INDEX_BY_LEVEL.get(level_id, 0))
+		var enemy_base_index := 1 - player_base_index
+		_set_base_marker_position("CameraStart", base_anchors_variant[player_base_index])
+		_set_base_marker_position("EnemyBaseStart", base_anchors_variant[enemy_base_index])
 
 	var grass_tiles_variant: Variant = map_data.get("grass_tiles", [])
 
 	if grass_tiles_variant is Array:
-		_rebuild_level_2_grass(grass_tiles_variant)
+		_rebuild_pixel_map_grass(grass_tiles_variant, level_id)
 
 
 func _set_active_layout(rows: Array, width: int, height: int) -> void:
@@ -259,7 +271,7 @@ func _set_base_marker_position(marker_name: String, anchor_variant: Variant) -> 
 	var marker := get_parent().get_node_or_null(marker_name) as Marker2D
 
 	if marker == null:
-		push_error("StartMapLayout: %s marker is unavailable for level 2." % marker_name)
+		push_error("StartMapLayout: %s marker is unavailable." % marker_name)
 		return
 
 	var footprint_center_offset := Vector2(tile_set.tile_size) * 0.5
@@ -270,11 +282,11 @@ func _set_base_marker_position(marker_name: String, anchor_variant: Variant) -> 
 	marker.position = marker_in_ground_parent
 
 
-func _rebuild_level_2_grass(grass_tiles: Array) -> void:
+func _rebuild_pixel_map_grass(grass_tiles: Array, level_id: int) -> void:
 	var grasses := get_parent().get_node_or_null("Grasses") as Node2D
 
 	if grasses == null:
-		push_error("StartMapLayout: Grasses container is unavailable for level 2.")
+		push_error("StartMapLayout: Grasses container is unavailable for level %d." % level_id)
 		return
 
 	for authored_grass in grasses.get_children():
@@ -290,7 +302,7 @@ func _rebuild_level_2_grass(grass_tiles: Array) -> void:
 		if grass == null:
 			continue
 
-		grass.name = "Level2Grass_%02d_%02d" % [tile.x, tile.y]
+		grass.name = "Level%dGrass_%02d_%02d" % [level_id, tile.x, tile.y]
 		var tile_in_world: Vector2 = transform * map_to_local(tile)
 		grass.position = grasses.transform.affine_inverse() * tile_in_world
 		grasses.add_child(grass)

@@ -9,7 +9,8 @@ const AUTOSAVE_INTERVAL_SECONDS := 300.0
 const DEFAULT_LEVEL_ID: int = SAVE_STORAGE_SCRIPT.DEFAULT_LEVEL_ID
 const LEVEL_SCENE_PATHS: Dictionary = {
 	1: GAME_SCENE_PATH,
-	2: GAME_SCENE_PATH
+	2: GAME_SCENE_PATH,
+	3: GAME_SCENE_PATH,
 }
 
 const IN_GAME_SYSTEM_MENU_SCRIPT := preload("res://scripts/ui/in_game_system_menu.gd")

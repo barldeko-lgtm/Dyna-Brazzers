@@ -6,7 +6,7 @@ Dyna is an early Godot 4.7 prototype of an autonomous dinosaur ecosystem inspire
 
 The current prototype includes:
 
-- two selectable tile-based levels on shared `TileMapLayer` gameplay: authored level 1 (85x85) and pixel-map level 2 (90x60);
+- three selectable exact-color pixel-map levels on shared `TileMapLayer` gameplay: 60x60, 80x80, and 90x90;
 - six species available through player-created eggs: stegosaurus, triceratops, tyrannosaurus, raptor, pterodactyl, and egg eater; fresh games start without adult creatures;
 - grass as the first renewable resource;
 - egg laying, egg stages, and hatching;
@@ -61,7 +61,7 @@ Update docs when behaviour, ownership, file structure, or design intent changes.
 
 - `scenes/world/world.tscn` is the only active gameplay world.
 - The `Ground` TileMap is the authored base terrain source of truth once saved in Godot; the optional `DryGround` overlay marks dynamic non-walkable, non-growable cells, uses three deterministic visual variants, and needs three rain hits per cell to clear.
-- `start_map_layout.gd` may populate only a completely empty TileMap and must never overwrite an existing edited map.
+- `start_map_layout.gd` rebuilds registered pixel-map levels before world-grid initialization; its legacy authored fallback may populate only an empty TileMap.
 - The world grid is the source of truth for terrain, walkability, occupancy, blockers, pathfinding, map bounds, and resource lookup.
 - Creatures make decisions in grid/anchor space but move smoothly in world space.
 - Species stats, visuals, egg tuning, death texture, corpse lifetime, and species identity live in `.tres` resources.

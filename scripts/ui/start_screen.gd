@@ -81,6 +81,7 @@ func _ready() -> void:
 	continue_button.pressed.connect(_on_continue_pressed)
 	level_1_button.pressed.connect(_on_level_1_pressed)
 	level_2_button.pressed.connect(_on_level_2_pressed)
+	level_3_button.pressed.connect(_on_level_3_pressed)
 	tutorial_yes_button.pressed.connect(_on_tutorial_yes_pressed)
 	tutorial_no_button.pressed.connect(_on_tutorial_no_pressed)
 	level_back_button.pressed.connect(_on_level_back_pressed)
@@ -113,6 +114,10 @@ func _on_level_1_pressed() -> void:
 
 func _on_level_2_pressed() -> void:
 	_show_tutorial_choice(2)
+
+
+func _on_level_3_pressed() -> void:
+	_show_tutorial_choice(3)
 
 
 func _on_tutorial_yes_pressed() -> void:
@@ -659,8 +664,8 @@ func _refresh_localized_text() -> void:
 	level_select_title.text = tr("MENU_LEVEL_SELECT")
 	level_1_button.text = tr("LEVEL_1")
 	level_2_button.text = tr("LEVEL_2")
+	level_3_button.text = tr("LEVEL_3")
 	var in_progress_text := tr("LEVEL_IN_PROGRESS")
-	level_3_button.text = "%s\n%s" % [tr("LEVEL_3"), in_progress_text]
 	level_4_button.text = "%s\n%s" % [tr("LEVEL_4"), in_progress_text]
 	level_5_button.text = "%s\n%s" % [tr("LEVEL_5"), in_progress_text]
 	level_6_button.text = "%s\n%s" % [tr("LEVEL_6"), in_progress_text]

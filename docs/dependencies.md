@@ -37,7 +37,7 @@ Main files:
 Runtime order:
 
 1. `world.tscn` supplies authored terrain, containers, markers, and world grid.
-2. `start_map_layout.gd` preserves level 1 or builds the selected registered pixel-map layout before grid initialization.
+2. `start_map_layout.gd` builds the selected registered pixel-map layout before grid initialization.
 3. `world_grid.gd` initializes terrain state, grass lookup, occupancy, blockers, and pathfinding.
 4. `start_map_world_grid.gd` creates faction bases, energy nodes, enemy runtime controllers, and enemy rally objectives.
 5. The camera reads the resulting authored/runtime bounds and start marker.
@@ -51,10 +51,10 @@ Stable terrain source ids:
 
 Rules:
 
-- never clear/rebuild the authored level-1 map during startup;
-- a registered pixel-map level may replace runtime Ground/DryGround only before world-grid initialization;
+- registered pixel-map levels may replace runtime Ground/DryGround only before world-grid initialization;
 - pixel-map colors are exact; unknown colors must fail visibly rather than default to ground;
 - base/tree markers must form complete 2x2 blocks;
+- base ownership is level-specific: level 1 player upper-right, level 2 player left, level 3 player upper;
 - never hand-generate or replace serialized `tile_map_data`;
 - changing stable terrain source ids requires a deliberate migration of every dependent system;
 - faction bases are runtime blockers, not terrain sources;

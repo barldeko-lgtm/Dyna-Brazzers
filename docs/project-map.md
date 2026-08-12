@@ -46,7 +46,7 @@ Implemented behaviour belongs in `docs/current-state.md`. Fragile contracts and 
 - `scripts/main/game_viewport_input_bridge.gd` — forwards game-subviewport motion/click coordinates to root-owned spell and flag targeting.
 - `scripts/world/world_grid.gd` — terrain queries, DryGround state, placement/traversal, walkability, pathfinding, grass registry, tile-region geometry, blockers, occupancy, reservations, atomic defeated/consumed-anchor transfers, and footprint APIs.
 - `scripts/world/start_map_world_grid.gd` — selected-map bootstrap; creates bases, enemy runtime controllers, enemy rally objectives, energy nodes, and world bounds.
-- `scripts/world/start_map_layout.gd` — preserves authored level 1 and builds registered pixel-map levels before world-grid initialization.
+- `scripts/world/start_map_layout.gd` — builds registered exact-color pixel-map levels before world-grid initialization.
 - `scripts/world/pixel_map_parser.gd` — exact-color map decoding and complete 2x2 base/tree marker validation.
 - `scripts/world/faction_base.gd` — shared base blocker, visuals/scaling, faction assignment, nearby egg placement, and base-egg launch startup.
 - `scripts/world/player_base.gd` — thin player wrapper exposing `create_player_egg()`.
@@ -159,8 +159,10 @@ Animation resources live under `data/animations/`. Do not maintain a per-species
 
 Terrain and map input:
 
-- `assets/maps/start_map_layout.png` — map-layout reference, not runtime terrain input.
-- `assets/maps/level_2_map.png` — exact-color runtime layout for level 2.
+- `assets/maps/level_1.png` — exact-color 60x60 runtime layout for level 1.
+- `assets/maps/level_2.png` — exact-color 80x80 runtime layout for level 2.
+- `assets/maps/level_3.png` — exact-color 90x90 runtime layout for level 3.
+- `assets/maps/start_map_layout.png` — legacy map-layout reference, not runtime terrain input.
 - `assets/sprites/terrain/ground.png`
 - `assets/sprites/terrain/water_tiles_independent.png`
 - `assets/sprites/terrain/mountain_tiles_independent.png`
