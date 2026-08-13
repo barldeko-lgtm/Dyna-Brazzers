@@ -1,10 +1,15 @@
 extends CanvasLayer
 
-const TOTAL_STEPS := 10
+const TOTAL_STEPS := 13
 const INTRO_PANEL_SIZE := Vector2(1000.0, 686.0)
 const INTERFACE_PANEL_SIZE := Vector2(900.0, 620.0)
+const EGG_MENU_PANEL_SIZE := Vector2(900.0, 620.0)
 const INSTRUCTION_PANEL_SIZE := Vector2(700.0, 480.0)
 const WAIT_PANEL_SIZE := Vector2(700.0, 300.0)
+const EGG_HATCH_PANEL_SIZE := Vector2(900.0, 300.0)
+const CREATURE_STATE_PANEL_SIZE := Vector2(760.0, 480.0)
+const NATURE_FORCES_PANEL_SIZE := Vector2(760.0, 520.0)
+const RAIN_INFO_PANEL_SIZE := Vector2(760.0, 570.0)
 const RAIN_TARGET_PANEL_SIZE := Vector2(760.0, 270.0)
 const FLAG_PLACEMENT_PANEL_SIZE := Vector2(760.0, 320.0)
 const COMPLETION_PANEL_SIZE := Vector2(850.0, 580.0)
@@ -23,7 +28,7 @@ const HIGHLIGHT_PADDING := 5.0
 @onready var panel_center: CenterContainer = $PanelCenter
 @onready var panel: Control = $PanelCenter/Panel
 @onready var header_label: Label = $PanelCenter/Panel/HeaderLabel
-@onready var body_label: Label = $PanelCenter/Panel/BodyLabel
+@onready var body_label: RichTextLabel = $PanelCenter/Panel/BodyLabel
 @onready var skip_button: Button = $PanelCenter/Panel/SkipButton
 @onready var next_button: Button = $PanelCenter/Panel/NextButton
 @onready var input_blockers: Array[Control] = [
@@ -55,7 +60,7 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	if current_step == 5 and tracked_egg != null and is_instance_valid(tracked_egg):
+	if current_step == 6 and tracked_egg != null and is_instance_valid(tracked_egg):
 		_refresh_wait_step_highlights()
 
 
@@ -92,47 +97,61 @@ func _show_step(step_number: int) -> void:
 			_apply_intro_layout()
 			next_button.disabled = false
 		2:
+			_apply_intro_layout()
+			next_button.disabled = false
+		3:
 			_apply_interface_layout()
 			next_button.disabled = false
 			call_deferred("_refresh_interface_highlights")
-		3:
-			_apply_instruction_layout()
+		4:
+			_apply_egg_menu_layout()
 			next_button.disabled = true
 			call_deferred("_configure_egg_menu_step")
-		4:
+		5:
 			_apply_instruction_layout()
 			next_button.disabled = true
 			call_deferred("_configure_stegosaurus_step")
-		5:
-			_apply_wait_layout()
+		6:
+			_apply_egg_hatch_layout()
 			next_button.disabled = true
 			Engine.time_scale = 1.0
 			call_deferred("_configure_wait_step")
-		6:
-			_apply_instruction_layout()
+		7:
+			_apply_creature_state_layout()
+			next_button.disabled = false
+			Engine.time_scale = 0.0
+			call_deferred("_configure_creature_state_step")
+		8:
+			_apply_nature_forces_layout()
 			next_button.disabled = true
 			Engine.time_scale = 0.0
 			call_deferred("_configure_spells_step")
-		7:
-			_apply_instruction_layout()
+		9:
+			_apply_rain_info_layout()
 			next_button.disabled = true
 			Engine.time_scale = 0.0
 			call_deferred("_configure_rain_step")
-		8:
+		10:
 			_apply_rain_target_layout()
 			next_button.disabled = true
 			Engine.time_scale = 0.0
 			call_deferred("_configure_rain_target_step")
-		9:
+		11:
 			_apply_instruction_layout()
 			next_button.disabled = true
 			Engine.time_scale = 0.0
 			call_deferred("_configure_flags_step")
-		10:
-			_apply_flag_placement_layout()
+		12:
+			_apply_stegosaurus_flag_selection_layout()
 			next_button.disabled = true
 			Engine.time_scale = 0.0
 			call_deferred("_configure_stegosaurus_flag_step")
+		13:
+			_apply_flag_placement_layout()
+			next_button.disabled = true
+			Engine.time_scale = 0.0
+			flag_placement_active = true
+			call_deferred("_configure_flag_placement_step")
 		_:
 			_apply_instruction_layout()
 			next_button.disabled = true
@@ -148,7 +167,8 @@ func _apply_intro_layout() -> void:
 	panel_center.offset_bottom = 0.0
 	_set_control_rect(header_label, Vector2(105.0, 66.0), Vector2(790.0, 46.0))
 	_set_body_rect_below_header(112.0, 570.0, 776.0)
-	body_label.add_theme_font_size_override("font_size", 20)
+	body_label.add_theme_font_size_override("normal_font_size", 20)
+	body_label.add_theme_font_size_override("bold_font_size", 20)
 	_set_control_rect(next_button, Vector2(285.0, 587.0), Vector2(170.0, 54.0))
 	_set_control_rect(skip_button, Vector2(545.0, 587.0), Vector2(170.0, 54.0))
 
@@ -161,7 +181,22 @@ func _apply_interface_layout() -> void:
 	panel_center.offset_bottom = 0.0
 	_set_control_rect(header_label, Vector2(90.0, 52.0), Vector2(720.0, 42.0))
 	_set_body_rect_below_header(96.0, 498.0, 708.0)
-	body_label.add_theme_font_size_override("font_size", 20)
+	body_label.add_theme_font_size_override("normal_font_size", 20)
+	body_label.add_theme_font_size_override("bold_font_size", 20)
+	_set_control_rect(next_button, Vector2(240.0, 530.0), Vector2(170.0, 52.0))
+	_set_control_rect(skip_button, Vector2(490.0, 530.0), Vector2(170.0, 52.0))
+
+
+func _apply_egg_menu_layout() -> void:
+	panel.custom_minimum_size = EGG_MENU_PANEL_SIZE
+	panel_center.offset_left = -INTERFACE_PANEL_SHIFT_LEFT
+	panel_center.offset_right = -INTERFACE_PANEL_SHIFT_LEFT
+	panel_center.offset_top = 0.0
+	panel_center.offset_bottom = 0.0
+	_set_control_rect(header_label, Vector2(90.0, 52.0), Vector2(720.0, 42.0))
+	_set_body_rect_below_header(96.0, 498.0, 708.0)
+	body_label.add_theme_font_size_override("normal_font_size", 20)
+	body_label.add_theme_font_size_override("bold_font_size", 20)
 	_set_control_rect(next_button, Vector2(240.0, 530.0), Vector2(170.0, 52.0))
 	_set_control_rect(skip_button, Vector2(490.0, 530.0), Vector2(170.0, 52.0))
 
@@ -174,7 +209,8 @@ func _apply_instruction_layout() -> void:
 	panel_center.offset_bottom = 0.0
 	_set_control_rect(header_label, Vector2(70.0, 48.0), Vector2(560.0, 42.0))
 	_set_body_rect_below_header(78.0, 338.0, 544.0)
-	body_label.add_theme_font_size_override("font_size", 20)
+	body_label.add_theme_font_size_override("normal_font_size", 20)
+	body_label.add_theme_font_size_override("bold_font_size", 20)
 	_set_control_rect(next_button, Vector2(145.0, 385.0), Vector2(170.0, 52.0))
 	_set_control_rect(skip_button, Vector2(385.0, 385.0), Vector2(170.0, 52.0))
 
@@ -187,9 +223,66 @@ func _apply_wait_layout() -> void:
 	panel_center.offset_bottom = -WAIT_PANEL_SHIFT_UP
 	_set_control_rect(header_label, Vector2(70.0, 28.0), Vector2(560.0, 38.0))
 	_set_body_rect_below_header(78.0, 192.0, 544.0)
-	body_label.add_theme_font_size_override("font_size", 20)
+	body_label.add_theme_font_size_override("normal_font_size", 20)
+	body_label.add_theme_font_size_override("bold_font_size", 20)
 	_set_control_rect(next_button, Vector2(145.0, 215.0), Vector2(170.0, 48.0))
 	_set_control_rect(skip_button, Vector2(385.0, 215.0), Vector2(170.0, 48.0))
+
+
+func _apply_egg_hatch_layout() -> void:
+	panel.custom_minimum_size = EGG_HATCH_PANEL_SIZE
+	panel_center.offset_left = -80.0
+	panel_center.offset_right = -80.0
+	panel_center.offset_top = -WAIT_PANEL_SHIFT_UP
+	panel_center.offset_bottom = -WAIT_PANEL_SHIFT_UP
+	_set_control_rect(header_label, Vector2(70.0, 10.0), Vector2(760.0, 34.0))
+	_set_body_rect_below_header(78.0, 222.0, 784.0)
+	body_label.add_theme_font_size_override("normal_font_size", 19)
+	body_label.add_theme_font_size_override("bold_font_size", 19)
+	_set_control_rect(next_button, Vector2(245.0, 230.0), Vector2(170.0, 48.0))
+	_set_control_rect(skip_button, Vector2(485.0, 230.0), Vector2(170.0, 48.0))
+
+
+func _apply_creature_state_layout() -> void:
+	panel.custom_minimum_size = CREATURE_STATE_PANEL_SIZE
+	panel_center.offset_left = 180.0
+	panel_center.offset_right = 180.0
+	panel_center.offset_top = 0.0
+	panel_center.offset_bottom = 0.0
+	_set_control_rect(header_label, Vector2(70.0, 48.0), Vector2(620.0, 42.0))
+	_set_body_rect_below_header(78.0, 338.0, 604.0)
+	body_label.add_theme_font_size_override("normal_font_size", 20)
+	body_label.add_theme_font_size_override("bold_font_size", 20)
+	_set_control_rect(next_button, Vector2(175.0, 385.0), Vector2(170.0, 52.0))
+	_set_control_rect(skip_button, Vector2(415.0, 385.0), Vector2(170.0, 52.0))
+
+
+func _apply_nature_forces_layout() -> void:
+	panel.custom_minimum_size = NATURE_FORCES_PANEL_SIZE
+	panel_center.offset_left = -INSTRUCTION_PANEL_SHIFT_LEFT
+	panel_center.offset_right = -INSTRUCTION_PANEL_SHIFT_LEFT
+	panel_center.offset_top = 0.0
+	panel_center.offset_bottom = 0.0
+	_set_control_rect(header_label, Vector2(70.0, 48.0), Vector2(620.0, 42.0))
+	_set_body_rect_below_header(78.0, 378.0, 604.0)
+	body_label.add_theme_font_size_override("normal_font_size", 20)
+	body_label.add_theme_font_size_override("bold_font_size", 20)
+	_set_control_rect(next_button, Vector2(175.0, 425.0), Vector2(170.0, 52.0))
+	_set_control_rect(skip_button, Vector2(415.0, 425.0), Vector2(170.0, 52.0))
+
+
+func _apply_rain_info_layout() -> void:
+	panel.custom_minimum_size = RAIN_INFO_PANEL_SIZE
+	panel_center.offset_left = -INSTRUCTION_PANEL_SHIFT_LEFT
+	panel_center.offset_right = -INSTRUCTION_PANEL_SHIFT_LEFT
+	panel_center.offset_top = 0.0
+	panel_center.offset_bottom = 0.0
+	_set_control_rect(header_label, Vector2(70.0, 48.0), Vector2(620.0, 42.0))
+	_set_body_rect_below_header(78.0, 428.0, 604.0)
+	body_label.add_theme_font_size_override("normal_font_size", 20)
+	body_label.add_theme_font_size_override("bold_font_size", 20)
+	_set_control_rect(next_button, Vector2(175.0, 475.0), Vector2(170.0, 52.0))
+	_set_control_rect(skip_button, Vector2(415.0, 475.0), Vector2(170.0, 52.0))
 
 
 func _apply_rain_target_layout() -> void:
@@ -198,11 +291,26 @@ func _apply_rain_target_layout() -> void:
 	panel_center.offset_right = -RAIN_TARGET_PANEL_SHIFT_LEFT
 	panel_center.offset_top = -RAIN_TARGET_PANEL_SHIFT_UP
 	panel_center.offset_bottom = -RAIN_TARGET_PANEL_SHIFT_UP
-	_set_control_rect(header_label, Vector2(60.0, 14.0), Vector2(640.0, 32.0))
-	_set_body_rect_below_header(50.0, 192.0, 660.0)
-	body_label.add_theme_font_size_override("font_size", 20)
-	_set_control_rect(next_button, Vector2(175.0, 210.0), Vector2(170.0, 44.0))
-	_set_control_rect(skip_button, Vector2(415.0, 210.0), Vector2(170.0, 44.0))
+	_set_control_rect(header_label, Vector2(60.0, 6.0), Vector2(640.0, 30.0))
+	_set_body_rect_below_header(50.0, 198.0, 660.0)
+	body_label.add_theme_font_size_override("normal_font_size", 19)
+	body_label.add_theme_font_size_override("bold_font_size", 19)
+	_set_control_rect(next_button, Vector2(175.0, 212.0), Vector2(170.0, 44.0))
+	_set_control_rect(skip_button, Vector2(415.0, 212.0), Vector2(170.0, 44.0))
+
+
+func _apply_stegosaurus_flag_selection_layout() -> void:
+	panel.custom_minimum_size = INSTRUCTION_PANEL_SIZE
+	panel_center.offset_left = 0.0
+	panel_center.offset_right = 0.0
+	panel_center.offset_top = 0.0
+	panel_center.offset_bottom = 0.0
+	_set_control_rect(header_label, Vector2(70.0, 48.0), Vector2(560.0, 42.0))
+	_set_body_rect_below_header(78.0, 338.0, 544.0)
+	body_label.add_theme_font_size_override("normal_font_size", 20)
+	body_label.add_theme_font_size_override("bold_font_size", 20)
+	_set_control_rect(next_button, Vector2(145.0, 385.0), Vector2(170.0, 52.0))
+	_set_control_rect(skip_button, Vector2(385.0, 385.0), Vector2(170.0, 52.0))
 
 
 func _apply_flag_placement_layout() -> void:
@@ -213,7 +321,8 @@ func _apply_flag_placement_layout() -> void:
 	panel_center.offset_bottom = -FLAG_PLACEMENT_PANEL_SHIFT_UP
 	_set_control_rect(header_label, Vector2(60.0, 14.0), Vector2(640.0, 32.0))
 	_set_body_rect_below_header(50.0, 246.0, 660.0)
-	body_label.add_theme_font_size_override("font_size", 20)
+	body_label.add_theme_font_size_override("normal_font_size", 20)
+	body_label.add_theme_font_size_override("bold_font_size", 20)
 	_set_control_rect(next_button, Vector2(175.0, 260.0), Vector2(170.0, 44.0))
 	_set_control_rect(skip_button, Vector2(415.0, 260.0), Vector2(170.0, 44.0))
 
@@ -224,10 +333,11 @@ func _apply_completion_layout() -> void:
 	panel_center.offset_right = 0.0
 	panel_center.offset_top = 0.0
 	panel_center.offset_bottom = 0.0
-	_set_control_rect(header_label, Vector2(90.0, 58.0), Vector2(670.0, 48.0))
-	_set_body_rect_below_header(95.0, 388.0, 660.0)
-	body_label.add_theme_font_size_override("font_size", 20)
-	_set_control_rect(next_button, Vector2(340.0, 430.0), Vector2(170.0, 52.0))
+	_set_control_rect(header_label, Vector2(90.0, 46.0), Vector2(670.0, 48.0))
+	_set_body_rect_below_header(95.0, 400.0, 660.0)
+	body_label.add_theme_font_size_override("normal_font_size", 20)
+	body_label.add_theme_font_size_override("bold_font_size", 20)
+	_set_control_rect(next_button, Vector2(340.0, 442.0), Vector2(170.0, 52.0))
 	skip_button.visible = false
 
 
@@ -239,11 +349,10 @@ func _set_control_rect(control: Control, position: Vector2, control_size: Vector
 func _set_body_rect_below_header(left: float, bottom: float, width: float) -> void:
 	var top := header_label.position.y + header_label.size.y + 14.0
 	_set_control_rect(body_label, Vector2(left, top), Vector2(width, bottom - top))
-	body_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 
 
 func _refresh_interface_highlights() -> void:
-	if current_step != 2 or spotlight == null:
+	if current_step != 3 or spotlight == null:
 		return
 
 	var highlight_rects: Array[Rect2] = []
@@ -291,7 +400,7 @@ func _refresh_interface_highlights() -> void:
 
 
 func _configure_egg_menu_step() -> void:
-	if current_step != 3:
+	if current_step != 4:
 		return
 
 	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
@@ -308,7 +417,7 @@ func _configure_egg_menu_step() -> void:
 
 
 func _configure_stegosaurus_step() -> void:
-	if current_step != 4:
+	if current_step != 5:
 		return
 
 	var egg_creation_ui := get_tree().get_first_node_in_group("player_egg_creation_ui")
@@ -329,7 +438,7 @@ func _configure_stegosaurus_step() -> void:
 
 
 func _on_tutorial_egg_created(species_id: StringName, egg: Node2D) -> void:
-	if current_step != 4 or species_id != &"stegosaurus" or egg == null:
+	if current_step != 5 or species_id != &"stegosaurus" or egg == null:
 		return
 
 	tracked_egg = egg
@@ -343,17 +452,17 @@ func _on_tutorial_egg_created(species_id: StringName, egg: Node2D) -> void:
 	var egg_creation_ui := get_tree().get_first_node_in_group("player_egg_creation_ui")
 	if egg_creation_ui != null and egg_creation_ui.has_method("return_to_main_menu"):
 		egg_creation_ui.call("return_to_main_menu")
-	_show_step(5)
+	_show_step(6)
 
 
 func _configure_wait_step() -> void:
-	if current_step != 5:
+	if current_step != 6:
 		return
 	_refresh_wait_step_highlights()
 
 
 func _refresh_wait_step_highlights() -> void:
-	if current_step != 5 or tracked_egg == null or not is_instance_valid(tracked_egg):
+	if current_step != 6 or tracked_egg == null or not is_instance_valid(tracked_egg):
 		return
 
 	var highlight_rects: Array[Rect2] = []
@@ -400,28 +509,42 @@ func _get_tracked_egg_screen_rect() -> Rect2:
 	return _global_rect_to_spotlight(root_rect)
 
 
-func _on_tracked_egg_hatched(_creature: Node2D) -> void:
-	if not owns_active_tutorial or current_step != 5:
+func _on_tracked_egg_hatched(creature: Node2D) -> void:
+	if not owns_active_tutorial or current_step != 6:
 		return
 	tracked_egg = null
-	_show_step(6)
+	var stats_ui := get_tree().get_first_node_in_group("creature_stats_ui")
+	if stats_ui != null and stats_ui.has_method("toggle_creature_selection"):
+		stats_ui.call("toggle_creature_selection", creature)
+	_show_step(7)
+
+
+func _configure_creature_state_step() -> void:
+	if current_step != 7:
+		return
+	var stats_ui := get_tree().get_first_node_in_group("creature_stats_ui") as Control
+	if stats_ui == null or not stats_ui.is_visible_in_tree():
+		push_warning("Tutorial step 7 could not resolve the selected creature stats card.")
+		return
+	var stats_rect := _global_rect_to_spotlight(stats_ui.get_global_rect()).grow(HIGHLIGHT_PADDING)
+	spotlight.call("set_hole_rects", [stats_rect])
 
 
 func _on_tracked_egg_tree_exiting() -> void:
-	if owns_active_tutorial and current_step == 5:
+	if owns_active_tutorial and current_step == 6:
 		call_deferred("_recover_from_lost_tutorial_egg")
 
 
 func _recover_from_lost_tutorial_egg() -> void:
-	if current_step != 5:
+	if current_step != 6:
 		return
 	tracked_egg = null
 	Engine.time_scale = 0.0
-	_show_step(3)
+	_show_step(4)
 
 
 func _configure_spells_step() -> void:
-	if current_step != 6:
+	if current_step != 8:
 		return
 	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
 	var spells_button := nature_ui.call("get_menu_button", &"spells") as Button if nature_ui != null else null
@@ -434,12 +557,12 @@ func _configure_spells_step() -> void:
 
 
 func _on_spells_menu_pressed() -> void:
-	if current_step == 6:
-		_show_step(7)
+	if current_step == 8:
+		_show_step(9)
 
 
 func _configure_rain_step() -> void:
-	if current_step != 7:
+	if current_step != 9:
 		return
 	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
 	var rain_button := nature_ui.call("get_spell_button", &"rain") as Button if nature_ui != null else null
@@ -452,20 +575,20 @@ func _configure_rain_step() -> void:
 
 
 func _on_rain_button_toggled(toggled_on: bool) -> void:
-	if current_step == 7 and toggled_on:
+	if current_step == 9 and toggled_on:
 		call_deferred("_open_rain_target_step_if_ready")
 
 
 func _open_rain_target_step_if_ready() -> void:
-	if current_step != 7:
+	if current_step != 9:
 		return
 	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
 	if nature_ui != null and bool(nature_ui.call("is_rain_targeting_enabled")):
-		_show_step(8)
+		_show_step(10)
 
 
 func _configure_rain_target_step() -> void:
-	if current_step != 8:
+	if current_step != 10:
 		return
 	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
 	if nature_ui == null or not bool(nature_ui.call("is_rain_targeting_enabled")):
@@ -485,7 +608,7 @@ func _configure_rain_target_step() -> void:
 
 
 func _on_tutorial_rain_applied(_center_tile: Vector2i) -> void:
-	if current_step != 8 or rain_transition_pending:
+	if current_step != 10 or rain_transition_pending:
 		return
 	rain_completed = true
 	rain_transition_pending = true
@@ -498,14 +621,14 @@ func _on_tutorial_rain_applied(_center_tile: Vector2i) -> void:
 		false,
 		true
 	).timeout
-	if current_step != 8 or not rain_transition_pending or not owns_active_tutorial or not visible:
+	if current_step != 10 or not rain_transition_pending or not owns_active_tutorial or not visible:
 		return
 	rain_transition_pending = false
-	_show_step(9)
+	_show_step(11)
 
 
 func _configure_flags_step() -> void:
-	if current_step != 9:
+	if current_step != 11:
 		return
 	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
 	var flags_button := nature_ui.call("get_menu_button", &"flags") as Button if nature_ui != null else null
@@ -518,22 +641,22 @@ func _configure_flags_step() -> void:
 
 
 func _on_flags_menu_pressed() -> void:
-	if current_step == 9:
+	if current_step == 11:
 		call_deferred("_open_stegosaurus_flag_step")
 
 
 func _open_stegosaurus_flag_step() -> void:
-	if current_step == 9:
-		_show_step(10)
+	if current_step == 11:
+		_show_step(12)
 
 
 func _configure_stegosaurus_flag_step() -> void:
-	if current_step != 10:
+	if current_step != 12:
 		return
 	var flag_system := get_tree().get_first_node_in_group("player_flag_system")
 	var stegosaurus_button := flag_system.call("get_species_flag_button", &"stegosaurus") as Button if flag_system != null else null
 	if stegosaurus_button == null or not stegosaurus_button.is_visible_in_tree():
-		push_warning("Tutorial step 10 could not resolve the Stegosaurus flag button.")
+		push_warning("Tutorial step 12 could not resolve the Stegosaurus flag button.")
 		return
 	if not flag_system.is_connected("flag_targeting_started", _on_flag_targeting_started):
 		flag_system.connect("flag_targeting_started", _on_flag_targeting_started)
@@ -545,17 +668,22 @@ func _configure_stegosaurus_flag_step() -> void:
 
 
 func _on_flag_targeting_started(species_id: StringName) -> void:
-	if not owns_active_tutorial or current_step != 10 or species_id != &"stegosaurus":
+	if not owns_active_tutorial or current_step != 12 or species_id != &"stegosaurus":
 		return
 	stegosaurus_flag_selected = true
 	flag_placement_active = true
-	_refresh_localized_text()
+	_show_step(13)
+
+
+func _configure_flag_placement_step() -> void:
+	if current_step != 13 or not stegosaurus_flag_selected:
+		return
 	_set_world_flag_placement_input()
 
 
 func _set_world_flag_placement_input() -> void:
 	if not _set_world_gameplay_input():
-		push_warning("Tutorial step 10 could not resolve the game viewport for flag placement.")
+		push_warning("Tutorial step 12 could not resolve the game viewport for flag placement.")
 
 
 func _set_world_gameplay_input() -> bool:
@@ -574,7 +702,7 @@ func _set_world_gameplay_input() -> bool:
 func _on_tutorial_flag_placed(species_id: StringName, _tile: Vector2i) -> void:
 	if (
 		not owns_active_tutorial
-		or current_step != 10
+		or current_step != 13
 		or not flag_placement_active
 		or species_id != &"stegosaurus"
 	):
@@ -586,12 +714,22 @@ func _show_completion() -> void:
 	showing_completion = true
 	flag_placement_active = false
 	Engine.time_scale = 0.0
+	_return_nature_menu_to_main()
 	_set_fully_blocked()
 	spotlight.call("set_hole_rects", [])
 	_apply_completion_layout()
 	next_button.visible = true
 	next_button.disabled = false
 	_refresh_localized_text()
+
+
+func _return_nature_menu_to_main() -> void:
+	var nature_ui := get_tree().get_first_node_in_group("player_nature_ui")
+	if nature_ui != null:
+		nature_ui.call("return_spell_menu_to_main")
+	var flag_system := get_tree().get_first_node_in_group("player_flag_system")
+	if flag_system != null and flag_system.has_method("return_flag_menu_to_main"):
+		flag_system.call("return_flag_menu_to_main")
 
 
 func _set_interactive_highlight(control: Control) -> void:
@@ -694,13 +832,17 @@ func _on_next_pressed() -> void:
 		2:
 			_show_step(3)
 		3:
+			_show_step(4)
+		4:
 			if not next_button.disabled:
-				_show_step(4)
+				_show_step(5)
+		7:
+			_show_step(8)
 
 
 func _on_egg_menu_pressed() -> void:
-	if current_step == 3:
-		_show_step(4)
+	if current_step == 4:
+		_show_step(5)
 
 
 func _on_locale_changed(_locale: String) -> void:
@@ -717,27 +859,29 @@ func _refresh_localized_text() -> void:
 	var body_key := "TUTORIAL_INTRO_BODY"
 	match current_step:
 		2:
-			body_key = "TUTORIAL_INTERFACE_BODY"
+			body_key = "TUTORIAL_CONTROLS_BODY"
 		3:
-			body_key = "TUTORIAL_EGG_MENU_BODY"
+			body_key = "TUTORIAL_INTERFACE_BODY"
 		4:
-			body_key = "TUTORIAL_STEGOSAURUS_BODY"
+			body_key = "TUTORIAL_EGG_MENU_BODY"
 		5:
-			body_key = "TUTORIAL_EGG_HATCH_BODY"
+			body_key = "TUTORIAL_STEGOSAURUS_BODY"
 		6:
-			body_key = "TUTORIAL_SPELLS_BODY"
+			body_key = "TUTORIAL_EGG_HATCH_BODY"
 		7:
-			body_key = "TUTORIAL_RAIN_BODY"
+			body_key = "TUTORIAL_CREATURE_STATE_BODY"
 		8:
-			body_key = "TUTORIAL_RAIN_TARGET_BODY"
+			body_key = "TUTORIAL_SPELLS_BODY"
 		9:
-			body_key = "TUTORIAL_FLAGS_BODY"
+			body_key = "TUTORIAL_RAIN_BODY"
 		10:
-			body_key = (
-				"TUTORIAL_FLAG_PLACEMENT_BODY"
-				if flag_placement_active
-				else "TUTORIAL_STEGOSAURUS_FLAG_BODY"
-			)
+			body_key = "TUTORIAL_RAIN_TARGET_BODY"
+		11:
+			body_key = "TUTORIAL_FLAGS_BODY"
+		12:
+			body_key = "TUTORIAL_STEGOSAURUS_FLAG_BODY"
+		13:
+			body_key = "TUTORIAL_FLAG_PLACEMENT_BODY"
 	body_label.text = tr(body_key).replace("\\n", "\n")
 	skip_button.text = tr("TUTORIAL_SKIP")
 	next_button.text = tr("TUTORIAL_NEXT")

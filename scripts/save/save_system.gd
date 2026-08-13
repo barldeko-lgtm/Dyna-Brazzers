@@ -231,8 +231,8 @@ func format_slot_metadata(_slot_index: int, metadata: Dictionary) -> String:
 	return _format_save_metadata("", metadata)
 
 
-func format_autosave_metadata(metadata: Dictionary) -> String:
-	return _format_save_metadata(tr("SAVE_AUTOSAVE_SHORT"), metadata)
+func format_autosave_metadata(_metadata: Dictionary) -> String:
+	return tr("SAVE_AUTOSAVE_SHORT")
 
 
 func _format_save_metadata(label: String, metadata: Dictionary) -> String:

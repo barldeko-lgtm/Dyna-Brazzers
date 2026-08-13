@@ -82,6 +82,11 @@ func handle_game_subviewport_input(event: InputEvent) -> bool:
 	return bool(ui_controller.call("handle_game_subviewport_input", event))
 
 
+func return_flag_menu_to_main() -> void:
+	if ui_controller != null:
+		ui_controller.call("return_to_main_menu")
+
+
 func _refresh_scene_attachment() -> void:
 	var current_scene := get_tree().current_scene
 

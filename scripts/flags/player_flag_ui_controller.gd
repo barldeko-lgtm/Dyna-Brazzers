@@ -128,6 +128,14 @@ func cancel_targeting() -> void:
 	_hide_preview()
 
 
+func return_to_main_menu() -> void:
+	cancel_targeting()
+	if flag_menu_grid != null:
+		flag_menu_grid.visible = false
+	if main_menu_grid != null:
+		main_menu_grid.visible = true
+
+
 func is_targeting() -> bool:
 	return targeting_species_id != StringName() or removal_targeting_enabled
 
@@ -260,13 +268,7 @@ func _on_remove_flag_pressed() -> void:
 
 
 func _on_back_button_pressed() -> void:
-	cancel_targeting()
-
-	if flag_menu_grid != null:
-		flag_menu_grid.visible = false
-
-	if main_menu_grid != null:
-		main_menu_grid.visible = true
+	return_to_main_menu()
 
 
 func _handle_targeting_mouse(mouse_event: InputEventMouseButton) -> bool:
