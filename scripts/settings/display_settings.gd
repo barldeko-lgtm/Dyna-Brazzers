@@ -1,7 +1,5 @@
 extends Node
 
-signal display_settings_changed
-
 const CONFIG_PATH := "user://display_settings.cfg"
 const CONFIG_SECTION := "display"
 const BASE_CONTENT_SIZE := Vector2i(1366, 768)
@@ -76,7 +74,6 @@ func set_fullscreen(enabled: bool) -> void:
 	_apply_current_settings()
 	_save_settings()
 	_sync_injected_controls()
-	display_settings_changed.emit()
 
 
 func set_resolution_index(index: int) -> void:
@@ -90,7 +87,6 @@ func set_resolution_index(index: int) -> void:
 		_apply_windowed_mode()
 	_save_settings()
 	_sync_injected_controls()
-	display_settings_changed.emit()
 
 
 func _load_settings() -> void:

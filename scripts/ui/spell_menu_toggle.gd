@@ -44,7 +44,6 @@ func _on_toggled(toggled_on: bool) -> void:
 
 
 func _on_back_button_pressed() -> void:
-	button_pressed = false
 	set_pressed_no_signal(false)
 	_apply_open_state(false)
 

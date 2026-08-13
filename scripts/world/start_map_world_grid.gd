@@ -1,6 +1,6 @@
 extends "res://scripts/world/world_grid.gd"
 
-# Camera bounds for the authored map. Grass may occupy and spread onto any
+# Camera bounds follow the active map. Grass may occupy and spread onto any
 # normal walkable terrain except either faction base footprint.
 const PLAYER_BASE_SCENE := preload("res://scenes/world/player_base.tscn")
 const ENEMY_BASE_SCENE := preload("res://scenes/world/enemy_base.tscn")
@@ -81,8 +81,8 @@ func spawn_enemy_base_if_needed() -> void:
 	if spawn_marker != null:
 		spawn_position = spawn_marker.position
 	else:
-		# Keep the authored TileMap untouched. Until an EnemyBaseStart marker is
-		# placed in Godot, use a deterministic anchor near the opposite map edge.
+		# Preserve the active terrain and use a deterministic valid anchor near the
+		# opposite map edge when EnemyBaseStart is unavailable.
 		ensure_initialized()
 		var fallback_anchor := _find_enemy_fallback_anchor()
 		spawn_position = anchor_to_world_position(fallback_anchor, BASE_FOOTPRINT)

@@ -179,14 +179,6 @@ func finish_consumption(eater: Node) -> bool:
 	return true
 
 
-func consume() -> bool:
-	if not can_be_eaten() or consumption_claimant != null:
-		return false
-
-	queue_free()
-	return true
-
-
 func destroy_by_earthquake() -> bool:
 	if not has_landed() or is_queued_for_deletion():
 		return false

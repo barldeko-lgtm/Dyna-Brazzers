@@ -1,7 +1,6 @@
 extends "res://scripts/world/faction_base.gd"
 
-# Enemy base has no production AI yet. The public wrapper is ready for the next
-# step, where an enemy controller will decide when and which egg to create.
+# Thin enemy-faction wrapper around shared base egg production.
 const FACTION_HELPER := preload("res://scripts/creatures/creature_faction.gd")
 
 

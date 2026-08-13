@@ -607,14 +607,6 @@ func _restore_enemy_save_fields(save_data: Dictionary) -> void:
 		game_end_controller.call("restore_save_data", game_end_data)
 
 
-# Stable public bridge used by the result overlay. The inherited menu transition
-# already resets the active session and restores normal time before scene change.
-
-
 func return_to_main_menu() -> Error:
 	_reset_active_game_session()
 	return get_tree().change_scene_to_file(START_SCREEN_SCENE_PATH)
-
-
-func return_to_main_menu_from_result() -> void:
-	return_to_main_menu()

@@ -44,8 +44,6 @@ var world_grid: Node = null
 
 var tile_position := Vector2i.ZERO
 
-var render_offset := Vector2.ZERO
-
 var last_consumed_food_value := 0
 
 const CARDINAL_TILE_OFFSETS := [
@@ -303,7 +301,6 @@ func sync_tile_position_with_world() -> bool:
 	if world_grid.has_method("can_host_grass") and not world_grid.can_host_grass(tile_position):
 		return false
 
-	render_offset = Vector2.ZERO
 	world_grid.register_grass(self, tile_position)
 	_notify_grazing_cache_changed(tile_position)
 	global_position = world_grid.grass_tile_to_world_position(tile_position)

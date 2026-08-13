@@ -55,7 +55,6 @@ var button_template: Button = null
 var menu_open := false
 var menu_previous_time_scale := 1.0
 var current_slot_mode := ""
-var status_message := ""
 var ingame_transparent_option_arrow: ImageTexture = null
 var confirmation_layer: CanvasLayer = null
 var confirmation_title_label: Label = null
@@ -142,7 +141,6 @@ func _detach_menu_references() -> void:
 	action_menu_grid = null
 	button_template = null
 	current_slot_mode = ""
-	status_message = ""
 
 
 func _create_menu_root(content_root: Control) -> void:
@@ -201,7 +199,6 @@ func _on_menu_button_pressed() -> void:
 		menu_previous_time_scale = 1.0
 	Engine.time_scale = 0.0
 	menu_open = true
-	status_message = ""
 	if main_menu_grid != null:
 		main_menu_grid.visible = false
 	if menu_root != null:
@@ -235,13 +232,11 @@ func _place_action_menu_root() -> void:
 
 func _on_save_mode_pressed() -> void:
 	current_slot_mode = "save"
-	status_message = ""
 	_show_slot_menu()
 
 
 func _on_load_mode_pressed() -> void:
 	current_slot_mode = "load"
-	status_message = ""
 	_show_slot_menu()
 
 
@@ -294,18 +289,15 @@ func _place_menu_root() -> void:
 func _on_autosave_slot_pressed() -> void:
 	if not bool(save_system.call("has_autosave")):
 		return
-	status_message = tr("STATUS_LOADING_AUTOSAVE")
 	_show_slot_menu()
 	var load_succeeded: bool = await save_system.call("load_autosave")
 	if load_succeeded:
 		_close_menu(false)
 		return
-	status_message = tr("STATUS_LOAD_AUTOSAVE_FAILED")
 	_show_slot_menu()
 
 
 func _on_slots_back_pressed() -> void:
-	status_message = ""
 	_show_action_menu()
 
 
@@ -475,7 +467,6 @@ func _confirm_return_to_main_menu() -> void:
 
 	menu_open = true
 	Engine.time_scale = 0.0
-	status_message = tr("STATUS_MAIN_MENU_FAILED")
 	_show_action_menu()
 
 
@@ -506,7 +497,6 @@ func _clear_confirmation_dialog() -> void:
 func _close_menu(restore_previous_speed: bool) -> void:
 	menu_open = false
 	current_slot_mode = ""
-	status_message = ""
 	if menu_root != null:
 		menu_root.visible = false
 	if main_menu_grid != null:
@@ -517,11 +507,7 @@ func _close_menu(restore_previous_speed: bool) -> void:
 
 func _on_slot_pressed(slot_index: int) -> void:
 	if current_slot_mode == "save":
-		var save_succeeded: bool = bool(save_system.call("save_game", slot_index))
-		if save_succeeded:
-			status_message = tr("STATUS_SAVE_OK") % slot_index
-		else:
-			status_message = tr("STATUS_SAVE_FAILED") % slot_index
+		save_system.call("save_game", slot_index)
 		_show_slot_menu()
 		return
 
@@ -530,7 +516,6 @@ func _on_slot_pressed(slot_index: int) -> void:
 		if load_succeeded:
 			_close_menu(false)
 		else:
-			status_message = tr("STATUS_LOAD_SLOT_FAILED") % slot_index
 			_show_slot_menu()
 
 
@@ -555,17 +540,6 @@ func _add_title_label(title_text: String) -> void:
 	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 18)
 	menu_vbox.add_child(title_label)
-
-
-func _add_status_label(message: String) -> void:
-	var status_label := Label.new()
-	status_label.custom_minimum_size = Vector2(260.0, 28.0)
-	status_label.text = message
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	status_label.add_theme_font_size_override("font_size", 13)
-	menu_vbox.add_child(status_label)
 
 
 func _add_menu_button(button_text: String, callback: Callable, height: float = 44.0) -> Button:
@@ -642,7 +616,6 @@ func _prepare_vbox_menu() -> void:
 
 
 func _on_audio_settings_pressed() -> void:
-	status_message = ""
 	_show_audio_settings_menu()
 
 func _show_audio_settings_menu() -> void:

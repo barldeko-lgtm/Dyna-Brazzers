@@ -46,10 +46,6 @@ var reserved_by_tile: Dictionary = {}
 
 var is_initialized := false
 
-var grass_render_offset := Vector2.ZERO
-
-var has_grass_render_offset := false
-
 # 8-way movement.
 const DIRECTIONS_8 := [
 	Vector2i.LEFT,
@@ -508,17 +504,6 @@ func get_registered_grass_tiles() -> Array[Vector2i]:
 	return tiles
 
 
-func is_tile_region_inside_map(center_tile: Vector2i, radius_tiles: int) -> bool:
-	ensure_initialized()
-	var radius := maxi(radius_tiles, 0)
-	return (
-		center_tile.x - radius >= map_min.x
-		and center_tile.y - radius >= map_min.y
-		and center_tile.x + radius <= map_max.x
-		and center_tile.y + radius <= map_max.y
-	)
-
-
 func get_tile_region_world_rect(center_tile: Vector2i, radius_tiles: int) -> Rect2:
 	var diameter := maxi(radius_tiles, 0) * 2 + 1
 	var region_size := Vector2(tile_size) * float(diameter)
@@ -899,17 +884,6 @@ func find_path_to_any(
 
 
 # Grazing queries.
-# Returns only the single best grazing candidate. Kept for callers that only
-# ever want one target (e.g. the periodic hysteresis recheck).
-func find_best_grazing_target(origin_anchor: Vector2i, footprint_size: Vector2i, min_adult_grass: int, search_radius: int = -1, creature: Node = null, grass_weight: float = 10.0, distance_penalty: float = 2.5) -> Dictionary:
-	var ranked_results := find_best_grazing_targets(origin_anchor, footprint_size, min_adult_grass, search_radius, creature, grass_weight, distance_penalty, 1)
-
-	if ranked_results.is_empty():
-		return {}
-
-	return ranked_results[0]
-
-
 # Returns up to max_results grazing candidates, best first. This lets a
 # creature try the next-best patch immediately if the top one turns out to be
 # physically unreachable, instead of re-scanning the whole map again.

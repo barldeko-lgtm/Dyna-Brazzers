@@ -90,10 +90,6 @@ func _exit_tree() -> void:
 		is_registered_as_blocker = false
 
 
-func get_faction_id() -> StringName:
-	return faction_id
-
-
 func create_faction_egg(species_data: CreatureSpeciesData) -> Node2D:
 	if species_data == null or species_data.egg_scene == null:
 		return null

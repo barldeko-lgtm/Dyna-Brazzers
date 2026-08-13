@@ -116,12 +116,6 @@ func return_spell_menu_to_main() -> void:
 		spell_menu_button.call("return_to_main_menu")
 
 
-func set_rain_preview_tile_override(tile: Vector2i) -> void:
-	rain_preview_tile_override = tile
-	rain_preview_tile_override_enabled = true
-	_update_rain_target_preview()
-
-
 func set_rain_center_grass_required(required: bool) -> void:
 	rain_center_grass_required = required
 	_update_rain_target_preview()
@@ -285,14 +279,6 @@ func is_rain_targeting_enabled() -> bool:
 	return rain_targeting_enabled
 
 
-func is_sun_targeting_enabled() -> bool:
-	return sun_targeting_enabled
-
-
-func is_earthquake_targeting_enabled() -> bool:
-	return earthquake_targeting_enabled
-
-
 func is_targeting_enabled() -> bool:
 	return lightning_targeting_enabled or rain_targeting_enabled or sun_targeting_enabled or earthquake_targeting_enabled
 
@@ -412,13 +398,6 @@ func get_energy() -> float:
 		return 0.0
 
 	return float(player_energy.call("get_energy"))
-
-
-func get_max_energy() -> float:
-	if player_energy == null:
-		return 0.0
-
-	return float(player_energy.call("get_max_energy"))
 
 
 func _update_energy_ui() -> void:

@@ -2,8 +2,6 @@
 extends TileMapLayer
 
 # Pixel-map levels use one exact-color image pixel per 128×128 world tile.
-const MAP_WIDTH := 85
-const MAP_HEIGHT := 85
 const PIXEL_MAP_TEXTURES: Dictionary = {
 	1: preload("res://assets/maps/level_1.png"),
 	2: preload("res://assets/maps/level_2.png"),
@@ -22,96 +20,8 @@ const TERRAIN_WATER := 1
 const TERRAIN_MOUNTAIN := 2
 const TERRAIN_TREE := 3
 
-const MAP_ROWS := [
-	"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-	"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-	"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-	"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-	"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW...............................WW..........................................WWWWW",
-	"WWWWW...............................WW..........................................WWWWW",
-	"WWWWW...............................WWW.........................................WWWWW",
-	"WWWWW...........................T....WW.........................................WWWWW",
-	"WWWWW...........T...............................................................WWWWW",
-	"WWWWW...............WW....MM....................................................WWWWW",
-	"WWWWW...............WW....MM....................................................WWWWW",
-	"WWWWW.....................MMM...................................................WWWWW",
-	"WWWWW......MM.............MMMM..................................................WWWWW",
-	"WWWWW......M...............MMM..................................................WWWWW",
-	"WWWWW.....MM...............MMM..................................................WWWWW",
-	"WWWWW.....MM...........T...MMM..................................................WWWWW",
-	"WWWWW.....MM...............MMM..................................................WWWWW",
-	"WWWWW.....MM...............MM....T..............................................WWWWW",
-	"WWWWW...........T..........MM...................................................WWWWW",
-	"WWWWW...............G...........................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW..........................WWWWWWWW.........................................WWWWW",
-	"WWWWW..T...........T..........WWWWWWWW..........................................WWWWW",
-	"WWWWW.........G...............WW................................................WWWWW",
-	"WWWWW....................T....WW................................................WWWWW",
-	"WWWWW.........................WW................................................WWWWW",
-	"WWWWW....T..........G.........W.................................................WWWWW",
-	"WWWWW...............GG..........................................................WWWWW",
-	"WWWWW.........G.................................................................WWWWW",
-	"WWWWW.........G.................................................................WWWWW",
-	"WWWWW.....MM.............WW.....................................................WWWWW",
-	"WWWWW.....MM.....T.......WW.....................................................WWWWW",
-	"WWWWW......MM............W......................................................WWWWW",
-	"WWWWW......MMM................T...MM............................................WWWWW",
-	"WWWWW......MMM....................MMMMMM........................................WWWWW",
-	"WWWWW..............GGG............MMMMMM........................................WWWWW",
-	"WWWWW..................T........................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWW.....T.....................................................................WWWWW",
-	"WWWWW...........................................................................WWWWW",
-	"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-	"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-	"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-	"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-	"WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"
-]
-
-var active_map_width := MAP_WIDTH
-var active_map_height := MAP_HEIGHT
+var active_map_width := 0
+var active_map_height := 0
 var active_map_rows: Array[String] = []
 
 
@@ -119,56 +29,6 @@ func _enter_tree() -> void:
 	var level_id := _get_active_pixel_map_level_id()
 	if level_id > 0:
 		_build_pixel_map(level_id)
-		return
-
-	if tile_set == null:
-		call_deferred("_build_map_when_ready")
-		return
-
-	_build_map_if_empty()
-
-
-func _build_map_when_ready() -> void:
-	if tile_set == null:
-		return
-
-	_build_map_if_empty()
-
-
-func _build_map_if_empty() -> void:
-	# Never overwrite a TileMap that was edited and saved in Godot.
-	if not get_used_cells().is_empty():
-		return
-
-	_build_static_map()
-
-
-func _build_static_map() -> void:
-	_set_active_layout(MAP_ROWS, MAP_WIDTH, MAP_HEIGHT)
-	clear()
-
-	var tree_anchors: Array[Vector2i] = []
-
-	for y in range(MAP_HEIGHT):
-		var row: String = MAP_ROWS[y]
-
-		for x in range(MAP_WIDTH):
-			var tile: Vector2i = Vector2i(x, y)
-			var marker: String = row.substr(x, 1)
-
-			match marker:
-				"W":
-					set_cell(tile, TERRAIN_WATER, Vector2i(_get_water_atlas_x(tile), 0))
-				"M":
-					set_cell(tile, TERRAIN_MOUNTAIN, Vector2i(_get_mountain_atlas_x(tile), 0))
-				"T":
-					set_cell(tile, TERRAIN_GROUND, Vector2i.ZERO)
-					tree_anchors.append(tile)
-				_:
-					set_cell(tile, TERRAIN_GROUND, Vector2i.ZERO)
-
-	for anchor in tree_anchors:
-		_place_tree(anchor, _variant_for_tile(anchor, 4))
 
 
 func _get_active_pixel_map_level_id() -> int:

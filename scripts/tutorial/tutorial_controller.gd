@@ -545,7 +545,7 @@ func _configure_stegosaurus_flag_step() -> void:
 
 
 func _on_flag_targeting_started(species_id: StringName) -> void:
-	if current_step != 10 or species_id != &"stegosaurus":
+	if not owns_active_tutorial or current_step != 10 or species_id != &"stegosaurus":
 		return
 	stegosaurus_flag_selected = true
 	flag_placement_active = true
@@ -572,7 +572,12 @@ func _set_world_gameplay_input() -> bool:
 
 
 func _on_tutorial_flag_placed(species_id: StringName, _tile: Vector2i) -> void:
-	if current_step != 10 or not flag_placement_active or species_id != &"stegosaurus":
+	if (
+		not owns_active_tutorial
+		or current_step != 10
+		or not flag_placement_active
+		or species_id != &"stegosaurus"
+	):
 		return
 	_show_completion()
 
@@ -587,13 +592,6 @@ func _show_completion() -> void:
 	next_button.visible = true
 	next_button.disabled = false
 	_refresh_localized_text()
-
-
-func _set_visual_highlight(control: Control) -> void:
-	if control == null or not control.is_visible_in_tree():
-		return
-	var target_rect := _global_rect_to_spotlight(control.get_global_rect()).grow(HIGHLIGHT_PADDING)
-	spotlight.call("set_hole_rects", [target_rect])
 
 
 func _set_interactive_highlight(control: Control) -> void:
@@ -640,13 +638,6 @@ func _set_blocker_rect(blocker: Control, blocker_rect: Rect2) -> void:
 	blocker.position = blocker_rect.position
 	blocker.size = blocker_rect.size.max(Vector2.ZERO)
 	blocker.visible = blocker.size.x > 0.0 and blocker.size.y > 0.0
-
-
-func _append_control_highlight(rects: Array[Rect2], control: Control) -> void:
-	if control == null or not is_instance_valid(control) or not control.is_visible_in_tree():
-		return
-	var local_rect := _global_rect_to_spotlight(control.get_global_rect())
-	rects.append(local_rect.grow(HIGHLIGHT_PADDING))
 
 
 func _get_controls_global_rect(controls: Array) -> Rect2:
