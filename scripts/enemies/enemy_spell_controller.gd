@@ -43,8 +43,9 @@ const COMBAT_RESERVE_SAVE_VERSION := 2
 @export var search_area_frame_line_width := 8.0
 @export var rain_area_frame_line_width := 10.0
 
-# Match time grows only the reserve capacity. Actual reserve energy is diverted
-# from real enemy-creature income by EnemyEnergy and never appears from time alone.
+# Fresh matches start with a configured reserve amount. Match time grows only
+# the reserve capacity; further stored energy comes from real enemy-creature income.
+@export var combat_reserve_starting_amount := 500.0
 @export var combat_reserve_unlock_minutes := 10
 @export var combat_reserve_late_rate_after_minutes := 20
 @export var combat_reserve_capacity_gain_per_minute := 100.0
@@ -263,8 +264,13 @@ func refund_combat_reserve_for_rain(amount: float) -> void:
 
 
 func _reset_combat_reserve_for_new_session() -> void:
-	combat_reserve = 0.0
-	combat_reserve_capacity = 0.0
+	var starting_amount := clampf(
+		combat_reserve_starting_amount,
+		0.0,
+		_get_combat_reserve_maximum()
+	)
+	combat_reserve_capacity = starting_amount
+	combat_reserve = starting_amount
 	next_combat_reserve_capacity_tick_minute = _get_first_combat_reserve_capacity_tick_minute()
 	last_combat_reserve_income_deposit = 0.0
 

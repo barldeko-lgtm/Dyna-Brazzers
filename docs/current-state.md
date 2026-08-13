@@ -89,7 +89,7 @@ When no higher-priority behaviour or indirect objective is active, creatures alt
 
 Player and enemy pterodactyls use flight traversal: routes may cross water, trees, and DryGround, while mountains remain blocked. Idle anchors, combat positions, reproduction, and final route destinations still require normal ground placement. A route interrupted over aerial-only terrain continues until the pterodactyl reaches a valid ground anchor.
 
-Long player-flag and enemy-rally routes are planned against terrain and persistent blockers rather than temporary creature occupancy. Temporary blockages are handled by shared movement rerouting while preserving the original strategic destination when possible.
+Long player-flag and enemy-rally routes are planned against terrain and persistent blockers rather than temporary creature occupancy. Temporary blockages are handled by a bounded multi-goal local rejoin search; unchanged traffic jams use staggered timed retries while preserving the original strategic destination.
 
 ### Reproduction
 

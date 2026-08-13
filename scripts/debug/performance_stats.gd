@@ -108,6 +108,10 @@ const CSV_HEADER_COLUMNS := [
 	"proactive_route_bypass_search_time_ms_per_sec",
 	"proactive_route_bypass_search_max_ms",
 	"blocked_route_rejoin_attempts_per_sec",
+	"blocked_route_rejoin_initial_attempts_per_sec",
+	"blocked_route_rejoin_timed_attempts_per_sec",
+	"blocked_route_rejoin_extended_attempts_per_sec",
+	"blocked_route_rejoin_extended_success_per_sec",
 	"blocked_route_rejoin_candidates_checked_per_sec",
 	"blocked_route_rejoin_candidates_reachable_per_sec",
 	"blocked_route_rejoin_success_per_sec",
@@ -412,6 +416,10 @@ func build_csv_sample_row() -> Array[String]:
 	row.append(format_float(get_rate_float("proactive_route_bypass_search_usec") / 1000.0, 3))
 	row.append(format_float(get_last_max_value("proactive_route_bypass_search_max_usec") / 1000.0, 3))
 	row.append(str(get_rate("blocked_route_rejoin_attempts")))
+	row.append(str(get_rate("blocked_route_rejoin_initial_attempts")))
+	row.append(str(get_rate("blocked_route_rejoin_timed_attempts")))
+	row.append(str(get_rate("blocked_route_rejoin_extended_attempts")))
+	row.append(str(get_rate("blocked_route_rejoin_extended_success")))
 	row.append(str(get_rate("blocked_route_rejoin_candidates_checked")))
 	row.append(str(get_rate("blocked_route_rejoin_candidates_reachable")))
 	row.append(str(get_rate("blocked_route_rejoin_success")))

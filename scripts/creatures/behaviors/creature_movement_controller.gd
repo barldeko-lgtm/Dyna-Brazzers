@@ -8,6 +8,10 @@ const INDIRECT_ORDER_STATE_TIMER := 30.0
 const INDIRECT_ORDER_REPATH_TILE_CAP := 1800
 const LOCAL_BLOCKED_ROUTE_REJOIN_STEPS := 8
 const LOCAL_BLOCKED_ROUTE_TILE_CAP := 192
+const EXTENDED_BLOCKED_ROUTE_REJOIN_STEPS := 20
+const EXTENDED_BLOCKED_ROUTE_TILE_CAP := 512
+const BLOCKED_ROUTE_RETRY_MIN_INTERVAL := 1.8
+const BLOCKED_ROUTE_RETRY_MAX_INTERVAL := 2.2
 const LOCAL_BLOCKED_ROUTE_SHARP_SEAM_COST_PENALTY := 3.0
 const DIAGONAL_STEP_COST := 1.41421356
 const ROUTE_COST_EPSILON := 0.0001
@@ -34,6 +38,9 @@ var is_following_indirect_order_route := false
 var is_waiting_for_blocked_indirect_route := false
 var blocked_indirect_route_anchor := Vector2i.ZERO
 var blocked_indirect_route_signature := ""
+var blocked_indirect_route_retry_timer := 0.0
+var blocked_indirect_route_retry_count := 0
+var blocked_indirect_route_retry_enabled := false
 var calm_choice_pending := true
 var is_applying_calm_choice := false
 var last_completed_movement_physics_frame := -1
@@ -70,6 +77,7 @@ func update_walk(delta: float) -> void:
 	var timer := float(creature.get("state_timer")) - delta
 	creature.set("state_timer", timer)
 	_update_indirect_route_optimization(delta)
+	_update_blocked_indirect_route_wait(delta)
 
 	if bool(creature.get("is_moving")):
 		return
@@ -311,6 +319,23 @@ func start_next_path_step_if_needed(allow_rebuild: bool = true) -> void:
 			)
 
 			if current_signature == blocked_indirect_route_signature:
+				if not blocked_indirect_route_retry_enabled:
+					return
+
+				if blocked_indirect_route_retry_timer > 0.0:
+					return
+
+				if _try_timed_blocked_indirect_route_retry(
+					current_path,
+					world_grid,
+					footprint
+				):
+					_reset_blocked_indirect_route_wait()
+					start_next_path_step_if_needed(false)
+					return
+
+				# The blocker and the blocked footprint are unchanged. The timed retry
+				# already rescheduled itself, so keep waiting without doing more path work.
 				return
 
 			_reset_blocked_indirect_route_wait()
@@ -1030,6 +1055,7 @@ func _try_rebuild_blocked_indirect_order_route(
 		return false
 
 	var current_anchor: Vector2i = current_anchor_variant
+	PerformanceStats.add_counter("blocked_route_rejoin_initial_attempts")
 	var local_route := _find_local_indirect_rejoin_route(
 		current_path,
 		world_grid,
@@ -1042,6 +1068,25 @@ func _try_rebuild_blocked_indirect_order_route(
 		_mark_indirect_route_for_optimization()
 		_set_route_debug("local rejoin", last_local_rejoin_debug_reason)
 		return true
+
+	# If the blocked next step is still statically traversable, only another
+	# creature or a movement reservation is in the way. A full static repath
+	# deliberately ignores those temporary blockers, so it would spend up to the
+	# large repath cap just to rediscover essentially the same route. Let the
+	# existing blocked-route wait/signature mechanism retry when occupancy changes.
+	var next_anchor_variant: Variant = current_path[0]
+
+	if (
+		next_anchor_variant is Vector2i
+		and world_grid.has_method("can_traverse_static_footprint")
+		and bool(world_grid.call(
+			"can_traverse_static_footprint",
+			next_anchor_variant,
+			footprint,
+			creature
+		))
+	):
+		return false
 
 	var final_anchor_variant: Variant = current_path[current_path.size() - 1]
 
@@ -1069,14 +1114,17 @@ func _try_rebuild_blocked_indirect_order_route(
 
 	creature.set("current_path", rebuilt_path)
 	_reset_indirect_route_optimization()
-	_set_route_debug("full static repath", "local rejoin was unavailable")
+	_set_route_debug("full static repath", "persistent blocker prevented local rejoin")
 	return true
 
 func _find_local_indirect_rejoin_route(
 	current_path: Array,
 	world_grid: Node,
 	footprint: Vector2i,
-	current_anchor: Vector2i
+	current_anchor: Vector2i,
+	rejoin_steps: int = LOCAL_BLOCKED_ROUTE_REJOIN_STEPS,
+	tile_cap: int = LOCAL_BLOCKED_ROUTE_TILE_CAP,
+	allow_secondary_search: bool = true
 ) -> Array[Vector2i]:
 	last_local_rejoin_debug_reason = "next route step was blocked"
 
@@ -1086,22 +1134,14 @@ func _find_local_indirect_rejoin_route(
 	var started_usec := Time.get_ticks_usec()
 	PerformanceStats.add_counter("blocked_route_rejoin_attempts")
 	var max_rejoin_index := mini(
-		LOCAL_BLOCKED_ROUTE_REJOIN_STEPS - 1,
+		maxi(rejoin_steps, 2) - 1,
 		current_path.size() - 1
 	)
-	var best_route: Array[Vector2i] = []
-	var best_score := INF
-	var best_cost := INF
-	var best_turn_count := 2147483647
-	var best_rejoin_index := -1
-	var best_has_sharp_seam := true
-	var sharp_seam_candidate_count := 0
-	var best_removed_loop_count := 0
-	var best_removed_step_count := 0
+	var rejoin_goals: Array[Vector2i] = []
+	var rejoin_index_by_anchor: Dictionary = {}
 
-	# Check every nearby place where the detour can safely reconnect. The previous
-	# implementation accepted the first reachable (and farthest) point, which could
-	# choose a long detour even when a shorter local bypass also existed.
+	# Keep the same nearby rejoin window, but let one multi-goal A* search all
+	# currently available anchors together instead of launching one A* per anchor.
 	for rejoin_index in range(1, max_rejoin_index + 1):
 		var rejoin_variant: Variant = current_path[rejoin_index]
 
@@ -1111,6 +1151,9 @@ func _find_local_indirect_rejoin_route(
 		PerformanceStats.add_counter("blocked_route_rejoin_candidates_checked")
 		var rejoin_anchor: Vector2i = rejoin_variant
 
+		if rejoin_anchor == current_anchor:
+			continue
+
 		if not bool(world_grid.call(
 			"can_place_footprint",
 			rejoin_anchor,
@@ -1119,85 +1162,97 @@ func _find_local_indirect_rejoin_route(
 		)):
 			continue
 
-		var local_path_variant: Variant = world_grid.call(
-			"find_path",
-			current_anchor,
-			rejoin_anchor,
+		if rejoin_index_by_anchor.has(rejoin_anchor):
+			# If a route happens to contain the same anchor more than once, keep the
+			# furthest occurrence so a successful splice removes more stale steps.
+			rejoin_index_by_anchor[rejoin_anchor] = rejoin_index
+			continue
+
+		rejoin_goals.append(rejoin_anchor)
+		rejoin_index_by_anchor[rejoin_anchor] = rejoin_index
+
+	var best_candidate: Dictionary = {}
+	var sharp_seam_candidate_count := 0
+
+	if not rejoin_goals.is_empty():
+		best_candidate = _search_local_indirect_rejoin_candidate(
+			current_path,
+			world_grid,
 			footprint,
-			creature,
-			LOCAL_BLOCKED_ROUTE_TILE_CAP,
-			&"movement_repath"
+			current_anchor,
+			rejoin_goals,
+			rejoin_index_by_anchor,
+			tile_cap
 		)
 
-		if not (local_path_variant is Array):
-			continue
-
-		var rebuilt_path := _normalize_route(local_path_variant as Array)
-
-		if rebuilt_path.is_empty():
-			continue
-
+	if not best_candidate.is_empty():
 		PerformanceStats.add_counter("blocked_route_rejoin_candidates_reachable")
 
-		rebuilt_path = _splice_rejoin_at_furthest_intersection(
-			rebuilt_path,
-			current_path,
-			rejoin_index
-		)
-
-		var cleanup_result := _remove_route_loops(rebuilt_path, current_anchor)
-		var candidate_route_variant: Variant = cleanup_result.get("route", [])
-
-		if not (candidate_route_variant is Array):
-			continue
-
-		var candidate_route := _normalize_route(candidate_route_variant as Array)
-
-		if candidate_route.is_empty():
-			continue
-
-		var candidate_has_sharp_seam := _has_sharp_rejoin_seam(
-			current_anchor,
-			candidate_route,
-			current_path
-		)
-
-		if candidate_has_sharp_seam:
+		if bool(best_candidate.get("has_sharp_seam", false)):
 			sharp_seam_candidate_count += 1
 			PerformanceStats.add_counter("blocked_route_rejoin_sharp_seam_candidates")
 
-		var candidate_removed_loop_count := int(cleanup_result.get("loop_count", 0))
-		var candidate_removed_step_count := int(cleanup_result.get("removed_steps", 0))
-		var candidate_cost := _calculate_route_cost(current_anchor, candidate_route)
-		var candidate_score := candidate_cost
+			# A sharp seam is the only reason to pay for a second bounded A* search.
+			# Excluding the first goal gives the existing scoring rules one alternate
+			# candidate without returning to the old seven-search worst case.
+			var primary_anchor_variant: Variant = best_candidate.get("rejoin_anchor", null)
+			var secondary_goals: Array[Vector2i] = []
 
-		if candidate_has_sharp_seam:
-			candidate_score += LOCAL_BLOCKED_ROUTE_SHARP_SEAM_COST_PENALTY
+			if primary_anchor_variant is Vector2i:
+				for goal: Vector2i in rejoin_goals:
+					if goal != primary_anchor_variant:
+						secondary_goals.append(goal)
 
-		var candidate_turn_count := _count_route_turns(current_anchor, candidate_route)
+			if allow_secondary_search and not secondary_goals.is_empty():
+				var secondary_candidate := _search_local_indirect_rejoin_candidate(
+					current_path,
+					world_grid,
+					footprint,
+					current_anchor,
+					secondary_goals,
+					rejoin_index_by_anchor,
+					tile_cap
+				)
 
-		if not _is_better_rejoin_candidate(
-			candidate_score,
-			candidate_has_sharp_seam,
-			candidate_cost,
-			candidate_turn_count,
-			rejoin_index,
-			best_score,
-			best_has_sharp_seam,
-			best_cost,
-			best_turn_count,
-			best_rejoin_index
-		):
-			continue
+				if not secondary_candidate.is_empty():
+					PerformanceStats.add_counter("blocked_route_rejoin_candidates_reachable")
 
-		best_route = candidate_route
-		best_score = candidate_score
-		best_cost = candidate_cost
-		best_turn_count = candidate_turn_count
-		best_rejoin_index = rejoin_index
-		best_has_sharp_seam = candidate_has_sharp_seam
-		best_removed_loop_count = candidate_removed_loop_count
-		best_removed_step_count = candidate_removed_step_count
+					if bool(secondary_candidate.get("has_sharp_seam", false)):
+						sharp_seam_candidate_count += 1
+						PerformanceStats.add_counter(
+							"blocked_route_rejoin_sharp_seam_candidates"
+						)
+
+					if _is_better_rejoin_candidate(
+						float(secondary_candidate.get("score", INF)),
+						bool(secondary_candidate.get("has_sharp_seam", true)),
+						float(secondary_candidate.get("cost", INF)),
+						int(secondary_candidate.get("turn_count", 2147483647)),
+						int(secondary_candidate.get("rejoin_index", -1)),
+						float(best_candidate.get("score", INF)),
+						bool(best_candidate.get("has_sharp_seam", true)),
+						float(best_candidate.get("cost", INF)),
+						int(best_candidate.get("turn_count", 2147483647)),
+						int(best_candidate.get("rejoin_index", -1))
+					):
+						best_candidate = secondary_candidate
+
+	var best_route: Array[Vector2i] = []
+	var best_rejoin_index := -1
+	var best_has_sharp_seam := true
+	var best_removed_loop_count := 0
+	var best_removed_step_count := 0
+
+	if not best_candidate.is_empty():
+		var best_route_variant: Variant = best_candidate.get("route", [])
+
+		if best_route_variant is Array:
+			best_route = _normalize_route(best_route_variant as Array)
+
+		best_rejoin_index = int(best_candidate.get("rejoin_index", -1))
+		best_has_sharp_seam = bool(best_candidate.get("has_sharp_seam", true))
+		best_removed_loop_count = int(best_candidate.get("removed_loop_count", 0))
+		best_removed_step_count = int(best_candidate.get("removed_step_count", 0))
 
 	if best_removed_loop_count > 0:
 		PerformanceStats.add_counter(
@@ -1235,6 +1290,89 @@ func _find_local_indirect_rejoin_route(
 			)
 
 	return best_route
+
+func _search_local_indirect_rejoin_candidate(
+	current_path: Array,
+	world_grid: Node,
+	footprint: Vector2i,
+	current_anchor: Vector2i,
+	goals: Array[Vector2i],
+	rejoin_index_by_anchor: Dictionary,
+	tile_cap: int
+) -> Dictionary:
+	if goals.is_empty():
+		return {}
+
+	var result_variant: Variant = world_grid.call(
+		"find_path_to_any",
+		current_anchor,
+		goals,
+		footprint,
+		creature,
+		maxi(tile_cap, 1),
+		&"movement_repath"
+	)
+
+	if not (result_variant is Dictionary):
+		return {}
+
+	var result: Dictionary = result_variant
+	var local_route_variant: Variant = result.get("path", [])
+	var rejoin_anchor_variant: Variant = result.get("goal_anchor", null)
+
+	if not (local_route_variant is Array) or not (rejoin_anchor_variant is Vector2i):
+		return {}
+
+	var local_route := _normalize_route(local_route_variant as Array)
+	var rejoin_anchor: Vector2i = rejoin_anchor_variant
+
+	if local_route.is_empty():
+		return {}
+
+	var rejoin_index_variant: Variant = rejoin_index_by_anchor.get(rejoin_anchor, null)
+
+	if not (rejoin_index_variant is int):
+		return {}
+
+	var rejoin_index: int = rejoin_index_variant
+	var rebuilt_path := _splice_rejoin_at_furthest_intersection(
+		local_route,
+		current_path,
+		rejoin_index
+	)
+	var cleanup_result := _remove_route_loops(rebuilt_path, current_anchor)
+	var candidate_route_variant: Variant = cleanup_result.get("route", [])
+
+	if not (candidate_route_variant is Array):
+		return {}
+
+	var candidate_route := _normalize_route(candidate_route_variant as Array)
+
+	if candidate_route.is_empty():
+		return {}
+
+	var candidate_has_sharp_seam := _has_sharp_rejoin_seam(
+		current_anchor,
+		candidate_route,
+		current_path
+	)
+	var candidate_cost := _calculate_route_cost(current_anchor, candidate_route)
+	var candidate_score := candidate_cost
+
+	if candidate_has_sharp_seam:
+		candidate_score += LOCAL_BLOCKED_ROUTE_SHARP_SEAM_COST_PENALTY
+
+	return {
+		"route": candidate_route,
+		"rejoin_anchor": rejoin_anchor,
+		"rejoin_index": rejoin_index,
+		"score": candidate_score,
+		"cost": candidate_cost,
+		"turn_count": _count_route_turns(current_anchor, candidate_route),
+		"has_sharp_seam": candidate_has_sharp_seam,
+		"removed_loop_count": int(cleanup_result.get("loop_count", 0)),
+		"removed_step_count": int(cleanup_result.get("removed_steps", 0))
+	}
 
 func _get_shared_route_suffix_start(
 	candidate_route: Array[Vector2i],
@@ -1434,6 +1572,88 @@ func _count_route_turns(start_anchor: Vector2i, route: Array[Vector2i]) -> int:
 
 	return turn_count
 
+func _update_blocked_indirect_route_wait(delta: float) -> void:
+	if not is_waiting_for_blocked_indirect_route or not blocked_indirect_route_retry_enabled:
+		return
+
+	blocked_indirect_route_retry_timer = maxf(
+		blocked_indirect_route_retry_timer - delta,
+		0.0
+	)
+
+func _get_staggered_blocked_route_retry_interval() -> float:
+	# Spread retries from creatures that entered the same traffic jam together.
+	# The retry counter changes the phase as well, so one creature does not keep
+	# hitting exactly the same frame every two simulation seconds.
+	var instance_id := int(creature.get_instance_id())
+	var phase_seed := absi(instance_id + blocked_indirect_route_retry_count * 977)
+	var phase_step := phase_seed % 2001
+	var phase := float(phase_step) / 2000.0
+	return lerpf(
+		BLOCKED_ROUTE_RETRY_MIN_INTERVAL,
+		BLOCKED_ROUTE_RETRY_MAX_INTERVAL,
+		phase
+	)
+
+func _try_timed_blocked_indirect_route_retry(
+	current_path: Array,
+	world_grid: Node,
+	footprint: Vector2i
+) -> bool:
+	var current_anchor_variant: Variant = creature.get("anchor_tile")
+
+	if not (current_anchor_variant is Vector2i):
+		blocked_indirect_route_retry_count += 1
+		blocked_indirect_route_retry_timer = (
+			_get_staggered_blocked_route_retry_interval()
+		)
+		return false
+
+	var current_anchor: Vector2i = current_anchor_variant
+	var use_extended_search := blocked_indirect_route_retry_count >= 1
+	PerformanceStats.add_counter("blocked_route_rejoin_timed_attempts")
+	if use_extended_search:
+		PerformanceStats.add_counter("blocked_route_rejoin_extended_attempts")
+	var rejoin_steps := (
+		EXTENDED_BLOCKED_ROUTE_REJOIN_STEPS
+		if use_extended_search
+		else LOCAL_BLOCKED_ROUTE_REJOIN_STEPS
+	)
+	var tile_cap := (
+		EXTENDED_BLOCKED_ROUTE_TILE_CAP
+		if use_extended_search
+		else LOCAL_BLOCKED_ROUTE_TILE_CAP
+	)
+
+	# The first timed retry stays cheap. From the second retry onward, use one
+	# wider 512-tile multi-goal search every ~2 simulation seconds. Do not run the
+	# optional second seam search in the extended mode: 512 is the hard per-retry
+	# pathfinding budget, which keeps traffic jams from recreating the old spikes.
+	var retry_route := _find_local_indirect_rejoin_route(
+		current_path,
+		world_grid,
+		footprint,
+		current_anchor,
+		rejoin_steps,
+		tile_cap,
+		not use_extended_search
+	)
+
+	blocked_indirect_route_retry_count += 1
+	blocked_indirect_route_retry_timer = (
+		_get_staggered_blocked_route_retry_interval()
+	)
+
+	if retry_route.is_empty():
+		return false
+
+	if use_extended_search:
+		PerformanceStats.add_counter("blocked_route_rejoin_extended_success")
+	creature.set("current_path", retry_route)
+	_mark_indirect_route_for_optimization()
+	_set_route_debug("timed local rejoin", last_local_rejoin_debug_reason)
+	return true
+
 func _begin_blocked_indirect_route_wait(
 	world_grid: Node,
 	next_anchor: Vector2i,
@@ -1441,6 +1661,21 @@ func _begin_blocked_indirect_route_wait(
 ) -> void:
 	is_waiting_for_blocked_indirect_route = true
 	blocked_indirect_route_anchor = next_anchor
+	blocked_indirect_route_retry_count = 0
+	blocked_indirect_route_retry_enabled = (
+		world_grid.has_method("can_traverse_static_footprint")
+		and bool(world_grid.call(
+			"can_traverse_static_footprint",
+			next_anchor,
+			footprint,
+			creature
+		))
+	)
+	blocked_indirect_route_retry_timer = (
+		_get_staggered_blocked_route_retry_interval()
+		if blocked_indirect_route_retry_enabled
+		else 0.0
+	)
 	blocked_indirect_route_signature = _get_blocked_indirect_route_signature(
 		world_grid,
 		next_anchor,
@@ -1494,6 +1729,9 @@ func _reset_blocked_indirect_route_wait() -> void:
 	is_waiting_for_blocked_indirect_route = false
 	blocked_indirect_route_anchor = Vector2i.ZERO
 	blocked_indirect_route_signature = ""
+	blocked_indirect_route_retry_timer = 0.0
+	blocked_indirect_route_retry_count = 0
+	blocked_indirect_route_retry_enabled = false
 
 func get_route_debug_data() -> Dictionary:
 	return {

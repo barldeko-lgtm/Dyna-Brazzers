@@ -178,8 +178,8 @@ Shared movement rules:
 - reserve the next footprint atomically before visual movement and convert it to normal occupancy on arrival;
 - cancellation, failure, death, and removal release reservations;
 - long indirect routes plan against terrain/persistent blockers, not temporary creature occupancy;
-- temporary indirect-route blockage first attempts shared rerouting while preserving the strategic destination;
-- if rerouting fails, keep the commitment while the relevant blockage remains transient and retry through movement-controller logic;
+- temporary indirect-route blockage first attempts one bounded multi-goal local rejoin search while preserving the strategic destination;
+- if the blocked footprint remains unchanged, stable per-creature timed retries are staggered; later retries may use the wider bounded rejoin window without falling back to a full static repath for creature-only congestion;
 - ordinary one-step wandering is not a persistent strategic route;
 - replacing queued behaviour must not interrupt an active smooth grid step;
 - autonomous survival, food, reproduction, hunting, combat, and death outrank indirect orders;
