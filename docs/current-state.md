@@ -71,7 +71,7 @@ The observer camera:
 - renders the world through a dedicated gameplay viewport ending at the live left edge of the right-side HUD;
 - starts from the authored `CameraStart` marker on a fresh game;
 - restores position and zoom from saves;
-- supports WASD movement and mouse-wheel zoom;
+- supports WASD movement, middle-mouse drag panning over the game viewport, and mouse-wheel zoom;
 - remains clamped to map bounds owned by `camera_controller.gd`;
 - moves in real time independently of simulation speed.
 

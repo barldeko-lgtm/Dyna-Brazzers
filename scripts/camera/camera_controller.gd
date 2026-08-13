@@ -10,6 +10,7 @@ extends Camera2D
 
 var world_grid: Node = null
 var start_position_checked: bool = false
+var middle_mouse_dragging: bool = false
 
 
 func _ready() -> void:
@@ -22,6 +23,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_ensure_world_grid()
 	_enforce_zoom_limits()
+	if middle_mouse_dragging and not Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE):
+		middle_mouse_dragging = false
 
 	var direction: Vector2 = Vector2.ZERO
 
@@ -73,21 +76,31 @@ func _ensure_world_grid() -> void:
 	world_grid = get_tree().get_first_node_in_group("world_grid")
 
 
-# Wheel zoom.
+# Wheel zoom and middle-mouse pan.
 func _unhandled_input(event: InputEvent) -> void:
 	if handle_game_viewport_input(event):
 		get_viewport().set_input_as_handled()
 
 
 func handle_game_viewport_input(event: InputEvent) -> bool:
-	if not (event is InputEventMouseButton) or not event.pressed:
-		return false
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_MIDDLE:
+			middle_mouse_dragging = event.pressed
+			return true
 
-	if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-		change_zoom(-zoom_step)
-		return true
-	if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-		change_zoom(zoom_step)
+		if not event.pressed:
+			return false
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			change_zoom(-zoom_step)
+			return true
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			change_zoom(zoom_step)
+			return true
+
+	if event is InputEventMouseMotion and middle_mouse_dragging:
+		var safe_zoom := maxf(zoom.x, 0.001)
+		global_position -= event.relative / safe_zoom
+		_clamp_camera_to_world()
 		return true
 
 	return false
