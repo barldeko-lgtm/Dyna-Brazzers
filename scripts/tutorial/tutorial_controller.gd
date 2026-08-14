@@ -235,8 +235,8 @@ func _apply_egg_hatch_layout() -> void:
 	panel_center.offset_right = -80.0
 	panel_center.offset_top = -WAIT_PANEL_SHIFT_UP
 	panel_center.offset_bottom = -WAIT_PANEL_SHIFT_UP
-	_set_control_rect(header_label, Vector2(70.0, 10.0), Vector2(760.0, 34.0))
-	_set_body_rect_below_header(78.0, 222.0, 784.0)
+	_set_control_rect(header_label, Vector2(70.0, 20.0), Vector2(760.0, 34.0))
+	_set_control_rect(body_label, Vector2(78.0, 58.0), Vector2(784.0, 164.0))
 	body_label.add_theme_font_size_override("normal_font_size", 19)
 	body_label.add_theme_font_size_override("bold_font_size", 19)
 	_set_control_rect(next_button, Vector2(245.0, 230.0), Vector2(170.0, 48.0))
@@ -291,8 +291,8 @@ func _apply_rain_target_layout() -> void:
 	panel_center.offset_right = -RAIN_TARGET_PANEL_SHIFT_LEFT
 	panel_center.offset_top = -RAIN_TARGET_PANEL_SHIFT_UP
 	panel_center.offset_bottom = -RAIN_TARGET_PANEL_SHIFT_UP
-	_set_control_rect(header_label, Vector2(60.0, 6.0), Vector2(640.0, 30.0))
-	_set_body_rect_below_header(50.0, 198.0, 660.0)
+	_set_control_rect(header_label, Vector2(60.0, 16.0), Vector2(640.0, 30.0))
+	_set_control_rect(body_label, Vector2(50.0, 50.0), Vector2(660.0, 148.0))
 	body_label.add_theme_font_size_override("normal_font_size", 19)
 	body_label.add_theme_font_size_override("bold_font_size", 19)
 	_set_control_rect(next_button, Vector2(175.0, 212.0), Vector2(170.0, 44.0))
@@ -319,8 +319,8 @@ func _apply_flag_placement_layout() -> void:
 	panel_center.offset_right = -FLAG_PLACEMENT_PANEL_SHIFT_LEFT
 	panel_center.offset_top = -FLAG_PLACEMENT_PANEL_SHIFT_UP
 	panel_center.offset_bottom = -FLAG_PLACEMENT_PANEL_SHIFT_UP
-	_set_control_rect(header_label, Vector2(60.0, 14.0), Vector2(640.0, 32.0))
-	_set_body_rect_below_header(50.0, 246.0, 660.0)
+	_set_control_rect(header_label, Vector2(60.0, 24.0), Vector2(640.0, 32.0))
+	_set_control_rect(body_label, Vector2(50.0, 60.0), Vector2(660.0, 186.0))
 	body_label.add_theme_font_size_override("normal_font_size", 20)
 	body_label.add_theme_font_size_override("bold_font_size", 20)
 	_set_control_rect(next_button, Vector2(175.0, 260.0), Vector2(170.0, 44.0))

@@ -295,7 +295,7 @@ Display settings are shared by startup and in-game Settings:
 
 `DisplaySettings` persists display state in `user://display_settings.cfg`, separately from gameplay saves. `LocalizationManager` persists locale in `user://dyna_locale.cfg`. `AudioManager` persists audio settings in `user://audio_settings.cfg`.
 
-Player-facing UI supports `ru`, `en`, `fr`, `de`, and `uk`. General UI strings live in `localization/ui.csv`; display-mode strings live in `localization/display_settings.csv`. Russian is the first-run fallback. Startup and in-game Settings expose the same language, display, resolution, music, and sound state.
+Player-facing UI supports `en`, `uk`, `de`, `fr`, and `ru`. General UI strings live in `localization/ui.csv`; display-mode strings live in `localization/display_settings.csv`. English is the first-run fallback. Startup and in-game Settings expose the same language order, display, resolution, music, and sound state.
 
 Debug systems remain separate. In editor/debug builds, F3 exposes world-grid/path diagnostics, F4 exposes general text diagnostics, F5 exposes enemy strategy/spell diagnostics, and the x5 simulation-speed control is available for testing. Release builds hide and disable F3/F4/F5 and x5, while F8 performance CSV recording deliberately remains available for diagnostics on external machines.
 

@@ -4,11 +4,11 @@ const BUTTON_TEXT_FITTER := preload("res://scripts/ui/button_text_fitter.gd")
 
 const SLOT_COUNT: int = 3
 const LANGUAGE_OPTIONS := [
-	{"locale": "ru", "name": "Русский"},
 	{"locale": "en", "name": "English"},
-	{"locale": "fr", "name": "Français"},
-	{"locale": "de", "name": "Deutsch"},
 	{"locale": "uk", "name": "Українська"},
+	{"locale": "de", "name": "Deutsch"},
+	{"locale": "fr", "name": "Français"},
+	{"locale": "ru", "name": "Русский"},
 ]
 
 @onready var menu_vbox: VBoxContainer = $CenterContainer/MenuPanel/MarginContainer/VBoxContainer

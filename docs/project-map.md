@@ -109,7 +109,7 @@ Enemy objectives:
 - `scripts/tutorial/tutorial_controller.gd` — gameplay tutorial lifecycle, localization, dynamic layouts, HUD/world target resolution, selective input gates, confirmed egg/hatch/rain/flag progression, completion handoff, Next, Skip, and pause ownership.
 - `scripts/tutorial/tutorial_spotlight.gd` — multi-rectangle dim mask and highlight outlines; the controller pairs it with full or one-control input gating per step.
 - `scripts/settings/display_settings.gd` — single runtime owner of display mode, supported window resolution, 16:9 scaling contract, display persistence, and startup Settings/Load layout normalization.
-- `scripts/localization/localization_manager.gd` — supported locale list, Russian first-run default, `TranslationServer` switching, and locale persistence.
+- `scripts/localization/localization_manager.gd` — supported locale list, English first-run default, `TranslationServer` switching, and locale persistence.
 - `localization/ui.csv` — general player-facing translations for `ru`, `en`, `fr`, `de`, and `uk`.
 - `localization/display_settings.csv` — display-mode/resolution translations for the same five locales.
 - `scripts/ui/player_ui.gd` — minimap, counters, base focus, time controls, egg-controller bootstrap, and stable tutorial access to minimap/counter controls.

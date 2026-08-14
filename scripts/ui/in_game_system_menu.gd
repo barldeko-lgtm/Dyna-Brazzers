@@ -11,11 +11,11 @@ const LOAD_MENU_ROOT_SIZE := Vector2(260.0, 247.0)
 const LOAD_MENU_BUTTON_HEIGHT := 47.0
 const LOAD_MENU_BUTTON_SEPARATION := 3
 const LANGUAGE_OPTIONS := [
-	{"locale": "ru", "name": "Русский"},
 	{"locale": "en", "name": "English"},
-	{"locale": "fr", "name": "Français"},
-	{"locale": "de", "name": "Deutsch"},
 	{"locale": "uk", "name": "Українська"},
+	{"locale": "de", "name": "Deutsch"},
+	{"locale": "fr", "name": "Français"},
+	{"locale": "ru", "name": "Русский"},
 ]
 const INGAME_SETTINGS_ROW_SIZE := Vector2(260.0, 27.0)
 const INGAME_SETTINGS_LABEL_SLOT_SIZE := Vector2(104.0, 27.0)

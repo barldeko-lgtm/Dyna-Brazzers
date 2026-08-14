@@ -38,7 +38,7 @@ window/vsync/vsync_mode=0
 [internationalization]
 
 locale/translations=PackedStringArray("res://localization/ui.en.translation", "res://localization/ui.fr.translation", "res://localization/ui.de.translation", "res://localization/ui.ru.translation", "res://localization/ui.uk.translation", "res://localization/display_settings.en.translation", "res://localization/display_settings.fr.translation", "res://localization/display_settings.de.translation", "res://localization/display_settings.ru.translation", "res://localization/display_settings.uk.translation")
-locale/fallback="ru"
+locale/fallback="en"
 
 [physics]
 

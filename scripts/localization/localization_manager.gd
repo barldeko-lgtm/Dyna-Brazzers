@@ -5,8 +5,8 @@ signal locale_changed(locale: String)
 const SETTINGS_PATH := "user://dyna_locale.cfg"
 const SETTINGS_SECTION := "localization"
 const SETTINGS_KEY := "locale"
-const DEFAULT_LOCALE := "ru"
-const SUPPORTED_LOCALES := ["ru", "en", "fr", "de", "uk"]
+const DEFAULT_LOCALE := "en"
+const SUPPORTED_LOCALES := ["en", "uk", "de", "fr", "ru"]
 
 
 func _ready() -> void:

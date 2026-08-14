@@ -14,8 +14,8 @@ const AMBIENT_BUS := &"Ambient"
 const SFX_BUS := &"SFX"
 const UI_BUS := &"UI"
 
-const DEFAULT_MUSIC_VOLUME: float = 0.45
-const DEFAULT_SOUND_VOLUME: float = 1.0
+const DEFAULT_MUSIC_VOLUME: float = 0.5
+const DEFAULT_SOUND_VOLUME: float = 0.5
 const MUSIC_FADE_SECONDS: float = 1.25
 const GLOBAL_OUTPUT_GAIN_DB: float = -6.020599913279624
 const MUSIC_TRACK_GAIN_DB: float = -6.020599913279624
