@@ -11,6 +11,13 @@ const MENU_SPELLS := &"spells"
 const MENU_FLAGS := &"flags"
 const MENU_SYSTEM := &"system"
 const SPELL_RAIN := &"rain"
+const RELEASE_BLOCKED_KEYS := [KEY_F3, KEY_F4, KEY_F5, KEY_4]
+const RELEASE_DEBUG_GROUPS := [
+	&"debug_status_ui",
+	&"grid_debug_overlay",
+	&"enemy_ai_debug_ui",
+]
+const X5_SPEED_BUTTON_INDEX := 3
 
 # Player-facing nature powers HUD and stable access point for its nested menus.
 @export var lightning_energy_cost := 850.0
@@ -67,6 +74,45 @@ func _ready() -> void:
 	_refresh_localized_text()
 	LocalizationManager.locale_changed.connect(_on_locale_changed)
 	_update_energy_ui()
+	_configure_release_build_ui()
+
+
+func _input(event: InputEvent) -> void:
+	if OS.is_debug_build() or not (event is InputEventKey):
+		return
+
+	var key_event := event as InputEventKey
+	if not key_event.pressed or key_event.echo:
+		return
+
+	if key_event.keycode in RELEASE_BLOCKED_KEYS or key_event.physical_keycode in RELEASE_BLOCKED_KEYS:
+		get_viewport().set_input_as_handled()
+
+
+func _configure_release_build_ui() -> void:
+	if OS.is_debug_build():
+		return
+
+	if time_speed_buttons.size() > X5_SPEED_BUTTON_INDEX:
+		var x5_button := time_speed_buttons[X5_SPEED_BUTTON_INDEX]
+		if x5_button != null:
+			x5_button.visible = false
+			x5_button.disabled = true
+
+	call_deferred("_disable_release_debug_nodes")
+
+
+func _disable_release_debug_nodes() -> void:
+	if OS.is_debug_build():
+		return
+
+	for group_name: StringName in RELEASE_DEBUG_GROUPS:
+		for debug_node: Node in get_tree().get_nodes_in_group(group_name):
+			debug_node.set_process(false)
+			debug_node.set_process_input(false)
+			debug_node.set_process_unhandled_input(false)
+			if debug_node is CanvasItem:
+				(debug_node as CanvasItem).visible = false
 
 
 func _process(_delta: float) -> void:

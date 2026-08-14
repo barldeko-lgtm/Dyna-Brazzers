@@ -10,7 +10,8 @@ config_version=5
 
 [application]
 
-config/name="Dyna"
+config/name="Dyna_Genesis"
+config/version="0.8.0"
 run/main_scene="res://scenes/ui/start_screen.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://assets/ui/dyna_genesis_icon.png"
@@ -24,6 +25,7 @@ PerformanceStats="*res://scripts/debug/performance_stats.gd"
 PlayerFlags="*res://scripts/flags/player_flag_system_with_catalog.gd"
 SaveSystem="*res://scripts/save/save_system.gd"
 TutorialManager="*res://scripts/tutorial/tutorial_manager.gd"
+ReleaseIdentity="*res://scripts/ui/release_identity.gd"
 
 [display]
 

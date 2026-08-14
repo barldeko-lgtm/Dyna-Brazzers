@@ -297,12 +297,7 @@ Display settings are shared by startup and in-game Settings:
 
 Player-facing UI supports `ru`, `en`, `fr`, `de`, and `uk`. General UI strings live in `localization/ui.csv`; display-mode strings live in `localization/display_settings.csv`. Russian is the first-run fallback. Startup and in-game Settings expose the same language, display, resolution, music, and sound state.
 
-Debug systems remain separate:
-
-- F3 — world grid, paths, occupancy, and selected-creature route/flag diagnostics;
-- F4 — general text diagnostics;
-- F5 — enemy strategic AI and spell diagnostics;
-- F8 — performance CSV recording.
+Debug systems remain separate. In editor/debug builds, F3 exposes world-grid/path diagnostics, F4 exposes general text diagnostics, F5 exposes enemy strategy/spell diagnostics, and the x5 simulation-speed control is available for testing. Release builds hide and disable F3/F4/F5 and x5, while F8 performance CSV recording deliberately remains available for diagnostics on external machines.
 
 Debug UI reads public state but must not make strategic decisions or mutate simulation state.
 
