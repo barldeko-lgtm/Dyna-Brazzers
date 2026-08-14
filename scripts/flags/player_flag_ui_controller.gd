@@ -191,9 +191,9 @@ func _build_flag_menu(menu_entries: Array[Dictionary]) -> void:
 	var back_button := _duplicate_menu_button()
 	back_button.name = "FlagMenuBackButton"
 	back_button.custom_minimum_size = Vector2(126.0, 56.0)
-	back_button.set_meta(&"translation_key", "BACK_ARROW")
+	back_button.set_meta(&"translation_key", "MENU_BACK")
 	back_button.set_meta(&"tooltip_translation_key", "BACK_TOOLTIP")
-	back_button.text = tr("BACK_ARROW")
+	back_button.text = tr("MENU_BACK")
 	back_button.tooltip_text = tr("BACK_TOOLTIP")
 	back_button.add_theme_font_size_override("font_size", 14)
 	back_button.pressed.connect(_on_back_button_pressed)

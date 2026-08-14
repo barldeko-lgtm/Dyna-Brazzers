@@ -107,7 +107,7 @@ func _build_egg_menu() -> void:
 	var back_button := _duplicate_menu_button()
 	back_button.name = "EggMenuBackButton"
 	back_button.custom_minimum_size = EGG_MENU_BUTTON_SIZE
-	back_button.text = tr("BACK_ARROW")
+	back_button.text = tr("MENU_BACK")
 	back_button.tooltip_text = tr("BACK_TOOLTIP")
 	back_button.add_theme_font_size_override("font_size", 18)
 	back_button.pressed.connect(_on_back_button_pressed)
@@ -226,7 +226,7 @@ func _refresh_localized_text() -> void:
 			"EggMenuBackButton"
 		) as Button
 		if back_button != null:
-			back_button.text = tr("BACK_ARROW")
+			back_button.text = tr("MENU_BACK")
 			back_button.tooltip_text = tr("BACK_TOOLTIP")
 
 

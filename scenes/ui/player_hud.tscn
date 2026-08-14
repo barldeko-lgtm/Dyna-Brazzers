@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/ui/creature_info_panel.tscn" id="1_creature_info_panel"]
 [ext_resource type="PackedScene" path="res://scenes/ui/nature_menu.tscn" id="2_nature_menu"]
@@ -34,6 +34,20 @@ corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_entity_counts_bg"]
 bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_player_side_marker"]
+bg_color = Color(0.35, 1, 0.35, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_enemy_side_marker"]
+bg_color = Color(1, 0.25, 0.25, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [node name="PlayerHUD" type="CanvasLayer"]
 
@@ -124,14 +138,18 @@ theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 4
 columns = 6
 
-[node name="PlayerSideIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="PlayerSideIconLabel" type="MarginContainer" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(34, 22)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.35, 1, 0.35, 1)
-theme_override_font_sizes/font_size = 18
-text = "●"
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 6
+
+[node name="Dot" type="Panel" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/PlayerSideIconLabel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_player_side_marker")
 
 [node name="PlayerHerbivoreCountLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 layout_mode = 2
@@ -198,14 +216,18 @@ stretch_mode = 5
 custom_minimum_size = Vector2(40, 18)
 layout_mode = 2
 
-[node name="EnemySideIconLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
+[node name="EnemySideIconLabel" type="MarginContainer" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 custom_minimum_size = Vector2(34, 22)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.25, 0.25, 1)
-theme_override_font_sizes/font_size = 18
-text = "●"
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 6
+
+[node name="Dot" type="Panel" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer/EnemySideIconLabel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_enemy_side_marker")
 
 [node name="EnemyHerbivoreCountLabel" type="Label" parent="PlayerSidePanel/MarginContainer/VBoxContainer/EntityCountsPanel/MarginContainer/GridContainer"]
 layout_mode = 2

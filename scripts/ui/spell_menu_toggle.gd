@@ -30,6 +30,8 @@ func _ready() -> void:
 	if back_node is Button:
 		back_button = back_node
 		back_button.focus_mode = Control.FOCUS_NONE
+		back_button.text = tr("MENU_BACK")
+		back_button.tooltip_text = tr("BACK_TOOLTIP")
 		if not back_button.pressed.is_connected(_on_back_button_pressed):
 			back_button.pressed.connect(_on_back_button_pressed)
 
@@ -67,4 +69,9 @@ func _apply_open_state(is_open: bool) -> void:
 			spell_button.visible = is_open
 
 	if back_button != null and is_instance_valid(back_button):
+		if is_open:
+			# Avoid Unicode arrow glyphs here: the bundled UI font does not contain
+			# them consistently in Web exports.
+			back_button.text = tr("MENU_BACK")
+			back_button.tooltip_text = tr("BACK_TOOLTIP")
 		back_button.visible = is_open
