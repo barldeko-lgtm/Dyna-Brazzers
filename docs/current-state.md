@@ -292,12 +292,13 @@ Display settings are shared by startup and in-game Settings:
 - returning to windowed mode restores the selected window preference;
 - when the preferred decorated window cannot fit the usable desktop, the client area is reduced proportionally so the operating-system title bar and close controls remain visible;
 - free-form window resizing/maximizing is disabled; the settings list owns the supported window sizes.
+- Windows rendering is capped at 60 FPS with V-Sync enabled; Forward+/Direct3D 12 remains primary, with Vulkan and then Compatibility/OpenGL fallback enabled, and Compatibility may fall back to ANGLE/Direct3D 11 when native OpenGL is unavailable.
 
 `DisplaySettings` persists display state in `user://display_settings.cfg`, separately from gameplay saves. `LocalizationManager` persists locale in `user://dyna_locale.cfg`. `AudioManager` persists audio settings in `user://audio_settings.cfg`.
 
 Player-facing UI supports `en`, `uk`, `de`, `fr`, and `ru`. General UI strings live in `localization/ui.csv`; display-mode strings live in `localization/display_settings.csv`. English is the first-run fallback. Startup and in-game Settings expose the same language order, display, resolution, music, and sound state.
 
-Debug systems remain separate. In editor/debug builds, F3 exposes world-grid/path diagnostics, F4 exposes general text diagnostics, F5 exposes enemy strategy/spell diagnostics, and the x5 simulation-speed control is available for testing. Release builds hide and disable F3/F4/F5 and x5, while F8 performance CSV recording deliberately remains available for diagnostics on external machines.
+Debug systems remain separate. In editor/debug builds, F3 exposes world-grid/path diagnostics, F4 exposes general text diagnostics, F5 exposes enemy strategy/spell diagnostics, and the x5 simulation-speed control is available for testing. Release builds hide and disable F3/F4/F5 and x5, while F8 performance CSV recording deliberately remains available for diagnostics on external machines. Performance CSV rows also record the actual rendering method and rendering driver selected at runtime.
 
 Debug UI reads public state but must not make strategic decisions or mutate simulation state.
 

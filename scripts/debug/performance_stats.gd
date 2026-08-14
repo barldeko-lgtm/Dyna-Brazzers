@@ -34,6 +34,8 @@ const CSV_HEADER_COLUMNS := [
 	"sample_window_sec",
 	"fps",
 	"time_scale",
+	"rendering_method",
+	"rendering_driver",
 	"memory_static_mb",
 	"node_count",
 	"object_count",
@@ -372,6 +374,8 @@ func build_csv_sample_row() -> Array[String]:
 	row.append(format_float(last_sample_window_seconds, 3))
 	row.append(str(Engine.get_frames_per_second()))
 	row.append(format_float(Engine.time_scale, 2))
+	row.append(RenderingServer.get_current_rendering_method())
+	row.append(RenderingServer.get_current_rendering_driver_name())
 	row.append(format_float(get_static_memory_mb(), 2))
 	row.append(str(get_node_count()))
 	row.append(str(get_object_count()))
